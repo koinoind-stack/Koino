@@ -24,7 +24,16 @@ export function useSupabaseUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
+    // Graceful degradation: if Supabase env vars are missing (misconfigured
+    // deployment), render the logged-out state instead of crashing the whole
+    // app with an uncaught client-side exception.
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      setLoading(false);
+      return;
+    }
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user);

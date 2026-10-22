@@ -22,7 +22,15 @@ export default function HeaderUserSection({ mobile = false }: { mobile?: boolean
   const [points, setPoints] = useState<number>(0);
 
   useEffect(() => {
-    const supabase = createClient();
+    // Graceful degradation when Supabase env vars are missing (misconfigured
+    // deployment): stay in the logged-out state instead of crashing the app.
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      setLoading(false);
+      return;
+    }
 
     // Get current session
     supabase.auth.getUser().then(({ data: { user } }) => {
