@@ -1,0 +1,1152 @@
+// CrossCrafted Prisma Schema
+// Production database: PostgreSQL (Supabase)
+// Local dev also uses PostgreSQL so the schema matches production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USER ──────────────────────────────────────────────────────────────────
+// Extended from the scaffold User model. totalPoints is the SERVER-SIDE
+// source of truth — the browser never writes to it directly.
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  image        String?
+  emailVerified DateTime?
+  role         String   @default("user") // "user" | "admin"
+  totalPoints  Int      @default(0) // SERVER-AUTHORITATIVE — never trust client
+  // User's preferred UI language. Synced from the LanguageContext cookie
+  // when the user signs in. Null = use cookie/browser detection (existing behavior).
+  preferredLanguage String? // "en" | "hi" | "bn" | "te" | "mr" | "ta" | "gu" | "ur" | "kn" | "or" | "ml" | "pa" | "as"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // ─── PROFILE / ONBOARDING FIELDS ───
+  // Added for Koino signup/onboarding flow. All optional so existing users
+  // are not forced to migrate. profileCompleted gates the onboarding flow:
+  // if false, the user is redirected to /onboarding after signin.
+  username         String?  @unique // unique constraint at DB level
+  dateOfBirth      DateTime?
+  gender           String?  // "male" | "female" | "prefer_not_to_say"
+  state            String?  // Indian state — used for church/event/business discovery
+  city             String?  // City within the state
+  mobileNumber     String?  // Optional — verified only when claiming a prize
+  mobileVerified   Boolean  @default(false)
+  faithStatus      String?  // "follows_jesus" | "exploring" | "new_to_christianity" | "prefer_not_to_say"
+  faithJourney     String?  // "growing" | "new_to_jesus" | "exploring_christianity" | "looking_for_church" | "learn_and_connect"
+  profileCompleted Boolean  @default(false)
+  // WhatsApp Channel — track prompt shown + clicked (NOT whether user actually
+  // followed, since we can't verify that). Used for analytics only.
+  whatsappChannelPromptShown Boolean @default(false)
+  whatsappChannelClicked    Boolean @default(false)
+  // Signup method — "google" | "email" (set by the auth callback)
+  signupMethod     String?  // "google" | "email"
+
+  // ─── ADMIN MEMBER MANAGEMENT ───
+  accountStatus    String   @default("active") // "active" | "blocked" | "suspended" | "deactivated"
+  moderationReason String?  // internal admin reason for blocking/suspending
+  verified         Boolean  @default(false) // ✓ Koino Verified (admin-controlled)
+  verifiedAt       DateTime?
+  verifiedBy       String?  // admin userId who verified
+  contributorType  String?  // "Pastor" | "Elder" | "Bible Teacher" | etc.
+  permissions      String   @default("[]") // JSON array of permission strings (on User for direct access)
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  triviaAttempts    TriviaQuestionAttempt[]
+  quizSessions      TriviaQuizSession[]
+  pointTransactions TriviaPointTransaction[]
+  giftRedemptions   GiftRedemption[]
+  dailyChallengeAttempts DailyChallengeAttempt[]
+  dailySpins        DailySpin[]
+  badges            UserBadge[]
+  streakFreezes     StreakFreeze[]
+
+  posts Post[]
+
+  // Trivia competition relations
+  competitionAttempts TriviaCompetitionAttempt[]
+  triviaWins          TriviaWinner[]
+
+  // Streak + rewards
+  userStreak          UserStreak?
+  userRewards         UserReward[]
+
+  // Contributor
+  contributor         Contributor?
+}
+
+// ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
+// Required by NextAuth v4 with the Prisma adapter
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── TRIVIA QUESTIONS ──────────────────────────────────────────────────────
+// Seeded from the 25 existing questions. Admins can add more later.
+// difficulty: "beginners" | "intermediate" | "skilled" | "expert"
+// category: "full_bible" | "new_testament" | "old_testament" | "apologetics" | "life_faith" | "jesus"
+
+model TriviaQuestion {
+  id                 String   @id @default(cuid())
+  questionId         String   @unique // stable ID like "q1", "beg_fb_001" — used in attempts
+  question           String
+  options            String   // JSON array of strings
+  correctAnswer      Int      // index into options
+  explanation        String
+  scriptureReference String?
+  difficulty         String   // "beginners" | "intermediate" | "skilled" | "expert"
+  category           String   // "full_bible" | "new_testament" | etc.
+  bibleBook          String?
+  topic              String?
+  basePoints         Int      // 10 | 20 | 30 | 50
+  // JSON-encoded object mapping language code → translated content:
+  //   { "hi": { "question": "...", "options": ["...","..."], "explanation": "..." },
+  //     "te": { "question": "...", "options": [...], "explanation": "..." }, ... }
+  // Empty object {} means no translations yet — fall back to English fields above.
+  translations       String   @default("{}")
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  attempts           TriviaQuestionAttempt[]
+  transactions      TriviaPointTransaction[]
+}
+
+// ─── ANTI-FARMING: Question Attempts ───────────────────────────────────────
+// THE KEY TABLE: records that a user has already earned points for a question.
+// @@unique([userId, questionId]) means a user can only have ONE attempt
+// record per question — ever. This is enforced at the DATABASE level,
+// so even race conditions (two simultaneous requests) cannot create duplicates.
+
+model TriviaQuestionAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  questionId      String   // references TriviaQuestion.questionId (stable ID)
+  quizSessionId   String?
+  pointsAwarded   Int      @default(0) // 0 if practice/already-scored, 10-60 if new
+  answeredCorrectly Boolean
+  answeredAt      DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question        TriviaQuestion @relation(fields: [questionId], references: [questionId], onDelete: Cascade)
+  quizSession     TriviaQuizSession? @relation(fields: [quizSessionId], references: [id])
+
+  @@unique([userId, questionId]) // ← ANTI-FARMING: one score per question per user, EVER
+  @@index([userId])
+  @@index([questionId])
+}
+
+// ─── QUIZ SESSIONS ─────────────────────────────────────────────────────────
+// Records each quiz play (both EARN_POINTS and PRACTICE modes)
+
+model TriviaQuizSession {
+  id             String   @id @default(cuid())
+  userId         String
+  difficulty     String
+  category       String
+  questionIds    String   // JSON array of questionId strings
+  score          Int      @default(0) // total points earned THIS session (0 for practice)
+  correctCount   Int      @default(0)
+  totalQuestions Int
+  mode           String   // "EARN_POINTS" | "PRACTICE"
+  bestStreak     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts       TriviaQuestionAttempt[]
+  transactions   TriviaPointTransaction[]
+
+  @@index([userId])
+  @@index([mode])
+}
+
+// ─── FAITH POINT TRANSACTION HISTORY ───────────────────────────────────────
+// Auditable log of every point change. totalPoints is derived from these.
+
+model TriviaPointTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  questionId   String?  // null for non-question transactions (gift redemption, admin adjustment)
+  quizSessionId String?
+  points       Int      // positive = earned, negative = spent
+  reason       String   // "CORRECT_BEGINNER" | "CORRECT_INTERMEDIATE" | "STREAK_BONUS" | "GIFT_REDEMPTION" | etc.
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question     TriviaQuestion? @relation(fields: [questionId], references: [questionId])
+  quizSession  TriviaQuizSession? @relation(fields: [quizSessionId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── GIFTS / MERCHANDISE REWARDS ───────────────────────────────────────────
+// Admin-managed gifts. The 6 default gifts + admin-added ones.
+
+model Gift {
+  id              String   @id @default(cuid())
+  giftId          String   @unique // stable ID like "g1", "g_admin_123"
+  title           String
+  description     String
+  imageUrl        String
+  pointsRequired  Int
+  tier            String   // "bronze" | "silver" | "gold" | "platinum"
+  stock           Int      @default(0)
+  productId       String?  // references Koino Shop Product.id (mock data array) — when set, product info comes from the Shop
+  rewardType      String   @default("fp_reward") // "fp_reward" | "competition_prize" | "streak_milestone"
+  // Variations & attributes (JSON-encoded strings).
+  // variations: [{"name":"Size","options":["S","M","L","XL"]},{"name":"Color","options":["Black","White"]}]
+  // attributes: [{"label":"Material","value":"100% Cotton"}]
+  variations      String   @default("[]")
+  attributes      String   @default("[]")
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  redemptions     GiftRedemption[]
+}
+
+// ─── GIFT REDEMPTIONS ──────────────────────────────────────────────────────
+// Records when a user claims a gift. @@unique prevents double-claiming.
+
+model GiftRedemption {
+  id           String   @id @default(cuid())
+  userId       String
+  giftId       String   // references Gift.giftId
+  giftDbId     String   // references Gift.id (for relation)
+  pointsSpent  Int
+  status       String   @default("pending") // "pending" | "contacted" | "shipped" | "delivered"
+  // JSON-encoded string of the user's chosen variations at the time of redemption.
+  // e.g. [{"name":"Size","value":"L"},{"name":"Color","value":"Black"}]
+  selectedVariations String @default("[]")
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gift         Gift     @relation(fields: [giftDbId], references: [id])
+
+  @@unique([userId, giftId]) // ← one redemption per gift per user
+  @@index([userId])
+}
+
+// ─── EXISTING SCAFFOLD (preserved) ─────────────────────────────────────────
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+// ─── DAILY CHALLENGE ──────────────────────────────────────────────────────
+// One curated question per day. All users see the same question.
+// Gives 2x FP if answered correctly. Can only answer once.
+
+model DailyChallenge {
+  id            String   @id @default(cuid())
+  challengeDate String   @unique // YYYY-MM-DD
+  questionId    String   // references TriviaQuestion.questionId
+  multiplier    Int      @default(2) // 2x FP
+  createdAt     DateTime @default(now())
+
+  attempts      DailyChallengeAttempt[]
+
+  @@index([challengeDate])
+}
+
+model DailyChallengeAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  challengeId     String
+  selectedAnswer  Int
+  isCorrect       Boolean
+  pointsAwarded   Int      @default(0)
+  answeredAt      DateTime @default(now())
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge       DailyChallenge  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId]) // one attempt per user per day
+  @@index([userId])
+}
+
+// ─── DAILY SPIN / TREASURE CHEST ──────────────────────────────────────────
+// Once-per-day random reward. Variable ratio reinforcement (addictive).
+
+model DailySpin {
+  id           String   @id @default(cuid())
+  userId       String
+  rewardType   String   // "fp_5" | "fp_10" | "fp_25" | "fp_50" | "fp_100" | "streak_freeze" | "double_fp"
+  rewardValue  Int      @default(0)
+  spinDate     String   // YYYY-MM-DD
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spinDate]) // one spin per day
+  @@index([userId])
+}
+
+// ─── BADGES / ACHIEVEMENTS ────────────────────────────────────────────────
+
+model UserBadge {
+  id          String   @id @default(cuid())
+  userId      String
+  badgeId     String   // e.g. "first_streak", "bible_scholar", "perfect_score"
+  badgeName   String
+  badgeIcon   String   // emoji
+  badgeDescription String
+  unlockedAt  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+// ─── STREAK FREEZE ────────────────────────────────────────────────────────
+
+model StreakFreeze {
+  id          String   @id @default(cuid())
+  userId      String
+  activity    String   // "bible_reading" | "trivia_play" | "prayer_share"
+  freezeDate  String   // YYYY-MM-DD
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activity, freezeDate])
+  @@index([userId])
+}
+
+// ─── COMIC BIBLE ───────────────────────────────────────────────────────────
+// Bible Comic system. References existing Bible book IDs from bible-data.ts
+// (e.g. bookId = "genesis" matches BIBLE_BOOKS[].id).
+// Artwork is language-independent — ONE image per panel.
+// Text (title, narration, captions) is localized via ComicPanelTranslation.
+
+model ComicChapter {
+  id              String   @id @default(cuid())
+  comicId         String   @unique // e.g. "genesis-2" — human-readable stable ID
+  bookId          String             // e.g. "genesis" — matches BIBLE_BOOKS[].id
+  chapter         Int                // e.g. 2
+  title           String             // English default title
+  coverArtUrl     String?            // optional chapter cover image
+  sortOrder       Int      @default(0)
+  // Publishing workflow state.
+  // draft    — admin started but not finished
+  // review   — ready for someone else to QA
+  // ready    — QA passed, awaiting publish
+  // published — visible to end users (isActive = true AND status = "published")
+  status          String   @default("draft") // "draft" | "review" | "ready" | "published"
+  description     String?            // short summary shown in CMS + maybe on chapter cards
+  adminNotes      String?            // private internal notes for the editorial team
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  panels          ComicPanel[]
+  translations    ComicChapterTranslation[]
+  quizLinks       ComicChapterQuiz[]
+
+  @@unique([bookId, chapter]) // one comic per book+chapter
+  @@index([bookId])
+  @@index([status])
+}
+
+model ComicPanel {
+  id              String   @id @default(cuid())
+  panelId         String   @unique // e.g. "GEN2-P01" — stable, human-readable
+  comicChapterId  String
+  sortOrder       Int      @default(0)
+  artworkUrl      String             // ONE image — language-independent
+  altText         String?            // accessibility text (screen readers + image fallback)
+  verseStart      Int                // e.g. 1
+  verseEnd        Int                // e.g. 3
+  bookId          String             // denormalized from ComicChapter for quick verse lookups
+  chapter         Int                // denormalized
+  // Optional audio — language-specific. Null = no audio, use TTS fallback.
+  // Future: audioUrl could be a JSON map { "en": "...", "hi": "..." } per language.
+  audioUrl        String?            // URL to professional audio narration (future)
+  videoUrl        String?            // URL to video content (future)
+
+  comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+  translations    ComicPanelTranslation[]
+
+  @@index([comicChapterId])
+}
+
+model ComicPanelTranslation {
+  id              String   @id @default(cuid())
+  panelId         String             // FK to ComicPanel.panelId
+  lang            String             // "en", "hi", "te", etc.
+  title           String?            // Panel title in this language
+  narration       String?            // Narration / story text
+  captions        String   @default("[]") // JSON array of caption strings (speech bubbles, etc.)
+
+  panel           ComicPanel @relation(fields: [panelId], references: [panelId], onDelete: Cascade)
+
+  @@unique([panelId, lang]) // one translation per panel per language
+  @@index([lang])
+}
+
+model ComicChapterTranslation {
+  id              String   @id @default(cuid())
+  comicChapterId  String
+  lang            String
+  title           String?            // Chapter title in this language
+
+  comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([comicChapterId, lang])
+  @@index([lang])
+}
+
+// ─── COMIC → TRIVIA CONNECTION ─────────────────────────────────────────────
+// Links a Comic chapter to existing TriviaQuestion records.
+// When a user takes a Comic quiz, the API fetches questions via this join table,
+// then scores them using the EXISTING submitQuiz() function.
+// The same questionId works in both regular Trivia and Comic quiz.
+// Anti-farming: @@unique([userId, questionId]) on TriviaQuestionAttempt
+// prevents earning FP twice for the same question, regardless of where it was asked.
+
+model ComicChapterQuiz {
+  id              String   @id @default(cuid())
+  comicChapterId  String
+  questionId      String             // references TriviaQuestion.questionId
+  sortOrder       Int      @default(0)
+
+  comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([comicChapterId, questionId]) // one link per chapter+question
+  @@index([comicChapterId])
+}
+
+// ─── TRIVIA COMPETITIONS ───────────────────────────────────────────────────
+// A Competition is a time-boxed Bible Trivia contest with its own
+// server-authoritative score (separate from lifetime Faith Points).
+// Examples: Daily Challenge, Weekly Bible Challenge, Monthly Championship.
+//
+// KEY DESIGN DECISIONS:
+// - Competition Score is SEPARATE from lifetime FP. The weekly leaderboard
+//   ranks by competition score, NOT by lifetime FP.
+// - attemptLimit is enforced SERVER-SIDE (not in localStorage).
+// - Questions are server-selected — the client never sees correct answers
+//   before submitting.
+// - Winners are calculated server-side when endAt passes. Immutable records.
+
+model TriviaCompetition {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  imageUrl        String?
+  type            String   // "daily" | "weekly" | "monthly" | "custom"
+  category        String   // "full_bible" | "new_testament" | "old_testament" | "apologetics" | "mixed"
+  difficulty      String   // "beginners" | "intermediate" | "skilled" | "expert" | "mixed"
+  questionCount   Int      @default(10)
+  attemptLimit    Int      @default(1)
+  winnerCount     Int      @default(3)
+  rules           String?  // free-text rules displayed to users before participating
+  status          String   @default("draft") // "draft" | "scheduled" | "live" | "ended" | "cancelled"
+  startAt         DateTime
+  endAt           DateTime
+  claimDeadlineDays Int    @default(7) // days after competition ends to claim prize
+  prizeId         String?  // references TriviaPrize.id (optional — some competitions may not have prizes)
+  createdById     String?  // admin userId who created it
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  prize           TriviaPrize?  @relation(fields: [prizeId], references: [id])
+  attempts        TriviaCompetitionAttempt[]
+  winners         TriviaWinner[]
+
+  @@index([status])
+  @@index([type])
+  @@index([endAt])
+}
+
+// ─── COMPETITION ATTEMPTS ──────────────────────────────────────────────────
+// Records a single user's attempt at a competition. The server enforces
+// attemptLimit via a count query before accepting a new submission.
+// The score here is the COMPETITION score (not lifetime FP).
+
+model TriviaCompetitionAttempt {
+  id              String   @id @default(cuid())
+  competitionId   String
+  userId          String
+  questionIds     String   // JSON array of questionId strings (server-selected)
+  score           Int      @default(0) // competition score for this attempt
+  correctCount    Int      @default(0)
+  totalQuestions  Int
+  accuracy        Float    @default(0) // 0.0 - 1.0
+  durationMs      Int      @default(0) // time taken to complete
+  createdAt       DateTime @default(now())
+
+  competition     TriviaCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, userId, createdAt]) // one attempt per submission
+  @@index([competitionId, score]) // for leaderboard queries
+  @@index([userId])
+}
+
+// ─── PRIZES ─────────────────────────────────────────────────────────────────
+// A Prize can be a Koino Merch Store product (sourceType="koino_merch") or
+// a custom prize (sourceType="custom"). When linked to a Merch product, the
+// prize references the product — it does NOT duplicate product information.
+
+model TriviaPrize {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  imageUrl           String?
+  sourceType         String   // "koino_merch" | "custom"
+  productId          String?  // references Product.id when sourceType="koino_merch"
+  quantity           Int      @default(1) // total available
+  assignedQuantity   Int      @default(0) // how many assigned to winners
+  remainingQuantity  Int      @default(1) // quantity - assignedQuantity
+  approximateValue   Float?   // optional, for display
+  requiresShipping   Boolean  @default(true)
+  active             Boolean  @default(true)
+  terms              String?  // terms & conditions
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  competitions       TriviaCompetition[]
+  winners            TriviaWinner[]
+}
+
+// ─── WINNERS ───────────────────────────────────────────────────────────────
+// Immutable record of a competition winner. Created server-side when a
+// competition ends. The status tracks the prize claim workflow.
+
+model TriviaWinner {
+  id              String   @id @default(cuid())
+  competitionId   String
+  userId          String
+  rank            Int      // 1st, 2nd, 3rd, etc.
+  score           Int      // competition score at time of winning
+  correctCount    Int
+  accuracy        Float
+  durationMs      Int
+  prizeId         String?
+  status          String   @default("pending_verification")
+  // "pending_verification" | "phone_verified" | "contacted" | "address_pending"
+  // | "address_verified" | "processing" | "shipped" | "delivered" | "claimed"
+  // | "cancelled" | "disqualified" | "expired"
+  phoneVerified   Boolean  @default(false)
+  phoneVerifiedAt DateTime?
+  shippingName    String?
+  shippingAddress String?
+  shippingCity    String?
+  shippingState   String?
+  shippingPincode String?
+  adminNotes      String?
+  disqualifiedReason String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  competition     TriviaCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prize           TriviaPrize?      @relation(fields: [prizeId], references: [id])
+
+  @@unique([competitionId, userId]) // one winner record per competition per user
+  @@index([competitionId, rank])
+  @@index([userId])
+}
+
+// ─── EVENTS ─────────────────────────────────────────────────────────────────
+// User-submitted Christian events. Created by any authenticated user with
+// status=PENDING. Admin reviews → PUBLISHED (visible publicly) or REJECTED.
+// Admin can also CANCEL a published event (e.g. for moderation).
+// The public /api/events endpoint ONLY returns PUBLISHED events.
+// The admin /api/admin/events endpoint returns ALL events with optional
+// status filter so admin can see pending submissions.
+
+model Event {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  // Date/time — startDate is required; endDate is optional (single-day events)
+  startDate       DateTime
+  endDate         DateTime?
+  startTime       String?  // "HH:MM"
+  endTime         String?  // "HH:MM"
+  allDay          Boolean  @default(false)
+
+  // Location
+  country         String   @default("India")
+  state           String?
+  city            String?
+  address         String?
+  venueName       String?
+  location        String   // human-readable summary, e.g. "Palace Grounds, Bengaluru"
+
+  // Online / hybrid
+  eventType       String   @default("in-person") // "in-person" | "online" | "hybrid"
+  isOnline        Boolean  @default(false)
+  onlineUrl       String?
+
+  // Registration
+  registrationType String  @default("free") // "free" | "paid" | "registration_required" | "no_registration"
+  ticketUrl       String?
+  isFree          Boolean  @default(true)
+  price           Float    @default(0)
+
+  // Organizer / contact
+  organizerName   String?
+  organizerEmail  String?
+  organizerPhone  String?
+  organizerWebsite String?
+  whatsappNumber  String?
+
+  // Categorization
+  category        String   // "worship" | "bible-study" | "youth" | "retreat" | "conference" | "music" | "prayer" | "other"
+  languages       String   @default("[]") // JSON array
+  church          String?  // associated church name (if any)
+
+  // Media
+  coverImage      String?
+  coverGradient   Int      @default(0) // 0-7, used as CSS gradient fallback when no image
+
+  // ─── MODERATION ───
+  // status workflow: PENDING (default) → PUBLISHED (admin approved) or
+  // REJECTED (admin rejected). PUBLISHED events can be CANCELLED by admin.
+  // Public /api/events ONLY returns status=PUBLISHED.
+  status          String   @default("PENDING") // "PENDING" | "PUBLISHED" | "REJECTED" | "CANCELLED"
+  featured        Boolean  @default(false) // admin can feature an event
+  rejectionReason String?  // optional, set when REJECTED
+  reviewedBy      String?  // admin email
+  reviewedAt      DateTime?
+
+  // Ownership — the user who submitted the event
+  createdById     String?  // references User.id (nullable for legacy/seed data)
+  createdByEmail  String?  // captured at submission time (in case user is later deleted)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([startDate])
+  @@index([state, city])
+  @@index([category])
+  @@index([featured])
+  @@index([createdById])
+}
+
+// ─── CHURCHES ───────────────────────────────────────────────────────────────
+// User-submitted Christian churches for the public Church Directory.
+// Created by any authenticated user with status=PENDING. Admin reviews →
+// PUBLISHED (visible publicly) or REJECTED. Admin can also CANCEL a
+// published church (e.g. for moderation).
+// Public /api/churches ONLY returns status=PUBLISHED.
+// Admin /api/admin/churches returns ALL churches with optional status filter.
+
+model Church {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  denomination    String   @default("") // e.g. "Assemblies of God", "Catholic", "Baptist", "Non-denominational"
+
+  // Location
+  country         String   @default("India")
+  state           String?
+  city            String?
+  address         String?
+  postalCode      String?
+  location        String   // human-readable summary, e.g. "MG Road, Bengaluru"
+
+  // Contact
+  pastorName     String?
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  whatsappNumber String?
+  website         String?
+
+  // Service times — JSON array of { day, time, language }
+  // e.g. [{"day":"Sunday","time":"9:00 AM","language":"English"}]
+  serviceTimes   String   @default("[]")
+
+  // Languages spoken at services — JSON array of strings
+  languages       String   @default("[]")
+
+  // Media
+  coverImage     String?
+  coverGradient  Int      @default(0) // 0-7, CSS gradient fallback when no image
+
+  // ─── MODERATION ───
+  // status workflow: PENDING (default) → PUBLISHED (admin approved) or
+  // REJECTED (admin rejected). PUBLISHED churches can be CANCELLED by admin.
+  // Public /api/churches ONLY returns status=PUBLISHED.
+  status          String   @default("PENDING") // "PENDING" | "PUBLISHED" | "REJECTED" | "CANCELLED"
+  featured        Boolean  @default(false) // admin can feature a church
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+
+  // Ownership — the user who submitted the church
+  createdById     String?
+  createdByEmail  String?
+
+  // Cosmetic — number of followers (display only, not used for auth)
+  followersCount  Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([state, city])
+  @@index([denomination])
+  @@index([featured])
+  @@index([createdById])
+}
+
+// ─── PUBLIC WEBSITE CONTENT ────────────────────────────────────────────────
+// Admin-editable content for the public Koino website.
+
+model BlogPost {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  excerpt         String?
+  content         String   // markdown or rich text
+  featuredImage   String?
+  author          String?
+  category        String   // "Bible" | "Faith" | "Christian Living" | etc.
+  tags            String   @default("[]") // JSON array
+  published       Boolean  @default(false)
+  featured        Boolean  @default(false)
+  seoTitle        String?
+  seoDescription  String?
+  // Optional scheduled publish date — post is only public after this date
+  // (if set). If null, published=true means immediately visible.
+  scheduledAt     DateTime?
+  // Optional canonical URL override (for cross-posted articles)
+  canonicalUrl    String?
+  // JSON array of related BlogPost IDs — shown at the bottom of the article
+  relatedArticleIds String @default("[]")
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([published, publishedAt])
+  @@index([category])
+  @@index([slug])
+}
+
+model HelpArticle {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  category        String   // "Account" | "Bible" | "Bible Trivia" | etc.
+  content         String   // markdown or rich text
+  featured        Boolean  @default(false)
+  published       Boolean  @default(false)
+  seoTitle        String?
+  seoDescription  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([published, category])
+  @@index([slug])
+}
+
+model FounderProfile {
+  id              String   @id @default(cuid())
+  founderName     String
+  profilePhoto    String?
+  shortIntro      String?
+  biography       String?
+  whyIBuiltKoino  String?
+  vision          String?
+  mission         String?
+  founderMessage  String?
+  email           String?
+  socialLinks     String   @default("[]") // JSON array of {label, url}
+  published       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
+model ContactMessage {
+  id              String   @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  subject         String
+  message         String
+  // Status workflow: new → read → replied → closed
+  status          String   @default("new") // "new" | "read" | "replied" | "closed"
+  // Internal admin notes — NEVER exposed to the user
+  adminNotes      String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PartnerInquiry {
+  id              String   @id @default(cuid())
+  name            String
+  organization    String?
+  email           String
+  phone           String?
+  website         String?
+  partnershipType String   // "Church" | "Ministry" | "Christian Business" | etc.
+  message         String
+  // Status workflow: new → contacted → archived
+  status          String   @default("new") // "new" | "contacted" | "archived"
+  // Internal admin notes — NEVER exposed to the user
+  adminNotes      String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SupportCampaign {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  imageUrl        String?
+  goalAmount      Float
+  raisedAmount    Float    @default(0)
+  supporterCount  Int      @default(0)
+  currency        String   @default("INR")
+  startDate       DateTime?
+  endDate         DateTime?
+  active          Boolean  @default(true)
+  featured       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  donations       Donation[]
+}
+
+model Donation {
+  id              String   @id @default(cuid())
+  campaignId      String
+  donorName       String?
+  donorEmail       String?
+  amount          Float
+  currency        String   @default("INR")
+  anonymous       Boolean  @default(false)
+  status          String   @default("pending") // "pending" | "completed" | "failed" | "refunded"
+  transactionRef  String?
+  paymentProvider String?  // "razorpay" | "stripe" | etc. — NOT connected yet
+  createdAt       DateTime @default(now())
+
+  campaign        SupportCampaign @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId])
+  @@index([status])
+}
+
+// ─── DONATION SETTINGS (singleton) ───────────────────────────────────────────
+// Admin-configured donation/payment display settings for the /support page.
+// Koino does NOT process payments directly — this is informational only.
+// Admin configures UPI ID, QR code image, and bank details; the public
+// /support page reads these values and displays them. If bank details are
+// not configured, the bank transfer section is hidden (no fake data).
+//
+// Singleton pattern: there is only ever one row (id = "default"). The
+// admin API upserts this row. Public API reads it.
+
+model DonationSettings {
+  id              String   @id @default("default")
+  // UPI
+  upiId           String?
+  // QR code image URL (stored in Supabase Storage)
+  qrCodeUrl       String?
+  // Bank transfer
+  accountName     String?
+  accountNumber   String?
+  ifsc            String?
+  bankName        String?
+  branch          String?
+  // Donation message shown on /support
+  donationMessage String?
+  // Whether donations are currently being accepted (display toggle)
+  acceptingDonations Boolean @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── FAITH STREAK (server-authoritative) ────────────────────────────────────
+// Tracks consecutive days of meaningful Bible/Trivia activity.
+// One calendar day = one streak day (regardless of how many activities).
+// The streak is NEVER spent — it measures consistency only.
+
+model UserStreak {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveDate  String?  // YYYY-MM-DD (server time)
+  totalActiveDays Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([currentStreak])
+}
+
+// ─── KOINO REWARDS ──────────────────────────────────────────────────────────
+// Admin-configured rewards that can be unlocked via streak milestones.
+
+model KoinoReward {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  rewardType       String   // "DISCOUNT_PERCENT" | "FIXED_VOUCHER" | "FREE_PRODUCT" | "SPECIAL_PRODUCT"
+  discountType     String?  // "percent" | "fixed"
+  discountValue     Float    @default(0) // e.g., 10 (percent) or 200 (rupees)
+  maximumDiscount   Float?   // cap for percent discounts
+  minimumOrderValue Float?   // minimum cart total to apply
+  productId         String?  // references Product.id when rewardType=FREE_PRODUCT
+  inventoryLimit    Int?     // max total redemptions
+  expiresAfterDays  Int?     // reward expires N days after issuance
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  milestones        StreakMilestone[]
+  userRewards       UserReward[]
+}
+
+// ─── STREAK MILESTONES ─────────────────────────────────────────────────────
+// Configurable milestone → reward mapping. Admin controls which streak
+// threshold unlocks which reward.
+
+model StreakMilestone {
+  id                String   @id @default(cuid())
+  streakDays        Int      // e.g., 7, 14, 30, 60, 100, 365
+  rewardId          String
+  repeatable        Boolean  @default(false) // false = once ever; true = once per streak cycle
+  active            Boolean  @default(true)
+  displayText       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  reward            KoinoReward @relation(fields: [rewardId], references: [id])
+  userRewards       UserReward[]
+
+  @@unique([streakDays]) // one milestone per streak threshold
+  @@index([active])
+}
+
+// ─── USER REWARD ENTITLEMENTS ──────────────────────────────────────────────
+// Per-user reward record. Created when a milestone is reached.
+// Status: AVAILABLE → CLAIMED → REDEEMED (or EXPIRED/CANCELLED)
+
+model UserReward {
+  id                String   @id @default(cuid())
+  userId            String
+  rewardId          String
+  milestoneId       String?
+  source            String   @default("streak_milestone") // "streak_milestone" | "admin_issued" | "competition_prize"
+  sourceMilestone   Int?     // the streak day count that triggered this
+  status            String   @default("available") // "available" | "claimed" | "redeemed" | "expired" | "cancelled"
+  redemptionCode    String?  // unique code for voucher redemption
+  issuedAt          DateTime @default(now())
+  claimedAt         DateTime?
+  redeemedAt        DateTime?
+  expiresAt         DateTime?
+  orderId           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward            KoinoReward    @relation(fields: [rewardId], references: [id])
+  milestone         StreakMilestone? @relation(fields: [milestoneId], references: [id])
+
+  @@unique([userId, milestoneId]) // prevents duplicate milestone rewards (once-ever default)
+  @@index([userId, status])
+  @@index([rewardId])
+}
+
+// ─── APOLOGETICS + CONTRIBUTOR CMS ─────────────────────────────────────────
+// Unified content model for Articles, Blogs, Apologetics, Bible Studies,
+// Devotionals. One CMS architecture, multiple content types.
+
+model KoinoArticle {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  contentType     String   // "ARTICLE" | "BLOG" | "APOLOGETICS" | "BIBLE_STUDY" | "DEVOTIONAL"
+  category        String?  // e.g., "God & Existence", "Jesus Christ", "Resurrection"
+  subcategory     String?
+  seriesId        String?  // references ArticleSeries.id
+  excerpt         String?
+  shortAnswer     String?  // for Apologetics articles
+  content         String   // rich text / HTML
+  coverImageUrl   String?
+  authorId        String?  // references Contributor.id (or null for admin-created)
+  authorName      String?  // display name (denormalized for public display)
+  status          String   @default("draft") // "draft" | "submitted" | "changes_requested" | "approved" | "published" | "rejected" | "scheduled" | "archived"
+  difficulty       String?  // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  featured        Boolean  @default(false)
+  bibleRefs       String   @default("[]") // JSON array of Bible references (e.g., "John 20:1-29")
+  sources         String   @default("[]") // JSON array of source objects
+  relatedIds      String   @default("[]") // JSON array of related article IDs
+  reviewedBy      String?  // admin userId
+  reviewedAt      DateTime?
+  reviewNotes     String?  // admin feedback for "changes requested"
+  publishedAt     DateTime?
+  scheduledAt     DateTime?
+  seoTitle        String?
+  seoDescription  String?
+  canonicalUrl    String?
+  viewCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  series          ArticleSeries? @relation(fields: [seriesId], references: [id])
+  author          Contributor?   @relation(fields: [authorId], references: [id])
+
+  @@index([status, contentType, publishedAt])
+  @@index([category])
+  @@index([status])
+  @@index([slug])
+}
+
+model ArticleSeries {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  coverImageUrl   String?
+  published       Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  articles        KoinoArticle[]
+}
+
+model Contributor {
+  id              String   @id @default(cuid())
+  userId          String   @unique // references User.id
+  displayName     String
+  slug            String   @unique // for /contributors/[slug]
+  profilePhoto    String?
+  bio             String?
+  church          String?
+  churchRole      String?  // "Pastor" | "Elder" | "Bible Teacher" | "Apologist" | etc.
+  location        String?
+  expertise       String   @default("[]") // JSON array
+  website         String?
+  socialLinks     String   @default("[]") // JSON array of {label, url}
+  verified        Boolean  @default(false) // ✓ Koino Verified Contributor badge
+  status          String   @default("pending") // "pending" | "approved" | "rejected" | "suspended"
+  permissions     String   @default("[]") // JSON array of permission strings
+  applicationId   String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application     ContributorApplication? @relation(fields: [applicationId], references: [id])
+  articles        KoinoArticle[]
+
+  @@index([status])
+  @@index([verified])
+}
+
+model ContributorApplication {
+  id              String   @id @default(cuid())
+  fullName        String
+  email           String
+  userId          String?  // references User.id if applicant is a Koino member
+  profilePhoto    String?
+  church          String?
+  churchRole      String?
+  city            String?
+  state           String?
+  country         String?
+  bio             String?
+  expertise       String   @default("[]") // JSON array
+  website         String?
+  socialLinks     String   @default("[]") // JSON array
+  whyContribute   String?
+  contentInterests String  @default("[]") // JSON array: ["Apologetics", "Blog", etc.]
+  sampleUrl       String?
+  status          String   @default("pending") // "pending" | "under_review" | "approved" | "rejected" | "suspended"
+  adminNotes      String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contributor     Contributor?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model UserQuestion {
+  id              String   @id @default(cuid())
+  question        String
+  askerName       String?
+  askerEmail      String?
+  askerUserId     String?  // references User.id if logged in
+  category        String?  // suggested apologetics category
+  status          String   @default("new") // "new" | "in_review" | "answered" | "turned_into_article" | "archived"
+  adminNotes      String?
+  articleId       String?  // if turned into article
+  createdAt       DateTime @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}
