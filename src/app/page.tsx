@@ -26,6 +26,7 @@ import {
   Bell,
   CircleUser,
   PlusSquare,
+  Flower2,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -53,6 +54,10 @@ import SocialProfileView from "@/components/social/SocialProfileView";
 import NotificationsView from "@/components/social/NotificationsView";
 import PostDetail from "@/components/social/PostDetail";
 import type { Post } from "@/components/social/types";
+import MemorialListView from "@/components/memorial/MemorialListView";
+import MemorialFormView from "@/components/memorial/MemorialFormView";
+import MemorialDetailView from "@/components/memorial/MemorialDetailView";
+import type { MemorialDetail } from "@/components/memorial/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
 import { type Translation } from "@/lib/bible-data";
@@ -68,6 +73,9 @@ type View =
   | "create"
   | "profile" // own social profile (SocialProfileView on own username)
   | "edit-profile"
+  | "memorials" // Part 4 — In Loving Memory list
+  | "memorial-detail" // Part 4 — one memorial page
+  | "memorial-form" // Part 4 — create/edit memorial
   | "dashboard" // the previous App Home dashboard (moved — still fully available)
   | "bible"
   | "bible-plans"
@@ -102,6 +110,7 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "explore", icon: Search, label: "Explore" },
   { id: "reels", icon: Play, label: "Reels" },
   { id: "notifications", icon: Bell, label: "Notifications" },
+  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
   { id: "profile", icon: CircleUser, label: "My Profile" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "bible", icon: BookOpen, label: "Bible" },
@@ -134,6 +143,7 @@ const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
+  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
   { id: "bible", icon: BookOpen, label: "Bible" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
@@ -159,6 +169,9 @@ export default function Home() {
   const [comicChapter, setComicChapter] = useState(1);
   // ─── SOCIAL OVERLAYS (Task 50) — render above ANY view ───
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  // Part 4 — In Loving Memory navigation state
+  const [memorialId, setMemorialId] = useState<string | null>(null);
+  const [memorialForm, setMemorialForm] = useState<{ editing: MemorialDetail | null } | null>(null);
   const [reelPost, setReelPost] = useState<Post | null>(null);
   const [exploreHashtag, setExploreHashtag] = useState<string | null>(null);
   // Which profile the "profile" view shows — the session user by default,
@@ -269,6 +282,7 @@ export default function Home() {
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia",
       "prayer-wall", "apologetics", "shop", "business-directory",
+      "memorials",
     ];
     if (!validViews.includes(deepView as View)) return;
 
@@ -507,6 +521,28 @@ export default function Home() {
               )}
               {view === "edit-profile" && (
                 <EditProfileView onDone={() => goView("profile")} />
+              )}
+              {view === "memorials" && (
+                <MemorialListView
+                  onOpenMemorial={(id) => { setMemorialId(id); goView("memorial-detail"); }}
+                  onCreate={() => { setMemorialForm({ editing: null }); goView("memorial-form"); }}
+                />
+              )}
+              {view === "memorial-detail" && memorialId && (
+                <MemorialDetailView
+                  memorialId={memorialId}
+                  onBack={() => goView("memorials")}
+                  onEdit={(m) => { setMemorialForm({ editing: m }); goView("memorial-form"); }}
+                  key={memorialId}
+                />
+              )}
+              {view === "memorial-form" && memorialForm && (
+                <MemorialFormView
+                  editing={memorialForm.editing}
+                  onDone={(id) => { setMemorialId(id); goView("memorial-detail"); }}
+                  onCancel={() => (memorialForm.editing ? goView("memorial-detail") : goView("memorials"))}
+                  key={memorialForm.editing?.id ?? "new"}
+                />
               )}
               {view === "profile" &&
                 (username || profileUsername) &&
