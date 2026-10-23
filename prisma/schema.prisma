@@ -104,6 +104,11 @@ model User {
   // Groups & fellowship
   groupsCreated       Group[]        @relation("GroupCreator")
   groupMemberships    GroupMember[]  @relation("GroupMemberships")
+
+  // In Loving Memory (Part 4)
+  memorialsCreated    Memorial[]           @relation("MemorialCreator")
+  memorialManagerships MemorialManager[]   @relation("MemorialManagerUser")
+  condolencesWritten  MemorialCondolence[] @relation("MemorialCondolenceAuthor")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -331,6 +336,10 @@ model Post {
   bookmarks    PostBookmark[]
   notifications Notification[]
   group        Group?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // In Loving Memory: set when this post is a memorial announcement (feed card
+  // renders a "View Memorial" button). SetNull: deleting the memorial keeps the post.
+  memorial     Memorial?       @relation(fields: [memorialId], references: [id], onDelete: SetNull)
+  memorialId   String?
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -1387,4 +1396,84 @@ model GroupMember {
 
   @@unique([groupId, userId])
   @@index([userId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IN LOVING MEMORY (Part 4) — memorial pages, condolences, co-managers.
+// Design notes:
+//   - gallery follows the Post.mediaUrls convention: JSON string[] of
+//     Supabase Storage public URLs (uploaded via /api/social/upload-url).
+//   - visibility: "public" (directory + search engines) | "unlisted"
+//     (direct link only, noindex) | "private" (managers + admin only).
+//   - status: "draft" (creator still writing) | "published" |
+//     "unpublished" (hidden by the memorial manager or an administrator).
+//   - creatorName/creatorRelation are snapshots for display; the creator is
+//     always the first MemorialManager with role "owner".
+// ═══════════════════════════════════════════════════════════════════════════
+model Memorial {
+  id              String    @id @default(cuid())
+  fullName        String
+  photoUrl        String?
+  gallery         String    @default("[]") // JSON string[] of extra photo URLs
+  dob             DateTime? // date of birth (if known)
+  dod             DateTime? // date of passing
+  city            String?
+  state           String?
+  tribute         String?   // short tribute shown on cards and the feed
+  lifeStory       String?   // obituary / life story
+  milestones      String?   // family background and life milestones
+  qualities       String?   // personal qualities, achievements, memories
+  verse           String?   // Bible verse or words of comfort
+  verseRef        String?   // e.g. "John 14:1-3" or "Psalm 23"
+  visibility      String    @default("public")
+  status          String    @default("draft")
+  creatorId       String
+  creatorName     String    // display snapshot at creation time
+  creatorRelation String    // e.g. "Son", "Church friend"
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  creator     User                 @relation("MemorialCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  managers    MemorialManager[]
+  condolences MemorialCondolence[]
+  posts       Post[]
+
+  @@index([status, visibility, createdAt])
+  @@index([state, city])
+  @@index([fullName])
+}
+
+// Co-manager invited by the owner. The creator's row has role "owner".
+model MemorialManager {
+  id         String   @id @default(cuid())
+  memorialId String
+  userId     String
+  role       String   @default("manager") // "owner" | "manager"
+  addedById  String?
+  createdAt  DateTime @default(now())
+
+  memorial Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  user     User     @relation("MemorialManagerUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([memorialId, userId])
+  @@index([userId])
+}
+
+// Condolence message or personal memory/tribute left on a memorial.
+// hidden: moderation flag set by managers or admins (message body is kept).
+model MemorialCondolence {
+  id         String   @id @default(cuid())
+  memorialId String
+  authorId   String
+  authorName String   // display-name snapshot (no private info)
+  kind       String   @default("condolence") // "condolence" | "memory"
+  body       String
+  hidden     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  memorial Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  author   User     @relation("MemorialCondolenceAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([memorialId, createdAt])
 }

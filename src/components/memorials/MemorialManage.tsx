@@ -1,0 +1,307 @@
+"use client";
+
+/**
+ * Memorial manage panel (Part 4) — for the OWNER and invited MANAGERS.
+ * Tabs: Edit details · Managers · Unpublish.
+ * The API enforces every permission; this UI only mirrors what the server allows.
+ */
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Flower2, Pencil, Users, EyeOff, Loader2, Plus, Trash2, Crown, ArrowLeft,
+} from "lucide-react";
+import { toast } from "sonner";
+import MemorialForm, { EMPTY_MEMORIAL_FORM, type MemorialFormData } from "./MemorialForm";
+import { timeAgo } from "@/lib/social/format";
+
+type Detail = {
+  memorial: {
+    id: string; fullName: string; status: string; visibility: string;
+    photoUrl: string | null; dob: string | null; dod: string | null;
+    city: string | null; state: string | null; tribute: string | null;
+    lifeStory: string | null; milestones: string | null; qualities: string | null;
+    verse: string | null; verseRef: string | null;
+  };
+  viewer: { role: "owner" | "manager" | null; isAdmin: boolean };
+};
+
+type Manager = { userId: string; name: string; username: string | null; role: string; since: string };
+
+type Props = { memorialId: string };
+
+export default function MemorialManage({ memorialId }: Props) {
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState<string | null>(null);
+  const [tab, setTab] = useState<"edit" | "managers">("edit");
+  const [managers, setManagers] = useState<Manager[]>([]);
+  const [invite, setInvite] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/memorials/${memorialId}`, { cache: "no-store" });
+      const body = await res.json();
+      if (!res.ok) {
+        setDenied(body.error || "This memorial is not available.");
+        setDetail(null);
+      } else {
+        setDetail(body);
+        if (!body.viewer.role) {
+          setDenied("Only the memorial managers can open this page.");
+          setDetail(null);
+        }
+      }
+    } catch {
+      setDenied("Could not load the memorial.");
+    } finally {
+      setLoading(false);
+    }
+  }, [memorialId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const loadManagers = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/memorials/${memorialId}/managers`, { cache: "no-store" });
+      if (res.ok) setManagers((await res.json()).managers || []);
+    } catch { /* best-effort */ }
+  }, [memorialId]);
+
+  useEffect(() => {
+    if (tab === "managers") loadManagers();
+  }, [tab, loadManagers]);
+
+  async function inviteManager() {
+    const username = invite.trim().replace(/^@/, "");
+    if (!username || inviting) return;
+    setInviting(true);
+    try {
+      const res = await fetch(`/api/memorials/${memorialId}/managers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Could not send the invite");
+      toast.success(`@${username} can now help manage this memorial`);
+      setInvite("");
+      await loadManagers();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  async function removeManager(userId: string, name: string) {
+    if (!confirm(`Remove ${name} as a manager? They will no longer be able to edit this memorial.`)) return;
+    try {
+      const res = await fetch(`/api/memorials/${memorialId}/managers?userId=${encodeURIComponent(userId)}`, { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Could not remove the manager");
+      toast.success("Manager removed");
+      await loadManagers();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function unpublish() {
+    if (!confirm("Unpublish this memorial? It will be hidden from everyone except the managers and Koino admins. You can publish it again at any time.")) return;
+    setUnpublishing(true);
+    try {
+      const res = await fetch(`/api/memorials/${memorialId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "unpublished" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Could not unpublish");
+      toast.success("Memorial unpublished");
+      await load();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUnpublishing(false);
+    }
+  }
+
+  async function requestDeletion() {
+    if (!confirm("Delete this memorial permanently? All stories, photographs and condolences will be removed. Only the memorial owner can do this. Consider unpublishing instead.")) return;
+    try {
+      const res = await fetch(`/api/memorials/${memorialId}`, { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Could not delete");
+      toast.success("Memorial deleted");
+      window.location.href = "/memorials";
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (denied || !detail) {
+    return (
+      <div className="max-w-md mx-auto text-center py-24 px-4">
+        <Flower2 size={30} className="mx-auto text-[#475569] mb-4" />
+        <h1 className="text-lg font-bold text-white mb-2">Cannot open the manage panel</h1>
+        <p className="text-sm text-[#94A3B8] mb-6">{denied}</p>
+        <Link href={`/memorials/${memorialId}`} className="text-xs font-bold text-[#C4B5FD] hover:text-white">
+          ← Back to the memorial
+        </Link>
+      </div>
+    );
+  }
+
+  const m = detail.memorial;
+  const isOwner = detail.viewer.role === "owner" || detail.viewer.isAdmin;
+
+  // Map API detail → form initial values (dates as yyyy-mm-dd for <input type=date>).
+  const d = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
+  const initial: MemorialFormData = {
+    ...EMPTY_MEMORIAL_FORM,
+    fullName: m.fullName,
+    photoUrl: m.photoUrl || "",
+    dob: d(m.dob),
+    dod: d(m.dod),
+    state: m.state || "",
+    city: m.city || "",
+    tribute: m.tribute || "",
+    lifeStory: m.lifeStory || "",
+    milestones: m.milestones || "",
+    qualities: m.qualities || "",
+    verse: m.verse || "",
+    verseRef: m.verseRef || "",
+    visibility: (m.visibility as MemorialFormData["visibility"]) || "public",
+  };
+
+  return (
+    <div className="max-w-[680px] mx-auto px-4 pt-8 pb-24">
+      <Link href={`/memorials/${memorialId}`} className="text-[11px] text-[#64748B] hover:text-white inline-flex items-center gap-1 mb-4">
+        <ArrowLeft size={11} /> Back to {m.fullName}
+      </Link>
+
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-10 h-10 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
+          <Flower2 size={18} className="text-[#C4B5FD]" />
+        </div>
+        <div>
+          <h1 className="text-lg font-black text-white">Manage memorial</h1>
+          <p className="text-[11px] text-[#64748B]">{m.fullName} · {m.status}</p>
+        </div>
+      </div>
+
+      <div className="flex gap-1.5 mb-6">
+        <button
+          onClick={() => setTab("edit")}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "edit" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+        >
+          <Pencil size={12} /> Details
+        </button>
+        <button
+          onClick={() => setTab("managers")}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "managers" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+        >
+          <Users size={12} /> Managers
+        </button>
+      </div>
+
+      {tab === "edit" && (
+        <>
+          <MemorialForm
+            mode="edit"
+            memorialId={memorialId}
+            initial={initial}
+            onSaved={(id) => { window.location.href = `/memorials/${id}`; }}
+          />
+          {/* lifecycle actions below the form */}
+          <div className="max-w-[680px] mx-auto px-4 pb-24 -mt-16">
+            <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4 space-y-3">
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B]">Memorial status</h2>
+              <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                This memorial is currently <b className="text-white">{m.status}</b> ({m.visibility}).
+                {m.status === "unpublished" && " Publish it again from the memorial page when you are ready."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {m.status === "published" && (
+                  <button onClick={unpublish} disabled={unpublishing} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40">
+                    {unpublishing ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />} Unpublish
+                  </button>
+                )}
+                {isOwner && (
+                  <button onClick={requestDeletion} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-300 hover:bg-red-500/15">
+                    <Trash2 size={12} /> Delete memorial
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-[#475569]">
+                Koino administrators can hide a memorial after a report, but they never edit its content. Moderation stays with the family.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {tab === "managers" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">Invite a family member or friend</h2>
+            <p className="text-[11px] text-[#94A3B8] mb-3 leading-relaxed">
+              Co-managers can edit the memorial, moderate condolences, and invite others — but only the
+              owner can delete the memorial. Invite by their Koino username.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={invite}
+                onChange={(e) => setInvite(e.target.value)}
+                placeholder="e.g. annamma1990"
+                className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+              />
+              <button
+                onClick={inviteManager}
+                disabled={inviting || !invite.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
+              >
+                {inviting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add
+              </button>
+            </div>
+          </div>
+
+          <ul className="space-y-2.5">
+            {managers.map((mm) => (
+              <li key={mm.userId} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] px-4 py-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED]/40 to-[#1C1929] flex items-center justify-center shrink-0">
+                  {mm.role === "owner" ? <Crown size={14} className="text-amber-300" /> : <Users size={13} className="text-[#C4B5FD]" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-white truncate">
+                    {mm.name} {mm.username && <span className="text-[#64748B] font-normal">@{mm.username}</span>}
+                  </p>
+                  <p className="text-[10px] text-[#64748B]">
+                    {mm.role === "owner" ? "Owner" : "Manager"} · since {timeAgo(mm.since)}
+                  </p>
+                </div>
+                {isOwner && mm.role !== "owner" && (
+                  <button onClick={() => removeManager(mm.userId, mm.name)} className="p-1.5 rounded-full text-[#64748B] hover:text-red-300" aria-label={`Remove ${mm.name}`}>
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

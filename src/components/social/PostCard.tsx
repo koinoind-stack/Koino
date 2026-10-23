@@ -14,6 +14,7 @@ import {
   Trash2,
   Flag,
   Ban,
+  Flower2,
   ChevronLeft,
   ChevronRight,
   BadgeCheck,
@@ -295,6 +296,21 @@ export default function PostCard({
             <CaptionText text={state.content} onHashtag={onHashtag} onMention={onOpenProfile} />
           </div>
         )
+      )}
+
+      {/* ─── memorial announcement (Part 4) ─── */}
+      {state.memorial && !state.repostedFrom && (
+        <a
+          href={`/memorials/${state.memorial.id}`}
+          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-[#7C3AED]/[0.07] border border-[#7C3AED]/20 px-3.5 py-2.5 hover:bg-[#7C3AED]/[0.12] transition-colors"
+        >
+          <Flower2 size={16} className="text-[#C4B5FD] shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold text-[#C4B5FD] uppercase tracking-wide">In loving memory</p>
+            <p className="text-xs text-[#94A3B8] truncate">{state.memorial.fullName}</p>
+          </div>
+          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">View Memorial →</span>
+        </a>
       )}
 
       {/* ─── media ─── */}

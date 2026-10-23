@@ -105,6 +105,7 @@ export const ur: Record<string, string> = {
   "admin.tab.redemptions": "ریڈیمپشنز",
   "admin.tab.analytics": "اینالٹکس",
   "admin.tab.reports": "رپورٹس",
+  "admin.tab.memorials": "یادگار صفحات",
   "triviaView.title": "بائبل ٹریویا",
   "triviaView.verified": "تصدیق شدہ: {points} ایم پی",
   "triviaView.signInPrompt": "ایمان پوائنٹس حاصل کرنے کے لیے لاگ ان کریں",

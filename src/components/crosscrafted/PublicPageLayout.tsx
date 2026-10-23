@@ -27,6 +27,7 @@ export default function PublicPageLayout({ children }: { children: React.ReactNo
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-[#94A3B8]">
             <Link href="/about" className="hover:text-white transition-colors">About</Link>
+            <Link href="/memorials" className="hover:text-white transition-colors">Memorials</Link>
             <Link href="/blog" className="hover:text-white transition-colors">Blog</Link>
             <Link href="/help" className="hover:text-white transition-colors">Help</Link>
             <Link href="/partner" className="hover:text-white transition-colors">Partner</Link>

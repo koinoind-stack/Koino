@@ -143,6 +143,7 @@ export type SerializedPost = {
   repostCount: number;
   viewCount: number;
   isReel: boolean;
+  memorial: { id: string; fullName: string } | null; // Part 4: "View Memorial" feed card
   editedAt: string | null;
   createdAt: string;
   author: {
@@ -181,6 +182,7 @@ export const postSelect = {
   repostCount: true,
   viewCount: true,
   isReel: true,
+  memorial: { select: { id: true, fullName: true } },
   editedAt: true,
   createdAt: true,
   author: {
@@ -251,6 +253,7 @@ export async function serializePosts(
     repostCount: r.repostCount,
     viewCount: r.viewCount,
     isReel: r.isReel,
+    memorial: r.memorial ? { id: r.memorial.id, fullName: r.memorial.fullName } : null,
     editedAt: r.editedAt ? r.editedAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     author: {

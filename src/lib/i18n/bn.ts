@@ -102,6 +102,7 @@ export const bn: Record<string, string> = {
   "admin.tab.redemptions": "রিডেমশন",
   "admin.tab.analytics": "অ্যানালিটিক্স",
   "admin.tab.reports": "রিপোর্ট",
+  "admin.tab.memorials": "স্মৃতি পাতা",
   "triviaView.title": "বাইবেল ট্রিভিয়া",
   "triviaView.verified": "যাচাইকৃত: {points} এফপি",
   "triviaView.signInPrompt": "বিশ্বাস পয়েন্ট উপার্জন করতে সাইন ইন করুন",

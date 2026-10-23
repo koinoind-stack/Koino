@@ -102,6 +102,7 @@ export const hi: Record<string, string> = {
   "admin.tab.redemptions": "रिडेम्पशन्स",
   "admin.tab.analytics": "एनालिटिक्स",
   "admin.tab.reports": "रिपोर्ट्स",
+  "admin.tab.memorials": "स्मृति पृष्ठ",
   "triviaView.title": "बाइबल ट्रिविया",
   "triviaView.verified": "सत्यापित: {points} एफपी",
   "triviaView.signInPrompt": "फेथ पॉइंट्स कमाने के लिए साइन इन करें",

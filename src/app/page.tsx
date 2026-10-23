@@ -26,6 +26,7 @@ import {
   CircleUser,
   PlusSquare,
   Users,
+  Flower2,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -68,6 +69,7 @@ type View =
   | "reels"
   | "notifications"
   | "groups" // Round 2: Groups & Fellowship discovery
+  | "memorials" // Part 4: In Loving Memory → /memorials (public App Router page)
   | "group-detail" // Round 2: one group (posts, members, join)
   | "create"
   | "profile" // own social profile (SocialProfileView on own username)
@@ -102,6 +104,7 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "explore", icon: Search, label: "Explore" },
   { id: "reels", icon: Play, label: "Reels" },
   { id: "groups", icon: Users, label: "Groups" },
+  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "profile", icon: CircleUser, label: "My Profile" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
@@ -132,6 +135,7 @@ const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "groups", icon: Users, label: "Groups" },
+  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "bible", icon: BookOpen, label: "Bible" },
@@ -312,7 +316,7 @@ export default function Home() {
     // Fire-and-forget analytics if available, then perform a full route
     // navigation. Mirrors navigate() cleanup so the More sheet closes
     // immediately on mobile.
-    if (v === "blog" || v === "support") {
+    if (v === "blog" || v === "support" || v === "memorials") {
       setShowMoreSheet(false);
       setHeaderVisible(true);
       try {
@@ -322,13 +326,14 @@ export default function Home() {
           body: JSON.stringify({
             event:
               v === "blog" ? "blog_nav_click" :
+              v === "memorials" ? "memorials_nav_click" :
               "support_koino_nav_click",
             source: "sidebar",
           }),
         }).catch(() => {});
       } catch {}
       if (typeof window !== "undefined") {
-        window.location.href = `/${v}`;
+        window.location.href = v === "memorials" ? "/memorials" : `/${v}`;
       }
       return;
     }

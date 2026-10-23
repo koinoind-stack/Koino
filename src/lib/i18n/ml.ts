@@ -105,6 +105,7 @@ export const ml: Record<string, string> = {
   "admin.tab.redemptions": "റിഡംപ്ഷനുകൾ",
   "admin.tab.analytics": "അനലിറ്റിക്സ്",
   "admin.tab.reports": "റിപ്പോർട്ടുകൾ",
+  "admin.tab.memorials": "സ്മരണകൾ",
   "triviaView.title": "ബൈബിൾ ട്രിവിയ",
   "triviaView.verified": "സ്ഥിരീകരിച്ചു: {points} FP",
   "triviaView.signInPrompt": "വിശ്വാസ പോയിന്റുകൾ നേടാൻ ലോഗിൻ ചെയ്യുക",

@@ -23,6 +23,7 @@ export type Post = {
   repostCount: number;
   viewCount: number;
   isReel: boolean;
+  memorial?: { id: string; fullName: string } | null; // Part 4: memorial announcement
   editedAt: string | null;
   createdAt: string;
   author: SocialUser;

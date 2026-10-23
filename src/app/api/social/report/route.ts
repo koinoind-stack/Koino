@@ -4,9 +4,8 @@ import { getSessionUser, jsonError } from "@/lib/social/server";
 import { rateLimit } from "@/lib/social/rate-limit";
 
 /**
- * POST /api/social/report — report a post / comment / user / story.
- * Reports land in the Report table for admin review (review UI is future
- * work; they are visible via the database / a future admin tab).
+ * POST /api/social/report — report a post / comment / user / story / memorial.
+ * Reports land in the Report table for admin review (Admin → Reports tab).
  */
 export async function POST(req: NextRequest) {
   const session = await getSessionUser();
@@ -26,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const targetType = String(body.targetType || "");
   const targetId = String(body.targetId || "");
-  const validTargets = ["post", "comment", "user", "story"];
+  const validTargets = ["post", "comment", "user", "story", "memorial"];
   if (!validTargets.includes(targetType)) return jsonError("Invalid target type");
   if (!targetId) return jsonError("targetId is required");
 
@@ -47,6 +46,9 @@ export async function POST(req: NextRequest) {
     } else if (targetType === "user") {
       const found = await db.user.findUnique({ where: { id: targetId }, select: { id: true } });
       if (!found) return jsonError("User not found", 404);
+    } else if (targetType === "memorial") {
+      const found = await db.memorial.findUnique({ where: { id: targetId }, select: { id: true } });
+      if (!found) return jsonError("Memorial not found", 404);
     }
   } catch {
     // existence check is best-effort; a dangling id will simply never match

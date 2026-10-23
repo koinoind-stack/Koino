@@ -105,6 +105,7 @@ export const kn: Record<string, string> = {
   "admin.tab.redemptions": "ರಿಡೆಮ್ಪ್ಶನ್‌ಗಳು",
   "admin.tab.analytics": "ಅನಲಿಟಿಕ್ಸ್",
   "admin.tab.reports": "ವರದಿಗಳು",
+  "admin.tab.memorials": "ಸ್ಮರಣೆ ಪುಟಗಳು",
   "triviaView.title": "ಬೈಬಲ್ ಟ್ರಿವಿಯಾ",
   "triviaView.verified": "ದೃಢೀಕರಿಸಲಾಗಿದೆ: {points} FP",
   "triviaView.signInPrompt": "ನಿಷ್ಠಾ ಅಂಕಗಳನ್ನು ಗಳಿಸಲು ಸೈನ್ ಇನ್ ಮಾಡಿ",

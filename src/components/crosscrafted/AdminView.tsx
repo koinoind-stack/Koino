@@ -42,6 +42,7 @@ import {
   FileText,
   Star,
   Flag,
+  Flower2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -64,6 +65,7 @@ import BlogTab from "@/components/crosscrafted/admin/BlogTab";
 import ApologeticsTab from "@/components/crosscrafted/admin/ApologeticsTab";
 import QuestionsTab from "@/components/crosscrafted/admin/QuestionsTab";
 import ReportsTab from "@/components/crosscrafted/admin/ReportsTab";
+import MemorialsTab from "@/components/crosscrafted/admin/MemorialsTab";
 
 type AdminTab =
   | "dashboard"
@@ -83,7 +85,8 @@ type AdminTab =
   | "blog"
   | "analytics"
   | "bible-comics"
-  | "reports";
+  | "reports"
+  | "memorials";
 
 const TABS: { id: AdminTab; icon: typeof Shield; labelKey: string }[] = [
   { id: "dashboard",    icon: LayoutDashboard, labelKey: "admin.tab.dashboard" },
@@ -104,6 +107,7 @@ const TABS: { id: AdminTab; icon: typeof Shield; labelKey: string }[] = [
   { id: "analytics",    icon: BarChart3,         labelKey: "admin.tab.analytics" },
   { id: "bible-comics", icon: BookOpen,          labelKey: "admin.tab.bibleComics" },
   { id: "reports",      icon: Flag,              labelKey: "admin.tab.reports" },
+  { id: "memorials",    icon: Flower2,           labelKey: "admin.tab.memorials" },
 ];
 
 // ─── Apologetics admin wrapper ─────────────────────────────────────────────
@@ -281,6 +285,7 @@ export default function AdminView() {
           {activeTab === "analytics" && <AnalyticsTab />}
           {activeTab === "bible-comics" && <BibleComicsAdmin />}
           {activeTab === "reports" && <ReportsTab />}
+          {activeTab === "memorials" && <MemorialsTab />}
         </motion.div>
       </AnimatePresence>
     </div>
