@@ -21,27 +21,36 @@ import { BRAND } from "@/lib/brand";
 //   originally requested view (acceptable trade-off — they can click
 //   the footer link again, or use the sidebar).
 
+// Footer groups (§10): Koino · Faith and Community · Discover · Support ·
+// Legal. Only links to routes that exist — App Router pages use real paths,
+// SPA views use /?view= deep links. No duplicates, no dead ends.
 const FOOTER_SECTIONS = [
   {
     title: `${BRAND.name}`,
     links: [
       { label: `About ${BRAND.name}`, href: "/about" },
-      { label: "Bible", href: "/?view=bible" },
-      { label: "Bible Movies & Videos", href: "/videos" },
-      { label: "Bible Comics", href: "/?view=comic" },
-      { label: "Churches", href: "/?view=churches" },
-      { label: "Events", href: "/?view=events" },
-      { label: "Bible Trivia", href: "/?view=trivia" },
-      { label: "Prayer Wall", href: "/?view=prayer-wall" },
       { label: "Blog", href: "/blog" },
+      { label: `Partner With ${BRAND.name}`, href: "/partner" },
     ],
   },
   {
-    title: "Community",
+    title: "Faith and Community",
     links: [
-      { label: "Business Directory", href: "/?view=business-directory" },
+      { label: "Bible", href: "/?view=bible" },
+      { label: "Bible Comics", href: "/?view=comic" },
+      { label: "Bible Movies & Videos", href: "/videos" },
+      { label: "Bible Trivia", href: "/?view=trivia" },
+      { label: "Prayer Wall", href: "/?view=prayer-wall" },
+      { label: "Churches", href: "/?view=churches" },
+      { label: "Events", href: "/?view=events" },
+      { label: "In Loving Memory", href: "/memorials" },
+    ],
+  },
+  {
+    title: "Discover",
+    links: [
       { label: "Marketplace", href: "/?view=shop" },
-      { label: `Partner With ${BRAND.name}`, href: "/partner" },
+      { label: "Business Directory", href: "/?view=business-directory" },
     ],
   },
   {
@@ -76,8 +85,8 @@ export default function KoinoFooter() {
     <footer className="bg-[#0A0913] border-t border-white/[0.04] mt-12">
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Brand + description */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
-          <div className="md:col-span-1">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-8">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2 mb-3">
               <Image
                 src="/koino-logo.png"
