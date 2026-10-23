@@ -1,0 +1,2639 @@
+KOINO — COMPLETE APOLOGETICS + PARTNER WITH KOINO + VERIFIED CONTRIBUTORS + ARTICLE CMS
+
+You are working on the existing Koino Christian community platform.
+
+BRAND
+
+Koino
+www.koino.in
+Tagline:
+Faith. Fellowship. Belong.
+
+IMPORTANT:
+
+Build this as an integrated Koino content and contributor system.
+
+The system must allow:
+
+1. Koino Admin to manage Apologetics content
+2. Pastors, elders, Bible teachers, apologists and approved Christian writers to apply through "Partner With Koino"
+3. Admin to review contributor applications
+4. Admin to approve/reject contributors
+5. Admin to assign specific content permissions
+6. Approved contributors to receive a separate Contributor Dashboard
+7. Contributors to write Articles, Blogs, Bible Studies, Apologetics, Devotionals, etc., depending on permissions
+8. Contributors to submit content for Admin review
+9. Admin to approve, request changes, reject, publish or archive content
+10. Approved contributors to receive a visible "✓ Koino Verified Contributor" badge
+11. Admin to control the badge
+12. Users to discover and read published content
+13. Content to support categories, series, Bible references, sources, related articles and SEO
+14. The system to be secure and server-authoritative
+
+DO NOT rebuild unrelated Koino features.
+
+DO NOT create a second authentication system.
+
+DO NOT create a second Admin system.
+
+DO NOT duplicate Koino Merch, Marketplace, Members or other existing systems.
+
+
+==================================================
+1. FIRST AUDIT THE EXISTING PROJECT
+==================================================
+
+Before implementation inspect the existing codebase for:
+
+- Apologetics
+- Articles
+- Blog
+- Authors
+- Contributors
+- Partner
+- CMS
+- Content
+- Posts
+- Categories
+- Series
+- Admin
+- Members
+- Users
+- User roles
+- requireAdmin()
+- Supabase Auth
+- Prisma
+- Supabase Storage
+- image uploads
+- rich text editor
+- SEO metadata
+- notifications
+- activity/audit log
+
+Search the entire project for:
+
+apologetics
+article
+blog
+author
+contributor
+partner
+writer
+editor
+verified
+badge
+role
+permission
+admin
+publish
+draft
+review
+
+Reuse existing architecture where appropriate.
+
+Do not create duplicate models if equivalent functionality already exists.
+
+At the end of the audit identify:
+
+- existing content system
+- existing Admin system
+- existing user/profile system
+- existing storage system
+- existing rich text editor
+- existing authorization system
+- what can be reused
+- what needs to be added
+
+
+==================================================
+2. PRODUCT STRUCTURE
+==================================================
+
+Create/organize Koino content into:
+
+APOLOGETICS
+ARTICLES
+BLOG
+BIBLE STUDIES
+DEVOTIONALS
+
+These are content types.
+
+Do NOT create five completely separate CMS implementations.
+
+Use one reusable Content/Article architecture with:
+
+contentType
+
+Examples:
+
+ARTICLE
+BLOG
+APOLOGETICS
+BIBLE_STUDY
+DEVOTIONAL
+
+This allows the same CMS to power multiple content sections.
+
+Apologetics should remain a dedicated user-facing section.
+
+
+==================================================
+3. APOLOGETICS USER EXPERIENCE
+==================================================
+
+Create a public/authenticated Koino Apologetics section.
+
+Hero:
+
+APOLOGETICS
+
+Have questions about Christianity?
+
+Explore thoughtful, Bible-grounded answers to difficult questions about God, Jesus, the Bible, faith, science and life.
+
+Then:
+
+FEATURED
+
+POPULAR QUESTIONS
+
+EXPLORE TOPICS
+
+RECENT ARTICLES
+
+FEATURED CONTRIBUTORS
+
+
+==================================================
+4. APOLOGETICS CATEGORIES
+==================================================
+
+Create the following initial categories.
+
+GOD & EXISTENCE
+
+Examples:
+- Does God really exist?
+- Why is there something rather than nothing?
+- Can we have good reasons to believe in God?
+- What is the cosmological argument?
+- What is the moral argument?
+- What is fine-tuning?
+- What created God?
+
+JESUS CHRIST
+
+Examples:
+- Did Jesus really exist?
+- Did Jesus claim to be God?
+- Who did Jesus say He was?
+- Why was Jesus crucified?
+- What evidence exists for Jesus?
+- Is Jesus the only way to God?
+
+RESURRECTION
+
+Examples:
+- Did Jesus really rise from the dead?
+- Did Jesus really die?
+- Was Jesus' body stolen?
+- Did the disciples hallucinate?
+- Was the resurrection a legend?
+- Why is the resurrection important?
+
+BIBLE
+
+Examples:
+- Can we trust the Bible?
+- Has the Bible been corrupted?
+- Why are there different Bible translations?
+- Are there contradictions in the Bible?
+- How was the Bible canon formed?
+- What evidence supports the Bible?
+
+SCIENCE & FAITH
+
+Examples:
+- Does science disprove God?
+- Can Christians believe in evolution?
+- What caused the universe?
+- Can science explain everything?
+- Can miracles happen?
+- Is Christianity compatible with science?
+- How should Christians interpret Genesis alongside science?
+
+SUFFERING & EVIL
+
+Examples:
+- If God is good, why does suffering exist?
+- Why does God allow evil?
+- Why do good people suffer?
+- Why does God allow natural disasters?
+- Why doesn't God stop evil?
+- Where is God when we suffer?
+
+MORALITY & ETHICS
+
+Examples:
+- Can morality exist without God?
+- Is morality objective?
+- Why does God judge sin?
+- Is Christian morality outdated?
+- What is human dignity?
+- How should Christians think about difficult ethical questions?
+
+OTHER WORLDVIEWS
+
+Examples:
+- Christianity and atheism
+- Christianity and agnosticism
+- Christianity and Islam
+- Christianity and Judaism
+- Christianity and Hinduism
+- Christianity and Buddhism
+- Is every religion basically the same?
+
+DOUBT & FAITH
+
+Examples:
+- Is it wrong to doubt God?
+- Can Christians have doubts?
+- What if I don't feel God's presence?
+- Why doesn't God answer my prayers?
+- What if I lose my faith?
+- How can I rebuild my faith?
+
+CULTURE & CHRISTIANITY
+
+Examples:
+- Is Christianity anti-science?
+- Is Christianity a Western religion?
+- Why have Christians caused harm?
+- Can Christians disagree and still follow Jesus?
+- How should Christians respond to criticism?
+
+SALVATION
+
+Examples:
+- Why do we need salvation?
+- Why is Jesus' death important?
+- What does grace mean?
+- Can a person be saved by being a good person?
+- What does it mean to follow Jesus?
+
+
+==================================================
+5. ARTICLE MODEL
+==================================================
+
+Create/reuse a flexible article/content model.
+
+Suggested fields:
+
+id
+title
+slug
+contentType
+categoryId
+subcategoryId
+seriesId
+excerpt
+shortAnswer
+content
+coverImageUrl
+authorId
+status
+difficulty
+featured
+publishedAt
+scheduledAt
+createdAt
+updatedAt
+reviewedAt
+reviewedBy
+seoTitle
+seoDescription
+canonicalUrl
+viewCount
+
+Use existing project conventions.
+
+DO NOT store sensitive author information unnecessarily.
+
+
+==================================================
+6. ARTICLE CONTENT TYPES
+==================================================
+
+Support:
+
+ARTICLE
+BLOG
+APOLOGETICS
+BIBLE_STUDY
+DEVOTIONAL
+
+Admin can create content and choose the content type.
+
+Contributor can only see content types assigned to them.
+
+
+==================================================
+7. ARTICLE WRITER / CMS
+==================================================
+
+Admin and approved contributors need a proper writing interface.
+
+CREATE CONTENT
+
+Fields:
+
+Title
+
+Slug
+- automatically generate from title
+- allow admin to edit
+
+Content Type
+
+Category
+
+Subcategory
+
+Series
+
+Short Description
+
+Short Answer
+
+Cover Image
+
+Article Body
+
+Author
+
+Difficulty
+
+Tags
+
+Bible References
+
+Sources
+
+Related Articles
+
+Featured
+
+SEO Title
+
+SEO Description
+
+
+==================================================
+8. RICH TEXT EDITOR
+==================================================
+
+The article editor should support:
+
+- Heading 1
+- Heading 2
+- Heading 3
+- Paragraph
+- Bold
+- Italic
+- Underline
+- Bullet list
+- Numbered list
+- Blockquote
+- Links
+- Images
+- Image captions
+- Horizontal divider
+- Callout box
+- Bible verse block
+- Source/reference block
+
+Do not build an unnecessarily complicated editor.
+
+Reuse an existing editor if already installed.
+
+Content must render safely.
+
+Sanitize HTML/HTML-like content server-side.
+
+
+==================================================
+9. APOLOGETICS ARTICLE FORMAT
+==================================================
+
+Apologetics articles should support a structured format.
+
+Optional sections:
+
+THE QUESTION
+
+Example:
+
+"Did Jesus really rise from the dead?"
+
+SHORT ANSWER
+
+A concise answer.
+
+THE CASE
+
+Main explanation.
+
+THE OBJECTION
+
+What critics/skeptics commonly ask.
+
+THE RESPONSE
+
+Christian response.
+
+BIBLICAL PERSPECTIVE
+
+Relevant Scripture.
+
+EVIDENCE & SOURCES
+
+Historical, philosophical, scientific or scholarly sources.
+
+CONCLUSION
+
+A concise final summary.
+
+THINK FURTHER
+
+Optional additional reading.
+
+These can be represented as normal rich content sections rather than forcing every article to use every section.
+
+
+==================================================
+10. BIBLE REFERENCES
+==================================================
+
+Allow authors/admins to attach Bible references.
+
+Example:
+
+John 20:1-29
+1 Corinthians 15:1-8
+Romans 8:18-25
+
+Display:
+
+📖 Bible References
+
+John 20:1–29
+1 Corinthians 15:1–8
+
+Where the existing Koino Bible system supports linking to passages, make references clickable.
+
+Do not create a second Bible system.
+
+
+==================================================
+11. SOURCES & REFERENCES
+==================================================
+
+Apologetics must support credible sources.
+
+Allow:
+
+Source Title
+Author
+Publication
+Publisher
+Year
+URL
+Book
+Notes
+
+Display:
+
+SOURCES & FURTHER READING
+
+1. Author — Book
+2. Author — Article
+3. Historical source
+4. Academic source
+
+Use external links appropriately.
+
+Do not invent sources.
+
+Do not allow authors to claim a source says something it does not say.
+
+Admin can edit/remove sources before publication.
+
+
+==================================================
+12. CONTENT QUALITY PRINCIPLE
+==================================================
+
+Koino Apologetics should be:
+
+- thoughtful
+- respectful
+- Bible-grounded
+- evidence-aware
+- intellectually honest
+- welcoming to sincere questions
+
+Do not design the CMS around attacking atheists, Muslims, Hindus, Jews or other groups.
+
+When comparing Christianity with another worldview:
+
+focus on beliefs and arguments, not insulting people.
+
+Avoid unsupported claims such as:
+
+"Science has proven Christianity."
+
+Instead allow authors to distinguish:
+
+- evidence
+- historical claims
+- philosophical arguments
+- theological claims
+- interpretation
+- areas of uncertainty
+
+This is especially important for Science & Faith content.
+
+The platform should allow contributors with different Christian traditions to write while Admin retains editorial control.
+
+
+==================================================
+13. AUTHOR PROFILE
+==================================================
+
+Create/reuse a contributor profile.
+
+Fields:
+
+Display Name
+Profile Photo
+Bio
+Church
+Church Role
+Location
+Areas of Expertise
+Website
+Social Links
+
+Possible church roles:
+
+Pastor
+Elder
+Bible Teacher
+Apologist
+Evangelist
+Christian Author
+Theologian
+Ministry Leader
+Worship Leader
+Other
+
+Do not require every field.
+
+
+==================================================
+14. PARTNER WITH KOINO
+==================================================
+
+Add a public:
+
+PARTNER WITH KOINO
+
+section.
+
+Purpose:
+
+Invite pastors, elders, Bible teachers, apologists, Christian authors and ministry leaders to contribute content.
+
+Suggested copy:
+
+PARTNER WITH KOINO
+
+Help Christians ask better questions, grow deeper in Scripture and explore the Christian faith.
+
+If you are a pastor, elder, Bible teacher, apologist, Christian writer or ministry leader, you can apply to become a Koino contributor.
+
+[APPLY TO BECOME A CONTRIBUTOR]
+
+
+==================================================
+15. CONTRIBUTOR APPLICATION
+==================================================
+
+Create a contributor application form.
+
+Fields:
+
+Full Name
+Email
+Profile Photo
+Church/Ministry
+Church Role
+City
+State/Country
+Short Bio
+Areas of Expertise
+Website
+Social Links
+Why do you want to contribute to Koino?
+What type of content would you like to create?
+
+Content interests:
+
+☐ Apologetics
+☐ Articles
+☐ Blog
+☐ Bible Studies
+☐ Devotionals
+☐ Bible Teaching
+☐ Christian Culture
+☐ Faith & Science
+☐ Other
+
+Optional:
+
+Sample Article / Writing URL
+
+Do not request unnecessary sensitive information.
+
+
+==================================================
+16. APPLICATION STATUS
+==================================================
+
+Statuses:
+
+PENDING
+UNDER_REVIEW
+APPROVED
+REJECTED
+SUSPENDED
+
+Admin can change status.
+
+User should be able to see:
+
+Application submitted
+Under review
+Approved
+Rejected
+
+If rejected, do not expose private admin notes unless Admin intentionally provides a public reason.
+
+
+==================================================
+17. ADMIN CONTRIBUTOR MANAGEMENT
+==================================================
+
+Create:
+
+ADMIN → CONTRIBUTORS
+
+Dashboard statistics:
+
+Total Contributors
+Pending Applications
+Verified Contributors
+Suspended Contributors
+Articles Submitted
+Articles Published
+
+List columns:
+
+Name
+Church
+Role
+Status
+Verified
+Content Permissions
+Articles
+Joined
+Actions
+
+
+==================================================
+18. CONTRIBUTOR DETAIL PAGE
+==================================================
+
+Admin clicks contributor.
+
+Show:
+
+Profile
+
+Name
+Photo
+Church
+Church Role
+Bio
+Expertise
+Website
+Social Links
+
+Status
+
+Application Status
+Verified Status
+
+Content Permissions
+
+Content statistics:
+
+Drafts
+Submitted
+Published
+Rejected
+Needs Changes
+
+
+==================================================
+19. ADMIN CONTENT PERMISSIONS
+==================================================
+
+Admin must be able to assign exact content permissions.
+
+Example:
+
+PASTOR JOHN
+
+☑ Apologetics
+☑ Articles
+☑ Blog
+☐ Bible Studies
+☐ Devotionals
+☐ Faith & Science
+
+Another contributor:
+
+SARAH
+
+☐ Apologetics
+☑ Bible Studies
+☑ Devotionals
+☐ Blog
+
+Permissions must be stored server-side.
+
+Do not trust the browser.
+
+
+==================================================
+20. PERMISSION TYPES
+==================================================
+
+At minimum support:
+
+CAN_WRITE_ARTICLES
+CAN_WRITE_BLOG
+CAN_WRITE_APOLOGETICS
+CAN_WRITE_BIBLE_STUDIES
+CAN_WRITE_DEVOTIONALS
+CAN_UPLOAD_IMAGES
+CAN_EDIT_OWN_DRAFTS
+CAN_SUBMIT_FOR_REVIEW
+
+Future-ready permissions:
+
+CAN_EDIT_OWN_PUBLISHED
+CAN_SUGGEST_SERIES
+CAN_MANAGE_OWN_PROFILE
+
+DO NOT initially give contributors:
+
+CAN_PUBLISH
+CAN_DELETE_OTHER_CONTENT
+CAN_MANAGE_USERS
+CAN_MANAGE_CONTRIBUTORS
+CAN_MANAGE_SITE
+CAN_MANAGE_REWARDS
+CAN_MANAGE_MERCH
+CAN_MANAGE_CHURCHES
+CAN_MANAGE_EVENTS
+
+
+==================================================
+21. VERIFIED CONTRIBUTOR BADGE
+==================================================
+
+Admin can mark an approved contributor:
+
+✓ Koino Verified Contributor
+
+This badge is controlled by Admin.
+
+It should appear:
+
+- contributor profile
+- article author card
+- blog author card
+- Bible Study author card
+- devotional author card
+
+Suggested display:
+
+Pastor John Smith
+✓ Koino Verified Contributor
+
+Pastor • ABC Church
+
+
+==================================================
+22. BADGE RULES
+==================================================
+
+The badge means:
+
+"Koino has reviewed and approved this contributor as a contributor to the Koino platform."
+
+Do NOT imply:
+
+- Koino endorses every theological statement
+- Koino certifies the contributor's denomination
+- Koino guarantees every opinion
+- Koino verifies every external claim
+
+If contributor is suspended:
+
+remove/hide the badge.
+
+If contributor is rejected:
+
+no badge.
+
+If contributor is approved but not verified:
+
+show approved author status only if needed.
+
+
+==================================================
+23. CONTRIBUTOR DASHBOARD
+==================================================
+
+Approved contributors should NOT receive the Admin Panel.
+
+Create:
+
+/contributor
+
+or equivalent.
+
+Dashboard:
+
+CONTRIBUTOR DASHBOARD
+
+Welcome, Pastor John
+
+✓ Koino Verified Contributor
+
+Your Content
+
+Drafts
+Submitted
+Needs Changes
+Published
+
+Create:
+
+[New Article]
+
+[New Blog]
+
+[New Apologetics]
+
+etc.
+
+Only show content creation buttons that correspond to their permissions.
+
+
+==================================================
+24. CONTRIBUTOR WRITING FLOW
+==================================================
+
+Contributor:
+
+Create Draft
+↓
+Write content
+↓
+Save Draft
+↓
+Continue editing
+↓
+Submit for Review
+
+After submitting:
+
+status = SUBMITTED
+
+Contributor cannot directly publish.
+
+Admin reviews.
+
+
+==================================================
+25. ADMIN REVIEW WORKFLOW
+==================================================
+
+Admin:
+
+ADMIN → CONTENT → SUBMISSIONS
+
+Show:
+
+Title
+Author
+Type
+Category
+Submitted
+Status
+
+Open submission.
+
+Actions:
+
+APPROVE & PUBLISH
+REQUEST CHANGES
+REJECT
+SAVE DRAFT
+
+If requesting changes:
+
+Admin can provide:
+
+"Changes requested"
+
+Contributor sees the feedback.
+
+Status:
+
+CHANGES_REQUESTED
+
+Contributor edits.
+
+Resubmits.
+
+Status:
+
+SUBMITTED
+
+
+==================================================
+26. CONTENT STATUS
+==================================================
+
+Support:
+
+DRAFT
+SUBMITTED
+CHANGES_REQUESTED
+APPROVED
+PUBLISHED
+REJECTED
+SCHEDULED
+ARCHIVED
+
+Only Admin can move content to:
+
+PUBLISHED
+
+unless a future permission explicitly enables direct publishing.
+
+Initial system:
+
+All contributor content requires Admin approval.
+
+
+==================================================
+27. ADMIN ARTICLE MANAGEMENT
+==================================================
+
+Create:
+
+ADMIN → APOLOGETICS
+
+Tabs:
+
+Articles
+Drafts
+Submissions
+Published
+Categories
+Series
+Featured
+Questions
+
+And:
+
+ADMIN → CONTENT
+
+can manage all content types.
+
+Do not duplicate article management logic.
+
+
+==================================================
+28. SERIES
+==================================================
+
+Create article series.
+
+Example:
+
+THE CASE FOR THE RESURRECTION
+
+Part 1:
+Did Jesus Really Exist?
+
+Part 2:
+Did Jesus Really Die?
+
+Part 3:
+Was Jesus Buried?
+
+Part 4:
+Was the Tomb Empty?
+
+Part 5:
+Did the Disciples See Jesus?
+
+Part 6:
+Was the Resurrection a Legend?
+
+Part 7:
+What Did the Earliest Christians Believe?
+
+Part 8:
+What Best Explains the Evidence?
+
+Admin can:
+
+Create Series
+Edit Series
+Add Articles
+Reorder Articles
+Publish/Unpublish Series
+
+
+==================================================
+29. DIFFICULTY
+==================================================
+
+Content can have:
+
+BEGINNER
+INTERMEDIATE
+ADVANCED
+
+Example:
+
+Beginner:
+Does God Exist?
+
+Intermediate:
+The Cosmological Argument
+
+Advanced:
+Historical Arguments for the Resurrection
+
+
+==================================================
+30. FEATURED CONTENT
+==================================================
+
+Admin can mark content:
+
+FEATURED
+
+Apologetics homepage can show:
+
+FEATURED
+
+POPULAR QUESTIONS
+
+RECENT ARTICLES
+
+LATEST FROM CONTRIBUTORS
+
+
+==================================================
+31. RELATED ARTICLES
+==================================================
+
+Each article can have manually selected related articles.
+
+Example:
+
+Did Jesus Really Rise From the Dead?
+
+Related:
+
+Did Jesus Really Exist?
+Why Was Jesus Crucified?
+Can Miracles Happen?
+Why Is the Resurrection Important?
+
+Do not rely only on automatic recommendations.
+
+
+==================================================
+32. USER QUESTIONS
+==================================================
+
+Add:
+
+ASK A QUESTION
+
+At the bottom of Apologetics:
+
+Still have a question about Christianity?
+
+[Ask Koino]
+
+User submits:
+
+Question
+Optional name
+Optional email
+
+Do not expose email publicly.
+
+Admin sees:
+
+ADMIN → APOLOGETICS → QUESTIONS
+
+Statuses:
+
+NEW
+IN_REVIEW
+ANSWERED
+TURNED_INTO_ARTICLE
+ARCHIVED
+
+Admin can convert a good question into a new article draft.
+
+Example:
+
+User question:
+"If God knows who will reject Him, why create them?"
+
+Admin:
+
+[CREATE ARTICLE FROM QUESTION]
+
+This creates a draft with the question as the title/prompt.
+
+This feature can become a major content engine for Koino.
+
+
+==================================================
+33. PUBLIC QUESTION PRIVACY
+==================================================
+
+Never publicly display a user's email.
+
+If Admin publishes a question:
+
+show:
+
+"Question from a Koino member"
+
+unless the user explicitly gave permission to display their name.
+
+
+==================================================
+34. AUTHOR PAGE
+==================================================
+
+Create public contributor profile:
+
+/contributors/[slug]
+
+Display:
+
+Profile photo
+Name
+✓ Koino Verified Contributor
+Church/Role
+Bio
+Expertise
+
+Published Articles
+Published Blogs
+Bible Studies
+Apologetics
+
+Only display published content.
+
+Do not expose contributor's private email.
+
+
+==================================================
+35. ARTICLE PAGE
+==================================================
+
+Article page should show:
+
+Category
+
+Title
+
+Short Description
+
+Cover Image
+
+Author:
+
+Pastor John Smith
+✓ Koino Verified Contributor
+
+Published date
+Updated date
+
+Article body
+
+Bible References
+
+Sources & Further Reading
+
+Related Articles
+
+Author profile card
+
+Share
+
+Do not display private contributor information.
+
+
+==================================================
+36. ARTICLE SEO
+==================================================
+
+Each article must support:
+
+SEO Title
+SEO Description
+Slug
+Canonical URL
+Open Graph title
+Open Graph description
+Open Graph image
+
+Generate sensible defaults from:
+
+Title
+Excerpt
+Cover image
+
+Allow Admin to override.
+
+Do not create duplicate canonical URLs.
+
+
+==================================================
+37. IMAGE UPLOADS
+==================================================
+
+Contributors can upload images only if:
+
+CAN_UPLOAD_IMAGES
+
+Use existing Koino/Supabase Storage.
+
+Do not store base64 images in the database.
+
+Use persistent storage.
+
+Recommended organization:
+
+content/
+  contributors/
+  articles/
+  covers/
+
+Server must validate:
+
+- authenticated user
+- contributor permission
+- file type
+- file size
+- storage path
+
+Do not allow contributors to upload arbitrary files.
+
+
+==================================================
+38. AUTHOR PHOTO
+==================================================
+
+Contributor profile photo should use the existing Koino profile/avatar storage system if available.
+
+Do not create a second avatar system.
+
+If an existing avatarUrl exists:
+
+reuse it.
+
+
+==================================================
+39. ADMIN VERIFICATION
+==================================================
+
+Admin should have a verification workflow.
+
+Application:
+
+PENDING
+
+Admin reviews:
+
+- name
+- church
+- church role
+- bio
+- website
+- sample writing
+- areas of expertise
+
+Admin can:
+
+APPROVE
+REJECT
+REQUEST MORE INFORMATION
+SUSPEND
+
+When approved:
+
+Contributor account created/activated.
+
+Admin can then assign permissions.
+
+Do not automatically give permissions just because application is approved.
+
+
+==================================================
+40. CONTRIBUTOR ACCOUNT SECURITY
+==================================================
+
+Contributor must use the existing Koino authentication system.
+
+Do not create contributor passwords separately.
+
+A contributor is still a normal Koino member with additional server-side contributor permissions.
+
+Admin privileges and Contributor privileges must be completely separate.
+
+A contributor must NEVER automatically receive Admin access.
+
+
+==================================================
+41. ADMIN SECURITY
+==================================================
+
+Use the existing centralized:
+
+requireAdmin()
+
+or equivalent.
+
+Only the authorized Koino Admin can:
+
+- approve contributors
+- reject contributors
+- suspend contributors
+- assign permissions
+- grant verification badge
+- publish content
+- edit other people's content
+- delete other people's content
+- manage categories
+- manage series
+- feature content
+
+Do not trust frontend role flags.
+
+Do not trust localStorage.
+
+Do not trust request body roles.
+
+Server must authorize every sensitive action.
+
+
+==================================================
+42. CONTRIBUTOR API SECURITY
+==================================================
+
+Every contributor API must verify:
+
+1. authenticated user
+2. contributor status
+3. specific permission
+4. ownership where applicable
+
+Example:
+
+Contributor John has:
+
+CAN_WRITE_APOLOGETICS
+
+He can create Apologetics drafts.
+
+He cannot create:
+
+Bible Studies
+
+unless that permission is assigned.
+
+Contributor cannot edit another contributor's draft.
+
+Contributor cannot change their own:
+
+verified status
+permissions
+approval status
+published status
+
+
+==================================================
+43. ARTICLE OWNERSHIP
+==================================================
+
+Contributor can:
+
+Create own draft
+Edit own draft
+Submit own draft
+View own submissions
+View admin feedback
+
+Contributor cannot:
+
+Edit another contributor's draft
+Publish own content
+Delete another contributor's content
+Change author
+Change verification
+Change permissions
+
+Admin can do all.
+
+
+==================================================
+44. CONTENT REVISION HISTORY
+==================================================
+
+Add revision tracking where practical.
+
+For contributor content:
+
+Draft
+↓
+Submitted
+↓
+Admin changes requested
+↓
+Contributor edits
+↓
+Resubmitted
+
+Keep enough history to determine:
+
+who changed what
+when it changed
+
+At minimum record:
+
+updatedAt
+updatedBy
+
+If the project already has audit/version history, reuse it.
+
+
+==================================================
+45. ADMIN AUDIT LOG
+==================================================
+
+Record:
+
+Contributor approved
+Contributor rejected
+Contributor suspended
+Contributor verified
+Contributor unverified
+Permission granted
+Permission removed
+Article submitted
+Article approved
+Article rejected
+Changes requested
+Article published
+Article archived
+Article deleted
+
+Include:
+
+admin
+action
+target
+timestamp
+
+
+==================================================
+46. INITIAL CONTENT IDEAS
+==================================================
+
+Seed the category structure, not fake published articles.
+
+Recommended initial topics:
+
+GOD & EXISTENCE
+
+1. Does God Really Exist?
+2. Why Is There Something Rather Than Nothing?
+3. Can We Have Good Reasons to Believe in God?
+4. What Is the Cosmological Argument?
+5. Can Morality Exist Without God?
+6. What Is Fine-Tuning?
+
+
+JESUS
+
+7. Did Jesus Really Exist?
+8. Did Jesus Claim to Be God?
+9. Why Was Jesus Crucified?
+10. Who Did Jesus Say He Was?
+11. Why Does Jesus Matter?
+
+
+RESURRECTION
+
+12. Did Jesus Really Rise From the Dead?
+13. Did Jesus Really Die?
+14. Was Jesus' Body Stolen?
+15. Did the Disciples Hallucinate?
+16. Was the Resurrection a Legend?
+17. Why Is the Resurrection Central to Christianity?
+
+
+BIBLE
+
+18. Can We Trust the Bible?
+19. Has the Bible Been Corrupted?
+20. Why Are There Different Bible Translations?
+21. Are There Contradictions in the Bible?
+22. How Was the Bible Canon Formed?
+
+
+SCIENCE & FAITH
+
+23. Does Science Disprove God?
+24. Can Christians Believe in Evolution?
+25. What Caused the Universe?
+26. Can Miracles Happen?
+27. Is Christianity Compatible With Science?
+28. How Should Christians Think About Genesis and Science?
+
+
+SUFFERING
+
+29. If God Is Good, Why Does He Allow Suffering?
+30. Why Does God Allow Evil?
+31. Why Do Good People Suffer?
+32. Where Is God When We Suffer?
+
+
+DOUBT
+
+33. Is It Wrong to Doubt God?
+34. Can Christians Have Questions?
+35. What If I Don't Feel God's Presence?
+36. Why Doesn't God Answer My Prayers?
+
+
+OTHER WORLDVIEWS
+
+37. Are All Religions Basically the Same?
+38. Christianity and Atheism
+39. Christianity and Islam
+40. Christianity and Hinduism
+41. Christianity and Buddhism
+42. Christianity and Judaism
+
+Do NOT automatically publish these.
+
+Create categories/topic suggestions only unless actual article content is provided by Admin/contributors.
+
+
+==================================================
+47. CONTENT SOURCING
+==================================================
+
+When contributors write apologetics content, encourage:
+
+Bible references
+historical sources
+academic sources
+primary sources where appropriate
+books
+scholarly articles
+
+Do not fabricate citations.
+
+Do not fabricate quotes.
+
+Do not allow "source" fields to imply a source supports a claim unless the contributor/admin has actually verified it.
+
+Admin remains responsible for editorial approval.
+
+
+==================================================
+48. THEOLOGICAL DIVERSITY
+==================================================
+
+Koino may receive contributors from different Christian traditions.
+
+Do not hardcode one denomination as the only valid contributor type unless Koino explicitly decides otherwise.
+
+Allow Admin to review theological content.
+
+Where an article represents a particular denominational interpretation, allow the author to identify the tradition/context where useful.
+
+Do not present a disputed theological interpretation as universally agreed Christian doctrine without appropriate framing.
+
+
+==================================================
+49. PUBLIC DISCOVERY
+==================================================
+
+Apologetics should have:
+
+Search
+
+Filter by:
+
+Category
+Difficulty
+Series
+Author
+Newest
+Popular
+
+Search titles, excerpts and article content where practical.
+
+Examples:
+
+Search:
+"resurrection"
+
+Results:
+
+Did Jesus Really Rise From the Dead?
+Why Is the Resurrection Important?
+Was the Resurrection a Legend?
+
+
+==================================================
+50. POPULAR CONTENT
+==================================================
+
+Track article views using a safe server-side mechanism.
+
+Do not allow trivial refreshes to inflate view counts indefinitely.
+
+Use a reasonable anti-abuse strategy.
+
+Display:
+
+Popular Articles
+
+only when enough real data exists.
+
+Do not show fake numbers.
+
+
+==================================================
+51. COMMENTS
+==================================================
+
+DO NOT automatically add public comments to Apologetics in this phase unless an existing Koino comments/moderation system is already available.
+
+The initial system should focus on:
+
+High-quality articles
+Questions
+Sources
+Contributor submissions
+Admin moderation
+
+Comments can be a future feature.
+
+
+==================================================
+52. SHARE
+==================================================
+
+Article pages should support:
+
+Copy Link
+WhatsApp
+Facebook
+X
+Email
+
+Use the article's canonical URL.
+
+Do not create fake share counts.
+
+
+==================================================
+53. RELATED KOINO FEATURES
+==================================================
+
+Where appropriate, link users to:
+
+Bible
+Bible Trivia
+Churches
+Events
+Prayer Wall
+
+Example:
+
+Article:
+"Why Does God Allow Suffering?"
+
+At bottom:
+
+Continue exploring Koino:
+
+📖 Read the Bible
+🙏 Visit Prayer Wall
+⛪ Find a Church
+
+
+==================================================
+54. ADMIN SIDEBAR
+==================================================
+
+Admin sidebar should contain:
+
+Dashboard
+Members
+Churches
+Events
+Marketplace
+Koino Merch
+Business Directory
+Prayers
+Bible Trivia
+Rewards
+
+APOLOGETICS
+- Articles
+- Submissions
+- Contributors
+- Questions
+- Categories
+- Series
+
+Announcements
+Bible Comics
+Analytics
+Activity Log
+
+Only actual Admin can see these.
+
+
+==================================================
+55. CONTRIBUTOR SIDEBAR
+==================================================
+
+Contributor sidebar should NOT show Admin.
+
+Instead:
+
+Contributor Home
+My Content
+Drafts
+Submissions
+Published
+Create Content
+My Profile
+
+Only show content creation areas they have permission for.
+
+
+==================================================
+56. PARTNER WITH KOINO PLACEMENT
+==================================================
+
+Add:
+
+Partner With Koino
+
+to the public footer and appropriate About/Apologetics areas.
+
+Do not put it only inside Admin.
+
+Suggested footer:
+
+KOINO
+About Koino
+About Founder
+Contact Us
+Partner With Koino
+Help Center
+Blog
+
+COMMUNITY
+Bible
+Bible Comics
+Churches
+Events
+Bible Trivia
+Prayer Wall
+Business Directory
+Marketplace
+
+SUPPORT
+Support Koino
+Give to Koino
+Partner With Koino
+Koino Merch
+
+
+==================================================
+57. ADMIN APPROVAL IS THE PUBLISHING GATE
+==================================================
+
+Critical rule:
+
+Contributor content can NEVER become publicly visible merely because it was submitted.
+
+Required:
+
+Contributor
+→ Submit
+→ Admin Review
+→ Approve
+→ Publish
+
+Only content with:
+
+status = PUBLISHED
+
+is visible publicly.
+
+Server-side public queries must filter unpublished content.
+
+
+==================================================
+58. SCHEDULED PUBLISHING
+==================================================
+
+Support:
+
+scheduledAt
+
+Admin can choose:
+
+Publish Now
+Schedule
+
+A scheduled article becomes public only at/after its scheduled time.
+
+Server determines whether it is visible.
+
+Do not rely on frontend timers.
+
+
+==================================================
+59. ARCHIVING
+==================================================
+
+Admin can archive content.
+
+Archived content:
+
+- removed from normal public discovery
+- not deleted unless Admin explicitly deletes it
+- remains in contributor history
+- remains in Admin CMS
+
+
+==================================================
+60. DELETE RULES
+==================================================
+
+Contributor cannot permanently delete published content.
+
+Admin can delete.
+
+Prefer soft-delete/archive where practical.
+
+Do not permanently remove content merely because a contributor account is suspended.
+
+Preserve published content ownership/history.
+
+
+==================================================
+61. CONTRIBUTOR SUSPENSION
+==================================================
+
+If a contributor is suspended:
+
+- cannot create new content
+- cannot submit drafts
+- cannot edit content
+- verified badge removed
+- existing published content remains unless Admin decides otherwise
+
+Admin can choose to:
+
+Keep published content
+Archive content
+Reassign content
+
+Do not automatically delete their work.
+
+
+==================================================
+62. PROFILE / BADGE DISPLAY
+==================================================
+
+Article author card:
+
+--------------------------------
+[PHOTO]
+
+Pastor John Smith
+✓ Koino Verified Contributor
+
+Pastor • ABC Church
+
+Christian Apologetics
+--------------------------------
+
+Click:
+
+View Contributor
+
+
+==================================================
+63. ADMIN DASHBOARD WIDGET
+==================================================
+
+Add:
+
+CONTENT REVIEW
+
+Pending Contributor Applications: 4
+Articles Awaiting Review: 7
+Questions Awaiting Review: 12
+
+[Review Content]
+
+This allows Admin to immediately see what needs attention.
+
+
+==================================================
+64. CONTRIBUTOR NOTIFICATIONS
+==================================================
+
+If existing notification infrastructure exists, reuse it.
+
+Notify contributor when:
+
+Application approved
+Application rejected
+Contributor verified
+Permission changed
+Article submitted
+Changes requested
+Article approved
+Article rejected
+Article published
+
+Example:
+
+"Your article has been approved and published on Koino."
+
+
+==================================================
+65. DO NOT OVER-NOTIFY
+==================================================
+
+Do not create notifications for every autosave.
+
+Only meaningful workflow events should notify.
+
+
+==================================================
+66. DATABASE SECURITY
+==================================================
+
+If new tables are exposed through Supabase Data API:
+
+Enable appropriate RLS.
+
+Users can access only their own:
+
+applications
+contributor profile data where appropriate
+drafts
+submissions
+notifications
+
+Contributors cannot:
+
+modify permissions
+modify verification
+approve themselves
+publish themselves
+modify another contributor
+modify categories
+modify other authors' content
+
+Admin operations remain server-authorized.
+
+Never expose Supabase service-role keys to browser code.
+
+
+==================================================
+67. API SECURITY
+==================================================
+
+Create/reuse server-side authorization helpers:
+
+requireAdmin()
+
+requireContributor()
+
+requireContributorPermission(permission)
+
+requireContentOwner(contentId)
+
+Every protected API must enforce authorization.
+
+Do not rely on frontend visibility.
+
+Example:
+
+POST /api/contributors/apply
+→ authenticated user
+
+POST /api/contributor/content
+→ approved contributor + permission
+
+PATCH /api/contributor/content/:id
+→ owner + permission
+
+POST /api/contributor/content/:id/submit
+→ owner + permission
+
+POST /api/admin/contributors/:id/approve
+→ Admin only
+
+POST /api/admin/content/:id/publish
+→ Admin only
+
+
+==================================================
+68. NO SELF-ESCALATION
+==================================================
+
+Test that a contributor cannot submit:
+
+role=admin
+
+isAdmin=true
+
+verified=true
+
+permissions=[everything]
+
+and gain privileges.
+
+Server ignores client-supplied authorization fields.
+
+
+==================================================
+69. SEO INDEXING
+==================================================
+
+Only published content should be indexed.
+
+Drafts:
+noindex
+
+Submitted:
+noindex
+
+Rejected:
+noindex
+
+Archived:
+noindex
+
+Published:
+indexable unless Admin disables indexing.
+
+
+==================================================
+70. ACCESSIBILITY
+==================================================
+
+Make the CMS and public pages accessible.
+
+Buttons need clear labels.
+
+Forms need labels.
+
+Validation errors should appear next to fields.
+
+Do not rely only on color for:
+
+verified
+status
+errors
+permissions
+
+
+==================================================
+71. MOBILE
+==================================================
+
+Test:
+
+Public Apologetics
+Article pages
+Partner application
+Contributor dashboard
+Contributor editor
+Admin contributor management
+Admin article editor
+
+on mobile.
+
+Do not allow the rich editor to overflow horizontally.
+
+
+==================================================
+72. PERFORMANCE
+==================================================
+
+Do not load every article into the browser.
+
+Use server-side pagination/search.
+
+Admin submissions should paginate.
+
+Contributor content should paginate.
+
+Public article listings should paginate or use appropriate loading.
+
+Do not fetch thousands of records at once.
+
+
+==================================================
+73. INITIAL ADMIN CONTENT
+==================================================
+
+Do NOT create fake article bodies.
+
+Create:
+
+Categories
+Series structure
+Suggested topics
+
+but leave actual articles as drafts or topic ideas until written/reviewed.
+
+Do not fabricate authors.
+
+Do not fabricate pastors.
+
+Do not fabricate churches.
+
+Do not fabricate testimonials.
+
+Do not fabricate credentials.
+
+
+==================================================
+74. FUTURE-READY ARCHITECTURE
+==================================================
+
+Design the content architecture so future Koino features can use it:
+
+Podcasts
+Videos
+Sermons
+Courses
+Bible studies
+Devotionals
+News/Blog
+Interviews
+
+Do not implement all of these now.
+
+Build reusable content foundations.
+
+
+==================================================
+75. TESTING — REQUIRED
+==================================================
+
+TEST 1
+
+Normal Koino member:
+
+Can apply to Partner With Koino.
+
+Expected:
+application created.
+
+TEST 2
+
+Normal member:
+
+Cannot create contributor content before approval.
+
+Expected:
+403/permission denied.
+
+
+TEST 3
+
+Admin approves contributor.
+
+Expected:
+status APPROVED.
+
+
+TEST 4
+
+Admin assigns:
+
+CAN_WRITE_APOLOGETICS
+
+Expected:
+contributor can create Apologetics draft.
+
+
+TEST 5
+
+Contributor tries to create Bible Study without permission.
+
+Expected:
+blocked.
+
+
+TEST 6
+
+Contributor creates Apologetics draft.
+
+Expected:
+DRAFT.
+
+
+TEST 7
+
+Contributor submits.
+
+Expected:
+SUBMITTED.
+
+
+TEST 8
+
+Contributor cannot publish.
+
+Expected:
+blocked.
+
+
+TEST 9
+
+Admin requests changes.
+
+Expected:
+CHANGES_REQUESTED.
+
+
+TEST 10
+
+Contributor edits and resubmits.
+
+Expected:
+SUBMITTED.
+
+
+TEST 11
+
+Admin approves.
+
+Expected:
+PUBLISHED.
+
+
+TEST 12
+
+Public user visits article.
+
+Expected:
+article visible.
+
+
+TEST 13
+
+Contributor is verified.
+
+Expected:
+✓ Koino Verified Contributor appears.
+
+
+TEST 14
+
+Contributor is suspended.
+
+Expected:
+badge removed and contributor cannot submit new content.
+
+
+TEST 15
+
+Contributor attempts to edit another contributor's article.
+
+Expected:
+403.
+
+
+TEST 16
+
+Contributor attempts to grant themselves permissions.
+
+Expected:
+blocked.
+
+
+TEST 17
+
+Contributor attempts:
+
+isAdmin=true
+
+Expected:
+no effect.
+
+
+TEST 18
+
+Normal user attempts Admin contributor APIs.
+
+Expected:
+403.
+
+
+TEST 19
+
+Admin approves contributor.
+
+Expected:
+Contributor dashboard available.
+
+
+TEST 20
+
+Contributor dashboard.
+
+Expected:
+NO Admin Panel.
+
+
+TEST 21
+
+Admin publishes article.
+
+Expected:
+public article available.
+
+
+TEST 22
+
+Draft article.
+
+Expected:
+not publicly accessible.
+
+
+TEST 23
+
+Scheduled article before scheduled time.
+
+Expected:
+not publicly visible.
+
+
+TEST 24
+
+Archived article.
+
+Expected:
+removed from normal public discovery.
+
+
+TEST 25
+
+User submits Apologetics question.
+
+Expected:
+Admin can review it.
+
+
+TEST 26
+
+Admin converts question into article.
+
+Expected:
+new draft created.
+
+
+TEST 27
+
+Contributor uploads image.
+
+Expected:
+stored persistently in approved storage.
+
+
+TEST 28
+
+Contributor attempts unauthorized file upload.
+
+Expected:
+blocked.
+
+
+TEST 29
+
+SEO.
+
+Expected:
+published article has correct title, description, canonical and OG data.
+
+
+TEST 30
+
+Mobile.
+
+Expected:
+public, contributor and Admin interfaces are usable.
+
+
+==================================================
+76. FINAL SECURITY AUDIT
+==================================================
+
+Search entire project for:
+
+requireAdmin
+requireContributor
+permission
+verified
+publish
+/api/admin
+/api/contributor
+
+Find protected routes that do not enforce authorization.
+
+Fix them.
+
+Confirm:
+
+Admin:
+full Admin access
+
+Contributor:
+only assigned contributor permissions
+
+Normal member:
+normal Koino features only
+
+Logged out:
+public features only
+
+
+==================================================
+77. FINAL CONTENT AUDIT
+==================================================
+
+Confirm:
+
+- Apologetics categories work
+- Article creation works
+- Blog creation works
+- Bible Study creation works
+- Devotional creation works
+- Contributor assignment works
+- Verification badge works
+- Contributor dashboard works
+- Admin review works
+- Revision workflow works
+- Publishing works
+- Scheduling works
+- Archiving works
+- Sources work
+- Bible references work
+- Related articles work
+- Series work
+- Questions work
+- SEO works
+- Image uploads work
+
+
+==================================================
+78. FINAL IMPLEMENTATION REPORT
+==================================================
+
+At the end provide:
+
+KOINO APOLOGETICS & CONTRIBUTOR IMPLEMENTATION REPORT
+
+1. Existing CMS found:
+2. Existing contributor functionality found:
+3. Database models added/modified:
+4. Admin changes:
+5. Partner With Koino:
+6. Contributor application:
+7. Contributor permissions:
+8. Verified badge:
+9. Contributor dashboard:
+10. Article editor:
+11. Apologetics:
+12. Blog:
+13. Bible Studies:
+14. Devotionals:
+15. Review workflow:
+16. Sources:
+17. Bible references:
+18. Series:
+19. Questions:
+20. Image uploads:
+21. SEO:
+22. Security:
+23. RLS:
+24. APIs:
+25. Tests performed:
+26. Tests passed:
+27. Files changed:
+28. Database migrations:
+29. Remaining issues:
+
+IMPORTANT:
+
+Do not claim anything was tested unless it was actually tested.
+
+Do not fabricate contributors, churches, articles, authors or credentials.
+
+Do not publish sample content automatically.
+
+Do not give contributors Admin access.
+
+The final architecture must be:
+
+KOINO MEMBER
+↓
+PARTNER WITH KOINO
+↓
+CONTRIBUTOR APPLICATION
+↓
+ADMIN REVIEW
+↓
+APPROVED CONTRIBUTOR
+↓
+ADMIN ASSIGNS PERMISSIONS
+↓
+✓ KOINO VERIFIED CONTRIBUTOR
+↓
+CONTRIBUTOR DASHBOARD
+↓
+CREATE CONTENT
+↓
+SUBMIT FOR REVIEW
+↓
+ADMIN REVIEW
+↓
+PUBLISH
+↓
+KOINO COMMUNITY
