@@ -16,7 +16,14 @@ import { LogIn, LogOut } from "lucide-react";
  * /api/auth/me — NOT from Supabase metadata — so profile edits are visible
  * here instantly (PROFILE_UPDATED_EVENT triggers a refetch).
  */
-export default function HeaderUserSection({ mobile = false }: { mobile?: boolean }) {
+export default function HeaderUserSection({
+  mobile = false,
+  onOpenProfile,
+}: {
+  mobile?: boolean;
+  /** When provided, clicking the avatar/name opens the member's profile. */
+  onOpenProfile?: () => void;
+}) {
   const router = useRouter();
   const t = useTranslation();
   const { isAuthenticated, points, username, displayName, avatarUrl } = useSupabaseUser();
@@ -62,21 +69,28 @@ export default function HeaderUserSection({ mobile = false }: { mobile?: boolean
 
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-      {avatarUrl ? (
-        <Image src={avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
-      ) : (
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#F39B9B] to-[#9786E3] flex items-center justify-center text-[10px] font-bold text-slate-950">
-          {name.charAt(0).toUpperCase()}
-        </div>
-      )}
-      {!mobile && (
-        <div className="flex flex-col leading-tight">
-          <span className="text-xs font-bold text-white truncate max-w-[90px]">{name}</span>
-          <span className="text-[9px] text-[#64748B] font-bold truncate max-w-[90px]">
-            {handle ?? t("common.faithPoints", { count: points.toLocaleString() })}
-          </span>
-        </div>
-      )}
+      <button
+        onClick={onOpenProfile}
+        disabled={!onOpenProfile}
+        title="My profile"
+        className="flex items-center gap-1.5 min-w-0 disabled:cursor-default"
+      >
+        {avatarUrl ? (
+          <Image src={avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
+        ) : (
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#F39B9B] to-[#9786E3] flex items-center justify-center text-[10px] font-bold text-slate-950">
+            {name.charAt(0).toUpperCase()}
+          </div>
+        )}
+        {!mobile && (
+          <div className="flex flex-col leading-tight">
+            <span className="text-xs font-bold text-white truncate max-w-[90px]">{name}</span>
+            <span className="text-[9px] text-[#64748B] font-bold truncate max-w-[90px]">
+              {handle ?? t("common.faithPoints", { count: points.toLocaleString() })}
+            </span>
+          </div>
+        )}
+      </button>
       <button
         onClick={handleSignOut}
         className="p-1 rounded-lg hover:bg-white/5 transition-colors"

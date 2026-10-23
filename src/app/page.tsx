@@ -12,7 +12,6 @@ import {
   Building2,
   Heart,
   Sparkles,
-  LogOut,
   Home as HomeIcon,
   HeartHandshake,
   ListChecks,
@@ -28,6 +27,8 @@ import {
   Users,
   Flower2,
   Clapperboard,
+  Church,
+  ChevronDown,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -56,6 +57,7 @@ import ComposerView from "@/components/social/ComposerView";
 import SocialProfileView from "@/components/social/SocialProfileView";
 import NotificationsView from "@/components/social/NotificationsView";
 import PostDetail from "@/components/social/PostDetail";
+import HomeRightRail from "@/components/social/HomeRightRail";
 import type { Post } from "@/components/social/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
@@ -94,36 +96,62 @@ type View =
   | "support" // Support Koino → /support (public App Router page, accessible while authenticated)
   | "admin";
 
-// Bible is the main feature — placed at the top of the sidebar.
-// Bible Comics and Reading Plans are NOT separate sidebar entries —
-// they are modes inside the Bible hub.
-// Small Groups and List Church are also NOT top-level entries —
-// Small Groups is part of the Churches hub (Groups section inside church profile),
-// and List Your Church is a primary action inside the Churches hub.
-//
-const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
+// ─── SIDEBAR — three-column social layout ───
+// Six primary destinations stay permanently visible; every secondary feature
+// lives in an organised, collapsible category below (nothing was removed).
+// "App Home" (the feature dashboard) is intentionally NOT a duplicate sidebar
+// link anymore — it opens via the "Explore All Features" button.
+// Bible Comics is RESTORED here alongside the other Bible-related features.
+const PRIMARY_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
   { id: "explore", icon: Search, label: "Explore" },
   { id: "reels", icon: Play, label: "Reels" },
   { id: "groups", icon: Users, label: "Groups" },
-  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
-  { id: "notifications", icon: Bell, label: "Notifications" },
-  { id: "profile", icon: CircleUser, label: "My Profile" },
-  { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "bible", icon: BookOpen, label: "Bible" },
-  { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
-  { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
-  { id: "trivia", icon: Award, label: "Bible Trivia" },
-  { id: "apologetics", icon: ListChecks, label: "Apologetics" },
-  // ─── DISCOVER ─── Marketplace + Business Directory
-  { id: "shop", icon: Store, label: "Marketplace" },
-  { id: "business-directory", icon: Building2, label: "Business Directory" },
-  { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
-  // ─── CONTENT & SUPPORT ─── reachable while authenticated (no logout)
-  { id: "blog", icon: FileText, label: "Blog" },
-  { id: "support", icon: HandHeart, label: "Support Koino" },
-  { id: "admin", icon: Shield, label: "Admin" },
+];
+
+const SIDEBAR_CATEGORIES: {
+  label: string;
+  icon: typeof Search;
+  links: { id: View; icon: typeof Search; label: string }[];
+}[] = [
+  {
+    label: "Grow in Faith",
+    icon: Sparkles,
+    links: [
+      { id: "comic", icon: Sparkles, label: "Bible Comics" },
+      { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
+      { id: "trivia", icon: Award, label: "Bible Trivia" },
+      { id: "apologetics", icon: ListChecks, label: "Apologetics" },
+      { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
+    ],
+  },
+  {
+    label: "Community",
+    icon: Church,
+    links: [
+      { id: "churches", icon: Church, label: "Churches" },
+      { id: "memorials", icon: Flower2, label: "In Loving Memory" },
+    ],
+  },
+  {
+    label: "Discover",
+    icon: Store,
+    links: [
+      { id: "shop", icon: Store, label: "Marketplace" },
+      { id: "business-directory", icon: Building2, label: "Business Directory" },
+    ],
+  },
+  {
+    label: "More",
+    icon: Grid,
+    links: [
+      { id: "blog", icon: FileText, label: "Blog" },
+      { id: "support", icon: HandHeart, label: "Support Koino" },
+      { id: "admin", icon: Shield, label: "Admin" },
+    ],
+  },
 ];
 
 // Mobile bottom nav — Instagram-style 5 quick slots per the social spec.
@@ -142,6 +170,7 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "bible", icon: BookOpen, label: "Bible" },
+  { id: "comic", icon: Sparkles, label: "Bible Comics" },
   { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
@@ -179,6 +208,46 @@ export default function Home() {
   // "auth just resolved" from "user signed out" so signed-out visitors keep
   // browsing the public landing page without being bounced.
   const wasAuthenticated = useRef(false);
+
+  // ─── SIDEBAR COLLAPSIBLE CATEGORIES ───
+  // Open/closed state persists in localStorage; the category holding the
+  // active view always auto-expands so the current page is never hidden.
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("koino.sidebar.open");
+      if (saved) setOpenCategories(JSON.parse(saved));
+    } catch {}
+  }, []);
+  const toggleCategory = (label: string) => {
+    setOpenCategories((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      try {
+        window.localStorage.setItem("koino.sidebar.open", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+  useEffect(() => {
+    const cat = SIDEBAR_CATEGORIES.find((c) => c.links.some((l) => l.id === view));
+    if (cat) setOpenCategories((prev) => (prev[cat.label] ? prev : { ...prev, [cat.label]: true }));
+  }, [view]);
+
+  // ─── NOTIFICATIONS UNREAD BADGE ─── lightweight refresh on view change
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    fetch("/api/social/notifications?unread=1&limit=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { unreadCount?: number } | null) => {
+        if (!cancelled && d && typeof d.unreadCount === "number") setUnreadCount(d.unreadCount);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [view, isAuthenticated]);
 
   // Navigate to a new view, also resetting header + scroll position.
   const navigate = (next: View) => {
@@ -405,47 +474,57 @@ export default function Home() {
           </button>
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
-            <HeaderUserSection />
             <button
-              onClick={goHome}
-              className="p-2 rounded-xl hover:bg-white/5 transition-colors"
-              title="Back to home"
+              onClick={() => goView("notifications")}
+              className="relative p-2 rounded-xl hover:bg-white/5 transition-colors"
+              title="Notifications"
+              aria-label="Notifications"
             >
-              <HomeIcon size={18} strokeWidth={1.8} className="text-[#64748B]" />
+              <Bell
+                size={18}
+                strokeWidth={1.8}
+                className={view === "notifications" ? "text-[#7C3AED]" : "text-[#64748B]"}
+              />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#EC4899] text-[9px] font-black text-white flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
-            <button
-              onClick={goHome}
-              className="p-2 rounded-xl hover:bg-white/5 transition-colors"
-              title="Sign out"
-            >
-              <LogOut size={18} strokeWidth={1.8} className="text-[#64748B]" />
-            </button>
+            <HeaderUserSection onOpenProfile={() => goView("profile")} />
           </div>
           {/* Mobile: minimal right side */}
           <div className="md:hidden flex items-center gap-2">
             <LanguageSwitcher compact />
-            <HeaderUserSection mobile />
             <button
-              onClick={goHome}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06]"
+              onClick={() => goView("notifications")}
+              className="relative w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06]"
+              aria-label="Notifications"
             >
-              <LogOut size={14} className="text-[#64748B]" />
+              <Bell size={15} className="text-[#94A3B8]" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#EC4899] text-[8px] font-black text-white flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
+            <HeaderUserSection mobile onOpenProfile={() => goView("profile")} />
           </div>
         </div>
       </header>
 
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-56 border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] bg-[#0B1120] px-3 pt-6">
+        <aside className="hidden md:flex flex-col w-56 border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] bg-[#0B1120] px-3 pt-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Primary navigation — always visible */}
           <nav className="space-y-1">
-            {SIDEBAR_LINKS.filter(({ id }) => id !== "admin" || isAdmin).map(({ id, icon: Icon, label }) => {
+            {PRIMARY_LINKS.map(({ id, icon: Icon, label }) => {
               const active = view === id;
               return (
                 <button
                   key={id}
                   onClick={() => goView(id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-[14px] transition-all duration-200 border ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl font-bold text-[14px] transition-all duration-200 border ${
                     active
                       ? "bg-[#7C3AED]/15 text-white border-[#7C3AED]/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]"
                       : "text-[#94A3B8] hover:text-white hover:bg-white/[0.04] border-transparent"
@@ -466,17 +545,72 @@ export default function Home() {
               );
             })}
           </nav>
-          <div className="mt-auto pt-6 pb-4">
-            <div className="bg-gradient-to-br from-[#7C3AED]/15 to-[#EC4899]/15 border border-[#7C3AED]/20 rounded-2xl p-3">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Sparkles size={12} className="text-[#A78BFA]" />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Daily Verse</p>
-              </div>
-              <p className="text-[11px] text-white leading-snug italic mb-1">
-                "I can do all things through Christ who strengthens me."
-              </p>
-              <p className="text-[10px] text-[#94A3B8]">— Philippians 4:13</p>
-            </div>
+
+          {/* Feature dashboard — opens the existing App Home feature grid */}
+          <button
+            onClick={() => goView("dashboard")}
+            className={`mt-4 w-full flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-[13px] font-bold border transition-all duration-200 ${
+              view === "dashboard"
+                ? "bg-gradient-to-r from-[#7C3AED]/20 to-[#EC4899]/20 text-white border-[#7C3AED]/40"
+                : "bg-gradient-to-r from-[#7C3AED]/10 to-[#EC4899]/10 text-[#C4B5FD] border-[#7C3AED]/20 hover:text-white hover:border-[#7C3AED]/40"
+            }`}
+          >
+            <Sparkles size={16} strokeWidth={1.8} />
+            Explore All Features
+          </button>
+
+          {/* Secondary features — organised collapsible categories */}
+          <div className="mt-4 space-y-0.5">
+            {SIDEBAR_CATEGORIES.map((cat) => {
+              const links = cat.links.filter(({ id }) => id !== "admin" || isAdmin);
+              if (links.length === 0) return null;
+              const open = !!openCategories[cat.label];
+              const containsActive = links.some(({ id }) => id === view);
+              return (
+                <div key={cat.label}>
+                  <button
+                    onClick={() => toggleCategory(cat.label)}
+                    aria-expanded={open}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-[#64748B] hover:text-white hover:bg-white/[0.03] transition-all"
+                  >
+                    <cat.icon size={13} strokeWidth={2} />
+                    <span className="flex-1 text-left">{cat.label}</span>
+                    {containsActive && !open && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]" />
+                    )}
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {open && (
+                    <div className="mt-0.5 mb-1.5 space-y-0.5">
+                      {links.map(({ id, icon: Icon, label }) => {
+                        const active = view === id;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => goView(id)}
+                            className={`w-full flex items-center gap-2.5 pl-9 pr-3 py-2 rounded-xl text-[13px] font-bold transition-all duration-200 border ${
+                              active
+                                ? "bg-[#7C3AED]/15 text-white border-[#7C3AED]/30"
+                                : "text-[#94A3B8] hover:text-white hover:bg-white/[0.04] border-transparent"
+                            }`}
+                          >
+                            <Icon
+                              size={15}
+                              strokeWidth={active ? 2.4 : 1.8}
+                              className={active ? "text-[#7C3AED]" : ""}
+                            />
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </aside>
 
@@ -623,6 +757,32 @@ export default function Home() {
             </motion.div>
           </AnimatePresence>
         </main>
+
+        {/* ─── RIGHT DISCOVERY COLUMN — signed-in home only, xl+ screens ───
+            Real, data-driven community content (people, verse, events,
+            trending). Hidden below xl — the feed's own rails cover tablet,
+            and mobile keeps its compact nav + full-width feed. */}
+        {view === "home" && (
+          <aside className="hidden xl:block w-[300px] shrink-0 border-l border-white/[0.04] bg-[#0B1120] px-4 pt-4 pb-6">
+            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <HomeRightRail
+                onOpenProfile={(u) => {
+                  setProfileUsername(u);
+                  goView("profile");
+                }}
+                onHashtag={(tag) => {
+                  setExploreHashtag(tag || null);
+                  goView("explore");
+                }}
+                onOpenEvents={() => goView("events")}
+                onOpenPassage={(bookId, chapter) => {
+                  setBibleTarget({ bookId, chapter });
+                  goView("bible");
+                }}
+              />
+            </div>
+          </aside>
+        )}
       </div>
 
       {/* ─── SOCIAL OVERLAYS — render above ANY view (Task 50) ─── */}

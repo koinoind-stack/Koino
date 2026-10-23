@@ -141,8 +141,11 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
         ))}
       </div>
 
-      {/* upcoming church events surfaced in the feed */}
-      <EventRail onOpenEvents={onOpenEvents} />
+      {/* upcoming church events surfaced in the feed — mobile/tablet only;
+          xl+ screens show Upcoming Events in the right discovery column */}
+      <div className="xl:hidden">
+        <EventRail onOpenEvents={onOpenEvents} />
+      </div>
 
       {/* featured Bible movies & videos surfaced in the feed (Part 5) */}
       <VideoRail />
@@ -197,9 +200,10 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
               onChanged={refreshAll}
             />
           ))}
-          {/* suggestion rail on discover */}
+          {/* suggestion rail on discover — mobile/tablet only; xl+ screens
+              show People to follow in the right discovery column */}
           {tab === "discover" && suggestions.length > 0 && (
-            <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
+            <div className="xl:hidden bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">People to follow</h3>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {suggestions.map((u) => (
