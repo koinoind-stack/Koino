@@ -423,7 +423,13 @@ export default function Home() {
               return (
                 <button
                   key={id}
-                  onClick={() => goView(id)}
+                  onClick={() => {
+                    // FIX (My Profile bug): clear any previously-viewed username
+                    // so "My Profile" always opens the SIGNED-IN user's profile,
+                    // never the last profile that was visited (e.g. @joshg).
+                    if (id === "profile") setProfileUsername(null);
+                    goView(id);
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-[14px] transition-all duration-200 border ${
                     active
                       ? "bg-[#7C3AED]/15 text-white border-[#7C3AED]/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]"
@@ -609,7 +615,12 @@ export default function Home() {
             return (
               <button
                 key={id}
-                onClick={() => goView(id)}
+                onClick={() => {
+                  // FIX (My Profile bug): same reset as the sidebar — the bottom
+                  // nav Profile slot must show the signed-in user.
+                  if (id === "profile") setProfileUsername(null);
+                  goView(id);
+                }}
                 className="flex flex-col items-center justify-center relative py-1"
               >
                 <div className="relative flex items-center justify-center">
@@ -712,7 +723,12 @@ export default function Home() {
                   return (
                     <button
                       key={id}
-                      onClick={() => goView(id)}
+                      onClick={() => {
+                        // FIX (My Profile bug): reset stale username here too —
+                        // the "More" sheet is another path to "My Profile".
+                        if (id === "profile") setProfileUsername(null);
+                        goView(id);
+                      }}
                       className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${
                         active
                           ? "bg-[#7C3AED]/15 border-[#7C3AED]/40"
