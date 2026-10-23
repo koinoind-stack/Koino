@@ -63,23 +63,15 @@ export function useSupabaseUser() {
   useEffect(() => {
     const supabase = createClient();
 
+    // FIX (Member-chip bug): the initial load and every auth state change must
+    // load the FULL identity — role/points/profileCompleted AND
+    // username/displayName/avatarUrl — via refetchProfile(). Previously these
+    // paths only set role/points/profileCompleted, so the header chip showed
+    // the fallback "Member" and "My Profile" had no username to render.
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user);
       if (user) {
-        try {
-          const res = await fetch("/api/auth/me", { cache: "no-store" });
-          if (res.ok) {
-            const text = await res.text();
-            if (text) {
-              const data = JSON.parse(text);
-              setRole(data.role || "user");
-              setPoints(data.totalPoints || 0);
-              setProfileCompleted(data.profileCompleted ?? false);
-            }
-          }
-        } catch {
-          // ignore — role defaults to "user"
-        }
+        await refetchProfile();
       }
       setLoading(false);
     });
@@ -87,26 +79,22 @@ export function useSupabaseUser() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        try {
-          const res = await fetch("/api/auth/me", { cache: "no-store" });
-          if (res.ok) {
-            const data = await res.json();
-            setRole(data.role || "user");
-            setPoints(data.totalPoints || 0);
-            setProfileCompleted(data.profileCompleted ?? false);
-          }
-        } catch {
-          // ignore
-        }
+        await refetchProfile();
       } else {
+        // Sign-out: clear ALL identity fields (the old code left
+        // username/displayName/avatarUrl populated after logout).
         setRole(null);
         setPoints(0);
         setProfileCompleted(false);
+        setUsername(null);
+        setDisplayName(null);
+        setAvatarUrl(null);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Profile edits anywhere in the app → refetch here so all consumers update.
