@@ -2,6 +2,17 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Deploy-verification marker: lets us confirm a server-side-only change is
+  // live with `curl -I https://www.koino.in` (server code is not visible in
+  // public JS chunks). Bump the value on each server-side round.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Koino-Round", value: "tx-pool-fix" }],
+      },
+    ];
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
