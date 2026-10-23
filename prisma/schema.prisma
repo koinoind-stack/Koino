@@ -100,6 +100,13 @@ model User {
 
   // Contributor
   contributor         Contributor?
+
+  // ─── PART 4: IN LOVING MEMORY ───
+  memorialsCreated             Memorial[]           @relation("MemorialCreator")
+  memorialManagers             MemorialManager[]    @relation("MemorialManager")
+  memorialManagersAdded        MemorialManager[]    @relation("MemorialManagerAddedBy")
+  memorialCondolences          MemorialCondolence[] @relation("MemorialCondolenceAuthor")
+  memorialCondolencesReviewed  MemorialCondolence[] @relation("MemorialCondolenceReviewer")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -1339,4 +1346,91 @@ model UserQuestion {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PART 4: IN LOVING MEMORY — memorial / obituary pages (feature/part-4-memorial)
+//
+// Modeling decisions (confirmed with the repo owner):
+//  - Dates are PARTIAL by design: obituaries often record only the year (or
+//    year + month) of birth/death. Every component is nullable; validation
+//    requires at least a death year and forbids impossible combinations
+//    (e.g. day 31 in a 30-day month) — see src/lib/memorial/shared.ts.
+//  - Authorization is enforced SERVER-SIDE in the API routes (never in the
+//    client and never RLS-dependent). MemorialManager is the co-manager
+//    join table; the creator is always implicitly the owner-manager.
+//  - Condolences are moderated: MemorialCondolence.status starts "pending"
+//    unless the memorial opts into "open" posting. Managers approve/reject.
+//  - Reporting reuses the existing Report model (targetType = "memorial").
+//  - Visibility: "public" (anyone, incl. signed-out), "members" (signed-in
+//    active users only), "managers" (managers + admin only).
+// ─────────────────────────────────────────────────────────────────────────────
+model Memorial {
+  id            String   @id @default(cuid())
+  creatorId     String
+  fullName      String   // the departed's name — max 120 chars, enforced server-side
+  // Partial dates (1-12 months, 1-31 days; null = unknown/not provided)
+  birthYear     Int?
+  birthMonth    Int?
+  birthDay      Int?
+  deathYear     Int?
+  deathMonth    Int?
+  deathDay      Int?
+  epitaph       String?  // short line under the name — max 200 chars
+  biography     String?  @db.Text // life story — max 10,000 chars
+  serviceInfo   String?  @db.Text // funeral/memorial service details — max 2,000 chars
+  photoUrl      String?  // portrait, hosted in the existing public Storage bucket
+  visibility    String   @default("public")   // "public" | "members" | "managers"
+  condolencePolicy String @default("approved") // "approved" (manager approves first) | "open" (posts go live immediately)
+  archived      Boolean  @default(false) // soft-hide instead of hard delete
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  creator     User                 @relation("MemorialCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  managers    MemorialManager[]
+  condolences MemorialCondolence[]
+
+  @@index([createdAt])
+  @@index([deathYear])
+  @@index([creatorId])
+}
+
+// Co-managers of a memorial. The creator is the implicit OWNER and always
+// keeps full control; co-managers can edit details and moderate condolences
+// but can never remove the creator or delete the memorial.
+model MemorialManager {
+  id         String   @id @default(cuid())
+  memorialId String
+  userId     String
+  addedById  String
+  createdAt  DateTime @default(now())
+
+  memorial Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  user     User     @relation("MemorialManager", fields: [userId], references: [id], onDelete: Cascade)
+  addedBy  User     @relation("MemorialManagerAddedBy", fields: [addedById], references: [id], onDelete: Cascade)
+
+  @@unique([memorialId, userId])
+  @@index([userId])
+}
+
+// Condolence messages on a memorial. Status lifecycle:
+//   pending -> approved | rejected   (manager or admin action)
+// "open"-policy memorials auto-approve at creation time (status = approved).
+// Authors can delete their own messages; managers can delete any.
+model MemorialCondolence {
+  id           String    @id @default(cuid())
+  memorialId   String
+  authorId     String
+  message      String    // max 1,000 chars, enforced server-side
+  status       String    @default("pending") // "pending" | "approved" | "rejected"
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  memorial   Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  author     User     @relation("MemorialCondolenceAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  reviewedBy User?    @relation("MemorialCondolenceReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([memorialId, status, createdAt])
+  @@index([authorId])
 }
