@@ -75,8 +75,10 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         api<{ groups: Group[] }>(`/api/social/groups${qs ? `?${qs}` : ""}`),
         api<{ groups: Group[] }>("/api/social/groups?mine=1"),
       ]);
-      setGroups(all.groups || []);
-      setMyGroups((mine.groups || []).filter((g) => g.myMembership === "active" || g.myRole === "owner"));
+      const mineAll = mine.groups || [];
+      // Discover list must not repeat groups already shown in "Your groups"
+      setGroups((all.groups || []).filter((g) => !mineAll.some((m) => m.id === g.id)));
+      setMyGroups(mineAll.filter((g) => g.myMembership === "active" || g.myRole === "owner"));
     } catch (err) {
       toast.error((err as Error).message || "Could not load groups");
     } finally {

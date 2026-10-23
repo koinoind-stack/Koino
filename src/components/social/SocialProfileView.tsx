@@ -146,7 +146,31 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
       </div>
     );
   }
-  if (!data) return null;
+  if (!data) {
+    // Fetch failed (or profile unavailable) — never render a blank page.
+    return (
+      <div className="max-w-[680px] mx-auto px-3 md:px-4 pt-20 pb-24 text-center">
+        <h2 className="text-lg font-bold text-white mb-1">Profile unavailable</h2>
+        <p className="text-sm text-[#94A3B8] mb-6">
+          We couldn&apos;t load this profile right now. Check your connection and try again.
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={onBack}
+            className="px-4 py-2 rounded-full bg-white/5 text-white text-sm font-semibold hover:bg-white/10"
+          >
+            Back to home
+          </button>
+          <button
+            onClick={() => load(tab)}
+            className="px-4 py-2 rounded-full bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9]"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const gridPosts = data.posts;
   const tabs: Array<{ id: "posts" | "reels" | "saved"; label: string }> = [

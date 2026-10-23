@@ -515,6 +515,9 @@ export default function Home() {
               {view === "edit-profile" && (
                 <EditProfileView onDone={() => goView("profile")} />
               )}
+              {view === "profile" && !username && !profileUsername && (
+                <EditProfileView onDone={() => goView("home")} />
+              )}
               {view === "profile" &&
                 (username || profileUsername) &&
                 (profileUsername || username) && (
