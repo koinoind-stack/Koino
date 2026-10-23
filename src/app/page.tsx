@@ -26,6 +26,7 @@ import {
   Bell,
   CircleUser,
   PlusSquare,
+  Flower2,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -53,6 +54,10 @@ import SocialProfileView from "@/components/social/SocialProfileView";
 import NotificationsView from "@/components/social/NotificationsView";
 import PostDetail from "@/components/social/PostDetail";
 import type { Post } from "@/components/social/types";
+import MemorialListView from "@/components/memorial/MemorialListView";
+import MemorialFormView from "@/components/memorial/MemorialFormView";
+import MemorialDetailView from "@/components/memorial/MemorialDetailView";
+import type { MemorialDetail } from "@/components/memorial/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
 import { type Translation } from "@/lib/bible-data";
@@ -68,6 +73,9 @@ type View =
   | "create"
   | "profile" // own social profile (SocialProfileView on own username)
   | "edit-profile"
+  | "memorials" // Part 4 — In Loving Memory list
+  | "memorial-detail" // Part 4 — one memorial page
+  | "memorial-form" // Part 4 — create/edit memorial
   | "dashboard" // the previous App Home dashboard (moved — still fully available)
   | "bible"
   | "bible-plans"
@@ -102,6 +110,7 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "explore", icon: Search, label: "Explore" },
   { id: "reels", icon: Play, label: "Reels" },
   { id: "notifications", icon: Bell, label: "Notifications" },
+  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
   { id: "profile", icon: CircleUser, label: "My Profile" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "bible", icon: BookOpen, label: "Bible" },
@@ -134,6 +143,7 @@ const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
+  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
   { id: "bible", icon: BookOpen, label: "Bible" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
@@ -159,6 +169,9 @@ export default function Home() {
   const [comicChapter, setComicChapter] = useState(1);
   // ─── SOCIAL OVERLAYS (Task 50) — render above ANY view ───
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  // Part 4 — In Loving Memory navigation state
+  const [memorialId, setMemorialId] = useState<string | null>(null);
+  const [memorialForm, setMemorialForm] = useState<{ editing: MemorialDetail | null } | null>(null);
   const [reelPost, setReelPost] = useState<Post | null>(null);
   const [exploreHashtag, setExploreHashtag] = useState<string | null>(null);
   // Which profile the "profile" view shows — the session user by default,
@@ -269,6 +282,7 @@ export default function Home() {
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia",
       "prayer-wall", "apologetics", "shop", "business-directory",
+      "memorials",
     ];
     if (!validViews.includes(deepView as View)) return;
 
@@ -423,7 +437,13 @@ export default function Home() {
               return (
                 <button
                   key={id}
-                  onClick={() => goView(id)}
+                  onClick={() => {
+                    // FIX (My Profile bug): clear any previously-viewed username
+                    // so "My Profile" always opens the SIGNED-IN user's profile,
+                    // never the last profile that was visited (e.g. @joshg).
+                    if (id === "profile") setProfileUsername(null);
+                    goView(id);
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-[14px] transition-all duration-200 border ${
                     active
                       ? "bg-[#7C3AED]/15 text-white border-[#7C3AED]/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]"
@@ -501,6 +521,28 @@ export default function Home() {
               )}
               {view === "edit-profile" && (
                 <EditProfileView onDone={() => goView("profile")} />
+              )}
+              {view === "memorials" && (
+                <MemorialListView
+                  onOpenMemorial={(id) => { setMemorialId(id); goView("memorial-detail"); }}
+                  onCreate={() => { setMemorialForm({ editing: null }); goView("memorial-form"); }}
+                />
+              )}
+              {view === "memorial-detail" && memorialId && (
+                <MemorialDetailView
+                  memorialId={memorialId}
+                  onBack={() => goView("memorials")}
+                  onEdit={(m) => { setMemorialForm({ editing: m }); goView("memorial-form"); }}
+                  key={memorialId}
+                />
+              )}
+              {view === "memorial-form" && memorialForm && (
+                <MemorialFormView
+                  editing={memorialForm.editing}
+                  onDone={(id) => { setMemorialId(id); goView("memorial-detail"); }}
+                  onCancel={() => (memorialForm.editing ? goView("memorial-detail") : goView("memorials"))}
+                  key={memorialForm.editing?.id ?? "new"}
+                />
               )}
               {view === "profile" &&
                 (username || profileUsername) &&
@@ -609,7 +651,12 @@ export default function Home() {
             return (
               <button
                 key={id}
-                onClick={() => goView(id)}
+                onClick={() => {
+                  // FIX (My Profile bug): same reset as the sidebar — the bottom
+                  // nav Profile slot must show the signed-in user.
+                  if (id === "profile") setProfileUsername(null);
+                  goView(id);
+                }}
                 className="flex flex-col items-center justify-center relative py-1"
               >
                 <div className="relative flex items-center justify-center">
@@ -712,7 +759,12 @@ export default function Home() {
                   return (
                     <button
                       key={id}
-                      onClick={() => goView(id)}
+                      onClick={() => {
+                        // FIX (My Profile bug): reset stale username here too —
+                        // the "More" sheet is another path to "My Profile".
+                        if (id === "profile") setProfileUsername(null);
+                        goView(id);
+                      }}
                       className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${
                         active
                           ? "bg-[#7C3AED]/15 border-[#7C3AED]/40"
