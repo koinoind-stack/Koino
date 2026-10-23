@@ -27,6 +27,7 @@ import {
   PlusSquare,
   Users,
   Flower2,
+  Clapperboard,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -76,6 +77,7 @@ type View =
   | "edit-profile"
   | "dashboard" // the previous App Home dashboard (moved — still fully available)
   | "bible"
+  | "videos" // Part 5: Bible Movies & Videos → /videos (public App Router page)
   | "bible-plans"
   | "comic"
   | "churches"
@@ -109,6 +111,7 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "profile", icon: CircleUser, label: "My Profile" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "bible", icon: BookOpen, label: "Bible" },
+  { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
   { id: "trivia", icon: Award, label: "Bible Trivia" },
@@ -139,6 +142,7 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "bible", icon: BookOpen, label: "Bible" },
+  { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
   { id: "trivia", icon: Award, label: "Trivia" },
@@ -168,6 +172,9 @@ export default function Home() {
   // or the ?user= deep-link target.
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  // Part 5: Bible reader deep target — ?view=bible&book=genesis&chapter=1
+  // lets video pages open the EXISTING reader at a linked passage.
+  const [bibleTarget, setBibleTarget] = useState<{ bookId: string; chapter: number } | null>(null);
   // Sign-out transition tracking: lets the entry-routing effect distinguish
   // "auth just resolved" from "user signed out" so signed-out visitors keep
   // browsing the public landing page without being bounced.
@@ -268,6 +275,16 @@ export default function Home() {
     }
     if (!deepView) return;
 
+    // Part 5: Bible passage deep links from video pages.
+    if (deepView === "bible") {
+      const book = params.get("book");
+      const chapter = params.get("chapter");
+      if (book && /^[a-z0-9_]{2,20}$/.test(book)) {
+        const ch = chapter ? parseInt(chapter, 10) : 1;
+        setBibleTarget({ bookId: book, chapter: Number.isFinite(ch) && ch > 0 ? ch : 1 });
+      }
+    }
+
     // Validate that the deep-link view is a known SPA view.
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia",
@@ -316,7 +333,7 @@ export default function Home() {
     // Fire-and-forget analytics if available, then perform a full route
     // navigation. Mirrors navigate() cleanup so the More sheet closes
     // immediately on mobile.
-    if (v === "blog" || v === "support" || v === "memorials") {
+    if (v === "blog" || v === "support" || v === "memorials" || v === "videos") {
       setShowMoreSheet(false);
       setHeaderVisible(true);
       try {
@@ -327,6 +344,7 @@ export default function Home() {
             event:
               v === "blog" ? "blog_nav_click" :
               v === "memorials" ? "memorials_nav_click" :
+              v === "videos" ? "videos_nav_click" :
               "support_koino_nav_click",
             source: "sidebar",
           }),
@@ -542,6 +560,8 @@ export default function Home() {
               )}
               {view === "bible" && (
                 <BibleView
+                  initialBookId={bibleTarget?.bookId}
+                  initialChapter={bibleTarget?.chapter}
                   onOpenComic={(bookId, chapter) => {
                     // Switch from Bible hub → full ComicView for the chosen chapter.
                     // Preserves the existing comicBookId/comicChapter state so

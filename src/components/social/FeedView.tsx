@@ -10,6 +10,7 @@ import StoryBar, { StoryViewer, StoryCreator } from "./Stories";
 import ReelsOverlay from "./ReelsView";
 import FeedComposer from "./FeedComposer";
 import EventRail from "./EventRail";
+import VideoRail from "./VideoRail";
 
 type Props = {
   onOpenProfile: (username: string) => void;
@@ -142,6 +143,9 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
 
       {/* upcoming church events surfaced in the feed */}
       <EventRail onOpenEvents={onOpenEvents} />
+
+      {/* featured Bible movies & videos surfaced in the feed (Part 5) */}
+      <VideoRail />
 
       {/* feed */}
       {loading ? (

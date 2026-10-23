@@ -4,7 +4,7 @@ import { getSessionUser, jsonError } from "@/lib/social/server";
 import { rateLimit } from "@/lib/social/rate-limit";
 
 /**
- * POST /api/social/report — report a post / comment / user / story / memorial.
+ * POST /api/social/report — report a post / comment / user / story / memorial / video.
  * Reports land in the Report table for admin review (Admin → Reports tab).
  */
 export async function POST(req: NextRequest) {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const targetType = String(body.targetType || "");
   const targetId = String(body.targetId || "");
-  const validTargets = ["post", "comment", "user", "story", "memorial"];
+  const validTargets = ["post", "comment", "user", "story", "memorial", "video"];
   if (!validTargets.includes(targetType)) return jsonError("Invalid target type");
   if (!targetId) return jsonError("targetId is required");
 
@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
     } else if (targetType === "memorial") {
       const found = await db.memorial.findUnique({ where: { id: targetId }, select: { id: true } });
       if (!found) return jsonError("Memorial not found", 404);
+    } else if (targetType === "video") {
+      const found = await db.video.findUnique({ where: { id: targetId }, select: { id: true } });
+      if (!found) return jsonError("Video not found", 404);
     }
   } catch {
     // existence check is best-effort; a dangling id will simply never match

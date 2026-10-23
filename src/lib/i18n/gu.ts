@@ -106,6 +106,7 @@ export const gu: Record<string, string> = {
   "admin.tab.analytics": "એનાલિટિક્સ",
   "admin.tab.reports": "રિપોર્ટ્સ",
   "admin.tab.memorials": "સ્મૃતિ પૃષ્ઠો",
+  "admin.tab.videos": "વિડિઓ",
   "triviaView.title": "બાઇબલ ટ્રિવિયા",
   "triviaView.verified": "ચકાસાયેલ: {points} FP",
   "triviaView.signInPrompt": "ફેઇથ પોઇન્ટ્સ કમાવવા માટે સાઇન ઇન કરો",

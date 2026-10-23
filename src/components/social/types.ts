@@ -24,6 +24,7 @@ export type Post = {
   viewCount: number;
   isReel: boolean;
   memorial?: { id: string; fullName: string } | null; // Part 4: memorial announcement
+  video?: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null; // Part 5: shared library video
   editedAt: string | null;
   createdAt: string;
   author: SocialUser;
@@ -34,6 +35,7 @@ export type Post = {
     mediaUrls: string[];
     thumbnailUrl: string | null;
     aspectRatio: string | null;
+    video?: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null;
     author: SocialUser;
   } | null;
   viewer: { liked: boolean; bookmarked: boolean; following: boolean };

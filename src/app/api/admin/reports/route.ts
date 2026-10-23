@@ -86,6 +86,15 @@ export async function GET(req: NextRequest) {
               preview = (st as { caption?: string | null }).caption?.slice(0, 140) || "(story)";
               targetAuthor = (st as { user?: { username?: string | null; name?: string | null } }).user?.username || null;
             }
+          } else if (r.targetType === "video") {
+            const vid = await db.video.findUnique({
+              where: { id: r.targetId },
+              select: { title: true, summary: true },
+            }).catch(() => null);
+            if (vid) {
+              preview = vid.summary?.slice(0, 140) || vid.title.slice(0, 140);
+              targetAuthor = "Video library";
+            }
           }
         } catch {
           // target gone or table locked — preview stays null

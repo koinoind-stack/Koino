@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [{ key: "X-Koino-Round", value: "part4-memorials" }],
+        headers: [{ key: "X-Koino-Round", value: "part5-videos" }],
       },
     ];
   },

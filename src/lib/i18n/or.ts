@@ -106,6 +106,7 @@ export const or: Record<string, string> = {
   "admin.tab.analytics": "ବିଶ୍ଳେଷଣ",
   "admin.tab.reports": "ରିପୋର୍ଟ",
   "admin.tab.memorials": "ସ୍ମୃତି ପୃଷ୍ଠା",
+  "admin.tab.videos": "ଭିଡିଓ",
   "triviaView.title": "ବାଇବଲ୍ ଟ୍ରିଭିଆ",
   "triviaView.verified": "ଯାଞ୍ଜିତ: {points} FP",
   "triviaView.signInPrompt": "ଫେଥପଏଣ୍ଟ ପାଇଁ ଅର୍ଜି କରନ୍ତୁ",

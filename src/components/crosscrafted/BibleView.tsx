@@ -40,6 +40,8 @@ import { useTranslation, useLanguage, LANGUAGES } from "@/lib/i18n/LanguageConte
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
 import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
 import { BookOpen as BookOpenIcon, ArrowRight, Loader2 as ComicLoader, AlertCircle as ComicAlert } from "lucide-react";
+import { Play } from "lucide-react";
+import { formatDuration } from "@/lib/videos";
 
 type View = "books" | "chapters" | "reader" | "search" | "bookmarks";
 type BibleMode = "read" | "comics" | "plans";
@@ -54,7 +56,15 @@ type ComicChapterSummary = {
   sortOrder: number;
 };
 
-export default function BibleView({ onOpenComic }: { onOpenComic?: (bookId: string, chapter: number) => void }) {
+export default function BibleView({
+  onOpenComic,
+  initialBookId,
+  initialChapter,
+}: {
+  onOpenComic?: (bookId: string, chapter: number) => void;
+  initialBookId?: string; // Part 5: deep link from video pages (?view=bible&book=&chapter=)
+  initialChapter?: number;
+}) {
   const t = useTranslation();
   const { lang, setLang } = useLanguage();
   const [view, setView] = useState<View>("books");
@@ -83,6 +93,21 @@ export default function BibleView({ onOpenComic }: { onOpenComic?: (bookId: stri
   useEffect(() => {
     refreshBookmarks();
   }, []);
+
+  // Part 5: deep-linked passage from video pages — open the EXISTING reader
+  // directly at the linked book/chapter (no duplicate reader is created).
+  // The auto-jump effect below then switches to the reader view.
+  useEffect(() => {
+    if (!initialBookId) return;
+    const book = getBook(initialBookId);
+    if (!book) return;
+    const ch =
+      initialChapter && initialChapter >= 1 && initialChapter <= book.chapters
+        ? initialChapter
+        : 1;
+    setSelectedBook(book);
+    setSelectedChapter(ch);
+  }, [initialBookId, initialChapter]);
 
   const refreshBookmarks = () => {
     const bms = getBookmarks();
@@ -915,6 +940,100 @@ function ReaderView({
           </button>
         </div>
       )}
+
+      {/* ─── Part 5: videos connected to this passage ─── */}
+      {!loading && !error && <ChapterVideos bookId={book.id} chapter={chapter} />}
+    </div>
+  );
+}
+
+// ─── CHAPTER VIDEOS (Part 5) ────────────────────────────────────────────────
+
+type ChapterVideoCard = {
+  id: string;
+  slug: string;
+  title: string;
+  thumbnailUrl: string | null;
+  youtubeId: string | null;
+  durationSec: number | null;
+};
+
+/**
+ * "Watch Related Videos" — published library videos linked to the passage
+ * being read (admin-curated via VideoBibleRef). Renders nothing when no
+ * videos are linked, so the reading experience stays undisturbed.
+ */
+function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number }) {
+  const [videos, setVideos] = useState<ChapterVideoCard[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setVideos([]);
+    setLoaded(false);
+    fetch(`/api/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}&take=6`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { videos: [] }))
+      .then((d) => {
+        if (!cancelled) {
+          setVideos(d.videos || []);
+          setLoaded(true);
+        }
+      })
+      .catch(() => !cancelled && setLoaded(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId, chapter]);
+
+  if (!loaded || videos.length === 0) return null;
+
+  return (
+    <div className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#C4B5FD]">
+          <Play size={12} fill="currentColor" /> Watch Related Videos
+        </h3>
+        <span className="text-[10px] text-[#94A3B8] font-bold">{videos.length}</span>
+      </div>
+      <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {videos.map((v) => (
+          <a
+            key={v.id}
+            href={`/videos/${v.slug}`}
+            className="group shrink-0 w-36 bg-[#1C1929]/80 border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#7C3AED]/40 transition-all"
+          >
+            <div className="relative aspect-video bg-black/60">
+              {(v.thumbnailUrl || (v.youtubeId ? `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg` : null)) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={v.thumbnailUrl || `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg`}
+                  alt={v.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#64748B]">
+                  <Play size={16} />
+                </div>
+              )}
+              {formatDuration(v.durationSec) && (
+                <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-black/80 text-[9px] font-bold text-white">
+                  {formatDuration(v.durationSec)}
+                </span>
+              )}
+            </div>
+            <p className="p-2 text-[11px] font-bold text-white leading-snug line-clamp-2 group-hover:text-[#C4B5FD] transition-colors">
+              {v.title}
+            </p>
+          </a>
+        ))}
+      </div>
+      <a
+        href={`/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}`}
+        className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-bold text-[#A78BFA] hover:text-white"
+      >
+        Browse all videos for this passage <ChevronRight size={11} />
+      </a>
     </div>
   );
 }

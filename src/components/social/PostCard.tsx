@@ -15,6 +15,7 @@ import {
   Flag,
   Ban,
   Flower2,
+  Clapperboard,
   ChevronLeft,
   ChevronRight,
   BadgeCheck,
@@ -310,6 +311,29 @@ export default function PostCard({
             <p className="text-xs text-[#94A3B8] truncate">{state.memorial.fullName}</p>
           </div>
           <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">View Memorial →</span>
+        </a>
+      )}
+
+      {/* ─── shared library video (Part 5) ─── */}
+      {shown.video && !state.repostedFrom && (
+        <a
+          href={`/videos/${shown.video.slug}`}
+          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.08] p-2.5 hover:border-[#7C3AED]/40 transition-colors"
+        >
+          <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-black/60 shrink-0">
+            {shown.video.thumbnailUrl ? (
+              <Image src={shown.video.thumbnailUrl} alt="" fill sizes="80px" className="object-cover" unoptimized />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[#64748B]">
+                <Clapperboard size={14} />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold text-[#C4B5FD] uppercase tracking-wide">Bible Movies &amp; Videos</p>
+            <p className="text-xs text-white font-bold truncate">{shown.video.title}</p>
+          </div>
+          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">Watch Now →</span>
         </a>
       )}
 

@@ -106,6 +106,7 @@ export const mr: Record<string, string> = {
   "admin.tab.analytics": "अॅनॅलिटिक्स",
   "admin.tab.reports": "तक्रारी",
   "admin.tab.memorials": "स्मृती पाने",
+  "admin.tab.videos": "व्हिडिओ",
   "triviaView.title": "बायबल ट्रिव्हिया",
   "triviaView.verified": "सत्यापित: {points} FP",
   "triviaView.signInPrompt": "फेथ पॉइंट्स मिळवण्यासाठी साइन इन करा",

@@ -106,6 +106,7 @@ export const te: Record<string, string> = {
   "admin.tab.analytics": "యానాలిటిక్స్",
   "admin.tab.reports": "నివేదికలు",
   "admin.tab.memorials": "జ్ఞాపకాలు",
+  "admin.tab.videos": "వీడియోలు",
   "triviaView.title": "బైబిల్ ట్రివియా",
   "triviaView.verified": "నిర్ధారించబడింది: {points} FP",
   "triviaView.signInPrompt": "ఫెయిత్ పాయింట్లను సంపాదించడానికి సైన్ ఇన్ చేయండి",

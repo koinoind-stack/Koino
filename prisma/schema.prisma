@@ -109,6 +109,10 @@ model User {
   memorialsCreated    Memorial[]           @relation("MemorialCreator")
   memorialManagerships MemorialManager[]   @relation("MemorialManagerUser")
   condolencesWritten  MemorialCondolence[] @relation("MemorialCondolenceAuthor")
+
+  // Bible Movies & Video Library (Part 5)
+  videoProgress VideoProgress[] @relation("VideoProgressUser")
+  videoSaves    VideoSave[]     @relation("VideoSaveUser")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -340,6 +344,10 @@ model Post {
   // renders a "View Memorial" button). SetNull: deleting the memorial keeps the post.
   memorial     Memorial?       @relation(fields: [memorialId], references: [id], onDelete: SetNull)
   memorialId   String?
+  // Video Library (Part 5): set when this post shares a library video (feed
+  // card renders a Watch Now banner). SetNull: deleting the video keeps the post.
+  video        Video?          @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  videoId      String?
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -1476,4 +1484,101 @@ model MemorialCondolence {
   author   User     @relation("MemorialCondolenceAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([memorialId, createdAt])
+}
+
+// ─── PART 5: BIBLE MOVIES & VIDEO LIBRARY ──────────────────────────────────
+// A curated video entry. YouTube-first (official embeds only — no downloading
+// or rehosting); `source` is extensible so other authorised providers can be
+// added later without a schema change.
+
+model Video {
+  id                String    @id @default(cuid())
+  slug              String    @unique
+  title             String
+  summary           String?   // one-line description for cards + feed
+  description       String?   // long description shown on the watch page
+  source            String    @default("youtube") // "youtube" — future providers welcome
+  youtubeId         String?   // 11-character YouTube video id (source = "youtube")
+  canonicalUrl      String?   // original watch URL as entered by the admin
+  thumbnailUrl      String?   // custom poster; falls back to the YouTube thumbnail
+  durationSec       Int?      // entered/verified by admins (oEmbed does not provide it)
+  category          String    // "bible_movies" | "ot_stories" | "nt_stories" | "jesus_gospels"
+                              // | "animated" | "christian_films" | "sermons" | "worship"
+                              // | "documentaries" | "children"
+  language          String    @default("en") // video language (one of the 13 Koino UI languages)
+  subtitleLanguages String    @default("[]") // JSON string[] of language codes
+  dubLanguages      String    @default("[]") // JSON string[] of language codes
+  originalLanguage  String?
+  contentWarning    String?   // e.g. "Depicts scenes of the crucifixion"
+  status            String    @default("draft") // "draft" | "published" | "unpublished"
+  featured          Boolean   @default(false)
+  embeddable        Boolean   @default(true) // false when YouTube reports embedding disabled
+  sourceName        String?   // e.g. "YouTube — Bible Vivid channel"
+  rightsNote        String?   // licensing/permission notes recorded by admins
+  viewCount         Int       @default(0) // incremented on Watch Now opens
+  createdById       String?
+  publishedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  bibleRefs VideoBibleRef[]
+  progress  VideoProgress[]
+  saves     VideoSave[]
+  posts     Post[]
+
+  @@index([status, category, createdAt])
+  @@index([status, featured, createdAt])
+  @@index([status, language])
+  @@index([status, createdAt])
+}
+
+// A Bible passage linked to a video. `bookId` uses the BIBLE_BOOKS slugs
+// ("genesis", "1samuel", "song_of_solomon", …) so links open the existing reader.
+model VideoBibleRef {
+  id           String   @id @default(cuid())
+  videoId      String
+  bookId       String
+  chapterStart Int
+  verseStart   Int?
+  chapterEnd   Int?
+  verseEnd     Int?
+  createdAt    DateTime @default(now())
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([bookId, chapterStart])
+  @@index([videoId])
+}
+
+// Playback position for signed-in users — powers Continue Watching and resume.
+// Only recorded when the user is signed in; visitors get plain embeds.
+model VideoProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  videoId     String
+  positionSec Int      @default(0)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User  @relation("VideoProgressUser", fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId, updatedAt])
+}
+
+// Watch Later / Favorite personal lists.
+model VideoSave {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  list      String   @default("watch_later") // "watch_later" | "favorite"
+  createdAt DateTime @default(now())
+
+  user  User  @relation("VideoSaveUser", fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId, list])
+  @@index([userId, list, createdAt])
 }

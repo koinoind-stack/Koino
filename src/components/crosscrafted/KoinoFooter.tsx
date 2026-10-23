@@ -27,6 +27,7 @@ const FOOTER_SECTIONS = [
     links: [
       { label: `About ${BRAND.name}`, href: "/about" },
       { label: "Bible", href: "/?view=bible" },
+      { label: "Bible Movies & Videos", href: "/videos" },
       { label: "Bible Comics", href: "/?view=comic" },
       { label: "Churches", href: "/?view=churches" },
       { label: "Events", href: "/?view=events" },

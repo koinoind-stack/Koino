@@ -144,6 +144,7 @@ export type SerializedPost = {
   viewCount: number;
   isReel: boolean;
   memorial: { id: string; fullName: string } | null; // Part 4: "View Memorial" feed card
+  video: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null; // Part 5: "Watch Now" feed card
   editedAt: string | null;
   createdAt: string;
   author: {
@@ -183,6 +184,7 @@ export const postSelect = {
   viewCount: true,
   isReel: true,
   memorial: { select: { id: true, fullName: true } },
+  video: { select: { id: true, slug: true, title: true, thumbnailUrl: true, durationSec: true } },
   editedAt: true,
   createdAt: true,
   author: {
@@ -196,6 +198,7 @@ export const postSelect = {
       mediaUrls: true,
       thumbnailUrl: true,
       aspectRatio: true,
+      video: { select: { id: true, slug: true, title: true, thumbnailUrl: true, durationSec: true } },
       author: { select: { id: true, name: true, username: true, image: true, verified: true } },
     },
   },
@@ -254,6 +257,15 @@ export async function serializePosts(
     viewCount: r.viewCount,
     isReel: r.isReel,
     memorial: r.memorial ? { id: r.memorial.id, fullName: r.memorial.fullName } : null,
+    video: r.video
+      ? {
+          id: r.video.id,
+          slug: r.video.slug,
+          title: r.video.title,
+          thumbnailUrl: r.video.thumbnailUrl,
+          durationSec: r.video.durationSec,
+        }
+      : null,
     editedAt: r.editedAt ? r.editedAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     author: {
@@ -271,6 +283,15 @@ export async function serializePosts(
           mediaUrls: safeParseUrls(r.repostedFrom.mediaUrls),
           thumbnailUrl: r.repostedFrom.thumbnailUrl,
           aspectRatio: r.repostedFrom.aspectRatio,
+          video: r.repostedFrom.video
+            ? {
+                id: r.repostedFrom.video.id,
+                slug: r.repostedFrom.video.slug,
+                title: r.repostedFrom.video.title,
+                thumbnailUrl: r.repostedFrom.video.thumbnailUrl,
+                durationSec: r.repostedFrom.video.durationSec,
+              }
+            : null,
           author: {
             id: r.repostedFrom.author.id,
             name: r.repostedFrom.author.name,

@@ -12,6 +12,7 @@ import {
   Store,
   Building2,
   ArrowRight,
+  Clapperboard,
 } from "lucide-react";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -19,6 +20,7 @@ import { BRAND } from "@/lib/brand";
 
 type View =
   | "bible"
+  | "videos"
   | "comic"
   | "churches"
   | "events"
@@ -63,6 +65,14 @@ const FEATURE_CARDS: FeatureCard[] = [
     title: "Holy Bible",
     desc: "Read Scripture and explore Bible resources.",
     view: "bible",
+    group: "FAITH",
+  },
+  {
+    icon: Clapperboard,
+    color: "#38BDF8",
+    title: "Bible Movies & Videos",
+    desc: "Watch Bible movies, Christian films, sermons, and worship tied to Scripture.",
+    view: "videos",
     group: "FAITH",
   },
   {

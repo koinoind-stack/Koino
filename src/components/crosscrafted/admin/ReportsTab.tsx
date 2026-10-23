@@ -36,6 +36,7 @@ const TYPE_LABEL: Record<string, string> = {
   user: "User",
   story: "Story",
   memorial: "Memorial",
+  video: "Video",
 };
 
 export default function ReportsTab() {
