@@ -317,8 +317,7 @@ export default function PrivacyPage() {
         <h2 className="text-base font-bold text-white mt-8 mb-3">10. External Links</h2>
         <p className="text-sm text-[#A09DB1] leading-relaxed mb-4">
           Koino contains links to external platforms and services that we do not control. These include
-          Lordsbook (https://www.lordsbook.com), which is a separate external Christian community
-          platform, and a WhatsApp channel used for community updates. When you follow such a link or
+          a WhatsApp channel used for community updates. When you follow such a link or
           tap such a button, you leave Koino and the privacy practices of the destination platform apply.
         </p>
         <p className="text-sm text-[#A09DB1] leading-relaxed mb-4">
@@ -329,24 +328,23 @@ export default function PrivacyPage() {
           with an external platform is data you choose to provide there.
         </p>
 
-        {/* 11. Lordsbook External Community */}
+        {/* 11. External Links & Platforms */}
         <h2 className="text-base font-bold text-white mt-8 mb-3">
-          11. Lordsbook External Community
+          11. External Links &amp; Platforms
         </h2>
         <p className="text-sm text-[#A09DB1] leading-relaxed mb-4">
-          Koino may display a &quot;Meet Christians on Lordsbook&quot; call-to-action that links to the
-          Lordsbook platform at https://www.lordsbook.com. Lordsbook is a separate, independently
-          operated Christian community platform. When you click that button, you leave Koino and are
-          subject to Lordsbook&apos;s own terms of service and privacy policy. Koino is not responsible
-          for how Lordsbook collects, uses or discloses your information.
+          Koino may contain links to external platforms and services (such as a WhatsApp channel used
+          for community updates). When you follow such a link, you leave Koino and are subject to the
+          destination platform&apos;s own terms of service and privacy policy. Koino is not responsible
+          for how external platforms collect, use or disclose your information.
         </p>
         <p className="text-sm text-[#A09DB1] leading-relaxed mb-4">
           Koino does NOT share your Koino account data (such as your email, password, profile
-          information or activity) with Lordsbook. Any information that Lordsbook collects about you
-          during your visit to its platform is governed by Lordsbook&apos;s privacy practices. If you
-          create a Lordsbook account, you do so independently of your Koino account, and the two
-          accounts are not linked unless you separately choose to link them through Lordsbook&apos;s own
-          features.
+          information or activity) with external platforms. Any information that an external platform
+          collects about you during your visit to that platform is governed by that platform&apos;s
+          privacy practices. If you create an account on an external platform, you do so independently
+          of your Koino account, and the two accounts are not linked unless you separately choose to
+          link them through that platform&apos;s own features.
         </p>
 
         {/* 12. User Rights */}

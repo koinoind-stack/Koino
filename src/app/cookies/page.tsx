@@ -163,8 +163,8 @@ export default function CookiesPage() {
           Koino.
         </p>
         <p className="text-sm text-[#A09DB1] leading-relaxed mb-4">
-          Some pages on Koino may contain links to external platforms such as Lordsbook
-          (https://www.lordsbook.com) or to a WhatsApp channel. Those external platforms may set their
+          Some pages on Koino may contain links to external platforms such as a WhatsApp channel.
+          Those external platforms may set their
           own cookies when you visit them. Koino does not control and is not responsible for the cookies
           set by external platforms. You should review the cookie and privacy policies of any external
           platform you visit.

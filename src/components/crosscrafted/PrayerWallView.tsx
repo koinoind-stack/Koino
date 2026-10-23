@@ -21,7 +21,6 @@ import {
   type PrayerPost,
 } from "@/lib/crosscrafted-data";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
-import LordsbookCommunityCard from "@/components/crosscrafted/LordsbookCommunityCard";
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
 
 export default function PrayerWallView() {
@@ -458,17 +457,6 @@ export default function PrayerWallView() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Lordsbook CTA */}
-      <div className="mt-4">
-        <LordsbookCommunityCard
-          title="Connect with Global Christians"
-          description="Connect with Global Christians who believe in the power of prayer on Lordsbook."
-          buttonText="Join the Global Christian Community"
-          context="prayer"
-          variant="compact"
-        />
-      </div>
     </div>
   );
 }

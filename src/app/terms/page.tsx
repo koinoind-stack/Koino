@@ -294,9 +294,8 @@ export default function TermsPage() {
         {/* 13. External Links */}
         <h2 className="text-base font-bold text-white mt-8 mb-3">13. External Links</h2>
         <p className="text-sm text-[#A09DB1] leading-relaxed mb-4">
-          Koino may contain links to external websites and services that we do not control, including
-          Lordsbook (https://www.lordsbook.com), which is a separate external Christian community
-          platform. When you follow an external link, you leave Koino and are subject to the terms,
+          Koino may contain links to external websites and services that we do not control. When you
+          follow an external link, you leave Koino and are subject to the terms,
           privacy policy and practices of that external platform. Koino is not responsible for the
           content, accuracy, conduct or services of any external site, and the inclusion of a link
           does not imply endorsement.

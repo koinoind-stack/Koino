@@ -28,7 +28,6 @@ import {
 } from "@/lib/crosscrafted-data";
 import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
-import LordsbookCommunityCard from "@/components/crosscrafted/LordsbookCommunityCard";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { toast } from "sonner";
 
@@ -1039,17 +1038,6 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Lordsbook CTA */}
-      <div className="mt-4">
-        <LordsbookCommunityCard
-          title="Meet Christians Around the World"
-          description="Find Global Christian community, conversations and friendships on Lordsbook."
-          buttonText="Connect with Global Christians"
-          context="churches"
-          variant="compact"
-        />
-      </div>
     </div>
   );
 }

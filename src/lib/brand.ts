@@ -2,9 +2,8 @@
  * ─── BRAND CONFIGURATION — SINGLE SOURCE OF TRUTH (Task 51) ───
  *
  * Every brand-facing string, asset path, color, and metadata value in the
- * app derives from this file. A future rebrand (e.g. Koino → LordsBook)
- * should require changing ONLY this file + /public/brand/logo.png + the
- * NEXT_PUBLIC_SITE_URL env var — see docs/REBRAND-AND-LORDSBOOK-READINESS.md.
+ * app derives from this file. A future rebrand should require changing
+ * ONLY this file + /public/brand/logo.png + the NEXT_PUBLIC_SITE_URL env var.
  *
  * ⚠️ Do NOT hardcode "Koino" in components — import { BRAND } from here.
  *

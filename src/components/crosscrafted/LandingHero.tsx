@@ -125,28 +125,6 @@ const LANGUAGES = [
 // Icons only — no emojis in code (the spec shows emojis as visual cues; we use
 // Lucide icons which match the existing Koino design language and render
 // reliably across all browsers/OSes).
-const LORDSBOOK_BENEFITS = [
-  {
-    icon: Globe,
-    title: "Meet Christians",
-    desc: "Connect with believers from around the world.",
-  },
-  {
-    icon: Heart,
-    title: "Build Friendships",
-    desc: "Build meaningful Christian friendships.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Share Your Faith",
-    desc: "Share testimonies, Scripture, encouragement and your faith journey.",
-  },
-  {
-    icon: Users,
-    title: "Join Conversations",
-    desc: "Talk about Scripture, faith and everyday life.",
-  },
-];
 
 export default function LandingHero({ onEnterApp }: Props) {
   const t = useTranslation();
@@ -208,17 +186,6 @@ export default function LandingHero({ onEnterApp }: Props) {
             <button onClick={() => onEnterApp("events")} className="hover:text-white transition-colors">{t("nav.events")}</button>
             <button onClick={() => onEnterApp("trivia")} className="hover:text-white transition-colors">{t("nav.trivia")}</button>
             <button onClick={() => onEnterApp("prayer-wall")} className="hover:text-white transition-colors">{t("nav.prayer")}</button>
-            {/* Community → /community (Lordsbook global Christian community CTA page).
-                Uses <a> for a full route navigation since /community is a public App
-                Router page, not part of the SPA. Globe icon communicates "global". */}
-            <a
-              href="/community"
-              className="flex items-center gap-1.5 hover:text-white transition-colors"
-              aria-label="Global Christian Community — meet Christians around the world"
-            >
-              <Globe size={14} className="text-[#38BDF8]" />
-              Community
-            </a>
           </nav>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
@@ -450,89 +417,6 @@ export default function LandingHero({ onEnterApp }: Props) {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* ─── MEET CHRISTIANS AROUND THE WORLD ───
-          Lordsbook community introduction.
-          Placed AFTER the main Koino feature sections and BEFORE the final CTA/footer,
-          per spec. Koino remains primary; this is a benefit-led extension.
-          CTA links to /community (the existing Koino Lordsbook intro page),
-          which then links out to https://www.lordsbook.com/.
-          No fake stats, no Lordsbook auth integration, no SSO. */}
-      <section className="py-16 px-6 max-w-5xl mx-auto w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0D1A2E] via-[#1C1929] to-[#1A0D2E] border border-[#38BDF8]/15 p-8 sm:p-12"
-        >
-          {/* Subtle glow accents — matches Koino design language */}
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#38BDF8]/8 blur-3xl rounded-full pointer-events-none" />
-          <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#7C3AED]/8 blur-3xl rounded-full pointer-events-none" />
-
-          <div className="relative text-center max-w-2xl mx-auto space-y-4">
-            {/* Eyebrow */}
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 text-[#38BDF8] text-xs font-bold uppercase tracking-wider">
-              <Globe size={12} /> Global Christian Community
-            </div>
-
-            {/* Headline */}
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white">
-              Meet Christians{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#38BDF8] to-[#7C3AED]">
-                Around the World
-              </span>
-            </h2>
-
-            {/* Supporting text — two-line split keeps Koino / Lordsbook roles clear */}
-            <div className="space-y-1 pt-1">
-              <p className="text-sm sm:text-base text-[#A09DB1] leading-relaxed">
-                Your faith journey is better together.
-              </p>
-              <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
-                Koino helps you read Scripture, learn, pray, discover churches and grow in faith.
-              </p>
-              <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
-                Lordsbook helps you connect with Christians around the world.
-              </p>
-            </div>
-          </div>
-
-          {/* Four small benefit cards */}
-          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-3xl mx-auto">
-            {LORDSBOOK_BENEFITS.map((b, i) => (
-              <motion.div
-                key={b.title}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.06 }}
-                className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 text-center"
-              >
-                <div className="w-9 h-9 mx-auto mb-2 rounded-xl bg-gradient-to-br from-[#38BDF8]/15 to-[#7C3AED]/15 border border-[#38BDF8]/20 flex items-center justify-center">
-                  <b.icon size={16} className="text-[#38BDF8]" />
-                </div>
-                <p className="text-[11px] font-bold text-white leading-tight">{b.title}</p>
-                <p className="text-[10px] text-[#A09DB1] leading-snug mt-1">{b.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* CTA — links to /community (the existing Koino Lordsbook intro page),
-              NOT directly to lordsbook.com. This gives visitors context first. */}
-          <div className="relative flex flex-col items-center mt-8 gap-2">
-            <Link
-              href="/community"
-              className="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#38BDF8] to-[#7C3AED] text-white text-xs sm:text-sm font-extrabold uppercase tracking-wider shadow-lg shadow-[#38BDF8]/20 inline-flex items-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              Meet Christians on Lordsbook <ArrowRight size={16} strokeWidth={2.5} />
-            </Link>
-            <p className="text-[10px] text-[#475569] mt-1">
-              Lordsbook · Christian Social Community
-            </p>
-          </div>
-        </motion.div>
       </section>
 
       {/* ─── FROM THE KOINO COMMUNITY (BLOG) ───

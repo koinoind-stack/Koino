@@ -41,7 +41,6 @@ import {
   type EventItem,
 } from "@/lib/crosscrafted-data";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
-import LordsbookCommunityCard from "@/components/crosscrafted/LordsbookCommunityCard";
 import { MessageCircle, ExternalLink, Info } from "lucide-react";
 const CATEGORY_ICONS: Record<string, typeof Music> = {
   worship: Music,
@@ -1098,17 +1097,6 @@ export default function EventsView() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Lordsbook CTA */}
-      <div className="mt-4">
-        <LordsbookCommunityCard
-          title="Connect with Other Global Christians"
-          description="Discover Christian conversations and community on Lordsbook."
-          buttonText="Join the Global Christian Community"
-          context="events"
-          variant="compact"
-        />
-      </div>
     </div>
   );
 }

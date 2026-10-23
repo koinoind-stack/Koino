@@ -20,7 +20,6 @@ import { BRAND } from "@/lib/brand";
 //   page and can sign in; after auth, they will NOT auto-route to the
 //   originally requested view (acceptable trade-off — they can click
 //   the footer link again, or use the sidebar).
-// - The "Global Christian Community" item uses /community (public page).
 
 const FOOTER_SECTIONS = [
   {
@@ -39,7 +38,6 @@ const FOOTER_SECTIONS = [
   {
     title: "Community",
     links: [
-      { label: "Global Christian Community", href: "/community" },
       { label: "Business Directory", href: "/?view=business-directory" },
       { label: "Marketplace", href: "/?view=shop" },
       { label: `Partner With ${BRAND.name}`, href: "/partner" },

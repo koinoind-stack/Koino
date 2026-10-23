@@ -19,7 +19,6 @@ import {
   Grid,
   X,
   Shield,
-  Globe,
   FileText,
   HandHeart,
   Play,
@@ -82,7 +81,6 @@ type View =
   | "list-business" // kept for backward-compat route (the ListYourEntity form)
   | "business-directory" // public browse page
   | "small-groups"
-  | "community" // Global Christian Community → /community (Lordsbook CTA page)
   | "blog" // Blog → /blog (public App Router page, opens in new tab/route)
   | "support" // Support Koino → /support (public App Router page, accessible while authenticated)
   | "admin";
@@ -94,9 +92,6 @@ type View =
 // Small Groups is part of the Churches hub (Groups section inside church profile),
 // and List Your Church is a primary action inside the Churches hub.
 //
-// "community" is a special sidebar entry: clicking it does a full route
-// navigation to /community (the Lordsbook community CTA page). It does NOT
-// render inside the SPA — goView() catches it and redirects.
 const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
   { id: "explore", icon: Search, label: "Explore" },
@@ -109,8 +104,6 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "events", icon: Calendar, label: "Events" },
   { id: "trivia", icon: Award, label: "Bible Trivia" },
   { id: "apologetics", icon: ListChecks, label: "Apologetics" },
-  // ─── COMMUNITY ─── Global Christian Community → /community
-  { id: "community", icon: Globe, label: "Global Christian Community" },
   // ─── DISCOVER ─── Marketplace + Business Directory
   { id: "shop", icon: Store, label: "Marketplace" },
   { id: "business-directory", icon: Building2, label: "Business Directory" },
@@ -140,7 +133,6 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "trivia", icon: Award, label: "Trivia" },
   { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
   { id: "apologetics", icon: ListChecks, label: "Apologetics" },
-  { id: "community", icon: Globe, label: "Community" },
   { id: "shop", icon: Store, label: "Marketplace" },
   { id: "business-directory", icon: Building2, label: "Business Directory" },
   { id: "blog", icon: FileText, label: "Blog" },
@@ -230,8 +222,7 @@ export default function Home() {
   // visitors, they land on the public landing page (they can sign in
   // and then click the footer link again, or use Enter App).
   // Supported deep-link views: bible, comic, churches, events, trivia,
-  // prayer-wall, apologetics, shop, business-directory, community.
-  // "community" is special-cased: it redirects to /community (full route).
+  // prayer-wall, apologetics, shop, business-directory.
   // This effect runs ONCE on initial mount — it does not re-run on every
   // navigation (otherwise clicking sidebar items would fight with the URL).
   useEffect(() => {
@@ -306,14 +297,14 @@ export default function Home() {
   const goView = (v: View) => {
     // Several sidebar entries are "pseudo-views" — they don't render inside
     // the SPA. Instead, navigate to a public App Router route. This lets
-    // authenticated users reach /community, /blog, /support WITHOUT logging
+    // authenticated users reach /blog, /support WITHOUT logging
     // out (the public pages use PublicPageLayout, which works for both
     // authenticated and unauthenticated visitors).
     //
     // Fire-and-forget analytics if available, then perform a full route
     // navigation. Mirrors navigate() cleanup so the More sheet closes
     // immediately on mobile.
-    if (v === "community" || v === "blog" || v === "support") {
+    if (v === "blog" || v === "support") {
       setShowMoreSheet(false);
       setHeaderVisible(true);
       try {
@@ -322,7 +313,6 @@ export default function Home() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             event:
-              v === "community" ? "global_christian_community_nav_click" :
               v === "blog" ? "blog_nav_click" :
               "support_koino_nav_click",
             source: "sidebar",

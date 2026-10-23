@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
-import LordsbookCommunityCard from "@/components/crosscrafted/LordsbookCommunityCard";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Award,
@@ -834,17 +833,6 @@ export default function TriviaView() {
                   >
                     <RotateCcw size={14} /> {t("triviaView.results.playAgain")}
                   </button>
-                </div>
-
-                {/* Lordsbook CTA */}
-                <div className="max-w-sm mx-auto w-full pt-3">
-                  <LordsbookCommunityCard
-                    title="Meet Christians Around the World"
-                    description="Got a great score? Challenge other Christians and share your faith journey on Lordsbook."
-                    buttonText="Challenge on Lordsbook"
-                    context="trivia"
-                    variant="result"
-                  />
                 </div>
 
                 {gameMode === "EARN_POINTS" && (
