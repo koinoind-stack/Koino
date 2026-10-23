@@ -104,6 +104,7 @@ export const ta: Record<string, string> = {
   "admin.tab.announcements": "அறிவிப்புகள்",
   "admin.tab.redemptions": "மீட்புகள்",
   "admin.tab.analytics": "பகுப்பாய்வுகள்",
+  "admin.tab.reports": "புகார்கள்",
   "triviaView.title": "விவிலிய விளையாட்டு",
   "triviaView.verified": "உறுதிப்படுத்தப்பட்டது: {points} FP",
   "triviaView.signInPrompt": "நம்பிக்கை புள்ளிகளை வாங்க உள்நுழைக",

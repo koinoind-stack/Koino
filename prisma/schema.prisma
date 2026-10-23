@@ -100,6 +100,10 @@ model User {
 
   // Contributor
   contributor         Contributor?
+
+  // Groups & fellowship
+  groupsCreated       Group[]        @relation("GroupCreator")
+  groupMemberships    GroupMember[]  @relation("GroupMemberships")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -314,6 +318,7 @@ model Post {
   isReel       Boolean  @default(false) // true = surfaces in the Reels vertical feed
   // Reposts: a repost is a new Post whose content quotes/references the original.
   repostedFromId String?
+  groupId      String?  // set when the post belongs to a Group (scoped to the group page)
   editedAt     DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -325,10 +330,12 @@ model Post {
   comments     PostComment[]
   bookmarks    PostBookmark[]
   notifications Notification[]
+  group        Group?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([authorId, createdAt])
   @@index([createdAt])
   @@index([isReel, createdAt])
+  @@index([groupId, createdAt])
 }
 
 // One like per (post, user). Toggle removes/creates + adjusts Post.likeCount.
@@ -1339,4 +1346,45 @@ model UserQuestion {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// ─── ROUND 2: GROUPS & FELLOWSHIP ──────────────────────────────────────────
+// Faith communities on Koino: Youth Fellowship, Bible Study, Prayer Partners,
+// Worship Teams, Christian Entrepreneurs, Church Communities, etc.
+// visibility: "public" (anyone can view + join) | "private" (content is
+// member-only; joining creates a pending request the owner approves).
+model Group {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  category      String   @default("fellowship") // youth | bible-study | prayer | worship | entrepreneurs | church | fellowship
+  visibility    String   @default("public")     // public | private
+  coverGradient Int      @default(0)            // 0-7, gradient fallback for the cover
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy User          @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members   GroupMember[]
+  posts     Post[]
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+// Group membership. status: "active" | "pending" (private-group join request).
+// role: "owner" | "member" (invite-only groups and group admins are future work).
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  role      String   @default("member")
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
 }

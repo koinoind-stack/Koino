@@ -104,6 +104,7 @@ export const pa: Record<string, string> = {
   "admin.tab.announcements": "ਐਲਾਨ",
   "admin.tab.redemptions": "ਰੀਡੈਮਪਸ਼ਨਸ",
   "admin.tab.analytics": "ਐਨਾਲਿਟਿਕਸ",
+  "admin.tab.reports": "ਰਿਪੋਰਟਾਂ",
   "triviaView.title": "ਬਾਈਬਲ ਟਰਿਵੀਆ",
   "triviaView.verified": "ਪੁਸ਼ਟੀ ਕੀਤਾ: {points} FP",
   "triviaView.signInPrompt": "ਫੇਥ ਪੌਇੰਟਸ ਕਮਾਉਣ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ",

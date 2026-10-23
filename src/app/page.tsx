@@ -25,6 +25,7 @@ import {
   Bell,
   CircleUser,
   PlusSquare,
+  Users,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -45,6 +46,8 @@ import AppHomeView from "@/components/crosscrafted/AppHomeView";
 import OnboardingView from "@/components/crosscrafted/OnboardingView";
 import EditProfileView from "@/components/crosscrafted/EditProfileView";
 import FeedView from "@/components/social/FeedView";
+import GroupsView from "@/components/social/GroupsView";
+import GroupDetailView from "@/components/social/GroupDetailView";
 import ExploreView from "@/components/social/ExploreView";
 import ReelsView from "@/components/social/ReelsView";
 import ComposerView from "@/components/social/ComposerView";
@@ -64,6 +67,8 @@ type View =
   | "explore"
   | "reels"
   | "notifications"
+  | "groups" // Round 2: Groups & Fellowship discovery
+  | "group-detail" // Round 2: one group (posts, members, join)
   | "create"
   | "profile" // own social profile (SocialProfileView on own username)
   | "edit-profile"
@@ -96,6 +101,7 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
   { id: "explore", icon: Search, label: "Explore" },
   { id: "reels", icon: Play, label: "Reels" },
+  { id: "groups", icon: Users, label: "Groups" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "profile", icon: CircleUser, label: "My Profile" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
@@ -125,6 +131,7 @@ const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
 
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
+  { id: "groups", icon: Users, label: "Groups" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "bible", icon: BookOpen, label: "Bible" },
@@ -156,6 +163,7 @@ export default function Home() {
   // Which profile the "profile" view shows — the session user by default,
   // or the ?user= deep-link target.
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   // Sign-out transition tracking: lets the entry-routing effect distinguish
   // "auth just resolved" from "user signed out" so signed-out visitors keep
   // browsing the public landing page without being bounced.
@@ -466,6 +474,20 @@ export default function Home() {
                   onOpenCreate={() => goView("create")}
                   onOpenEvents={() => goView("events")}
                   deepLinkPostId={detailPostId && view === "home" ? detailPostId : null}
+                />
+              )}
+              {view === "groups" && (
+                <GroupsView
+                  onOpenGroup={(id) => { setSelectedGroupId(id); goView("group-detail"); }}
+                  onBack={() => goView("home")}
+                />
+              )}
+              {view === "group-detail" && selectedGroupId && (
+                <GroupDetailView
+                  groupId={selectedGroupId}
+                  onBack={() => goView("groups")}
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
                 />
               )}
               {view === "explore" && (

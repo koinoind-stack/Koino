@@ -104,6 +104,7 @@ export const as: Record<string, string> = {
   "admin.tab.announcements": "ঘোষণাসমূহ",
   "admin.tab.redemptions": "পুনৰ্মূল্যায়নসমূহ",
   "admin.tab.analytics": "বিশ্লেষণ",
+  "admin.tab.reports": "ৰিপৰ্টসমূহ",
   "triviaView.title": "বাইবেল ট্ৰিভিয়া",
   "triviaView.verified": "নিশ্চিত: {points} FP",
   "triviaView.signInPrompt": "বিশ্বাস পয়েন্ট উপাৰ্জন কৰিবলৈ চাইন ইন কৰক",

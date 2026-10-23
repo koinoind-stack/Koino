@@ -25,9 +25,11 @@ export async function GET(req: NextRequest) {
   const reels = searchParams.get("reels") === "1";
   const hashtag = searchParams.get("hashtag");
   const userId = searchParams.get("userId");
+  const groupId = searchParams.get("groupId");
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "10", 10), 1), 30);
 
   const where: Record<string, unknown> = {};
+  if (!groupId) where.groupId = null; // group posts live on their group page only
   if (reels) where.isReel = true;
   if (hashtag) where.hashtags = { has: hashtag.toLowerCase() };
   if (userId) where.authorId = userId;
@@ -43,6 +45,26 @@ export async function GET(req: NextRequest) {
       select: { followingId: true },
     });
     where.authorId = { in: [...follows.map((f) => f.followingId), viewerId] };
+  }
+
+  // Group-scoped fetch: public groups are viewable by everyone; private
+  // groups require active membership.
+  if (groupId) {
+    const group = await db.group
+      .findUnique({ where: { id: groupId }, select: { visibility: true } })
+      .catch(() => null);
+    if (!group) return jsonError("Group not found", 404);
+    if (group.visibility !== "public") {
+      const membership = await db.groupMember
+        .findUnique({
+          where: { groupId_userId: { groupId, userId: viewerId } },
+          select: { status: true },
+        })
+        .catch(() => null);
+      if (membership?.status !== "active")
+        return jsonError("This group is private — join to see its posts", 403);
+    }
+    where.groupId = groupId;
   }
 
   // Trending: engagement-ranked window over the last 30 days. Computed in JS
@@ -143,6 +165,23 @@ export async function POST(req: NextRequest) {
   const thumbnailUrl = typeof body.thumbnailUrl === "string" ? body.thumbnailUrl.slice(0, 2048) : null;
   const isReel = body.isReel === true;
 
+  let groupId: string | null = null;
+  if (typeof body.groupId === "string" && body.groupId) {
+    const group = await db.group
+      .findUnique({ where: { id: body.groupId }, select: { id: true, visibility: true } })
+      .catch(() => null);
+    if (!group) return jsonError("Group not found", 404);
+    const membership = await db.groupMember
+      .findUnique({
+        where: { groupId_userId: { groupId: group.id, userId: me.id } },
+        select: { status: true },
+      })
+      .catch(() => null);
+    if (membership?.status !== "active")
+      return jsonError("Join the group before posting in it", 403);
+    groupId = group.id;
+  }
+
   let repostedFromId: string | null = null;
   if (typeof body.repostOfId === "string" && body.repostOfId) {
     const original = await db.post.findUnique({
@@ -178,6 +217,7 @@ export async function POST(req: NextRequest) {
         isReel: mediaType === "video" && isReel,
         published: true,
         authorId: me.id,
+        groupId,
         repostedFromId,
       },
       select: postSelect,

@@ -151,6 +151,7 @@ export const en: Record<string, string> = {
   "admin.tab.redemptions": "Redemptions",
   "admin.tab.donations": "Donations",
   "admin.tab.analytics": "Analytics",
+  "admin.tab.reports": "Reports",
   "admin.tab.bibleComics": "Bible Comics",
   "admin.tab.members": "Members",
   "admin.tab.contactMessages": "Contact Messages",
