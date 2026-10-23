@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
 // Single PrismaClient instance at module scope — same pattern as the
 // blog page + admin routes. A separate client from the auth-server.ts one
 // (we don't want to share the user-mirror instance here).
-const db = new PrismaClient();
 
-const SITE_ORIGIN = "https://www.koino.in";
+import { BRAND } from "@/lib/brand";
+
+const SITE_ORIGIN = BRAND.url;
 
 /**
  * Next.js MetadataRoute.Sitemap convention — auto-served at /sitemap.xml.

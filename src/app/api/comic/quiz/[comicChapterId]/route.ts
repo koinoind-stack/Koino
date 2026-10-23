@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { submitQuiz } from "@/lib/trivia-server";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 /**
  * GET /api/comic/quiz/[comicChapterId]?lang=hi

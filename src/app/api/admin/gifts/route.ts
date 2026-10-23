@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { getAuthUser } from "@/lib/auth-server";
 
-const db = new PrismaClient();
+import { getAuthUser } from "@/lib/auth-server";
+import { db } from "@/lib/db";
 
 // JSON-encoded fields stored as TEXT in SQLite. Always fall back to []
 // if the column is empty / malformed so the client never crashes.

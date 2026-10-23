@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 // Admin auth helper — same pattern as the other admin routes.
 // Returns 401 (not signed in) vs 403 (signed in but not admin).

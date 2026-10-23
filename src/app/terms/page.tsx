@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Koino",
+  title: `Terms of Service | ${BRAND.name}`,
   description:
-    "The terms that govern your use of Koino, a Christian community platform at https://www.koino.in. By creating an account or using any Koino feature, you agree to these terms.",
+    `The terms that govern your use of ${BRAND.name}, a Christian community platform at https://www.koino.in. By creating an account or using any ${BRAND.name} feature, you agree to these terms.`,
   openGraph: {
-    title: "Terms of Service | Koino",
-    siteName: "Koino",
+    title: `Terms of Service | ${BRAND.name}`,
+    siteName: `${BRAND.name}`,
     type: "article",
   },
 };

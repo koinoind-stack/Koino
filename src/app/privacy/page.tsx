@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Koino",
+  title: `Privacy Policy | ${BRAND.name}`,
   description:
-    "How Koino collects, uses, stores and protects your personal information, with awareness of India's Digital Personal Data Protection Act, 2023 (DPDP Act) and the Digital Personal Data Protection Rules, 2025.",
+    `How ${BRAND.name} collects, uses, stores and protects your personal information, with awareness of India's Digital Personal Data Protection Act, 2023 (DPDP Act) and the Digital Personal Data Protection Rules, 2025.`,
   openGraph: {
-    title: "Privacy Policy | Koino",
-    siteName: "Koino",
+    title: `Privacy Policy | ${BRAND.name}`,
+    siteName: `${BRAND.name}`,
     type: "article",
   },
 };

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { getAuthUser } from "@/lib/auth-server";
 
-const db = new PrismaClient();
+import { getAuthUser } from "@/lib/auth-server";
+import { db } from "@/lib/db";
 
 /**
  * POST /api/profile/setup
@@ -96,7 +95,9 @@ export async function POST(req: NextRequest) {
       }
 
       data.username = username;
-      data.dateOfBirth = new Date(dateOfBirth);
+      // NOTE (Task 49 fix): dateOfBirth is optional — it is already assigned
+      // above ONLY when provided. Assigning `new Date(undefined)` here would
+      // create an Invalid Date and make every DOB-less save throw a 500.
       data.state = state;
       data.city = city;
 

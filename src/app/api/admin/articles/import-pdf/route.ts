@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
 import { extractPdfText } from "@/lib/pdf/extract-pdf-text";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20 MB
 

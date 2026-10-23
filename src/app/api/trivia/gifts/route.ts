@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { PrismaClient } from "@prisma/client";
-import { PRODUCTS } from "@/lib/crosscrafted-data";
 
-const db = new PrismaClient();
+import { PRODUCTS } from "@/lib/crosscrafted-data";
+import { db } from "@/lib/db";
 
 function safeParseArray(raw: string | null | undefined): any[] {
   if (!raw) return [];

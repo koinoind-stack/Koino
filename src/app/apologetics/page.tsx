@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import Link from "next/link";
 import { Search, Sparkles, MessageCircle, BookOpen } from "lucide-react";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Apologetics — Koino",

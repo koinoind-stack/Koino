@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
 // Single PrismaClient instance at module scope — same pattern as other routes.
-const db = new PrismaClient();
 
 /**
  * GET /api/donation-settings

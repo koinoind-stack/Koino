@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import Link from "next/link";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Koino Help Center",
-  description: "Find answers to common questions about Koino — accounts, Bible, trivia, churches, events, prayer, marketplace, business directory, and more.",
-  openGraph: { title: "Koino Help Center", siteName: "Koino" },
+  title: `${BRAND.name} Help Center`,
+  description: `Find answers to common questions about ${BRAND.name} — accounts, Bible, trivia, churches, events, prayer, marketplace, business directory, and more.`,
+  openGraph: { title: `${BRAND.name} Help Center`, siteName: `${BRAND.name}` },
 };
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIES = [
   "Account", "Bible", "Bible Trivia", "Churches", "Events", "Prayer Wall",
-  "Marketplace", "Business Directory", "Koino Merch", "Prizes", "Support Koino", "Privacy & Security",
+  "Marketplace", "Business Directory", `${BRAND.name} Merch`, "Prizes", `Support ${BRAND.name}`, "Privacy & Security",
 ];
 
 export default async function HelpPage() {
@@ -34,7 +34,7 @@ export default async function HelpPage() {
     <PublicPageLayout>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-black text-white mb-2">Koino Help Center</h1>
+          <h1 className="text-2xl font-black text-white mb-2">{BRAND.name} Help Center</h1>
           <p className="text-sm text-[#A09DB1]">Find answers to common questions about Koino.</p>
         </div>
 

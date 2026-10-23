@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/crosscrafted/LanguageSwitcher";
+import { BRAND } from "@/lib/brand";
 
 function SignInForm() {
   const router = useRouter();
@@ -121,7 +122,7 @@ function SignInForm() {
         <div className="text-center mb-8">
           <Image
             src="/koino-logo.png"
-            alt="Koino"
+            alt={BRAND.name + ""}
             width={64}
             height={64}
             className="rounded-2xl mb-4 mx-auto"

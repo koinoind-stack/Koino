@@ -22,6 +22,10 @@ import {
   Globe,
   FileText,
   HandHeart,
+  Play,
+  Bell,
+  CircleUser,
+  PlusSquare,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import ChurchesView from "@/components/crosscrafted/ChurchesView";
@@ -40,14 +44,31 @@ import ComicView from "@/components/crosscrafted/ComicView";
 import BusinessDirectoryView from "@/components/crosscrafted/BusinessDirectoryView";
 import AppHomeView from "@/components/crosscrafted/AppHomeView";
 import OnboardingView from "@/components/crosscrafted/OnboardingView";
+import EditProfileView from "@/components/crosscrafted/EditProfileView";
+import FeedView from "@/components/social/FeedView";
+import ExploreView from "@/components/social/ExploreView";
+import ReelsView from "@/components/social/ReelsView";
+import ComposerView from "@/components/social/ComposerView";
+import SocialProfileView from "@/components/social/SocialProfileView";
+import NotificationsView from "@/components/social/NotificationsView";
+import PostDetail from "@/components/social/PostDetail";
+import type { Post } from "@/components/social/types";
 import { toast } from "sonner";
+import { BRAND } from "@/lib/brand";
 import { type Translation } from "@/lib/bible-data";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 
 type View =
   | "landing"
   | "onboarding" // Profile setup flow (shown when !profileCompleted)
-  | "home" // App Home dashboard (default after Enter App + onboarding)
+  | "home" // ── SOCIAL FEED (Task 50) — the default authenticated destination
+  | "explore"
+  | "reels"
+  | "notifications"
+  | "create"
+  | "profile" // own social profile (SocialProfileView on own username)
+  | "edit-profile"
+  | "dashboard" // the previous App Home dashboard (moved — still fully available)
   | "bible"
   | "bible-plans"
   | "comic"
@@ -78,6 +99,11 @@ type View =
 // render inside the SPA — goView() catches it and redirects.
 const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
+  { id: "explore", icon: Search, label: "Explore" },
+  { id: "reels", icon: Play, label: "Reels" },
+  { id: "notifications", icon: Bell, label: "Notifications" },
+  { id: "profile", icon: CircleUser, label: "My Profile" },
+  { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "bible", icon: BookOpen, label: "Bible" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
@@ -95,24 +121,27 @@ const SIDEBAR_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "admin", icon: Shield, label: "Admin" },
 ];
 
-// Mobile bottom nav — 4 quick-access slots + a "More" button that opens the full menu.
-// The 4 quick slots are the most-used features; everything else lives behind "More".
+// Mobile bottom nav — Instagram-style 5 quick slots per the social spec.
 const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
-  { id: "bible", icon: BookOpen, label: "Bible" },
-  { id: "churches", icon: Search, label: "Churches" },
-  { id: "trivia", icon: Award, label: "Trivia" },
-  { id: "shop", icon: Store, label: "Shop" },
+  { id: "home", icon: HomeIcon, label: "Home" },
+  { id: "explore", icon: Search, label: "Explore" },
+  { id: "reels", icon: Play, label: "Reels" },
+  { id: "create", icon: PlusSquare, label: "Create" },
+  { id: "profile", icon: CircleUser, label: "Profile" },
 ];
 
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
-// Note: Bible Comics and Reading Plans are both accessible from inside the
-// Bible view via the READ / BIBLE COMICS / READING PLANS mode switcher.
-// Small Groups and List Church are accessible from inside the Churches hub.
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
+  { id: "dashboard", icon: Sparkles, label: "App Home" },
+  { id: "notifications", icon: Bell, label: "Notifications" },
+  { id: "bible", icon: BookOpen, label: "Bible" },
+  { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
-  { id: "apologetics", icon: ListChecks, label: "Apologetics" },
-  { id: "community", icon: Globe, label: "Global Christian Community" },
+  { id: "trivia", icon: Award, label: "Trivia" },
   { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
+  { id: "apologetics", icon: ListChecks, label: "Apologetics" },
+  { id: "community", icon: Globe, label: "Community" },
+  { id: "shop", icon: Store, label: "Marketplace" },
   { id: "business-directory", icon: Building2, label: "Business Directory" },
   { id: "blog", icon: FileText, label: "Blog" },
   { id: "support", icon: HandHeart, label: "Support Koino" },
@@ -121,15 +150,24 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
 
 export default function Home() {
   const [view, setView] = useState<View>("landing");
-  const { isAuthenticated, profileCompleted, isAdmin, loading: authLoading } = useSupabaseUser();
+  const { isAuthenticated, profileCompleted, isAdmin, username, loading: authLoading } = useSupabaseUser();
   const [headerVisible, setHeaderVisible] = useState(true);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const lastScrollY = useRef(0);
   // Bible Comics state — data-driven, not hardcoded.
-  // Default to Genesis 1 (the first chapter of the Bible).
-  // Changed when user navigates between comic chapters or opens a shared URL.
   const [comicBookId, setComicBookId] = useState("genesis");
   const [comicChapter, setComicChapter] = useState(1);
+  // ─── SOCIAL OVERLAYS (Task 50) — render above ANY view ───
+  const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  const [reelPost, setReelPost] = useState<Post | null>(null);
+  const [exploreHashtag, setExploreHashtag] = useState<string | null>(null);
+  // Which profile the "profile" view shows — the session user by default,
+  // or the ?user= deep-link target.
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+  // Sign-out transition tracking: lets the entry-routing effect distinguish
+  // "auth just resolved" from "user signed out" so signed-out visitors keep
+  // browsing the public landing page without being bounced.
+  const wasAuthenticated = useRef(false);
 
   // Navigate to a new view, also resetting header + scroll position.
   const navigate = (next: View) => {
@@ -167,6 +205,23 @@ export default function Home() {
     }
   }, [isAuthenticated, profileCompleted, authLoading]);
 
+  // ─── AUTH-AWARE ENTRY ROUTING (Task 49) ───
+  // When auth resolves while the user is sitting on the public landing page,
+  // route them straight into the app: incomplete profile → onboarding,
+  // complete profile → home feed. This kills the "sign in, then click Enter
+  // again" bounce. A sign-out TRANSITION does NOT trigger this — signed-out
+  // visitors stay on the public page and can keep browsing.
+  useEffect(() => {
+    if (authLoading) return;
+    if (isAuthenticated && !wasAuthenticated.current) {
+      if (view === "landing") {
+        navigate(profileCompleted ? "home" : "onboarding");
+      }
+    }
+    wasAuthenticated.current = isAuthenticated;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading, profileCompleted]);
+
   // ─── DEEP-LINK ROUTING FROM ?view=<view> QUERY PARAM ───
   // Footer links and shared URLs use /?view=bible, /?view=comic, etc.
   // On mount (and when auth state changes), if the URL has a ?view= param,
@@ -186,6 +241,28 @@ export default function Home() {
 
     const params = new URLSearchParams(window.location.search);
     const deepView = params.get("view");
+    const deepPost = params.get("post");
+    const deepUser = params.get("user");
+    const deepReel = params.get("reel");
+    const deepHashtag = params.get("hashtag");
+
+    // Social deep links (Task 50): ?post= ?user= ?reel= ?hashtag=
+    if (deepPost) setDetailPostId(deepPost);
+    if (deepUser) setProfileUsername(deepUser);
+    if (deepHashtag) {
+      setExploreHashtag(deepHashtag);
+      navigate("explore");
+    } else if (deepUser) {
+      navigate("profile");
+    } else if (deepReel) {
+      setDetailPostId(null);
+      navigate("reels");
+    }
+    if (deepPost || deepUser || deepReel || deepHashtag) {
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, "", cleanUrl);
+      return;
+    }
     if (!deepView) return;
 
     // Validate that the deep-link view is a known SPA view.
@@ -296,14 +373,14 @@ export default function Home() {
           <button onClick={goHome} className="flex items-center gap-2">
             {/* Koino Logo */}
             <Image
-              src="/koino-logo.png"
-              alt="Koino"
+              src={BRAND.assets.logo}
+              alt={BRAND.name}
               width={32}
               height={32}
               className="rounded-lg shrink-0"
               priority
             />
-            <h1 className="text-base md:text-lg font-black tracking-tight text-white">Koino</h1>
+            <h1 className="text-base md:text-lg font-black tracking-tight text-white">{BRAND.name}</h1>
           </button>
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
@@ -393,6 +470,51 @@ export default function Home() {
               transition={{ duration: 0.18 }}
             >
               {view === "home" && (
+                <FeedView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
+                  onOpenCreate={() => goView("create")}
+                  deepLinkPostId={detailPostId && view === "home" ? detailPostId : null}
+                />
+              )}
+              {view === "explore" && (
+                <ExploreView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onHashtag={(tag) => setExploreHashtag(tag || null)}
+                  initialHashtag={exploreHashtag}
+                />
+              )}
+              {view === "reels" && (
+                <ReelsView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onClose={() => goView("home")}
+                />
+              )}
+              {view === "notifications" && (
+                <NotificationsView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onOpenPost={(postId) => setDetailPostId(postId)}
+                />
+              )}
+              {view === "create" && (
+                <ComposerView onClose={() => goView("home")} onPosted={() => goView("home")} />
+              )}
+              {view === "edit-profile" && (
+                <EditProfileView onDone={() => goView("profile")} />
+              )}
+              {view === "profile" &&
+                (username || profileUsername) &&
+                (profileUsername || username) && (
+                  <SocialProfileView
+                    username={profileUsername || username!}
+                    onBack={() => goView("home")}
+                    onOpenProfile={(u) => setProfileUsername(u)}
+                    onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
+                    onEditProfile={() => goView("edit-profile")}
+                    key={profileUsername || username}
+                  />
+                )}
+              {view === "dashboard" && (
                 <AppHomeView
                   onNavigate={(v) => goView(v)}
                 />
@@ -461,6 +583,23 @@ export default function Home() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* ─── SOCIAL OVERLAYS — render above ANY view (Task 50) ─── */}
+      {detailPostId && (
+        <PostDetail
+          postId={detailPostId}
+          onClose={() => setDetailPostId(null)}
+          onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+          onHashtag={(tag) => { setExploreHashtag(tag || null); setDetailPostId(null); goView("explore"); }}
+        />
+      )}
+      {reelPost && (
+        <ReelsView
+          initialPostId={reelPost.id}
+          onClose={() => setReelPost(null)}
+          onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+        />
+      )}
 
       {/* Mobile Bottom Nav — 4 quick slots + "More" button */}
       <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50 rounded-[20px] bg-[#111827]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)]">

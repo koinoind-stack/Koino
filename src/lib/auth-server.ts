@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+
 import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
 
 // Create PrismaClient directly to avoid Turbopack module issues
-const db = new PrismaClient();
 
 /**
  * Get the authenticated user from the server side.
@@ -62,9 +62,11 @@ export async function getAuthUser() {
     email: dbUser.email,
     name: dbUser.name,
     image: dbUser.image,
+    username: dbUser.username,
+    bio: dbUser.bio,
     role: dbUser.role,
     totalPoints: dbUser.totalPoints,
-    profileCompleted: (dbUser as any).profileCompleted ?? false,
+    profileCompleted: dbUser.profileCompleted ?? false,
   };
 }
 
@@ -82,6 +84,8 @@ export async function getAuthUserFromDB() {
       email: true,
       name: true,
       image: true,
+      username: true,
+      bio: true,
       role: true,
       totalPoints: true,
     },

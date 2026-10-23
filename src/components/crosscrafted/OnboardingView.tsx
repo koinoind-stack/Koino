@@ -17,7 +17,7 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { useSupabaseUser, notifyProfileUpdated } from "@/lib/supabase/use-user";
 import { INDIAN_STATES, getCitiesForState, LANGUAGES } from "@/lib/crosscrafted-data";
 
 type Step = 0 | 1 | 2 | 3; // 0=welcome, 1=profile, 2=faith, 3=whatsapp
@@ -242,6 +242,10 @@ export default function OnboardingView({ onComplete }: Props) {
         return;
       }
       toast.success("Welcome to Koino! 🎉");
+      // Refresh profileCompleted in every useSupabaseUser consumer BEFORE
+      // onComplete navigates — otherwise the hook's stale profileCompleted
+      // sends completed users straight back into onboarding.
+      notifyProfileUpdated();
       onComplete();
     } catch (e: any) {
       toast.error(e.message || "Failed to complete");

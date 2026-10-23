@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 /**
  * DELETE /api/admin/churches/[id]

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 // Admin auth helper — same pattern as /api/admin/gifts and /api/admin/redemptions.
 // Returns the authenticated admin user object, or null if not authorized.

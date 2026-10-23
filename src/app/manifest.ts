@@ -1,42 +1,42 @@
 import type { MetadataRoute } from "next";
+import { BRAND } from "@/lib/brand";
 
-// PWA manifest — Koino
+// PWA manifest — driven entirely by the central brand config (Task 51).
 // Next.js App Router convention: this file is auto-served at /manifest.webmanifest
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Koino — Faith. Fellowship. Belong.",
-    short_name: "Koino",
-    description:
-      "Koino is a Christian community platform for Scripture, churches, prayer, events, Bible trivia, Christian businesses, marketplace and fellowship.",
+    name: BRAND.pwa.name,
+    short_name: BRAND.pwa.shortName,
+    description: BRAND.description,
     start_url: "/",
     display: "standalone",
-    background_color: "#12101A",
-    theme_color: "#12101A",
+    background_color: BRAND.pwa.backgroundColor,
+    theme_color: BRAND.pwa.themeColor,
     orientation: "portrait",
     scope: "/",
     lang: "en",
     categories: ["lifestyle", "social", "books", "education"],
     icons: [
       {
-        src: "/koino-logo.png",
+        src: BRAND.assets.logo,
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/koino-logo.png",
+        src: BRAND.assets.logo,
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/koino-logo.png",
+        src: BRAND.assets.logo,
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/koino-logo.png",
+        src: BRAND.assets.logo,
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

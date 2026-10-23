@@ -16,6 +16,7 @@ import {
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import LordsbookCommunityCard from "@/components/crosscrafted/LordsbookCommunityCard";
+import { BRAND } from "@/lib/brand";
 
 type View =
   | "bible"
@@ -135,7 +136,7 @@ export default function AppHomeView({ onNavigate }: Props) {
   const t = useTranslation();
   const { user, isAuthenticated } = useSupabaseUser();
 
-  // ─── Latest blog posts ("Latest from Koino") ───
+  // ─── Latest blog posts (`Latest from ${BRAND.name}`) ───
   // Loaded client-side on mount. The section is only rendered when posts
   // exist — on error or empty list it stays hidden (no skeleton, no empty
   // state) to keep the App Home clean.
@@ -177,7 +178,7 @@ export default function AppHomeView({ onNavigate }: Props) {
 
   const greeting = displayName
     ? `Welcome, ${String(displayName).split(" ")[0]}`
-    : "Welcome to Koino";
+    : `Welcome to ${BRAND.name}`;
 
   return (
     <div className="max-w-[680px] mx-auto px-4 py-5 pb-28 md:pb-5">

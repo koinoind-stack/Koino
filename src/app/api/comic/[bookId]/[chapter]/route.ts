@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 function safeParseArray(raw: string | null | undefined): any[] {
   if (!raw) return [];

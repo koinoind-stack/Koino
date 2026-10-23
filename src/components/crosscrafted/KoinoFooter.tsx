@@ -7,6 +7,7 @@ import {
   Heart,
   MessageCircle,
 } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 
 // Public footer for the Koino website.
 // Used on the LandingHero + all public pages (about, contact, blog, etc.)
@@ -23,9 +24,9 @@ import {
 
 const FOOTER_SECTIONS = [
   {
-    title: "Koino",
+    title: `${BRAND.name}`,
     links: [
-      { label: "About Koino", href: "/about" },
+      { label: `About ${BRAND.name}`, href: "/about" },
       { label: "Bible", href: "/?view=bible" },
       { label: "Bible Comics", href: "/?view=comic" },
       { label: "Churches", href: "/?view=churches" },
@@ -41,14 +42,14 @@ const FOOTER_SECTIONS = [
       { label: "Global Christian Community", href: "/community" },
       { label: "Business Directory", href: "/?view=business-directory" },
       { label: "Marketplace", href: "/?view=shop" },
-      { label: "Partner With Koino", href: "/partner" },
+      { label: `Partner With ${BRAND.name}`, href: "/partner" },
     ],
   },
   {
     title: "Support",
     links: [
       { label: "Contact Us", href: "/contact" },
-      { label: "Support Koino", href: "/support" },
+      { label: `Support ${BRAND.name}`, href: "/support" },
     ],
   },
   {
@@ -81,12 +82,12 @@ export default function KoinoFooter() {
             <div className="flex items-center gap-2 mb-3">
               <Image
                 src="/koino-logo.png"
-                alt="Koino"
+                alt={BRAND.name + ""}
                 width={28}
                 height={28}
                 className="rounded-md"
               />
-              <span className="text-sm font-black text-white">Koino</span>
+              <span className="text-sm font-black text-white">{BRAND.name}</span>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F39B9B] mb-2">
               Faith. Fellowship. Belong.
@@ -137,7 +138,7 @@ export default function KoinoFooter() {
           <div className="flex items-center gap-2">
             <Heart size={16} className="text-[#F39B9B]" />
             <div>
-              <p className="text-xs font-bold text-white">Koino is free to use.</p>
+              <p className="text-xs font-bold text-white">{BRAND.name} is free to use.</p>
               <p className="text-[10px] text-[#94A3B8]">Your support helps keep it that way.</p>
             </div>
           </div>

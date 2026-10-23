@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import { Sparkles } from "lucide-react";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Meet the Founder — Koino",

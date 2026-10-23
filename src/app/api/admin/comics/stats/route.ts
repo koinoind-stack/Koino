@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { getAuthUser } from "@/lib/auth-server";
 
-const db = new PrismaClient();
+import { getAuthUser } from "@/lib/auth-server";
+import { db } from "@/lib/db";
 
 async function requireAdmin() {
   const user = await getAuthUser();

@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import DonationMethods from "@/components/crosscrafted/DonationMethods";
 import { Heart, Server, BookOpen, Trophy, Users, ShieldCheck, Code } from "lucide-react";
 import Link from "next/link";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Support Koino — Help Keep Koino Free",
-  description: "Koino is free to use. Your support helps keep it that way. Give via UPI, QR code, or direct bank transfer.",
+  title: `Support ${BRAND.name} — Help Keep ${BRAND.name} Free`,
+  description: `${BRAND.name} is free to use. Your support helps keep it that way. Give via UPI, QR code, or direct bank transfer.`,
   openGraph: {
-    title: "Support Koino — Help Keep Koino Free",
-    description: "Koino is free to use. Your support helps keep it that way.",
-    siteName: "Koino",
+    title: `Support ${BRAND.name} — Help Keep ${BRAND.name} Free`,
+    description: `${BRAND.name} is free to use. Your support helps keep it that way.`,
+    siteName: `${BRAND.name}`,
   },
 };
 
@@ -24,7 +24,7 @@ const SUPPORT_AREAS = [
   { icon: BookOpen, title: "Bible & Christian Content", desc: "Bible resources, educational content and Christian experiences." },
   { icon: Trophy, title: "Bible Trivia & Prizes", desc: "Prizes and competitions that encourage people to learn Scripture." },
   { icon: Users, title: "Community Development", desc: "Churches, events, prayer and Christian community features." },
-  { icon: ShieldCheck, title: "Safety & Moderation", desc: "Helping keep Koino a welcoming and safe community." },
+  { icon: ShieldCheck, title: "Safety & Moderation", desc: `Helping keep ${BRAND.name} a welcoming and safe community.` },
   { icon: Code, title: "Future Development", desc: "New features, mobile improvements and continued development." },
 ];
 

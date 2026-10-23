@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
+import { db } from "@/lib/db";
 
 // Single PrismaClient instance at module scope — same pattern as other admin routes.
-const db = new PrismaClient();
 
 // Admin auth helper — same pattern as /api/admin/donation-settings.
 // Distinguishes 401 (not signed in) from 403 (signed in but not admin).

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import KoinoFooter from "@/components/crosscrafted/KoinoFooter";
 import LanguageSwitcher from "@/components/crosscrafted/LanguageSwitcher";
+import { BRAND } from "@/lib/brand";
 
 // Shared layout for public pages (about, contact, partner, support, help, blog)
 // Includes the Koino header + footer so all public pages feel like one platform.
@@ -16,13 +17,13 @@ export default function PublicPageLayout({ children }: { children: React.ReactNo
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/koino-logo.png"
-              alt="Koino"
+              alt={BRAND.name + ""}
               width={32}
               height={32}
               className="rounded-lg"
               priority
             />
-            <h1 className="text-base font-black tracking-tight text-white">Koino</h1>
+            <h1 className="text-base font-black tracking-tight text-white">{BRAND.name}</h1>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-[#94A3B8]">
             <Link href="/about" className="hover:text-white transition-colors">About</Link>

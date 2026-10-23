@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import BlogListClient, {
   type PublicBlogPost,
 } from "@/components/crosscrafted/BlogListClient";
 import Link from "next/link";
 import { Calendar, Star, ArrowRight } from "lucide-react";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 

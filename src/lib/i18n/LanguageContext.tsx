@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { BRAND } from "@/lib/brand";
 
 export type LanguageCode =
   | "en"  // English (default)
@@ -123,15 +124,25 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.cookie = `${COOKIE_NAME}=${next}; path=/; max-age=31536000; SameSite=Lax`;
   }, []);
 
-  /** Translate a key. Supports {var} interpolation. */
+  /**
+   * Translate a key. Supports {var} interpolation + automatic brand vars.
+   *
+   * BRAND SAFETY (Task 51): translation files are generated assets that
+   * contain the literal word "Koino". Rather than editing all 13 files on a
+   * future rebrand, t() word-boundary-rewrites the stored brand name into
+   * BRAND.name at RENDER time — so a rebrand needs ZERO translation-file
+   * edits. {brand} and {tagline} vars are also always available.
+   */
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
       let str = dict[key] ?? translationCache.en?.[key] ?? key;
-      if (vars) {
-        Object.entries(vars).forEach(([k, v]) => {
-          str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
-        });
+      if (str && str !== key) {
+        str = str.replace(/\bKoino\b/g, BRAND.name);
       }
+      const allVars = { brand: BRAND.name, tagline: BRAND.tagline, ...(vars || {}) };
+      Object.entries(allVars).forEach(([k, v]) => {
+        str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+      });
       return str;
     },
     [dict]

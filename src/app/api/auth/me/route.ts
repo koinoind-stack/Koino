@@ -21,8 +21,10 @@ export async function GET() {
     email: user.email,
     name: user.name,
     image: user.image,
+    username: (user as { username?: string | null }).username ?? null,
+    bio: (user as { bio?: string | null }).bio ?? null,
     role: user.role,
     totalPoints: user.totalPoints,
-    profileCompleted: (user as any).profileCompleted ?? false,
+    profileCompleted: user.profileCompleted ?? false,
   });
 }

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 async function requireAdmin() {
   const user = await getAuthUser();

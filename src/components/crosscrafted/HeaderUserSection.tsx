@@ -2,84 +2,40 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { LogIn, LogOut } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
 
 /**
- * Shows the current user's avatar + name + FP balance, or a "Sign In" button.
- * Used in both the desktop and mobile headers.
+ * Shows the current user's avatar + name + @username + FP balance, or a
+ * "Sign In" button. Used in both the desktop and mobile headers.
  *
- * Reads auth state from Supabase via the @supabase/ssr browser client.
- * Fetches the user's Faith Points from /api/trivia/stats on login.
+ * Identity (name / avatar / @handle) comes from OUR database via
+ * /api/auth/me — NOT from Supabase metadata — so profile edits are visible
+ * here instantly (PROFILE_UPDATED_EVENT triggers a refetch).
  */
 export default function HeaderUserSection({ mobile = false }: { mobile?: boolean }) {
   const router = useRouter();
   const t = useTranslation();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [points, setPoints] = useState<number>(0);
+  const { isAuthenticated, points, username, displayName, avatarUrl } = useSupabaseUser();
+  const [signedOut, setSignedOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Graceful degradation when Supabase env vars are missing (misconfigured
-    // deployment): stay in the logged-out state instead of crashing the app.
-    let supabase: ReturnType<typeof createClient>;
-    try {
-      supabase = createClient();
-    } catch {
-      setLoading(false);
-      return;
-    }
-
-    // Get current session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setLoading(false);
-      if (user) {
-        // Fetch Faith Points from the API
-        fetch("/api/trivia/stats")
-          .then((r) => r.text())
-          .then((text) => {
-            if (text) {
-              const data = JSON.parse(text);
-              setPoints(data.totalPoints || 0);
-            }
-          })
-          .catch(() => setPoints(0));
-      }
-    });
-
-    // Subscribe to auth changes (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetch("/api/trivia/stats")
-          .then((r) => r.text())
-          .then((text) => {
-            if (text) {
-              const data = JSON.parse(text);
-              setPoints(data.totalPoints || 0);
-            }
-          })
-          .catch(() => setPoints(0));
-      } else {
-        setPoints(0);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    setMounted(true);
   }, []);
 
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    setUser(null);
+    setSignedOut(true);
     router.push("/");
     router.refresh();
   };
 
-  if (loading) {
+  if (!mounted) {
     return (
       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         <div className="w-6 h-6 rounded-full bg-white/[0.06] animate-pulse" />
@@ -87,7 +43,7 @@ export default function HeaderUserSection({ mobile = false }: { mobile?: boolean
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated || signedOut) {
     return (
       <a
         href="/auth/signin"
@@ -101,21 +57,23 @@ export default function HeaderUserSection({ mobile = false }: { mobile?: boolean
     );
   }
 
-  const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "U";
-  const initials = (name as string).charAt(0).toUpperCase();
+  const name = displayName || username || "Member";
+  const handle = username ? `@${username}` : null;
 
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#F39B9B] to-[#9786E3] flex items-center justify-center text-[10px] font-bold text-slate-950">
-        {initials}
-      </div>
+      {avatarUrl ? (
+        <Image src={avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
+      ) : (
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#F39B9B] to-[#9786E3] flex items-center justify-center text-[10px] font-bold text-slate-950">
+          {name.charAt(0).toUpperCase()}
+        </div>
+      )}
       {!mobile && (
         <div className="flex flex-col leading-tight">
-          <span className="text-xs font-bold text-white truncate max-w-[80px]">
-            {name}
-          </span>
-          <span className="text-[9px] text-[#F59E0B] font-bold">
-            {t("common.faithPoints", { count: points.toLocaleString() })}
+          <span className="text-xs font-bold text-white truncate max-w-[90px]">{name}</span>
+          <span className="text-[9px] text-[#64748B] font-bold truncate max-w-[90px]">
+            {handle ?? t("common.faithPoints", { count: points.toLocaleString() })}
           </span>
         </div>
       )}

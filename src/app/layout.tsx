@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/crosscrafted/Providers";
 import ServiceWorkerRegister from "./register-sw";
+import { BRAND, SITE_TITLE, siteUrl } from "@/lib/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,17 +13,11 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.NODE_ENV === "production"
-      ? "https://www.koino.in"
-      : "http://localhost:3000")
-  ),
-  title: "Koino — Faith. Fellowship. Belong.",
-  description:
-    "Koino is a Christian community platform for Scripture, churches, prayer, events, Bible trivia, Christian businesses, marketplace and fellowship.",
+  metadataBase: new URL(BRAND.url),
+  title: SITE_TITLE,
+  description: BRAND.description,
   keywords: [
-    "Koino",
+    BRAND.name,
     "Koinonia",
     "Christian community",
     "Bible trivia",
@@ -32,11 +27,11 @@ export const metadata: Metadata = {
     "Christian marketplace",
     "Christian business directory",
   ],
-  authors: [{ name: "Koino Team" }],
+  authors: [{ name: `${BRAND.name} Team` }],
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/koino-logo.png",
-    apple: "/koino-logo.png",
+    icon: BRAND.assets.logo,
+    apple: BRAND.assets.logo,
   },
   openGraph: {
     title: "Koino — Faith. Fellowship. Belong.",

@@ -44,12 +44,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  CHURCHES,
-  EVENTS,
   PRODUCTS,
   PRAYERS,
-  APOLOGETICS_QUESTIONS,
-  TRIVIA_COMPETITIONS,
   INDIAN_STATES,
   type Church,
   type EventItem,
@@ -290,21 +286,75 @@ export default function AdminView() {
 
 function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
   // Overview cards — each navigates to its admin section.
-  // HONEST NOTE: Churches/Events/Products/Prayers/Questions/Competitions are
-  // currently backed by mock data (crosscrafted-data.ts arrays), NOT Prisma
-  // models. The counts below reflect the mock dataset. Approve/reject actions
-  // in those tabs update local React state only — they do NOT persist to a
-  // database. See the "Preview Mode" banner on each tab for details.
-  // The ONLY fully DB-backed admin section is Bible Comics (ComicChapter /
-  // ComicPanel Prisma models + 14 admin API routes).
-  const stats: { label: string; value: number; pending: number; icon: typeof Shield; color: string; tab: AdminTab }[] = [
-    { label: "Churches", value: CHURCHES.length, pending: CHURCHES.filter((c) => c.status === "pending").length, icon: Building2, color: "#A855F7", tab: "churches" },
-    { label: "Events", value: EVENTS.length, pending: 0, icon: Calendar, color: "#EC4899", tab: "events" },
-    { label: "Products", value: PRODUCTS.length, pending: 0, icon: Store, color: "#9786E3", tab: "marketplace" },
-    { label: "Prayers", value: PRAYERS.length, pending: 0, icon: HeartHandshake, color: "#F59E0B", tab: "prayers" },
-    { label: "Questions", value: APOLOGETICS_QUESTIONS.length, pending: APOLOGETICS_QUESTIONS.filter((q) => q.status === "open").length, icon: HelpCircle, color: "#38BDF8", tab: "apologetics" },
-    { label: "Competitions", value: TRIVIA_COMPETITIONS.length, pending: TRIVIA_COMPETITIONS.filter((c) => c.status === "upcoming").length, icon: Trophy, color: "#22C55E", tab: "competitions" },
-  ];
+  // Phase 3A: all counts are fetched live from the DB-backed admin APIs.
+  // Metrics that still need a backend (Products/Prayers/Announcements) are
+  // NOT shown as fake numbers — they are listed in the note below.
+  const [stats, setStats] = useState<{ label: string; value: number; pending: number; icon: typeof Shield; color: string; tab: AdminTab }[]>([
+    { label: "Members", value: 0, pending: 0, icon: Users, color: "#38BDF8", tab: "members" },
+    { label: "Churches", value: 0, pending: 0, icon: Building2, color: "#A855F7", tab: "churches" },
+    { label: "Events", value: 0, pending: 0, icon: Calendar, color: "#EC4899", tab: "events" },
+    { label: "Bible Comics", value: 0, pending: 0, icon: BookOpen, color: "#F59E0B", tab: "bible-comics" },
+    { label: "Questions", value: 0, pending: 0, icon: HelpCircle, color: "#38BDF8", tab: "apologetics" },
+    { label: "Competitions", value: 0, pending: 0, icon: Trophy, color: "#22C55E", tab: "competitions" },
+    { label: "Redemptions", value: 0, pending: 0, icon: Package, color: "#9786E3", tab: "redemptions" },
+    { label: "Rewards (Gifts)", value: 0, pending: 0, icon: Gift, color: "#EC4899", tab: "competitions" },
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const safe = async (url: string) => {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) return null;
+          return await res.json();
+        } catch {
+          return null;
+        }
+      };
+      const [membersStats, churches, events, comicsStats, questions, competitions, redemptions, gifts] =
+        await Promise.all([
+          safe("/api/admin/members?stats=true"),
+          safe("/api/admin/churches"),
+          safe("/api/admin/events"),
+          safe("/api/admin/comics/stats"),
+          safe("/api/admin/questions"),
+          safe("/api/admin/trivia/competitions"),
+          safe("/api/admin/redemptions"),
+          safe("/api/admin/gifts"),
+        ]);
+      if (cancelled) return;
+      setStats((prev) => prev.map((s) => {
+        switch (s.label) {
+          case "Members":
+            return { ...s, value: membersStats?.totalMembers ?? 0 };
+          case "Churches":
+            return { ...s, value: churches?.counts?.all ?? 0, pending: churches?.counts?.PENDING ?? 0 };
+          case "Events":
+            return { ...s, value: events?.counts?.all ?? 0, pending: events?.counts?.PENDING ?? 0 };
+          case "Bible Comics": {
+            const c = comicsStats;
+            return { ...s, value: c?.totalChapters ?? 0, pending: (c?.drafts ?? 0) + (c?.review ?? 0) };
+          }
+          case "Questions": {
+            const q: any[] = questions?.questions ?? [];
+            return { ...s, value: q.length, pending: q.filter((x) => x.status === "new").length };
+          }
+          case "Competitions": {
+            const comps: any[] = competitions?.competitions ?? [];
+            return { ...s, value: comps.length, pending: comps.filter((c) => c.status === "scheduled").length };
+          }
+          case "Redemptions":
+            return { ...s, value: redemptions?.counts?.total ?? 0, pending: redemptions?.counts?.pending ?? 0 };
+          case "Rewards (Gifts)":
+            return { ...s, value: (gifts?.gifts ?? []).length };
+          default:
+            return s;
+        }
+      }));
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Quick Actions — each wired to navigate to the correct admin section.
   // These are REAL navigation actions (not dead buttons).
@@ -382,10 +432,10 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
         </div>
         <div className="space-y-1.5 text-[11px] text-[#A09DB1] leading-relaxed">
           <p>
-            <span className="text-[#22C55E] font-bold">● DB-backed:</span> Bible Comics (ComicChapter/ComicPanel Prisma models + 14 admin API routes), Trivia Questions (800+ in DB), Gifts & Redemptions.
+            <span className="text-[#22C55E] font-bold">● DB-backed:</span> Members, Churches, Events, Bible Comics, Blog, Apologetics articles & questions, Trivia Competitions/Prizes/Winners, Gifts & Redemptions, Donation settings, Contact messages, Partner inquiries, Contributor applications — all persisted via Prisma admin APIs.
           </p>
           <p>
-            <span className="text-[#F59E0B] font-bold">● Preview mode:</span> Churches, Events, Marketplace, Prayers, Apologetics, Competitions, Announcements, Analytics — these sections use mock data arrays. Approve/reject/edit actions update local state only and do NOT persist to a database yet. A future task needs Prisma models + admin APIs for each.
+            <span className="text-[#F59E0B] font-bold">● Still preview/mock:</span> Marketplace Products, Prayers moderation, Announcements — these tabs use local state only (no Prisma model or admin API yet). Changes there do NOT persist. Analytics time-series also needs a dedicated backend.
           </p>
         </div>
       </div>
@@ -1475,32 +1525,147 @@ function PrayersTab() {
 // ─── COMPETITIONS ────────────────────────────────────────────────────────
 
 function CompetitionsTab() {
-  const [competitions, setCompetitions] = useState(TRIVIA_COMPETITIONS);
+  // Phase 3A: fully DB-backed. Lists come from /api/admin/trivia/competitions,
+  // prizes from /api/admin/trivia/prizes, winners from /api/admin/trivia/winners.
+  // Created competitions persist and appear to players via /api/trivia/competitions
+  // once their status is "scheduled" or "live".
+  const [competitions, setCompetitions] = useState<any[]>([]);
+  const [prizes, setPrizes] = useState<any[]>([]);
+  const [winners, setWinners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showPrizes, setShowPrizes] = useState(false);
+  const [showWinners, setShowWinners] = useState(false);
+  const [prizeForm, setPrizeForm] = useState({ name: "", description: "", quantity: "1" });
   const [form, setForm] = useState({
     title: "",
     description: "",
-    prize: "",
-    duration: "7",
-    organizer: "Koino",
+    type: "custom",
+    category: "full_bible",
+    difficulty: "intermediate",
+    questionCount: "10",
+    attemptLimit: "1",
+    winnerCount: "3",
+    prizeId: "",
+    startAt: "",
+    endAt: "",
+    claimDeadlineDays: "7",
+    status: "scheduled",
+    rules: "",
   });
 
-  const create = (e: React.FormEvent) => {
+  const fetchAll = useCallback(async () => {
+    try {
+      const [cRes, pRes, wRes] = await Promise.all([
+        fetch("/api/admin/trivia/competitions", { cache: "no-store" }),
+        fetch("/api/admin/trivia/prizes", { cache: "no-store" }),
+        fetch("/api/admin/trivia/winners", { cache: "no-store" }),
+      ]);
+      if (cRes.ok) setCompetitions((await cRes.json()).competitions ?? []);
+      if (pRes.ok) setPrizes((await pRes.json()).prizes ?? []);
+      if (wRes.ok) setWinners((await wRes.json()).winners ?? []);
+    } catch {
+      toast.error("Failed to load competitions");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const create = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.prize.trim()) {
-      toast.error("Please fill in title and prize");
+    if (!form.title.trim() || !form.startAt || !form.endAt) {
+      toast.error("Please fill in title, start and end date/time");
       return;
     }
-    toast.success("Competition created!", {
-      description: "It's now visible in the Trivia > Compete tab.",
-    });
-    setForm({ title: "", description: "", prize: "", duration: "7", organizer: "Koino" });
-    setShowCreate(false);
+    if (new Date(form.endAt) <= new Date(form.startAt)) {
+      toast.error("End date must be after start date");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/trivia/competitions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title.trim(),
+          description: form.description.trim() || null,
+          type: form.type,
+          category: form.category,
+          difficulty: form.difficulty,
+          questionCount: parseInt(form.questionCount) || 10,
+          attemptLimit: parseInt(form.attemptLimit) || 1,
+          winnerCount: parseInt(form.winnerCount) || 3,
+          prizeId: form.prizeId || null,
+          startAt: new Date(form.startAt).toISOString(),
+          endAt: new Date(form.endAt).toISOString(),
+          claimDeadlineDays: parseInt(form.claimDeadlineDays) || 7,
+          status: form.status,
+          rules: form.rules.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create competition");
+      toast.success("Competition created!", {
+        description:
+          form.status === "scheduled"
+            ? "It's now visible in the Trivia > Compete tab."
+            : "Saved as draft — set status to scheduled/live to make it visible.",
+      });
+      setForm({ ...form, title: "", description: "", rules: "" });
+      setShowCreate(false);
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create competition");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const createPrize = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prizeForm.name.trim()) {
+      toast.error("Prize name is required");
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/trivia/prizes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: prizeForm.name.trim(),
+          description: prizeForm.description.trim() || null,
+          sourceType: "custom",
+          quantity: parseInt(prizeForm.quantity) || 1,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create prize");
+      toast.success("Prize created!");
+      setPrizeForm({ name: "", description: "", quantity: "1" });
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create prize");
+    }
+  };
+
+  const statusStyle = (status: string) =>
+    status === "live"
+      ? "bg-[#EF4444]/15 text-[#EF4444]"
+      : status === "scheduled"
+      ? "bg-[#38BDF8]/15 text-[#38BDF8]"
+      : status === "ended"
+      ? "bg-white/[0.06] text-[#94A3B8]"
+      : status === "cancelled"
+      ? "bg-[#EF4444]/10 text-[#EF4444]/70"
+      : "bg-white/[0.06] text-[#94A3B8]";
 
   return (
     <div className="space-y-4">
-      <PreviewModeBanner section="Competitions" />
       <div className="flex items-center justify-between">
         <AdminSectionHeader title="Trivia Competitions" count={competitions.length} color="#22C55E" />
         <button
@@ -1540,36 +1705,101 @@ function CompetitionsTab() {
               <textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="neo-input text-sm h-20 resize-none"
-                placeholder="What's the competition about? Rules, who can join, etc."
+                className="neo-input text-sm h-16 resize-none"
+                placeholder="What's the competition about? Short summary shown to players."
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                  Prize *
-                </label>
-                <input
-                  type="text"
-                  value={form.prize}
-                  onChange={(e) => setForm({ ...form, prize: e.target.value })}
-                  className="neo-input text-sm"
-                  placeholder="₹10,000 + Trophy"
-                  required
-                />
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Type</label>
+                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="neo-input text-sm">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="custom">Custom</option>
+                </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                  Duration (days)
-                </label>
-                <input
-                  type="number"
-                  value={form.duration}
-                  onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                  className="neo-input text-sm"
-                  min="1"
-                />
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Category</label>
+                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="neo-input text-sm">
+                  <option value="full_bible">Full Bible</option>
+                  <option value="new_testament">New Testament</option>
+                  <option value="old_testament">Old Testament</option>
+                  <option value="apologetics">Apologetics</option>
+                  <option value="mixed">Mixed</option>
+                </select>
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Difficulty</label>
+                <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} className="neo-input text-sm">
+                  <option value="beginners">Beginners</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="skilled">Skilled</option>
+                  <option value="expert">Expert</option>
+                  <option value="mixed">Mixed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Questions per attempt</label>
+                <input type="number" min="1" max="50" value={form.questionCount} onChange={(e) => setForm({ ...form, questionCount: e.target.value })} className="neo-input text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Attempts allowed</label>
+                <input type="number" min="1" value={form.attemptLimit} onChange={(e) => setForm({ ...form, attemptLimit: e.target.value })} className="neo-input text-sm" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Winners</label>
+                <input type="number" min="1" value={form.winnerCount} onChange={(e) => setForm({ ...form, winnerCount: e.target.value })} className="neo-input text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Start date & time *</label>
+                <input type="datetime-local" required value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} className="neo-input text-sm" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">End date & time *</label>
+                <input type="datetime-local" required value={form.endAt} onChange={(e) => setForm({ ...form, endAt: e.target.value })} className="neo-input text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Prize</label>
+                <select value={form.prizeId} onChange={(e) => setForm({ ...form, prizeId: e.target.value })} className="neo-input text-sm">
+                  <option value="">No prize</option>
+                  {prizes.filter((p) => p.active !== false).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.remainingQuantity} left)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Publish as</label>
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="neo-input text-sm">
+                  <option value="scheduled">Scheduled (visible to players)</option>
+                  <option value="draft">Draft (hidden)</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Prize claim window (days after end)</label>
+                <input type="number" min="1" value={form.claimDeadlineDays} onChange={(e) => setForm({ ...form, claimDeadlineDays: e.target.value })} className="neo-input text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Rules (shown to players before joining)</label>
+              <textarea
+                value={form.rules}
+                onChange={(e) => setForm({ ...form, rules: e.target.value })}
+                className="neo-input text-sm h-16 resize-none"
+                placeholder="Eligibility, scoring, tie-breakers…"
+              />
             </div>
             <div className="flex gap-2 pt-1">
               <button
@@ -1581,43 +1811,165 @@ function CompetitionsTab() {
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
+                disabled={saving}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #22C55E, #3B82F6)" }}
               >
-                Create Competition
+                {saving ? "Creating…" : "Create Competition"}
               </button>
             </div>
           </motion.form>
         )}
       </AnimatePresence>
 
-      {/* Existing competitions */}
+      {/* Existing competitions — live from /api/admin/trivia/competitions */}
       <div className="space-y-2">
-        {competitions.map((c) => (
-          <div key={c.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                  c.status === "live"
-                    ? "bg-[#EF4444]/15 text-[#EF4444]"
-                    : c.status === "upcoming"
-                    ? "bg-[#38BDF8]/15 text-[#38BDF8]"
-                    : "bg-white/[0.06] text-[#94A3B8]"
-                }`}
-              >
-                {c.status}
-              </span>
-              <span className="text-[10px] text-[#94A3B8]">{c.participants.length} churches</span>
-            </div>
-            <h3 className="text-sm font-bold text-white mb-1">{c.title}</h3>
-            <p className="text-[11px] text-[#A09DB1] line-clamp-2 mb-2">{c.description}</p>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[10px] text-[#F59E0B] font-bold">
-                <Gift size={10} /> {c.prize}
-              </span>
-            </div>
+        {loading ? (
+          <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
+            <p className="text-xs text-[#94A3B8]">Loading competitions…</p>
           </div>
-        ))}
+        ) : competitions.length === 0 ? (
+          <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
+            <p className="text-xs text-[#94A3B8]">
+              No competitions yet. Click <span className="font-bold text-white">Host New</span> to create the first one — scheduled competitions appear instantly in the player-facing Trivia → Compete tab.
+            </p>
+          </div>
+        ) : (
+          competitions.map((c) => (
+            <div key={c.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusStyle(c.status)}`}>
+                  {c.status}
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">
+                  {c.type} · {c.category} · {c.difficulty}
+                </span>
+                <span className="text-[10px] text-[#94A3B8] ml-auto">
+                  {new Date(c.startAt).toLocaleDateString()} → {new Date(c.endAt).toLocaleDateString()}
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white mb-1">{c.title}</h3>
+              {c.description && (
+                <p className="text-[11px] text-[#A09DB1] line-clamp-2 mb-2">{c.description}</p>
+              )}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="flex items-center gap-1 text-[10px] text-[#F59E0B] font-bold">
+                  <Gift size={10} /> {c.prize ? c.prize.name : "No prize"}
+                </span>
+                <span className="text-[10px] text-[#94A3B8]">
+                  {c.questionCount} questions · {c.attemptLimit} attempt{c.attemptLimit === 1 ? "" : "s"} · {c.winnerCount} winner{c.winnerCount === 1 ? "" : "s"}
+                </span>
+                <span className="text-[10px] text-[#94A3B8]">
+                  {c._count?.attempts ?? 0} attempts · {c._count?.winners ?? 0} winners
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Prizes — live from /api/admin/trivia/prizes */}
+      <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setShowPrizes(!showPrizes)}
+          className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-all"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-white">
+            <Gift size={14} className="text-[#F59E0B]" /> Prize Catalog
+            <span className="px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold">{prizes.length}</span>
+          </span>
+          <span className="text-[10px] text-[#94A3B8]">{showPrizes ? "Hide" : "Manage"}</span>
+        </button>
+        {showPrizes && (
+          <div className="p-4 pt-0 space-y-3">
+            <form onSubmit={createPrize} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+              <div className="md:col-span-2">
+                <input
+                  type="text"
+                  value={prizeForm.name}
+                  onChange={(e) => setPrizeForm({ ...prizeForm, name: e.target.value })}
+                  className="neo-input text-sm"
+                  placeholder="Prize name (e.g. ₹10,000 + Trophy)"
+                  required
+                />
+              </div>
+              <div>
+                <input
+                  type="number"
+                  min="1"
+                  value={prizeForm.quantity}
+                  onChange={(e) => setPrizeForm({ ...prizeForm, quantity: e.target.value })}
+                  className="neo-input text-sm"
+                  placeholder="Qty"
+                />
+              </div>
+              <button
+                type="submit"
+                className="py-2 px-3 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[#F59E0B] text-xs font-bold hover:bg-[#F59E0B]/25 transition-all"
+              >
+                <Plus size={12} className="inline mr-1" /> Add Prize
+              </button>
+              <div className="md:col-span-4">
+                <input
+                  type="text"
+                  value={prizeForm.description}
+                  onChange={(e) => setPrizeForm({ ...prizeForm, description: e.target.value })}
+                  className="neo-input text-sm"
+                  placeholder="Optional description"
+                />
+              </div>
+            </form>
+            {prizes.length === 0 ? (
+              <p className="text-[11px] text-[#94A3B8]">No prizes yet — add one above, then select it when hosting a competition.</p>
+            ) : (
+              prizes.map((p) => (
+                <div key={p.id} className="flex items-center gap-2 text-[11px]">
+                  <span className="font-bold text-white flex-1 truncate">{p.name}</span>
+                  <span className="text-[#94A3B8]">
+                    {p.assignedQuantity ?? 0}/{p.quantity ?? 1} assigned · {p._count?.winners ?? 0} winners · {p._count?.competitions ?? 0} competitions
+                  </span>
+                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${p.active !== false ? "bg-[#22C55E]/15 text-[#22C55E]" : "bg-white/[0.06] text-[#94A3B8]"}`}>
+                    {p.active !== false ? "active" : "inactive"}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Winners — live from /api/admin/trivia/winners */}
+      <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setShowWinners(!showWinners)}
+          className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-all"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-white">
+            <Trophy size={14} className="text-[#F59E0B]" /> Winners
+            <span className="px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold">{winners.length}</span>
+          </span>
+          <span className="text-[10px] text-[#94A3B8]">{showWinners ? "Hide" : "View"}</span>
+        </button>
+        {showWinners && (
+          <div className="p-4 pt-0 space-y-2">
+            {winners.length === 0 ? (
+              <p className="text-[11px] text-[#94A3B8]">
+                No winners recorded yet. Winners are created server-side when a competition is finalized (via /api/trivia/competitions/[id]/finalize).
+              </p>
+            ) : (
+              winners.map((w) => (
+                <div key={w.id} className="flex items-center gap-2 text-[11px]">
+                  <span className="font-bold text-[#F59E0B] w-6">#{w.rank}</span>
+                  <span className="font-bold text-white flex-1 truncate">
+                    {w.user?.name || w.user?.email || "Unknown"} · {w.competition?.title || "—"}
+                  </span>
+                  <span className="text-[#94A3B8]">{w.score} pts{w.prize ? ` · ${w.prize.name}` : ""}</span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] text-[#94A3B8] text-[9px] font-bold">{w.status}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Gifts management */}
@@ -2381,22 +2733,66 @@ function AnnouncementsTab() {
 // ─── ANALYTICS ────────────────────────────────────────────────────────────
 
 function AnalyticsTab() {
-  const stats = [
-    { label: "Total Churches", value: CHURCHES.length, change: "+2 this week", icon: Building2, color: "#A855F7" },
-    { label: "Total Events", value: EVENTS.length, change: "+1 this week", icon: Calendar, color: "#EC4899" },
-    { label: "Total Products", value: PRODUCTS.length, change: "+3 this week", icon: Store, color: "#9786E3" },
-    { label: "Prayer Requests", value: PRAYERS.length, change: "+5 this week", icon: HeartHandshake, color: "#F59E0B" },
-    { label: "Apologetics Qs", value: APOLOGETICS_QUESTIONS.length, change: "+2 open", icon: HelpCircle, color: "#38BDF8" },
-    { label: "Active Competitions", value: TRIVIA_COMPETITIONS.filter((c) => c.status === "live").length, change: "1 live now", icon: Trophy, color: "#22C55E" },
-  ];
+  // Phase 3A: real DB-backed stats. Metrics without a backend are shown as
+  // explicit placeholders — no fake numbers.
+  const [membersStats, setMembersStats] = useState<any>(null);
+  const [churchRows, setChurchRows] = useState<any[]>([]);
+  const [eventCounts, setEventCounts] = useState<any>(null);
+  const [comicsStats, setComicsStats] = useState<any>(null);
+  const [questionRows, setQuestionRows] = useState<any[]>([]);
+  const [competitionRows, setCompetitionRows] = useState<any[]>([]);
+  const [redemptionCounts, setRedemptionCounts] = useState<any>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock engagement chart data
-  const engagement = [12, 19, 15, 25, 30, 28, 35, 42, 38, 45, 50, 48];
-  const maxEng = Math.max(...engagement);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const safeJson = async (url: string) => {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) return null;
+          return await res.json();
+        } catch {
+          return null;
+        }
+      };
+      const [m, ch, ev, co, q, comp, red, lb] = await Promise.all([
+        safeJson("/api/admin/members?stats=true"),
+        safeJson("/api/admin/churches"),
+        safeJson("/api/admin/events"),
+        safeJson("/api/admin/comics/stats"),
+        safeJson("/api/admin/questions"),
+        safeJson("/api/admin/trivia/competitions"),
+        safeJson("/api/admin/redemptions"),
+        safeJson("/api/trivia/leaderboard"),
+      ]);
+      if (cancelled) return;
+      setMembersStats(m);
+      setChurchRows(ch?.churches ?? []);
+      setEventCounts(ev?.counts ?? null);
+      setComicsStats(co);
+      setQuestionRows(q?.questions ?? []);
+      setCompetitionRows(comp?.competitions ?? []);
+      setRedemptionCounts(red?.counts ?? null);
+      setLeaderboard(lb?.leaderboard ?? []);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const stats = [
+    { label: "Total Members", value: membersStats?.totalMembers ?? 0, change: membersStats ? `+${membersStats.newThisWeek ?? 0} this week` : "live", icon: Users, color: "#38BDF8" },
+    { label: "Total Churches", value: churchRows.length, change: "live", icon: Building2, color: "#A855F7" },
+    { label: "Total Events", value: eventCounts?.all ?? 0, change: "live", icon: Calendar, color: "#EC4899" },
+    { label: "Comics Published", value: comicsStats?.published ?? 0, change: `${comicsStats?.totalPanels ?? 0} panels`, icon: BookOpen, color: "#F59E0B" },
+    { label: "Apologetics Qs", value: questionRows.length, change: `${questionRows.filter((q) => q.status === "new").length} new`, icon: HelpCircle, color: "#38BDF8" },
+    { label: "Active Competitions", value: competitionRows.filter((c) => c.status === "live").length, change: `${competitionRows.filter((c) => c.status === "scheduled").length} scheduled`, icon: Trophy, color: "#22C55E" },
+    { label: "Pending Redemptions", value: redemptionCounts?.pending ?? 0, change: `${redemptionCounts?.total ?? 0} total`, icon: Package, color: "#9786E3" },
+  ];
 
   return (
     <div className="space-y-4">
-      <PreviewModeBanner section="Analytics" />
       <div>
         <h2 className="text-base font-bold text-white mb-3">Platform Stats</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -2404,79 +2800,78 @@ function AnalyticsTab() {
             <div key={s.label} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <s.icon size={16} style={{ color: s.color }} />
-                <span className="text-[9px] font-bold text-[#22C55E]">{s.change}</span>
+                <span className="text-[9px] font-bold text-[#22C55E]">{loading ? "…" : s.change}</span>
               </div>
-              <p className="text-2xl font-extrabold text-white">{s.value}</p>
+              <p className="text-2xl font-extrabold text-white">{loading ? "…" : s.value}</p>
               <p className="text-[10px] text-[#94A3B8] uppercase tracking-wider mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Engagement chart */}
+      {/* Engagement time-series — NOT YET BACKED. No analytics endpoint exists,
+          so no fake chart is shown. A future task needs an event/logging backend. */}
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <TrendingUp size={14} className="text-[#A78BFA]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Weekly Engagement</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Engagement Over Time</p>
         </div>
-        <div className="flex items-end justify-between h-32 gap-1">
-          {engagement.map((v, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${(v / maxEng) * 100}%` }}
-                transition={{ duration: 0.5, delay: i * 0.05 }}
-                className="w-full rounded-t-md bg-gradient-to-t from-[#7C3AED] to-[#EC4899] min-h-[4px]"
-                style={{ height: `${(v / maxEng) * 100}%` }}
-              />
-              <span className="text-[8px] text-[#64748B]">W{i + 1}</span>
-            </div>
-          ))}
-        </div>
-        <p className="text-[10px] text-[#94A3B8] mt-2 text-center">Daily active users over 12 weeks</p>
+        <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+          Needs backend support: no analytics endpoint exists yet (daily active users, quiz plays per day,
+          session length). Once an events/telemetry API is added, this panel will chart real data.
+        </p>
       </div>
 
-      {/* Top churches by followers */}
+      {/* Top churches by followers — real data from /api/admin/churches */}
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Users size={14} className="text-[#A78BFA]" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Top Churches by Followers</p>
         </div>
-        <div className="space-y-2">
-          {[...CHURCHES].sort((a, b) => b.followers_count - a.followers_count).slice(0, 5).map((c, i) => (
-            <div key={c.id} className="flex items-center gap-3">
-              <span className="text-xs font-bold text-[#64748B] w-4">{i + 1}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white truncate">{c.name}</p>
-                <p className="text-[9px] text-[#94A3B8]">{c.city}, {c.state}</p>
-              </div>
-              <span className="text-xs font-bold text-[#A78BFA]">{c.followers_count.toLocaleString()}</span>
+        {(() => {
+          const top = [...churchRows].sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0)).filter((c) => (c.followers_count ?? 0) > 0).slice(0, 5);
+          if (loading) return <p className="text-[11px] text-[#94A3B8]">Loading…</p>;
+          if (top.length === 0) return <p className="text-[11px] text-[#94A3B8]">No published churches with followers yet.</p>;
+          return (
+            <div className="space-y-2">
+              {top.map((c, i) => (
+                <div key={c.id} className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-[#64748B] w-4">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{c.name}</p>
+                    <p className="text-[9px] text-[#94A3B8]">{c.city}{c.state ? `, ${c.state}` : ""}</p>
+                  </div>
+                  <span className="text-xs font-bold text-[#A78BFA]">{(c.followers_count ?? 0).toLocaleString()}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </div>
 
-      {/* Top trivia players */}
+      {/* Top trivia players — real data from /api/trivia/leaderboard */}
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Trophy size={14} className="text-[#F59E0B]" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Top Trivia Players</p>
         </div>
-        <div className="space-y-2">
-          {[
-            { name: "Rebecca Thomas", points: 8420 },
-            { name: "Philip Cherian", points: 6150 },
-            { name: "Grace Sharma", points: 4320 },
-          ].map((p, i) => (
-            <div key={p.name} className="flex items-center gap-3">
-              <span className="text-xs font-bold text-[#64748B] w-4">{i + 1}</span>
-              <div className="flex-1">
-                <p className="text-xs font-bold text-white">{p.name}</p>
+        {loading ? (
+          <p className="text-[11px] text-[#94A3B8]">Loading…</p>
+        ) : leaderboard.length === 0 ? (
+          <p className="text-[11px] text-[#94A3B8]">No players have earned Faith Points yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {leaderboard.slice(0, 5).map((p) => (
+              <div key={`${p.rank}-${p.name}`} className="flex items-center gap-3">
+                <span className="text-xs font-bold text-[#64748B] w-4">{p.rank}</span>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-white">{p.name}</p>
+                </div>
+                <span className="text-xs font-bold text-[#F59E0B]">{p.points.toLocaleString()} pts</span>
               </div>
-              <span className="text-xs font-bold text-[#F59E0B]">{p.points.toLocaleString()} pts</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

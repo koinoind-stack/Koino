@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy | Koino",
+  title: `Cookie Policy | ${BRAND.name}`,
   description:
-    "How Koino uses cookies and local storage to keep you signed in, remember your preferences, and provide core platform features. Koino does not use advertising cookies or third-party tracking pixels.",
+    `How ${BRAND.name} uses cookies and local storage to keep you signed in, remember your preferences, and provide core platform features. ${BRAND.name} does not use advertising cookies or third-party tracking pixels.`,
   openGraph: {
-    title: "Cookie Policy | Koino",
-    siteName: "Koino",
+    title: `Cookie Policy | ${BRAND.name}`,
+    siteName: `${BRAND.name}`,
     type: "article",
   },
 };

@@ -49,6 +49,9 @@ model User {
   whatsappChannelClicked    Boolean @default(false)
   // Signup method — "google" | "email" (set by the auth callback)
   signupMethod     String?  // "google" | "email"
+  // ─── PROFILE EDITING (Task 49) ───
+  bio              String?  // short public bio shown on the profile — max 500 chars, enforced server-side
+  usernameChangedAt DateTime? // last time the username was changed — enforces the 30-day cooldown (null = never changed since signup)
 
   // ─── ADMIN MEMBER MANAGEMENT ───
   accountStatus    String   @default("active") // "active" | "blocked" | "suspended" | "deactivated"
@@ -72,6 +75,20 @@ model User {
   streakFreezes     StreakFreeze[]
 
   posts Post[]
+
+  // ─── SOCIAL PLATFORM (Task 50) back-relations ───
+  likes              PostLike[]
+  comments           PostComment[]  @relation("CommentAuthor")
+  bookmarks          PostBookmark[] @relation("BookmarkOwner")
+  following          Follow[]       @relation("Follower")   // people this user follows
+  followers          Follow[]       @relation("Following")  // people who follow this user
+  notifications      Notification[] @relation("NotificationRecipient")
+  actedNotifications Notification[] @relation("NotificationActor")
+  blocksMade         Block[]        @relation("Blocker")
+  blocksReceived     Block[]        @relation("Blocked")
+  reportsFiled       Report[]       @relation("ReportReporter")
+  stories            Story[]        @relation("StoryOwner")
+  storyViews         StoryView[]    @relation("StoryViewer")
 
   // Trivia competition relations
   competitionAttempts TriviaCompetitionAttempt[]
@@ -273,16 +290,189 @@ model GiftRedemption {
 
 // ─── EXISTING SCAFFOLD (preserved) ─────────────────────────────────────────
 
+// ─── SOCIAL PLATFORM (Task 50) ───
+// The original Post model was an unused scaffold (zero code references) and
+// is evolved IN PLACE into the social post model. `title` becomes optional;
+// `content` is the caption. Media lives in Supabase Storage, referenced by URL.
 model Post {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
+  title     String?  // optional — legacy field, kept nullable for backward compatibility
+  content   String?  // caption text (hashtags/mentions parsed server-side into indices)
   published Boolean  @default(false)
   authorId  String
+  // Media: "text" | "image" | "video". mediaUrls is a JSON array of storage URLs.
+  mediaType    String   @default("text")
+  mediaUrls    String   @default("[]") // JSON string[] — up to 10 images or 1 video
+  thumbnailUrl String?  // poster frame for videos (client-captured; server generation is future work)
+  aspectRatio  String?  // e.g. "1:1" | "4:5" | "16:9" | "9:16"
+  hashtags     String[] // parsed from caption — powers Explore hashtag grids
+  // Denormalized counters — maintained inside short $transactions on toggle.
+  likeCount    Int      @default(0)
+  commentCount Int      @default(0)
+  repostCount  Int      @default(0)
+  viewCount    Int      @default(0)
+  isReel       Boolean  @default(false) // true = surfaces in the Reels vertical feed
+  // Reposts: a repost is a new Post whose content quotes/references the original.
+  repostedFromId String?
+  editedAt     DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author User @relation(fields: [authorId], references: [id])
+  author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  repostedFrom Post?           @relation("PostReposts", fields: [repostedFromId], references: [id], onDelete: SetNull)
+  reposts      Post[]          @relation("PostReposts")
+  likes        PostLike[]
+  comments     PostComment[]
+  bookmarks    PostBookmark[]
+  notifications Notification[]
+
+  @@index([authorId, createdAt])
+  @@index([createdAt])
+  @@index([isReel, createdAt])
+}
+
+// One like per (post, user). Toggle removes/creates + adjusts Post.likeCount.
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+}
+
+// Comments with one level of replies (parentId → top-level comment only).
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  parentId  String?  // set only on replies; replies never have children (one level)
+  content   String
+  createdAt DateTime @default(now())
+
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User          @relation("CommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  parent  PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies PostComment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+  @@index([userId])
+}
+
+// Saved posts (per-user collection, keyset-paginated).
+model PostBookmark {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation("BookmarkOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+}
+
+// Follow graph: follower subscribes to following's posts.
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+// In-app notifications. type ∈ like | comment | reply | follow | mention | repost | story_reply
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   // recipient
+  actorId   String?  // who triggered it (null for system notifications)
+  type      String
+  postId    String?
+  commentId String?
+  storyId   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user     User         @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor    User?        @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  post     Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, read])
+}
+
+// Two-direction block: neither party sees the other anywhere in social.
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+// User reports on posts/comments/users/stories — reviewed by admins (UI future work).
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  targetType String   // "post" | "comment" | "user" | "story"
+  targetId   String
+  reason     String?  // short machine-readable reason
+  details    String?  // free-text detail from the reporter
+  status     String   @default("pending") // pending | reviewed | dismissed
+  createdAt  DateTime @default(now())
+
+  reporter User @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+// Stories expire 24h after creation (lazy cleanup on read).
+model Story {
+  id            String   @id @default(cuid())
+  userId        String
+  mediaUrl      String
+  mediaType     String   @default("image") // "image" | "video"
+  thumbnailUrl  String?
+  aspectRatio   String?
+  caption       String?
+  backgroundColor String?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  user    User        @relation("StoryOwner", fields: [userId], references: [id], onDelete: Cascade)
+  views   StoryView[]
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+// One view per (story, user); powers the seen/unseen rings + viewers list.
+model StoryView {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation("StoryViewer", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([userId, createdAt])
 }
 
 // ─── DAILY CHALLENGE ──────────────────────────────────────────────────────

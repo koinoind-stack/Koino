@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import ApologeticsArticleContent from "@/components/crosscrafted/ApologeticsArticleContent";
 import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
 
-const db = new PrismaClient();
 export const dynamic = "force-dynamic";
 
 // Safe JSON parser for array fields — verifies the parsed value is actually

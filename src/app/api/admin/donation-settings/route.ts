@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
+import { db } from "@/lib/db";
 
 // Single PrismaClient instance at module scope — same pattern as other admin routes.
-const db = new PrismaClient();
 
 // Fields the admin is allowed to set. `id` is locked to "default" (singleton).
 const UPDATABLE_FIELDS = [

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
 // Single PrismaClient instance at module scope — same pattern as the other
 // public read endpoints (/api/articles, /api/blog/page.tsx).
-const db = new PrismaClient();
 
 /**
  * GET /api/blog/latest

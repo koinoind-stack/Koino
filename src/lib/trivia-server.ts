@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
 // Create PrismaClient directly to avoid Turbopack module issues
-const db = new PrismaClient();
 
 /**
  * Trivia scoring logic — SERVER-SIDE ONLY.

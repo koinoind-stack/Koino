@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getAuthUser } from "@/lib/auth-server";
 import { createServiceClient } from "@/lib/supabase/service";
 import sharp from "sharp";
-
-const db = new PrismaClient();
+import { db } from "@/lib/db";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
@@ -121,6 +120,68 @@ export async function POST(req: NextRequest) {
     console.error("[upload-avatar] Error:", error);
     return NextResponse.json(
       { error: error?.message || "Failed to upload photo" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/profile/upload-avatar
+ *
+ * Removes the authenticated user's profile photo:
+ *   1. Sets User.image = null in Prisma (source of truth)
+ *   2. Best-effort deletes the Storage object(s) under profiles/{userId}/avatar/
+ *      (non-fatal — a dangling object does not break the profile)
+ */
+export async function DELETE() {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    // Source of truth first: clear the DB reference.
+    await db.user.update({
+      where: { id: user.id },
+      data: { image: null },
+    });
+
+    // Best-effort storage cleanup. The avatar path embeds a timestamp, so we
+    // list the folder and delete everything inside it.
+    let storageCleanup = "skipped";
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY !== "placeholder-service-role-key") {
+      try {
+        const supabase = createServiceClient();
+        const prefix = `profiles/${user.id}/avatar/`;
+        const { data: objects } = await supabase.storage
+          .from(BUCKET_NAME)
+          .list(prefix, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
+        if (objects && objects.length > 0) {
+          const paths = objects
+            .filter((o) => o.name && !o.name.endsWith("/"))
+            .map((o) => `${prefix}${o.name}`);
+          if (paths.length > 0) {
+            const { error: removeError } = await supabase.storage
+              .from(BUCKET_NAME)
+              .remove(paths);
+            storageCleanup = removeError ? `failed: ${removeError.message}` : `removed ${paths.length}`;
+          } else {
+            storageCleanup = "empty";
+          }
+        } else {
+          storageCleanup = "empty";
+        }
+      } catch (cleanupErr: any) {
+        console.warn("[upload-avatar] DELETE storage cleanup failed (non-fatal):", cleanupErr?.message);
+        storageCleanup = "failed";
+      }
+    }
+
+    return NextResponse.json({ success: true, storageCleanup });
+  } catch (error: any) {
+    console.error("[upload-avatar] DELETE error:", error);
+    return NextResponse.json(
+      { error: error?.message || "Failed to remove photo" },
       { status: 500 }
     );
   }

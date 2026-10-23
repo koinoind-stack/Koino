@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import { Sparkles, Heart, Users, BookOpen, Trophy, Store, Languages, MapPin, Globe } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "About Koino — Faith. Fellowship. Belong.",
+  title: `About ${BRAND.name} — Faith. Fellowship. Belong.`,
   description:
-    "Koino is a Christian community platform inspired by the Greek word koinonia — fellowship, communion, partnership, and shared participation among believers. Built with India in mind.",
+    `${BRAND.name} is a Christian community platform inspired by the Greek word koinonia — fellowship, communion, partnership, and shared participation among believers. Built with India in mind.`,
   openGraph: {
-    title: "About Koino — Faith. Fellowship. Belong.",
-    description: "Koino is an all-in-one Christian community platform inspired by koinonia.",
-    siteName: "Koino",
+    title: `About ${BRAND.name} — Faith. Fellowship. Belong.`,
+    description: `${BRAND.name} is an all-in-one Christian community platform inspired by koinonia.`,
+    siteName: `${BRAND.name}`,
     type: "website",
   },
 };

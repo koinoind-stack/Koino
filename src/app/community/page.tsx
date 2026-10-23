@@ -16,19 +16,20 @@ import {
   Building2,
   Plus,
 } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 
 // ─── SEO ───
 // Title and description stay focused on the conversion goal: meeting Christians
 // around the world. Koino is the publisher; Lordsbook is the destination.
 export const metadata: Metadata = {
-  title: "Meet Christians Around the World | Koino",
+  title: `Meet Christians Around the World | ${BRAND.name}`,
   description:
     "Meet Christians around the world, build Christian friendships, share your faith, and join global Christian conversations through Lordsbook.",
   openGraph: {
-    title: "Meet Christians Around the World | Koino",
+    title: `Meet Christians Around the World | ${BRAND.name}`,
     description:
       "Meet Christians around the world, build Christian friendships, share your faith, and join global Christian conversations through Lordsbook.",
-    siteName: "Koino",
+    siteName: `${BRAND.name}`,
   },
 };
 

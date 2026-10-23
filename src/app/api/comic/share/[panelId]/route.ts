@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import sharp from "sharp";
 
-const db = new PrismaClient();
+import sharp from "sharp";
+import { db } from "@/lib/db";
 
 /**
  * GET /api/comic/share/[panelId]?lang=hi&format=square

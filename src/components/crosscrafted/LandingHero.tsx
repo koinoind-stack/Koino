@@ -22,6 +22,7 @@ import {
 import LanguageSwitcher from "@/components/crosscrafted/LanguageSwitcher";
 import KoinoFooter from "@/components/crosscrafted/KoinoFooter";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { BRAND } from "@/lib/brand";
 
 type Props = {
   onEnterApp: (view: string) => void;
@@ -150,7 +151,7 @@ const LORDSBOOK_BENEFITS = [
 export default function LandingHero({ onEnterApp }: Props) {
   const t = useTranslation();
 
-  // ─── Latest blog posts ("From the Koino Community") ───
+  // ─── Latest blog posts (`From the ${BRAND.name} Community`) ───
   // Loaded client-side on mount. If the fetch fails or returns 0 posts we
   // either hide the section (error) or show an empty state (0 posts).
   const [blogPosts, setBlogPosts] = useState<BlogCardData[]>([]);
@@ -193,7 +194,7 @@ export default function LandingHero({ onEnterApp }: Props) {
           <div className="flex items-center gap-2">
             <Image
               src="/koino-logo.png"
-              alt="Koino"
+              alt={BRAND.name + ""}
               width={32}
               height={32}
               className="rounded-lg"

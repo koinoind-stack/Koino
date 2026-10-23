@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import PartnerPageClient from "./PartnerPageClient";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Partner With Koino — Christian Leaders, Teachers & Contributors",
+  title: `Partner With ${BRAND.name} — Christian Leaders, Teachers & Contributors`,
   description:
-    "Koino welcomes Christian leaders, teachers, pastors, apologists, authors, and content creators to contribute to a platform built for faith, fellowship, and belonging.",
+    `${BRAND.name} welcomes Christian leaders, teachers, pastors, apologists, authors, and content creators to contribute to a platform built for faith, fellowship, and belonging.`,
   openGraph: {
-    title: "Partner With Koino",
+    title: `Partner With ${BRAND.name}`,
     description: "Help Christians grow in faith through your teaching, experience, and biblical knowledge.",
-    siteName: "Koino",
+    siteName: `${BRAND.name}`,
     type: "website",
   },
 };
