@@ -1,0 +1,85 @@
+{
+  "book": "Genesis",
+  "chapter": 3,
+  "chapterTitle": "The Fall of Man",
+  "chapterDescription": "The serpent deceives Eve, leading to humanity's disobedience, shame, and separation from God's perfect creation.",
+  "panels": [
+    {
+      "panelId": "GEN3-P01",
+      "sortOrder": 1,
+      "verseStart": 1,
+      "verseEnd": 5,
+      "scriptureReference": "Genesis 3:1-5",
+      "title": "The Serpent's Question",
+      "narration": "The serpent, more cunning than any creature the Lord had made, approached the woman with a question designed to sow doubt. He asked whether God had truly forbidden them from eating any tree in the garden. The woman explained they could eat from every tree except the one in the middle, lest they die. The serpent boldly contradicted God, claiming they would not die but instead become like God, knowing good and evil.",
+      "prayerPrompt": "Lord, help me recognize deception and hold firmly to Your truth. When doubts creep in, remind me of Your goodness and Your commands.",
+      "artworkDescription": "A lush garden setting with the Tree of Knowledge in the center. The serpent, sleek and coiled on a branch, faces Eve who stands nearby. Adam is visible in the background. The lighting is warm but subtly shifting — a sense of unease entering paradise. Eve's expression shows curiosity mixed with uncertainty."
+    },
+    {
+      "panelId": "GEN3-P02",
+      "sortOrder": 2,
+      "verseStart": 6,
+      "verseEnd": 7,
+      "scriptureReference": "Genesis 3:6-7",
+      "title": "The Forbidden Fruit",
+      "narration": "The woman saw the fruit was beautiful and desirable for wisdom. She took it and ate, then gave some to her husband who was with her, and he ate. Immediately their eyes were opened. They realized they were naked and sewed fig leaves together to cover themselves.",
+      "prayerPrompt": "Father, give me strength to resist temptation. When something looks desirable but goes against Your will, help me choose obedience over my own desires.",
+      "artworkDescription": "Eve's hand reaches for the fruit on the Tree of Knowledge. The fruit glows with an enticing light. Adam stands beside her. Below the tree, a fallen fruit lies on the ground. The moment of eating is implied — Eve holding the fruit, Adam reaching to receive it. After: their expressions shift to shock and shame. Fig leaves are being gathered. The warm garden light dims."
+    },
+    {
+      "panelId": "GEN3-P03",
+      "sortOrder": 3,
+      "verseStart": 8,
+      "verseEnd": 13,
+      "scriptureReference": "Genesis 3:8-13",
+      "title": "Hiding from God",
+      "narration": "Hearing the sound of the Lord walking in the garden at the time of the evening breeze, the man and woman hid among the trees. When God called, Adam admitted he was afraid because he was naked. He blamed the woman for giving him the fruit. She, in turn, blamed the serpent for deceiving her. Each deflected responsibility for what had been done.",
+      "prayerPrompt": "Lord, help me take responsibility for my own actions instead of blaming others. Give me courage to stand before You honestly.",
+      "artworkDescription": "A wide shot of the garden with large trees. Adam and Eve crouch behind foliage, attempting to hide. A radiant light — representing God's presence — moves through the garden. Adam points toward Eve, and Eve points toward the serpent nearby. The mood is tense, fearful. The evening light casts long shadows."
+    },
+    {
+      "panelId": "GEN3-P04",
+      "sortOrder": 4,
+      "verseStart": 14,
+      "verseEnd": 15,
+      "scriptureReference": "Genesis 3:14-15",
+      "title": "The Serpent's Curse",
+      "narration": "The Lord God spoke to the serpent, cursing it to crawl on its belly and eat dust all its days. He declared that hostility would exist between the serpent and the woman, and between its offspring and hers. A promise emerged — one day, the woman's offspring would crush the serpent's head, though the serpent would strike His heel.",
+      "prayerPrompt": "God, thank You for the promise of redemption even in the midst of judgment. Remind me that Your plans for restoration begin even in our darkest moments.",
+      "artworkDescription": "God's radiant light focuses on the serpent, now cast to the ground. The serpent slithers in the dust beneath the tree. Eve stands nearby, and in the distance behind her, a distant, shadowy vision of future conflict — a figure standing over the serpent. The composition suggests both immediate judgment and distant hope. The lighting shifts to dramatic contrast."
+    },
+    {
+      "panelId": "GEN3-P05",
+      "sortOrder": 5,
+      "verseStart": 16,
+      "verseEnd": 19,
+      "scriptureReference": "Genesis 3:16-19",
+      "title": "Consequences of the Fall",
+      "narration": "God addressed the woman with words of pain in childbirth and relational struggle. To the man, He declared that the ground itself was now cursed because of his disobedience. Life would be marked by painful toil, sweat, and hard labor until he returned to the dust from which he was formed. The consequences touched every part of human existence.",
+      "prayerPrompt": "Father, even when life is hard and painful, help me trust that You have not abandoned me. Give me grace to endure the consequences of a fallen world.",
+      "artworkDescription": "Adam and Eve stand together, heads bowed, receiving God's words. The garden behind them begins to look wilder — thorns and thistles sprouting from the ground. Adam's hands are dirty from soil. Eve holds her stomach. The beautiful, ordered garden is showing signs of disorder. The light is overcast, heavy."
+    },
+    {
+      "panelId": "GEN3-P06",
+      "sortOrder": 6,
+      "verseStart": 20,
+      "verseEnd": 21,
+      "scriptureReference": "Genesis 3:20-21",
+      "title": "Garments of Grace",
+      "narration": "Adam named his wife Eve, for she would become the mother of all living. Even in judgment, God showed mercy — He made garments of animal skin to clothe them, replacing their inadequate fig leaves. This act of covering was the first sign of God's provision for fallen humanity.",
+      "prayerPrompt": "Lord, thank You for covering my shame and providing for me even when I fall short. Your grace meets me in my need.",
+      "artworkDescription": "Adam and Eve stand clothed in new garments of animal skin, replacing their fig leaves. God's light surrounds them with warmth despite the solemnity of the moment. Adam looks at Eve with a sense of naming — recognition of her role as the mother of all. The mood is somber but tender — God's mercy evident in the covering."
+    },
+    {
+      "panelId": "GEN3-P07",
+      "sortOrder": 7,
+      "verseStart": 22,
+      "verseEnd": 24,
+      "scriptureReference": "Genesis 3:22-24",
+      "title": "Banished from Eden",
+      "narration": "The Lord God declared that man had become like one who knows good and evil. To prevent him from also eating from the Tree of Life and living forever in his fallen state, God sent him out of the Garden of Eden. He stationed cherubim and a flaming sword that turned in every direction to guard the way to the Tree of Life. The way back was closed — but not forever.",
+      "prayerPrompt": "God, when I face separation or loss, help me trust that Your discipline is rooted in love. Remind me that You are always making a way back to You.",
+      "artworkDescription": "Adam and Eve walk away from the garden gate, looking back over their shoulders. Behind them, the entrance to Eden is guarded by towering cherubim and a blazing flaming sword that sweeps in all directions. The garden's light recedes behind them, and the path ahead leads into a rugged, thorny landscape. The mood is one of loss, gravity, and the weight of departure — yet the distant glow of the garden remains, suggesting hope for future restoration."
+    }
+  ]
+}

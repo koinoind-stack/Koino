@@ -1,0 +1,223 @@
+// CrossCrafted Prisma Schema
+// Production database: PostgreSQL (Supabase)
+// For local dev testing, temporarily switch provider to "sqlite"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USER ──────────────────────────────────────────────────────────────────
+// Extended from the scaffold User model. totalPoints is the SERVER-SIDE
+// source of truth — the browser never writes to it directly.
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  image        String?
+  emailVerified DateTime?
+  role         String   @default("user") // "user" | "admin"
+  totalPoints  Int      @default(0) // SERVER-AUTHORITATIVE — never trust client
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  triviaAttempts    TriviaQuestionAttempt[]
+  quizSessions      TriviaQuizSession[]
+  pointTransactions TriviaPointTransaction[]
+  giftRedemptions   GiftRedemption[]
+
+  posts Post[]
+}
+
+// ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
+// Required by NextAuth v4 with the Prisma adapter
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── TRIVIA QUESTIONS ──────────────────────────────────────────────────────
+// Seeded from the 25 existing questions. Admins can add more later.
+// difficulty: "beginners" | "intermediate" | "skilled" | "expert"
+// category: "full_bible" | "new_testament" | "old_testament" | "apologetics" | "life_faith" | "jesus"
+
+model TriviaQuestion {
+  id                 String   @id @default(cuid())
+  questionId         String   @unique // stable ID like "q1", "beg_fb_001" — used in attempts
+  question           String
+  options            String   // JSON array of strings
+  correctAnswer      Int      // index into options
+  explanation        String
+  scriptureReference String?
+  difficulty         String   // "beginners" | "intermediate" | "skilled" | "expert"
+  category           String   // "full_bible" | "new_testament" | etc.
+  bibleBook          String?
+  topic              String?
+  basePoints         Int      // 10 | 20 | 30 | 50
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  attempts           TriviaQuestionAttempt[]
+  transactions      TriviaPointTransaction[]
+}
+
+// ─── ANTI-FARMING: Question Attempts ───────────────────────────────────────
+// THE KEY TABLE: records that a user has already earned points for a question.
+// @@unique([userId, questionId]) means a user can only have ONE attempt
+// record per question — ever. This is enforced at the DATABASE level,
+// so even race conditions (two simultaneous requests) cannot create duplicates.
+
+model TriviaQuestionAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  questionId      String   // references TriviaQuestion.questionId (stable ID)
+  quizSessionId   String?
+  pointsAwarded   Int      @default(0) // 0 if practice/already-scored, 10-60 if new
+  answeredCorrectly Boolean
+  answeredAt      DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question        TriviaQuestion @relation(fields: [questionId], references: [questionId], onDelete: Cascade)
+  quizSession     TriviaQuizSession? @relation(fields: [quizSessionId], references: [id])
+
+  @@unique([userId, questionId]) // ← ANTI-FARMING: one score per question per user, EVER
+  @@index([userId])
+  @@index([questionId])
+}
+
+// ─── QUIZ SESSIONS ─────────────────────────────────────────────────────────
+// Records each quiz play (both EARN_POINTS and PRACTICE modes)
+
+model TriviaQuizSession {
+  id             String   @id @default(cuid())
+  userId         String
+  difficulty     String
+  category       String
+  questionIds    String   // JSON array of questionId strings
+  score          Int      @default(0) // total points earned THIS session (0 for practice)
+  correctCount   Int      @default(0)
+  totalQuestions Int
+  mode           String   // "EARN_POINTS" | "PRACTICE"
+  bestStreak     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts       TriviaQuestionAttempt[]
+  transactions   TriviaPointTransaction[]
+
+  @@index([userId])
+  @@index([mode])
+}
+
+// ─── FAITH POINT TRANSACTION HISTORY ───────────────────────────────────────
+// Auditable log of every point change. totalPoints is derived from these.
+
+model TriviaPointTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  questionId   String?  // null for non-question transactions (gift redemption, admin adjustment)
+  quizSessionId String?
+  points       Int      // positive = earned, negative = spent
+  reason       String   // "CORRECT_BEGINNER" | "CORRECT_INTERMEDIATE" | "STREAK_BONUS" | "GIFT_REDEMPTION" | etc.
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question     TriviaQuestion? @relation(fields: [questionId], references: [questionId])
+  quizSession  TriviaQuizSession? @relation(fields: [quizSessionId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── GIFTS / MERCHANDISE REWARDS ───────────────────────────────────────────
+// Admin-managed gifts. The 6 default gifts + admin-added ones.
+
+model Gift {
+  id              String   @id @default(cuid())
+  giftId          String   @unique // stable ID like "g1", "g_admin_123"
+  title           String
+  description     String
+  imageUrl        String
+  pointsRequired  Int
+  tier            String   // "bronze" | "silver" | "gold" | "platinum"
+  stock           Int      @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  redemptions     GiftRedemption[]
+}
+
+// ─── GIFT REDEMPTIONS ──────────────────────────────────────────────────────
+// Records when a user claims a gift. @@unique prevents double-claiming.
+
+model GiftRedemption {
+  id           String   @id @default(cuid())
+  userId       String
+  giftId       String   // references Gift.giftId
+  giftDbId     String   // references Gift.id (for relation)
+  pointsSpent  Int
+  status       String   @default("pending") // "pending" | "contacted" | "shipped" | "delivered"
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gift         Gift     @relation(fields: [giftDbId], references: [id])
+
+  @@unique([userId, giftId]) // ← one redemption per gift per user
+  @@index([userId])
+}
+
+// ─── EXISTING SCAFFOLD (preserved) ─────────────────────────────────────────
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+}

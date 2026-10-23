@@ -1,0 +1,18 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:hsl(60, 40%, 20%)"/>
+    </linearGradient>
+    <radialGradient id="glow2" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:hsl(60, 60%, 70%);stop-opacity:0.25"/>
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg2)"/>
+  <rect width="1200" height="675" fill="url(#glow2)"/>
+  <text x="600" y="300" text-anchor="middle" fill="white" font-family="serif" font-size="48" font-weight="bold" opacity="0.85">Creation of Man</text>
+  <text x="600" y="360" text-anchor="middle" fill="#94A3B8" font-family="sans-serif" font-size="20">Believ Comic Bible</text>
+  <text x="600" y="620" text-anchor="middle" fill="#475569" font-family="sans-serif" font-size="16">Believ · Genesis 2:4-7</text>
+</svg>
