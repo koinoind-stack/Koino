@@ -464,6 +464,7 @@ export default function Home() {
                   onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
                   onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
                   onOpenCreate={() => goView("create")}
+                  onOpenEvents={() => goView("events")}
                   deepLinkPostId={detailPostId && view === "home" ? detailPostId : null}
                 />
               )}

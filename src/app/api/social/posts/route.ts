@@ -4,12 +4,13 @@ import { getSessionUser, getBlockFilter, notify, notifyMentions, parseHashtags, 
 import { rateLimit } from "@/lib/social/rate-limit";
 
 /**
- * GET /api/social/posts?tab=following|discover&cursor=<iso>&reels=1&hashtag=<tag>&userId=<id>
+ * GET /api/social/posts?tab=following|discover|trending&cursor=<iso>&reels=1&hashtag=<tag>&userId=<id>
  *
  * Feed with cursor pagination (createdAt keyset). `following` shows posts
  * from people the viewer follows (+ their own); `discover` shows everything
- * except blocked users. `reels=1` filters to isReel posts. Two-way block
- * filtering applies everywhere.
+ * except blocked users; `trending` ranks the last 30 days by engagement
+ * (likes ×2 + comments ×3 + reposts ×3, newest first on ties, no cursor).
+ * `reels=1` filters to isReel posts. Two-way block filtering applies everywhere.
  */
 export async function GET(req: NextRequest) {
   const session = await getSessionUser();
@@ -17,7 +18,9 @@ export async function GET(req: NextRequest) {
   const viewerId = session.user.id;
 
   const { searchParams } = new URL(req.url);
-  const tab = searchParams.get("tab") === "following" ? "following" : "discover";
+  const tabParam = searchParams.get("tab") || "";
+  const tab =
+    tabParam === "following" ? "following" : tabParam === "trending" ? "trending" : "discover";
   const cursor = searchParams.get("cursor");
   const reels = searchParams.get("reels") === "1";
   const hashtag = searchParams.get("hashtag");
@@ -40,6 +43,35 @@ export async function GET(req: NextRequest) {
       select: { followingId: true },
     });
     where.authorId = { in: [...follows.map((f) => f.followingId), viewerId] };
+  }
+
+  // Trending: engagement-ranked window over the last 30 days. Computed in JS
+  // (Prisma can't order by a weighted expression); capped at 50 candidates →
+  // top 20, so it stays cheap even as the platform grows.
+  if (tab === "trending") {
+    try {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const candidates = await db.post.findMany({
+        where: { AND: [where, { createdAt: { gte: since } }] },
+        select: postSelect,
+        orderBy: { createdAt: "desc" as const },
+        take: 50,
+      });
+      const score = (p: { likeCount: number; commentCount: number; repostCount: number }) =>
+        p.likeCount * 2 + p.commentCount * 3 + p.repostCount * 3;
+      const ranked = [...candidates]
+        .sort(
+          (a, b) =>
+            score(b) - score(a) ||
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 20);
+      const posts = await serializePosts(ranked, viewerId);
+      return Response.json({ posts, nextCursor: null });
+    } catch (err) {
+      console.error("[social/posts] trending failed:", err);
+      return jsonError("Failed to load trending feed", 500);
+    }
   }
 
   try {

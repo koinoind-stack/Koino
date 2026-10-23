@@ -8,20 +8,31 @@ import PostCard from "./PostCard";
 import PostDetail from "./PostDetail";
 import StoryBar, { StoryViewer, StoryCreator } from "./Stories";
 import ReelsOverlay from "./ReelsView";
+import FeedComposer from "./FeedComposer";
+import EventRail from "./EventRail";
 
 type Props = {
   onOpenProfile: (username: string) => void;
   onHashtag: (tag: string) => void;
   onOpenCreate: () => void;
+  onOpenEvents: () => void;
   deepLinkPostId?: string | null;
+};
+
+const TABS = ["discover", "following", "trending"] as const;
+type FeedTab = (typeof TABS)[number];
+const TAB_LABELS: Record<FeedTab, string> = {
+  discover: "For You",
+  following: "Following",
+  trending: "Trending",
 };
 
 /**
  * The home feed: stories bar, Following/Discover tabs, infinite scroll,
  * suggestion rail on Discover, and overlays (detail / reels / stories).
  */
-export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, deepLinkPostId }: Props) {
-  const [tab, setTab] = useState<"following" | "discover">("discover");
+export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpenEvents, deepLinkPostId }: Props) {
+  const [tab, setTab] = useState<FeedTab>("discover");
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +47,7 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, deepL
   const sentinel = useRef<HTMLDivElement>(null);
 
   const load = useCallback(
-    async (nextTab: "following" | "discover", cursor?: string) => {
+    async (nextTab: FeedTab, cursor?: string) => {
       if (cursor) setLoadingMore(true);
       else setLoading(true);
       setError(null);
@@ -92,6 +103,13 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, deepL
       .catch(() => {});
   }
 
+  // A freshly published quick-post lands at the top of the feed instantly
+  // (Trending re-sorts by engagement, so it reloads instead).
+  function handlePosted(post: Post) {
+    if (tab === "trending") load("trending");
+    else setPosts((prev) => [post, ...prev]);
+  }
+
   return (
     <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
       {/* stories bar */}
@@ -102,22 +120,28 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, deepL
         onOpenProfile={onOpenProfile}
       />
 
+      {/* quick composer — "What's on your heart?" */}
+      <FeedComposer onPosted={handlePosted} onOpenFull={onOpenCreate} />
+
       {/* tabs */}
-      <div className="flex gap-2 my-4">
-        {(["discover", "following"] as const).map((t) => (
+      <div className="flex gap-2 mb-4">
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-5 py-2 rounded-full text-sm font-bold capitalize transition-all ${
+            className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
               tab === t
                 ? "bg-[#7C3AED] text-white shadow-[0_0_20px_rgba(124,58,237,0.35)]"
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
             }`}
           >
-            {t}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>
+
+      {/* upcoming church events surfaced in the feed */}
+      <EventRail onOpenEvents={onOpenEvents} />
 
       {/* feed */}
       {loading ? (
@@ -145,7 +169,9 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, deepL
           <p className="text-[#94A3B8] text-sm mb-4">
             {tab === "following"
               ? "Follow people to see their posts here."
-              : "No posts yet. Be the first to share something!"}
+              : tab === "trending"
+                ? "Nothing trending yet — likes, comments and reposts decide what rises."
+                : "No posts yet. Be the first to share something!"}
           </p>
           <button
             onClick={onOpenCreate}
