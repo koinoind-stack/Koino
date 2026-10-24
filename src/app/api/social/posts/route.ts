@@ -148,9 +148,9 @@ export async function POST(req: NextRequest) {
     body.mediaType === "image" || body.mediaType === "video" ? body.mediaType : "text";
   let mediaUrls: string[] = [];
   if (Array.isArray(body.mediaUrls)) {
-    mediaUrls = body.mediaUrls
-      .filter((u): u is string => typeof u === "string" && u.length > 0)
-      .slice(0, 10);
+    const raw = body.mediaUrls.filter((u): u is string => typeof u === "string" && u.length > 0);
+    if (raw.length > 10) return jsonError("Up to 10 images per post");
+    mediaUrls = raw.slice(0, 10); // belt-and-braces — explicit 400 above
   }
 
   if (mediaType === "image" && mediaUrls.length === 0)
@@ -161,8 +161,27 @@ export async function POST(req: NextRequest) {
   if (mediaType === "video" && !/\.(mp4|webm|mov|m4v)(\?|$)/i.test(mediaUrls[0] || ""))
     return jsonError("Unsupported video format");
 
+  // Publish-time re-validation (defense in depth). Uploads only ever enter
+  // Storage through /api/social/upload-url, which enforces type + size per
+  // user before a byte moves; here we make sure hand-crafted payloads can't
+  // publish arbitrary external/hotlinked files instead of Koino uploads.
+  if (mediaType !== "text") {
+    if (mediaUrls.some((u) => !u.includes("/believ-comic-artwork/social/")))
+      return jsonError("Media must be uploaded through Koino's uploader");
+  }
+  if (mediaType === "image" && mediaUrls.some((u) => !/\.(jpe?g|png|webp)(\?|$)/i.test(u)))
+    return jsonError("Unsupported image format — use JPG, PNG or WEBP");
+
   const aspectRatio = typeof body.aspectRatio === "string" ? body.aspectRatio.slice(0, 10) : null;
-  const thumbnailUrl = typeof body.thumbnailUrl === "string" ? body.thumbnailUrl.slice(0, 2048) : null;
+  // Poster frames: current clients upload the captured JPEG to Storage (https,
+  // short URL). Older clients may still send a raw data: URL — accept it
+  // long-form instead of silently truncating it into a broken image.
+  const thumbnailUrl =
+    typeof body.thumbnailUrl === "string" && body.thumbnailUrl
+      ? body.thumbnailUrl.startsWith("data:image/")
+        ? body.thumbnailUrl.slice(0, 200_000)
+        : body.thumbnailUrl.slice(0, 2048)
+      : null;
   const isReel = body.isReel === true;
 
   let groupId: string | null = null;

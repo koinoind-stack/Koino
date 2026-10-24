@@ -161,6 +161,7 @@ export type SerializedPost = {
     mediaUrls: string[];
     thumbnailUrl: string | null;
     aspectRatio: string | null;
+    isReel: boolean;
     author: { id: string; name: string | null; username: string | null; image: string | null };
   } | null;
   viewer: { liked: boolean; bookmarked: boolean; following: boolean };
@@ -198,6 +199,7 @@ export const postSelect = {
       mediaUrls: true,
       thumbnailUrl: true,
       aspectRatio: true,
+      isReel: true,
       video: { select: { id: true, slug: true, title: true, thumbnailUrl: true, durationSec: true } },
       author: { select: { id: true, name: true, username: true, image: true, verified: true } },
     },
@@ -283,6 +285,7 @@ export async function serializePosts(
           mediaUrls: safeParseUrls(r.repostedFrom.mediaUrls),
           thumbnailUrl: r.repostedFrom.thumbnailUrl,
           aspectRatio: r.repostedFrom.aspectRatio,
+          isReel: r.repostedFrom.isReel,
           video: r.repostedFrom.video
             ? {
                 id: r.repostedFrom.video.id,

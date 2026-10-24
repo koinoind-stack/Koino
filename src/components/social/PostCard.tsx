@@ -348,6 +348,11 @@ export default function PostCard({
             preload="metadata"
             className="w-full h-full object-contain"
           />
+          {shown.isReel && (
+            <span className="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-[10px] font-extrabold uppercase tracking-wide text-white pointer-events-none">
+              <Clapperboard size={11} /> Reel
+            </span>
+          )}
         </div>
       )}
       {images.length > 0 && (

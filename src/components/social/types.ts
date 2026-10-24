@@ -35,6 +35,7 @@ export type Post = {
     mediaUrls: string[];
     thumbnailUrl: string | null;
     aspectRatio: string | null;
+    isReel: boolean;
     video?: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null;
     author: SocialUser;
   } | null;

@@ -102,3 +102,58 @@ export async function captureVideoPoster(file: File, atSeconds = 0.5): Promise<s
     }
   });
 }
+
+/**
+ * Probe a local video File for duration and intrinsic dimensions (client-side,
+ * metadata only — the file is never uploaded). Used to enforce Reel/Video
+ * duration limits and store a true aspectRatio on the post. Resolves null
+ * when metadata can't be read (rare codecs) — callers fall back to defaults.
+ */
+export function probeVideo(file: File): Promise<{ duration: number; width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.muted = true;
+      video.preload = "metadata";
+      const done = (result: { duration: number; width: number; height: number } | null) => {
+        URL.revokeObjectURL(url);
+        video.removeAttribute("src");
+        resolve(result);
+      };
+      video.onloadedmetadata = () => {
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        const width = video.videoWidth || 0;
+        const height = video.videoHeight || 0;
+        if (duration <= 0 || !width || !height) return done(null);
+        done({ duration: Math.round(duration * 10) / 10, width, height });
+      };
+      video.onerror = () => done(null);
+      // Hard timeout — some codecs never fire loadedmetadata.
+      setTimeout(() => done(null), 8000);
+      video.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Reduce width/height to a compact "w:h" ratio label (e.g. 1080×1920 → "9:16").
+ * Falls back to "9:16" (portrait) or "16:9" (landscape) when inputs are unusable.
+ */
+export function aspectRatioLabel(width: number, height: number): string {
+  if (!width || !height) return "9:16";
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  let w = Math.round(width / gcd(width, height));
+  let h = Math.round(height / gcd(width, height));
+  // Cap runaway parts (e.g. 360:779) — CSS aspect-ratio accepts these, but
+  // very large numbers bloat the label for no visual benefit.
+  const cap = 40;
+  if (w > cap || h > cap) {
+    const scale = Math.min(cap / w, cap / h);
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+  }
+  return `${w}:${h}`;
+}

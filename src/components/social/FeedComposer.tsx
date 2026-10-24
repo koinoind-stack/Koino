@@ -114,10 +114,10 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
           </button>
           <button
             onClick={onOpenFull}
-            title="Share photos, videos or a Reel"
+            title="Share photos, a Reel or a video"
             className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-xs font-bold text-[#94A3B8] hover:text-white hover:border-[#7C3AED]/40 transition-all"
           >
-            <Images size={15} /> <span className="hidden sm:inline">Photo / Video</span>
+            <Images size={15} /> <span className="hidden sm:inline">Photo · Reel · Video</span>
           </button>
         </div>
       ) : (
