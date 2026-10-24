@@ -3,12 +3,15 @@
 /**
  * Explore — discovery hub for the Koino social app.
  *
- * Tabs: For You / People / Posts / Churches / Events. Everything renders
- * from REAL Koino data: suggested members (most-followed), engagement-ranked
- * trending posts, actual hashtag counts, published churches & events,
- * curated marketplace / business highlights and featured videos. Nothing is
- * fabricated — a section with no data simply does not render (or shows a
- * compact helpful empty state), so the page never turns into a blank wall.
+ * Tabs: For You / People / Posts / Reels / Bible Trivia / Churches / Events.
+ * Everything renders from REAL Koino data: suggested members (most-followed),
+ * engagement-ranked trending posts, actual hashtag counts, real isReel posts
+ * (tiles open the existing full-screen ReelsOverlay), the server-ranked
+ * trivia leaderboard + Play Trivia deep link into the existing game,
+ * published churches & events, curated marketplace / business highlights and
+ * featured videos. Nothing is fabricated — a section with no data simply does
+ * not render (or shows a compact helpful empty state), so the page never
+ * turns into a blank wall.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +19,7 @@ import Image from "next/image";
 import {
   Search, X, Play, Church, CalendarDays, Store, ShoppingBag,
   Users, Flame, TrendingUp, MapPin, Sparkles, Clapperboard, UserPlus,
+  Film, Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Post, SocialUser } from "./types";
@@ -23,9 +27,10 @@ import { api } from "./types";
 import PostDetail from "./PostDetail";
 import EventRail from "./EventRail";
 import VideoRail from "./VideoRail";
+import ReelsOverlay from "./ReelsView";
 import { formatCount } from "@/lib/social/format";
 import {
-  PRODUCTS, BUSINESSES, CHURCH_GRADIENTS,
+  PRODUCTS, BUSINESSES, CHURCH_GRADIENTS, QUIZ_CATEGORIES,
   type Product, type Business,
 } from "@/lib/crosscrafted-data";
 
@@ -79,12 +84,14 @@ type EventItem = {
   cover_gradient?: number;
 };
 
-type Tab = "foryou" | "people" | "posts" | "churches" | "events";
+type Tab = "foryou" | "people" | "posts" | "reels" | "trivia" | "churches" | "events";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "foryou", label: "For You" },
   { id: "people", label: "People" },
   { id: "posts", label: "Posts" },
+  { id: "reels", label: "Reels" },
+  { id: "trivia", label: "Bible Trivia" },
   { id: "churches", label: "Churches" },
   { id: "events", label: "Events" },
 ];
@@ -102,6 +109,17 @@ type PostsData = {
   hashtags: Array<{ tag: string; count: number }>;
   posts: Post[];
   fromHashtag: boolean;
+};
+
+/** Real rows from /api/trivia/leaderboard (public, server-ranked by Faith Points). */
+type LeaderboardRow = {
+  rank: number;
+  name: string;
+  emailMasked: string;
+  image: string | null;
+  points: number;
+  tier: string;
+  tierIcon: string;
 };
 
 function churchGradient(idx?: number): string {
@@ -294,6 +312,9 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
   const [postsData, setPostsData] = useState<PostsData | null>(null);
   const [churches, setChurches] = useState<ChurchItem[] | null>(null);
   const [events, setEvents] = useState<EventItem[] | null>(null);
+  const [reels, setReels] = useState<Post[] | null>(null);
+  const [reelOpenId, setReelOpenId] = useState<string | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[] | null>(null);
 
   const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const queryRef = useRef(query);
@@ -349,6 +370,19 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
         } else {
           const d = await api<{ posts: Post[] }>("/api/social/posts?tab=discover&limit=30");
           setPostsData({ hashtags: [], posts: d.posts, fromHashtag: false });
+        }
+      } else if (tab === "reels") {
+        // Real isReel posts only — same endpoint the full-screen player uses.
+        const d = await api<{ posts: Post[] }>("/api/social/posts?reels=1&limit=30");
+        setReels(d.posts.filter((p) => (p.repostedFrom ?? p).mediaUrls?.length));
+      } else if (tab === "trivia") {
+        // Public, server-ranked leaderboard — best effort: a failure only hides
+        // the section, the Play Trivia card always renders.
+        try {
+          const d = await api<{ leaderboard: LeaderboardRow[] }>("/api/trivia/leaderboard");
+          setLeaderboard(d.leaderboard || []);
+        } catch {
+          setLeaderboard([]);
         }
       } else if (tab === "churches") {
         const d = await api<{ churches: ChurchItem[] }>(`/api/churches${ql ? `?q=${encodeURIComponent(ql)}` : ""}`);
@@ -423,7 +457,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
       </div>
 
       {/* discovery tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-none">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -631,6 +665,111 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
             </>
           )}
 
+          {/* ───────────── REELS ───────────── */}
+          {activeTab === "reels" && reels && (
+            <>
+              <Section icon={Film} title="Reels to watch">
+                {reels.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                    {reels.map((p) => {
+                      const media = p.repostedFrom ?? p;
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => setReelOpenId(p.id)}
+                          className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.06] hover:border-[#7C3AED]/40 group text-left"
+                        >
+                          {media.thumbnailUrl ? (
+                            <Image src={media.thumbnailUrl} alt="" fill sizes="240px" className="object-cover group-hover:scale-[1.03] transition-transform" unoptimized />
+                          ) : media.mediaUrls[0] ? (
+                            <video src={media.mediaUrls[0]} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-[#7C3AED]/50 to-[#EC4899]/40" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                          <Play size={17} className="absolute top-2.5 right-2.5 text-white drop-shadow" fill="white" />
+                          <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                            {p.content && <p className="text-[11px] text-white font-semibold line-clamp-2">{p.content}</p>}
+                            <p className="text-[10px] text-white/70 mt-1 truncate">
+                              @{p.author.username}
+                              {p.likeCount > 0 ? ` · ❤ ${formatCount(p.likeCount)}` : ""}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <CompactEmpty icon={Film} text="No reels yet — share a short vertical video and it will show up here." />
+                )}
+              </Section>
+            </>
+          )}
+
+          {/* ───────────── BIBLE TRIVIA ───────────── */}
+          {activeTab === "trivia" && (
+            <>
+              <div className="rounded-3xl bg-gradient-to-br from-[#7C3AED]/20 via-[#7C3AED]/10 to-transparent border border-[#7C3AED]/25 p-5 md:p-6 mb-5">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-[#7C3AED] flex items-center justify-center shrink-0">
+                    <Trophy size={22} className="text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-black text-white tracking-tight">Bible Trivia</h3>
+                    <p className="text-sm text-[#C4B5FD] mt-1 leading-relaxed">
+                      How well do you know the Word? Play Bible Trivia to test your Scripture knowledge,
+                      build a daily streak, and earn Faith Points as you grow in faith.
+                    </p>
+                    <button
+                      onClick={() => onNavigate?.("trivia")}
+                      className="mt-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
+                    >
+                      <Play size={13} fill="white" /> Play Trivia
+                    </button>
+                  </div>
+                </div>
+                {/* Real quiz categories — the same list the game itself uses. */}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {QUIZ_CATEGORIES.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => onNavigate?.("trivia")}
+                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-bold text-white/90 hover:border-white/30"
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {leaderboard && leaderboard.length > 0 && (
+                <Section icon={Trophy} title="Top Players" seeAll="Open Trivia" onSeeAll={() => onNavigate?.("trivia")}>
+                  <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
+                    {leaderboard.slice(0, 10).map((row, i) => (
+                      <div key={`${row.rank}-${row.name}`} className={`flex items-center gap-3 px-3.5 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
+                        <span className={`w-7 text-center text-sm font-black shrink-0 ${i === 0 ? "text-[#FCD34D]" : i === 1 ? "text-[#CBD5E1]" : i === 2 ? "text-[#F59E0B]" : "text-[#64748B]"}`}>
+                          {row.rank}
+                        </span>
+                        {row.image ? (
+                          <Image src={row.image} alt="" width={30} height={30} className="w-[30px] h-[30px] rounded-full object-cover shrink-0" unoptimized />
+                        ) : (
+                          <div className="w-[30px] h-[30px] rounded-full shrink-0 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white text-xs font-bold">
+                            {(row.name || "?").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white truncate">{row.name}</p>
+                          <p className="text-[10px] text-[#64748B] truncate">{row.tierIcon} {row.tier}</p>
+                        </div>
+                        <span className="text-xs font-extrabold text-[#C4B5FD] shrink-0">{formatCount(row.points)} pts</span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
+            </>
+          )}
+
           {/* ───────────── CHURCHES ───────────── */}
           {activeTab === "churches" && churches && (
             <>
@@ -759,6 +898,15 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
             </>
           )}
         </>
+      )}
+
+      {reelOpenId && (
+        <ReelsOverlay
+          initialPostId={reelOpenId}
+          onClose={() => setReelOpenId(null)}
+          onOpenProfile={onOpenProfile}
+          onOpenPost={(id) => setDetailId(id)}
+        />
       )}
 
       {detailId && (
