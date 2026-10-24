@@ -141,6 +141,18 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.16);
   }
+  /* Native <select> popup lists: Chromium composites a select's translucent
+     background (e.g. bg-white/[0.04]) onto the popup's white canvas, so the
+     expanded list renders as white-on-white. Force dark, readable rows for
+     every select app-wide (matches the neo-input surface color). */
+  select {
+    color-scheme: dark;
+  }
+  select option,
+  select optgroup {
+    background-color: #1C1929;
+    color: #ffffff;
+  }
 }
 
 @layer utilities {
