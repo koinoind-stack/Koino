@@ -23,6 +23,7 @@ type ProfileData = {
     state?: string | null;
     city?: string | null;
     createdAt?: string;
+    role?: string | null;
     website?: string | null;
     instagram?: string | null;
     youtube?: string | null;
@@ -276,7 +277,17 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
 
       {/* bio */}
       <div className="mb-4">
-        <p className="text-sm font-bold text-white">{data.user.name}</p>
+        <p className="text-sm font-bold text-white flex items-center gap-1.5">
+          {data.user.name}
+          {data.user.role === "admin" && (
+            <span
+              title="Administrator"
+              className="shrink-0 px-1.5 py-px rounded bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
+            >
+              Admin
+            </span>
+          )}
+        </p>
         {data.user.bio && <p className="text-[13px] text-[#CBD5E1] mt-1 whitespace-pre-wrap">{data.user.bio}</p>}
         {(data.user.state || data.user.city) && (
           <p className="text-[11px] text-[#64748B] mt-1">
