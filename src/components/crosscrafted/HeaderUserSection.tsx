@@ -26,7 +26,7 @@ export default function HeaderUserSection({
 }) {
   const router = useRouter();
   const t = useTranslation();
-  const { isAuthenticated, points, username, displayName, avatarUrl } = useSupabaseUser();
+  const { isAuthenticated, points, username, displayName, avatarUrl, isAdmin } = useSupabaseUser();
   const [signedOut, setSignedOut] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -84,7 +84,17 @@ export default function HeaderUserSection({
         )}
         {!mobile && (
           <div className="flex flex-col leading-tight">
-            <span className="text-xs font-bold text-white truncate max-w-[90px]">{name}</span>
+            <span className="flex items-center gap-1 min-w-0">
+              <span className="text-xs font-bold text-white truncate max-w-[70px]">{name}</span>
+              {isAdmin && (
+                <span
+                  title="Administrator"
+                  className="shrink-0 px-1 py-px rounded bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
+                >
+                  Admin
+                </span>
+              )}
+            </span>
             <span className="text-[9px] text-[#64748B] font-bold truncate max-w-[90px]">
               {handle ?? t("common.faithPoints", { count: points.toLocaleString() })}
             </span>
