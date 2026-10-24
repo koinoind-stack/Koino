@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { StoryGroup } from "./types";
 import { api } from "./types";
 import { timeAgo } from "@/lib/social/format";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type BarProps = {
   groups: StoryGroup[];
@@ -92,6 +93,7 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
   const [groupIdx, setGroupIdx] = useState(startIdx);
   const [itemIdx, setItemIdx] = useState(0);
   const [reply, setReply] = useState("");
+  const replyRef = useRef<HTMLInputElement>(null);
   const [paused, setPaused] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
 
@@ -198,12 +200,20 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
       {!item.isMine && (
         <div className="p-3 flex items-center gap-2">
           <input
+            ref={replyRef}
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendReply()}
             onFocus={() => setPaused(true)}
             placeholder="Reply to story…"
             className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2.5 text-sm text-white focus:outline-none"
+          />
+          <EmojiPickerButton
+            direction="up"
+            onPick={(e) => {
+              setPaused(true);
+              insertAtCursor(replyRef.current, e, setReply, 300);
+            }}
           />
           <button onClick={sendReply} className="w-10 h-10 rounded-full bg-[#7C3AED] flex items-center justify-center text-white">
             <Send size={16} />
@@ -221,6 +231,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const captionRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -298,13 +309,19 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
         />
       </div>
       <div className="p-4 space-y-3">
-        <input
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="Add a caption (optional)"
-          maxLength={200}
-          className="w-full bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            ref={captionRef}
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Add a caption (optional)"
+            maxLength={200}
+            className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
+          />
+          <EmojiPickerButton
+            onPick={(e) => insertAtCursor(captionRef.current, e, setCaption, 200)}
+          />
+        </div>
         {uploading && (
           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div className="h-full bg-[#7C3AED] transition-all" style={{ width: `${progress}%` }} />

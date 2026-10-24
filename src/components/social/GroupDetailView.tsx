@@ -6,13 +6,14 @@
  * group composer, and the group's post stream (reuses PostCard + PostDetail).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, Lock, Send, UserMinus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Post } from "./types";
 import { api } from "./types";
 import PostCard from "./PostCard";
 import PostDetail from "./PostDetail";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type MemberUser = { id: string; name: string | null; username: string | null; image: string | null };
 
@@ -57,6 +58,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [text, setText] = useState("");
+  const groupTextRef = useRef<HTMLTextAreaElement>(null);
   const [posting, setPosting] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -314,6 +316,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
           {isMember && (
             <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-3 mt-4">
               <textarea
+                ref={groupTextRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={2}
@@ -321,7 +324,11 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 placeholder={`Share something with ${group.name}…`}
                 className="w-full bg-transparent border-none outline-none resize-none text-sm text-white placeholder:text-[#64748B]"
               />
-              <div className="flex justify-end mt-1">
+              <div className="flex items-center justify-between mt-1">
+                <EmojiPickerButton
+                  align="left"
+                  onPick={(e) => insertAtCursor(groupTextRef.current, e, setText, 2200)}
+                />
                 <button
                   onClick={postToGroup}
                   disabled={!text.trim() || posting}

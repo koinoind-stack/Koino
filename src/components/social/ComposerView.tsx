@@ -22,6 +22,7 @@ import { X, Video, Images, Trash2, Clapperboard, Smartphone } from "lucide-react
 import { toast } from "sonner";
 import { api } from "./types";
 import { captureVideoPoster, probeVideo, aspectRatioLabel } from "@/lib/social/format";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type Props = {
   onClose: () => void;
@@ -69,6 +70,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
   const [posting, setPosting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const captionRef = useRef<HTMLTextAreaElement>(null);
   const xhrsRef = useRef<Set<XMLHttpRequest>>(new Set());
 
   const videoItem = items.find((i) => i.file.type.startsWith("video/"));
@@ -441,6 +443,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
 
       {/* ─── caption (hashtags / mentions / Bible references parse server-side) ─── */}
       <textarea
+        ref={captionRef}
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
         rows={4}
@@ -448,7 +451,13 @@ export default function ComposerView({ onClose, onPosted }: Props) {
         placeholder="Write a caption… use #hashtags, @mentions, and Bible references like John 3:16"
         className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-sm text-white resize-none focus:outline-none focus:border-[#7C3AED]"
       />
-      <p className="text-[10px] text-[#64748B] text-right mt-1">{caption.length}/2200</p>
+      <div className="flex items-center justify-between mt-1.5">
+        <EmojiPickerButton
+          align="left"
+          onPick={(e) => insertAtCursor(captionRef.current, e, setCaption, 2200)}
+        />
+        <p className="text-[10px] text-[#64748B]">{caption.length}/2200</p>
+      </div>
 
       {/* ─── destination info (replaces the old opt-in checkbox — mode decides) ─── */}
       {videoItem && (

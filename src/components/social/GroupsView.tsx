@@ -9,10 +9,11 @@
  * Round-2 tables are not created yet.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Lock, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "./types";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type Group = {
   id: string;
@@ -63,6 +64,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", category: "fellowship", visibility: "public" });
+  const groupDescRef = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,6 +177,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
             className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
           />
           <textarea
+            ref={groupDescRef}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             maxLength={500}
@@ -182,6 +185,14 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
             placeholder="What is this group about?"
             className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none resize-none focus:border-[#7C3AED]/50"
           />
+          <div className="flex items-center">
+            <EmojiPickerButton
+              align="left"
+              onPick={(e) =>
+                insertAtCursor(groupDescRef.current, e, (v) => setForm((f) => ({ ...f, description: v })), 500)
+              }
+            />
+          </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {CATEGORIES.filter((c) => c.id !== "All").map((c) => (
               <button

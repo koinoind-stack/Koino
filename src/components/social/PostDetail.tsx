@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { Post, Comment } from "./types";
 import { api } from "./types";
 import PostCard from "./PostCard";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { timeAgo } from "@/lib/social/format";
 
 type Props = {
@@ -31,6 +32,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
   const [repliesFor, setRepliesFor] = useState<string | null>(null);
   const [replies, setReplies] = useState<Record<string, Comment[]>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,12 +192,18 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
         {/* composer */}
         <div className="border-t border-white/[0.06] p-3 flex items-center gap-2">
           <input
+            ref={textRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
             placeholder={repliesFor ? "Write a reply…" : "Write a comment…"}
             maxLength={1000}
             className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
+          />
+          <EmojiPickerButton
+            direction="up"
+            align="right"
+            onPick={(e) => insertAtCursor(textRef.current, e, setText, 1000)}
           />
           <button
             onClick={submit}

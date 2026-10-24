@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import type { Post } from "./types";
 import { api } from "./types";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type Props = {
   onPosted: (post: Post) => void;
@@ -173,21 +174,27 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
           </div>
 
           <div className="flex items-center justify-between mt-2 pl-12">
-            <span className={`text-[11px] ${text.length > MAX_LEN - 200 ? "text-[#F87171]" : "text-[#64748B]"}`}>
-              {text.length}/{MAX_LEN}
-            </span>
-            <button
-              onClick={submit}
-              disabled={!text.trim() || posting}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#7C3AED] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors"
-            >
-              {posting ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Send size={15} />
-              )}
-              Post
-            </button>
+            <EmojiPickerButton
+              align="left"
+              onPick={(e) => insertAtCursor(areaRef.current, e, setText, MAX_LEN)}
+            />
+            <div className="flex items-center gap-3">
+              <span className={`text-[11px] ${text.length > MAX_LEN - 200 ? "text-[#F87171]" : "text-[#64748B]"}`}>
+                {text.length}/{MAX_LEN}
+              </span>
+              <button
+                onClick={submit}
+                disabled={!text.trim() || posting}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#7C3AED] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors"
+              >
+                {posting ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Send size={15} />
+                )}
+                Post
+              </button>
+            </div>
           </div>
         </div>
       )}

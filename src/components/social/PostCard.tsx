@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import type { Post } from "./types";
 import { api } from "./types";
+import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { formatCount, timeAgo, tokenizeCaption } from "@/lib/social/format";
 
 type Props = {
@@ -55,6 +56,7 @@ export default function PostCard({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content || "");
   const [busy, setBusy] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   const shown = state.repostedFrom ?? state;
   const isVideo = shown.mediaType === "video";
@@ -280,13 +282,19 @@ export default function PostCard({
       {editing ? (
         <div className="px-4 pb-3">
           <textarea
+            ref={editRef}
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
             maxLength={2200}
             className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white resize-none focus:outline-none focus:border-[#7C3AED]"
           />
-          <div className="flex gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2">
+            <EmojiPickerButton
+              align="left"
+              onPick={(e) => insertAtCursor(editRef.current, e, setEditText, 2200)}
+            />
+            <div className="flex-1" />
             <button onClick={saveEdit} className="px-4 py-1.5 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">Save</button>
             <button onClick={() => setEditing(false)} className="px-4 py-1.5 rounded-xl bg-white/5 text-[#94A3B8] text-xs font-bold">Cancel</button>
           </div>

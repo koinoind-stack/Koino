@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { api, type SocialUser } from "@/components/social/types";
 import { notifyProfileUpdated } from "@/lib/supabase/use-user";
 import { COMMUNITY_ROLES, COMMUNITY_ROLE_OTHER, COMMUNITY_ROLE_OTHER_MAX } from "@/lib/community-roles";
+import EmojiPickerButton, { insertAtCursor } from "@/components/social/EmojiPicker";
 
 type ProfileData = {
   id: string;
@@ -90,6 +91,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarRemoved, setAvatarRemoved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const bioRef = useRef<HTMLTextAreaElement>(null);
 
   // username availability (debounced)
   const [availState, setAvailState] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
@@ -357,6 +359,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
 
         <Field label={`Bio (${bio.length}/500)`}>
           <textarea
+            ref={bioRef}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             maxLength={500}
@@ -364,6 +367,12 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
             placeholder="A little about you and your faith journey…"
             className={`${inputCls} resize-none`}
           />
+          <div className="flex items-center mt-1.5">
+            <EmojiPickerButton
+              align="left"
+              onPick={(e) => insertAtCursor(bioRef.current, e, setBio, 500)}
+            />
+          </div>
         </Field>
 
         <Field label="Social links">
