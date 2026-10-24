@@ -25,7 +25,6 @@ import {
   PlusSquare,
   Users,
   Flower2,
-  Clapperboard,
   MonitorPlay,
   Church,
   ChevronDown,
@@ -81,7 +80,7 @@ type View =
   | "edit-profile"
   | "dashboard" // the previous App Home dashboard (moved — still fully available)
   | "bible"
-  | "videos" // Part 5: Bible Movies & Videos → /videos (public App Router page)
+  | "videos" // Part 5: Bible Movies & Videos → /videos (public App Router page; reachable via Watch — no sidebar entry)
   | "bible-plans"
   | "comic"
   | "churches"
@@ -104,6 +103,10 @@ type View =
 // "App Home" (the feature dashboard) is intentionally NOT a duplicate sidebar
 // link anymore — it opens via the "Explore All Features" button.
 // Bible Comics is RESTORED here alongside the other Bible-related features.
+// Bible Movies & Videos intentionally has NO separate sidebar entry: the
+// Watch hub (primary link above) carries it as its "Bible Movies & Stories"
+// category, with the full searchable library linked from Watch. One video
+// destination, no duplicate navigation.
 const PRIMARY_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
   { id: "explore", icon: Search, label: "Explore" },
@@ -123,7 +126,6 @@ const SIDEBAR_CATEGORIES: {
     icon: Sparkles,
     links: [
       { id: "comic", icon: Sparkles, label: "Bible Comics" },
-      { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
       { id: "trivia", icon: Award, label: "Bible Trivia" },
       { id: "apologetics", icon: ListChecks, label: "Apologetics" },
       { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
@@ -166,6 +168,8 @@ const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
 ];
 
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
+// Bible Movies & Videos is reached through Watch (bottom-nav quick slot) —
+// no duplicate entry here.
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "groups", icon: Users, label: "Groups" },
   { id: "memorials", icon: Flower2, label: "In Loving Memory" },
@@ -173,7 +177,6 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "bible", icon: BookOpen, label: "Bible" },
   { id: "comic", icon: Sparkles, label: "Bible Comics" },
-  { id: "videos", icon: Clapperboard, label: "Bible Movies & Videos" },
   { id: "churches", icon: Search, label: "Churches" },
   { id: "events", icon: Calendar, label: "Events" },
   { id: "trivia", icon: Award, label: "Trivia" },
@@ -357,6 +360,14 @@ export default function Home() {
     }
 
     // Validate that the deep-link view is a known SPA view.
+    // Old `?view=videos` deep links redirect to the unified Watch hub —
+    // Bible Movies & Videos is now a Watch category, and the /videos route
+    // itself keeps working for bookmarks and external links.
+    if (deepView === "videos") {
+      navigate("watch");
+      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+      return;
+    }
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia", "watch",
       "prayer-wall", "apologetics", "shop", "business-directory",

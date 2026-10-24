@@ -3,8 +3,12 @@
 /**
  * Koino Watch — the unified viewing hub.
  *
- * One connected experience over the three real video surfaces, without
+ * One connected experience over the real video surfaces, without
  * merging their storage:
+ *  - For You → discovery over everything that actually exists: featured
+ *    library videos, the newest library additions, and a strip of real
+ *    member Reels (empty sections are hidden, a combined helpful empty
+ *    state shows when there is nothing at all);
  *  - Reels tab → inline `ReelsFeed` (existing isReel posts) + one-tap jump to
  *    the optimized full-screen vertical player (existing ReelsOverlay);
  *  - Bible Movies & Stories → published `Video` rows in the Bible categories,
@@ -15,13 +19,14 @@
  * Everything renders from EXISTING data and endpoints (/api/videos,
  * /api/social/posts?reels=1). No videos are invented; a category with no
  * content shows a compact helpful empty state. Library cards open the
- * existing /videos/[slug] watch page (normal player). Bible Comics stays a
- * separate feature — the hub only links to it.
+ * existing /videos/[slug] watch page (normal player). The full searchable
+ * library stays at /videos, reachable from the hub ("Full library").
+ * Bible Comics stays a separate feature — the hub only links to it.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  BookOpen, Clapperboard, ChevronRight, Film, Maximize2, MonitorPlay,
+  BookOpen, Clapperboard, ChevronRight, Film, Heart, Maximize2, MonitorPlay,
   Palette, Sparkles, TvMinimalPlay,
 } from "lucide-react";
 import VideoCard, { type VideoCardData } from "@/components/videos/VideoCard";
@@ -29,6 +34,7 @@ import { categoryLabel } from "@/lib/videos";
 import { getBook } from "@/lib/bible-data";
 import ReelsOverlay, { ReelsFeed } from "./ReelsView";
 import PostDetail from "./PostDetail";
+import { api, type Post } from "./types";
 
 type BibleRef = { bookId: string; chapterStart: number };
 
@@ -41,9 +47,10 @@ type Props = {
   onHashtag: (tag: string) => void;
 };
 
-type Tab = "reels" | "bible" | "christian";
+type Tab = "foryou" | "reels" | "bible" | "christian";
 
 const TABS: Array<{ id: Tab; label: string; icon: typeof Film }> = [
+  { id: "foryou", label: "For You", icon: Sparkles },
   { id: "reels", label: "Reels", icon: Film },
   { id: "bible", label: "Bible Movies & Stories", icon: BookOpen },
   { id: "christian", label: "Christian Videos", icon: TvMinimalPlay },
@@ -58,9 +65,10 @@ const CHRISTIAN_CATEGORIES = [
 ] as const;
 
 export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, onHashtag }: Props) {
-  const [tab, setTab] = useState<Tab>("reels");
+  const [tab, setTab] = useState<Tab>("foryou");
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [featured, setFeatured] = useState<VideoRow[]>([]);
+  const [communityReels, setCommunityReels] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [bibleCat, setBibleCat] = useState<string>("");
@@ -96,6 +104,27 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
     load();
   }, [load]);
 
+  // Community Reels for the For You strip — best-effort, never blocks the
+  // hub: any failure (signed-out session, network hiccup) simply hides the
+  // section. Reels are member posts and stay separate from the curated
+  // library everywhere (spec §3).
+  useEffect(() => {
+    let cancelled = false;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    api<{ posts: Post[] }>("/api/social/posts?reels=1&limit=12", { signal: ctrl.signal })
+      .then((d) => {
+        if (!cancelled) setCommunityReels((d.posts || []).filter((p) => (p.repostedFrom ?? p).mediaUrls?.length));
+      })
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, []);
+
   const bibleVideos = useMemo(() => videos.filter((v) => (BIBLE_CATEGORIES as readonly string[]).includes(v.category)), [videos]);
   const christianVideos = useMemo(() => videos.filter((v) => (CHRISTIAN_CATEGORIES as readonly string[]).includes(v.category)), [videos]);
 
@@ -125,6 +154,11 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
     [christianVideos, christianCat],
   );
 
+  // For You — newest library additions (featured deduped so a video never
+  // appears twice on the same tab).
+  const featuredIds = useMemo(() => new Set(featured.map((v) => v.id)), [featured]);
+  const recentVideos = useMemo(() => videos.filter((v) => !featuredIds.has(v.id)).slice(0, 8), [videos, featuredIds]);
+
   return (
     <div className="max-w-[1100px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
       {/* ─── heading + quick links ─── */}
@@ -134,7 +168,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
             <MonitorPlay size={22} className="text-[#C4B5FD]" /> Koino Watch
           </h1>
           <p className="text-xs md:text-sm text-[#94A3B8] mt-1">
-            Reels, Bible movies &amp; stories, and Christian videos — one place to watch.
+            Discover community reels, Bible movies &amp; stories, and Christian videos — one place to watch.
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-2 shrink-0">
@@ -186,22 +220,6 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
         </button>
       </div>
 
-      {/* ─── featured rail (real admin-featured videos) ─── */}
-      {!loading && featured.length > 0 && (
-        <div className="mb-6">
-          <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
-            <Sparkles size={13} /> Featured
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {featured.map((v) => (
-              <div key={`feat-${v.id}`} className="shrink-0 w-[220px]">
-                <VideoCard video={{ ...v, featured: true }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ─── library load error ─── */}
       {loadError && (
         <div className="flex flex-col items-center gap-3 py-10">
@@ -221,6 +239,109 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
         </div>
       ) : (
         <>
+          {/* ───────────── FOR YOU ───────────── */}
+          {tab === "foryou" && (
+            <>
+              {featured.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
+                    <Sparkles size={13} /> Featured
+                  </h3>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {featured.map((v) => (
+                      <div key={`feat-${v.id}`} className="shrink-0 w-[220px]">
+                        <VideoCard video={{ ...v, featured: true }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {communityReels.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B]">
+                      <Film size={13} /> From the community
+                    </h3>
+                    <button
+                      onClick={() => setTab("reels")}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]"
+                    >
+                      See all <ChevronRight size={12} />
+                    </button>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {communityReels.map((p) => {
+                      const media = p.repostedFrom ?? p;
+                      const thumb = p.thumbnailUrl || media.thumbnailUrl || null;
+                      return (
+                        <button
+                          key={`reel-${p.id}`}
+                          onClick={() => setFullscreenReels(true)}
+                          className="group shrink-0 w-[120px] text-left"
+                          title={p.content || "Watch this reel"}
+                        >
+                          <div className="relative aspect-[9/16] rounded-2xl overflow-hidden border border-white/[0.08] bg-[#1C1929] group-hover:border-[#7C3AED]/40 transition-colors">
+                            {thumb ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={thumb}
+                                alt=""
+                                loading="lazy"
+                                className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-[#7C3AED]/25 via-[#1C1929] to-[#0B1120] flex items-center justify-center">
+                                <Film size={22} className="text-[#7C3AED]" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                            <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between gap-1">
+                              <span className="text-[10px] font-bold text-white truncate">
+                                @{p.author.username || p.author.name || "member"}
+                              </span>
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-white/90 shrink-0">
+                                <Heart size={9} fill="currentColor" /> {p.likeCount}
+                              </span>
+                            </div>
+                            <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 backdrop-blur flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                              <Film size={11} className="text-white" />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-[#64748B] mt-2">
+                    Short vertical videos shared by Koino members — tap any tile for the full-screen player.
+                  </p>
+                </div>
+              )}
+
+              {recentVideos.length > 0 && (
+                <div className="mb-2">
+                  <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
+                    <MonitorPlay size={13} /> New in the library
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {recentVideos.map((v) => (
+                      <VideoCard key={`new-${v.id}`} video={v} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* everything empty → one combined helpful state */}
+              {!loadError && featured.length === 0 && communityReels.length === 0 && recentVideos.length === 0 && (
+                <EmptyLibrary
+                  icon={MonitorPlay}
+                  title="Nothing to watch yet"
+                  body="Featured movies, new library videos and community reels will appear here as soon as they're available. Members can share a reel from the Create flow."
+                />
+              )}
+            </>
+          )}
+
           {/* ───────────── REELS ───────────── */}
           {tab === "reels" && (
             <>
@@ -329,8 +450,9 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
             </>
           )}
 
-          {/* library hint when everything relevant is empty */}
-          {!loadError && tab !== "reels" && videos.length === 0 && (
+          {/* library hint on the curated tabs when the library is empty
+              (For You carries its own combined empty state) */}
+          {!loadError && (tab === "bible" || tab === "christian") && videos.length === 0 && (
             <a
               href="/videos"
               className="mt-4 flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-4 py-3 text-sm text-[#94A3B8] hover:border-[#7C3AED]/40"

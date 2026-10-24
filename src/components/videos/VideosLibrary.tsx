@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clapperboard, Search, ChevronLeft, BookOpen, PlayCircle } from "lucide-react";
+import { Clapperboard, Search, ChevronLeft, BookOpen, PlayCircle, TriangleAlert } from "lucide-react";
 import VideoCard, { type VideoCardData } from "./VideoCard";
 import {
   VIDEO_CATEGORIES,
@@ -41,6 +41,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [me, setMe] = useState<Me>(null);
   const nextCursor = useRef<string | null>(null);
   const passageScoped = Boolean(initialBook);
@@ -70,11 +71,15 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
         if (initialChapter) params.set("chapter", String(initialChapter));
         if (cursor) params.set("cursor", cursor);
         const res = await fetch(`/api/videos?${params.toString()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data: LibraryResponse = await res.json();
         setVideos((prev) => (cursor ? [...prev, ...(data.videos || [])] : data.videos || []));
         nextCursor.current = data.nextCursor || null;
+        setLoadError(false);
       } catch {
-        // network hiccup — keep what we have
+        // Keep whatever is already rendered; if the FIRST page never arrived,
+        // surface a retry state instead of a misleading "no videos" message.
+        setLoadError(true);
       } finally {
         setLoading(false);
         setLoaded(true);
@@ -262,7 +267,22 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
             <p className="text-xs text-[#94A3B8]">Loading videos…</p>
           </div>
         )}
-        {loaded && !loading && videos.length === 0 && (
+        {loaded && !loading && videos.length === 0 && loadError && (
+          <div className="flex flex-col items-center justify-center py-14 gap-3">
+            <TriangleAlert size={32} className="text-[#F59E0B]" />
+            <p className="text-sm font-bold text-[#94A3B8]">Couldn&apos;t load the library</p>
+            <p className="text-xs text-[#64748B] max-w-xs mx-auto">
+              Check your connection and try again.
+            </p>
+            <button
+              onClick={() => load()}
+              className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {loaded && !loading && videos.length === 0 && !loadError && (
           <div className="text-center py-14">
             <PlayCircle size={36} className="mx-auto text-[#4B5563] mb-3" />
             <p className="text-sm font-bold text-[#94A3B8]">No videos found</p>
