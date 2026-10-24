@@ -66,20 +66,11 @@ export function useSupabaseUser() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user);
       if (user) {
-        try {
-          const res = await fetch("/api/auth/me", { cache: "no-store" });
-          if (res.ok) {
-            const text = await res.text();
-            if (text) {
-              const data = JSON.parse(text);
-              setRole(data.role || "user");
-              setPoints(data.totalPoints || 0);
-              setProfileCompleted(data.profileCompleted ?? false);
-            }
-          }
-        } catch {
-          // ignore — role defaults to "user"
-        }
+        // Populate role/points AND identity (name/username/avatar) — the
+        // header must show the saved identity on every fresh page load,
+        // not just after a profile edit (fixes the "Member" fallback
+        // reappearing on reload).
+        await refetchProfile();
       }
       setLoading(false);
     });
@@ -87,27 +78,20 @@ export function useSupabaseUser() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        try {
-          const res = await fetch("/api/auth/me", { cache: "no-store" });
-          if (res.ok) {
-            const data = await res.json();
-            setRole(data.role || "user");
-            setPoints(data.totalPoints || 0);
-            setProfileCompleted(data.profileCompleted ?? false);
-          }
-        } catch {
-          // ignore
-        }
+        await refetchProfile();
       } else {
         setRole(null);
         setPoints(0);
         setProfileCompleted(false);
+        setUsername(null);
+        setDisplayName(null);
+        setAvatarUrl(null);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [refetchProfile]);
 
   // Profile edits anywhere in the app → refetch here so all consumers update.
   useEffect(() => {
