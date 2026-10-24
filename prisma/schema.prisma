@@ -903,8 +903,19 @@ model Event {
   createdById     String?  // references User.id (nullable for legacy/seed data)
   createdByEmail  String?  // captured at submission time (in case user is later deleted)
 
+  // ─── GROUP EVENTS (2026-10) ───
+  // Events created inside a group reuse THIS table (no duplicate event store).
+  // groupId null → submitted via the public/regular flow. groupVisibility
+  // controls who sees a group event: "public" events from public groups are
+  // also eligible for the main Events section; "members" events are visible
+  // to group members only. Private groups always force "members".
+  groupId         String?
+  groupVisibility String @default("public") // "public" | "members"
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([startDate])
@@ -912,6 +923,7 @@ model Event {
   @@index([category])
   @@index([featured])
   @@index([createdById])
+  @@index([groupId])
 }
 
 // ─── CHURCHES ───────────────────────────────────────────────────────────────
@@ -971,6 +983,9 @@ model Church {
 
   // Cosmetic — number of followers (display only, not used for auth)
   followersCount  Int      @default(0)
+
+  // Groups affiliated with this church (display-only link, see Group.churchId)
+  groups          Group[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -1396,6 +1411,29 @@ model Group {
   category      String   @default("fellowship") // youth | bible-study | prayer | worship | entrepreneurs | church | fellowship
   visibility    String   @default("public")     // public | private
   coverGradient Int      @default(0)            // 0-7, gradient fallback for the cover
+
+  // ─── COMMUNITY UPGRADE (2026-10) — additive, nullable where possible ────
+  coverImage  String?  // group cover photo (Supabase Storage public URL)
+  logoUrl     String?  // group profile picture (Supabase Storage public URL)
+  city        String?
+  state       String?
+  language    String?  // preferred language for group activity
+  // joinMode controls who can join PUBLIC groups: "open" joins instantly,
+  // "approval" creates a pending request. PRIVATE groups always require
+  // owner approval regardless of joinMode.
+  joinMode    String   @default("open") // "open" | "approval"
+  memberPostPermission String @default("members") // "members" | "admins" — who may publish posts
+  rules       String?  // group rules (free text, shown on the About tab)
+  pinnedPostId String? // pinned announcement shown atop the Posts tab
+
+  // Church affiliation. Linking is DISPLAY-ONLY: it grants NO permissions on
+  // the group to church staff and NO permissions on the church to the group.
+  // churchVerified marks an OFFICIAL affiliation and is set exclusively by
+  // platform administrators — group managers can never self-badge.
+  churchId    String?
+  churchName  String?  // display snapshot at link time (church may be renamed)
+  churchVerified Boolean @default(false)
+
   createdById   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1403,13 +1441,17 @@ model Group {
   createdBy User          @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
   members   GroupMember[]
   posts     Post[]
+  church    Church?       @relation(fields: [churchId], references: [id], onDelete: SetNull)
+  events    Event[]
 
   @@index([category])
   @@index([createdAt])
+  @@index([churchId])
 }
 
-// Group membership. status: "active" | "pending" (private-group join request).
-// role: "owner" | "member" (invite-only groups and group admins are future work).
+// Group membership. status: "active" | "pending" (private/approval join request).
+// role: "owner" (creator, full control) | "admin" (settings + members) |
+// "moderator" (approve requests, remove members, moderate posts) | "member".
 model GroupMember {
   id        String   @id @default(cuid())
   groupId   String

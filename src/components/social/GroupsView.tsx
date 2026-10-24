@@ -5,15 +5,17 @@
  * (Youth Fellowship, Bible Study, Prayer Partners, Worship Teams,
  * Christian Entrepreneurs, Church Communities…).
  *
+ * Creation uses the shared GroupForm (cover image, logo, category,
+ * city/state/language, visibility + join mode, optional church link, rules).
  * Reads /api/social/groups and degrades to the normal empty state while the
  * Round-2 tables are not created yet.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Lock, Plus, Search, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, Lock, MapPin, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "./types";
-import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
+import GroupForm, { type GroupFormValue } from "./GroupForm";
 
 type Group = {
   id: string;
@@ -22,6 +24,11 @@ type Group = {
   category: string;
   visibility: "public" | "private" | string;
   coverGradient: number;
+  coverImage?: string | null;
+  logoUrl?: string | null;
+  city?: string | null;
+  state?: string | null;
+  joinMode?: string;
   memberCount: number;
   createdByName: string | null;
   myMembership: string | null;
@@ -63,8 +70,6 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", category: "fellowship", visibility: "public" });
-  const groupDescRef = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,18 +98,16 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
     return () => clearTimeout(t);
   }, [load, q]);
 
-  async function createGroup() {
-    if (form.name.trim().length < 3 || creating) return;
+  async function createGroup(v: GroupFormValue) {
+    if (v.name.trim().length < 3 || creating) return;
     setCreating(true);
     try {
       const d = await api<{ group: { id: string } }>("/api/social/groups", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(v),
       });
       toast.success("Group created — welcome your first members!");
       setShowForm(false);
-      setForm({ name: "", description: "", category: "fellowship", visibility: "public" });
       onOpenGroup(d.group.id);
     } catch (err) {
       toast.error((err as Error).message || "Could not create the group");
@@ -121,9 +124,23 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         className="w-full text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
       >
         <div className={`relative h-16 bg-gradient-to-br ${grad} flex items-center px-3`}>
-          <span className="w-9 h-9 rounded-xl bg-black/40 backdrop-blur-sm flex items-center justify-center text-white font-extrabold">
-            {g.name.charAt(0).toUpperCase()}
-          </span>
+          {g.coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={g.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/40 to-transparent ${g.coverImage ? "" : "hidden"}`} />
+          {g.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={g.logoUrl}
+              alt=""
+              className="relative w-9 h-9 rounded-xl object-cover border-2 border-white/30"
+            />
+          ) : (
+            <span className="relative w-9 h-9 rounded-xl bg-black/40 backdrop-blur-sm flex items-center justify-center text-white font-extrabold">
+              {g.name.charAt(0).toUpperCase()}
+            </span>
+          )}
           {g.visibility === "private" && (
             <Lock size={12} className="absolute top-2 right-2 text-white/80" />
           )}
@@ -133,13 +150,18 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
           <p className="text-[11px] text-[#94A3B8] line-clamp-2 mt-0.5 min-h-[2em]">
             {g.description || "No description yet."}
           </p>
-          <div className="flex items-center justify-between mt-2">
+          {(g.city || g.state) && (
+            <p className="text-[10px] text-[#64748B] inline-flex items-center gap-1 mt-1">
+              <MapPin size={9} /> {[g.city, g.state].filter(Boolean).join(", ")}
+            </p>
+          )}
+          <div className="flex items-center justify-between mt-1.5">
             <span className="text-[10px] font-bold text-[#64748B] inline-flex items-center gap-1">
               <Users size={10} /> {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
             </span>
             {g.myMembership === "active" ? (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${g.myRole === "owner" ? "bg-amber-500/15 text-amber-300" : "bg-[#7C3AED]/20 text-[#C4B5FD]"}`}>
-                {g.myRole === "owner" ? "Owner" : "Joined"}
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${g.myRole === "owner" ? "bg-amber-500/15 text-amber-300" : g.myRole === "admin" ? "bg-[#7C3AED]/20 text-[#C4B5FD]" : g.myRole === "moderator" ? "bg-sky-500/15 text-sky-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
+                {g.myRole === "owner" ? "Owner" : g.myRole === "admin" ? "Admin" : g.myRole === "moderator" ? "Mod" : "Joined"}
               </span>
             ) : g.myMembership === "pending" ? (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8]">Requested</span>
@@ -168,62 +190,13 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
       </div>
 
       {showForm && (
-        <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4 mb-4 space-y-3">
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            maxLength={60}
-            placeholder="Group name (e.g. Youth Fellowship Bengaluru)"
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+        <div className="mb-4">
+          <GroupForm
+            mode="create"
+            submitting={creating}
+            onSubmit={createGroup}
+            onCancel={() => setShowForm(false)}
           />
-          <textarea
-            ref={groupDescRef}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            maxLength={500}
-            rows={2}
-            placeholder="What is this group about?"
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none resize-none focus:border-[#7C3AED]/50"
-          />
-          <div className="flex items-center">
-            <EmojiPickerButton
-              align="left"
-              onPick={(e) =>
-                insertAtCursor(groupDescRef.current, e, (v) => setForm((f) => ({ ...f, description: v })), 500)
-              }
-            />
-          </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {CATEGORIES.filter((c) => c.id !== "All").map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setForm({ ...form, category: c.id })}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
-                  form.category === c.id
-                    ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]"
-                    : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setForm({ ...form, visibility: form.visibility === "public" ? "private" : "public" })}
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#94A3B8] hover:text-white"
-            >
-              <Lock size={12} />
-              {form.visibility === "public" ? "Public — anyone can join" : "Private — owner approves members"}
-            </button>
-            <button
-              onClick={createGroup}
-              disabled={form.name.trim().length < 3 || creating}
-              className="px-5 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
-            >
-              {creating ? "Creating…" : "Create group"}
-            </button>
-          </div>
         </div>
       )}
 

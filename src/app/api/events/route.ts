@@ -36,6 +36,10 @@ export async function GET(req: NextRequest) {
       const where: any = {
         // CRITICAL: only PUBLISHED events are publicly visible
         status: "PUBLISHED",
+        // Group events: only "public" ones are eligible for the main Events
+        // section. Members-only group events NEVER leak into this listing —
+        // they are visible exclusively through the group's Events tab.
+        OR: [{ groupId: null }, { groupVisibility: "public" }],
         ...(state ? { state } : {}),
         ...(city ? { city } : {}),
         ...(category ? { category } : {}),
@@ -45,13 +49,19 @@ export async function GET(req: NextRequest) {
       // Free-text search — case-insensitive contains on the fields people
       // actually look for (mirrors the churches directory search).
       if (q) {
-        where.OR = [
-          { title: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-          { city: { contains: q, mode: "insensitive" } },
-          { state: { contains: q, mode: "insensitive" } },
-          { venueName: { contains: q, mode: "insensitive" } },
-          { category: { contains: q, mode: "insensitive" } },
+        // AND (not OR) here so the search condition composes with the
+        // group-visibility OR filter above instead of overwriting it.
+        where.AND = [
+          {
+            OR: [
+              { title: { contains: q, mode: "insensitive" } },
+              { description: { contains: q, mode: "insensitive" } },
+              { city: { contains: q, mode: "insensitive" } },
+              { state: { contains: q, mode: "insensitive" } },
+              { venueName: { contains: q, mode: "insensitive" } },
+              { category: { contains: q, mode: "insensitive" } },
+            ],
+          },
         ];
       }
       events = await db.event.findMany({
@@ -131,6 +141,10 @@ export async function GET(req: NextRequest) {
  *
  * Required fields: title, description, startDate, category, eventType, location
  * (location is auto-derived from venueName + address + city + state if not provided)
+ *
+ * Group events: pass groupId (+ optional groupVisibility: "public" |
+ * "members"). The creator must be an active member of that group — enforced
+ * server-side. Private groups always force members-only visibility.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -196,6 +210,39 @@ export async function POST(req: NextRequest) {
     // ─── Languages (JSON array stored as string) ───
     const languages = Array.isArray(body.languages) ? body.languages : [];
 
+    // ─── Group events (reuse the EXISTING event table — no duplicate store) ───
+    // Server-enforced: the creator must be an ACTIVE member of the group.
+    // Private groups always force members-only visibility; public groups
+    // honour the requested visibility.
+    let groupId: string | null = null;
+    let groupVisibility = "public";
+    if (body.groupId) {
+      if (typeof body.groupId !== "string") {
+        return NextResponse.json({ error: "Invalid group reference." }, { status: 400 });
+      }
+      const group = await db.group.findUnique({
+        where: { id: body.groupId },
+        select: { id: true, visibility: true, name: true },
+      }).catch(() => null);
+      if (!group) {
+        return NextResponse.json({ error: "That group isn't available." }, { status: 400 });
+      }
+      const membership = await db.groupMember.findUnique({
+        where: { groupId_userId: { groupId: group.id, userId: user.id } },
+        select: { status: true },
+      }).catch(() => null);
+      if (!membership || membership.status !== "active") {
+        return NextResponse.json({ error: "Join the group before creating events in it." }, { status: 403 });
+      }
+      groupId = group.id;
+      groupVisibility =
+        group.visibility === "private"
+          ? "members"
+          : body.groupVisibility === "members"
+            ? "members"
+            : "public";
+    }
+
     // ─── Insert into DB with status=PENDING ───
     const event = await db.event.create({
       data: {
@@ -232,6 +279,8 @@ export async function POST(req: NextRequest) {
         // CRITICAL: user-submitted events always start as PENDING
         status: "PENDING",
         featured: false,
+        groupId,
+        groupVisibility,
         createdById: user.id,
         createdByEmail: user.email,
       },

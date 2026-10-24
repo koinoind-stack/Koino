@@ -63,6 +63,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [openChurch, setOpenChurch] = useState<Church | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  // Groups affiliated with the currently-open church (community upgrade).
+  const [churchGroups, setChurchGroups] = useState<
+    Array<{ id: string; name: string; description: string | null; category: string; coverGradient: number; logoUrl: string | null; city: string | null; state: string | null; churchVerified: boolean; memberCount: number }>
+  >([]);
+  const [churchGroupsLoading, setChurchGroupsLoading] = useState(false);
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -129,6 +134,31 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   useEffect(() => {
     loadChurches();
   }, []);
+
+  // Affiliated groups for the open church — public groups only, from the
+  // dedicated public endpoint (no private group data ever reaches here).
+  useEffect(() => {
+    if (!openChurch) {
+      setChurchGroups([]);
+      return;
+    }
+    let cancelled = false;
+    setChurchGroupsLoading(true);
+    fetch(`/api/churches/${openChurch.id}/groups`)
+      .then((r) => (r.ok ? r.json() : { groups: [] }))
+      .then((d) => {
+        if (!cancelled) setChurchGroups(d.groups || []);
+      })
+      .catch(() => {
+        if (!cancelled) setChurchGroups([]);
+      })
+      .finally(() => {
+        if (!cancelled) setChurchGroupsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openChurch]);
 
   const filtered = useMemo(() => {
     return churches.filter((c) => {
@@ -732,24 +762,61 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   </div>
                 )}
 
-                {/* GROUPS — placeholder section for the future Groups feature.
-                    The architecture (Prisma Group + GroupMember models, /api/groups,
-                    /api/groups/[id]/join) is intentionally NOT built yet — per spec,
-                    "Do not overengineer this now." This section surfaces the
-                    intent to users so they know Groups are coming. */}
+                {/* GROUPS — real affiliated groups (community upgrade).
+                    Display-only: this proves nothing about authorisation —
+                    the official badge is the admin-controlled churchVerified
+                    flag, and linking never grants church permissions. */}
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Groups</p>
-                  <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Users size={14} className="text-[#A855F7]" />
-                      <p className="text-xs font-bold text-white">Church Groups coming soon</p>
+                  {churchGroupsLoading ? (
+                    <div className="space-y-2">
+                      {[...Array(2)].map((_, i) => (
+                        <div key={i} className="h-14 rounded-xl bg-white/[0.04] animate-pulse" />
+                      ))}
                     </div>
-                    <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                      Youth · Young Adults · Men · Women · Families · Bible Study ·
-                      Prayer · Worship · Kids · Care / Support. Group discovery and
-                      join / leave will be available here.
-                    </p>
-                  </div>
+                  ) : churchGroups.length === 0 ? (
+                    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+                      <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                        No public groups from this church yet. Church members can create
+                        one from <span className="font-bold text-[#C4B5FD]">Groups &amp; Fellowship</span> in
+                        the app and link it to {openChurch.name}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {churchGroups.map((g) => (
+                        <a
+                          key={g.id}
+                          href={`/?view=group-detail&group=${g.id}`}
+                          className="flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-xl p-2.5 transition-colors"
+                        >
+                          {g.logoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={g.logoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <span
+                              className="w-9 h-9 rounded-lg shrink-0 inline-flex items-center justify-center text-white text-xs font-extrabold"
+                              style={{ background: CHURCH_GRADIENTS[Math.abs(g.coverGradient) % CHURCH_GRADIENTS.length] }}
+                            >
+                              {g.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="text-xs font-bold text-white flex items-center gap-1 truncate">
+                              {g.name}
+                              {g.churchVerified && <ShieldCheck size={11} className="text-[#38BDF8] shrink-0" />}
+                            </span>
+                            <span className="text-[10px] text-[#94A3B8] block truncate">
+                              {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
+                              {(g.city || g.state) && ` · ${[g.city, g.state].filter(Boolean).join(", ")}`}
+                              {" · "}{g.category.replace("-", " ")}
+                            </span>
+                          </span>
+                          <Users size={13} className="text-[#A855F7] shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {openChurch.whatsapp_number && (

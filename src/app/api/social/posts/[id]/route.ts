@@ -6,7 +6,9 @@ import { rateLimit } from "@/lib/social/rate-limit";
 /**
  * GET    /api/social/posts/[id]  — single post (with viewer flags)
  * PATCH  /api/social/posts/[id]  — edit caption (author only)
- * DELETE /api/social/posts/[id]  — delete own post (+ best-effort storage cleanup)
+ * DELETE /api/social/posts/[id]  — delete own post, or any group post when
+ *          the viewer is a manager (owner/admin/moderator) of the post's
+ *          group (+ best-effort storage cleanup)
  */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -71,10 +73,24 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
 
   const post = await db.post.findUnique({
     where: { id },
-    select: { authorId: true, mediaUrls: true, repostedFromId: true },
+    select: { authorId: true, mediaUrls: true, repostedFromId: true, groupId: true },
   });
   if (!post) return jsonError("Post not found", 404);
-  if (post.authorId !== session.user.id) return jsonError("You can only delete your own posts", 403);
+
+  // The author can always delete their own post. Group managers (owner,
+  // admin, moderator) can also moderate ANY post inside their group —
+  // verified server-side, never trusted from the client.
+  let isGroupManager = false;
+  if (!post.authorId || post.authorId !== session.user.id) {
+    if (post.groupId) {
+      const membership = await db.groupMember.findUnique({
+        where: { groupId_userId: { groupId: post.groupId, userId: session.user.id } },
+        select: { role: true, status: true },
+      });
+      isGroupManager = !!membership && membership.status === "active" && membership.role !== "member";
+    }
+    if (!isGroupManager) return jsonError("You can only delete your own posts", 403);
+  }
 
   try {
     await db.post.delete({ where: { id } });

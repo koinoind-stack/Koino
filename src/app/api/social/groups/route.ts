@@ -1,13 +1,17 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, jsonError } from "@/lib/social/server";
+import { isMissingSchema, parseGroupFields } from "@/lib/social/group-fields";
 
 /**
  * GET /api/social/groups — list groups for discovery.
  *   ?mine=1           → the viewer's groups (active + pending requests)
  *   ?category=<c>     → filter by category ("All" = everything)
  *   ?q=<search>       → search name/description
- * Degrades to { groups: [] } when the Round-2 tables are not created yet.
+ *   ?churchId=<id>    → groups affiliated with a church (public groups only
+ *                       when NOT ?mine — used by the church detail view)
+ * Degrades to { groups: [] } when the Round-2 tables/columns are not created
+ * yet (P2021 missing table / P2022 missing column during the migration window).
  */
 export async function GET(req: NextRequest) {
   const session = await getSessionUser();
@@ -18,11 +22,13 @@ export async function GET(req: NextRequest) {
   const mine = searchParams.get("mine") === "1";
   const category = searchParams.get("category");
   const q = searchParams.get("q")?.trim();
+  const churchId = searchParams.get("churchId")?.trim();
 
   const where: Record<string, unknown> = {};
   if (category && category !== "All") where.category = category;
   if (q) where.OR = [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }];
   if (mine) where.members = { some: { userId: me } };
+  if (churchId) where.churchId = churchId;
 
   try {
     const rows = await db.group.findMany({
@@ -36,6 +42,12 @@ export async function GET(req: NextRequest) {
         category: true,
         visibility: true,
         coverGradient: true,
+        coverImage: true,
+        logoUrl: true,
+        city: true,
+        state: true,
+        language: true,
+        joinMode: true,
         createdAt: true,
         createdBy: { select: { name: true, username: true } },
         _count: { select: { members: { where: { status: "active" } } } },
@@ -55,7 +67,7 @@ export async function GET(req: NextRequest) {
     }));
     return Response.json({ groups });
   } catch (err) {
-    if (isMissingTable(err)) return Response.json({ groups: [] });
+    if (isMissingSchema(err)) return Response.json({ groups: [] });
     console.error("[social/groups] GET failed:", err);
     return jsonError("Failed to load groups", 500);
   }
@@ -63,7 +75,8 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/social/groups — create a group. Creator becomes owner (active).
- * Body: { name, description?, category?, visibility? }
+ * Body: { name, description?, category?, visibility?, joinMode?, coverImage?,
+ *         logoUrl?, city?, state?, language?, rules?, churchId? }
  */
 export async function POST(req: NextRequest) {
   const session = await getSessionUser();
@@ -90,6 +103,11 @@ export async function POST(req: NextRequest) {
   const CATEGORIES = ["youth", "bible-study", "prayer", "worship", "entrepreneurs", "church", "fellowship"];
   const category = CATEGORIES.includes(String(body.category)) ? String(body.category) : "fellowship";
   const visibility = body.visibility === "private" ? "private" : "public";
+  // Private groups always need owner approval; public groups honour joinMode.
+  const joinMode = body.joinMode === "approval" ? "approval" : "open";
+
+  const parsed = await parseGroupFields(body);
+  if (parsed.error) return jsonError(parsed.error, parsed.status);
 
   try {
     const group = await db.group.create({
@@ -98,6 +116,8 @@ export async function POST(req: NextRequest) {
         description,
         category,
         visibility,
+        joinMode: visibility === "private" ? "approval" : joinMode,
+        ...parsed.data,
         createdById: me.id,
         members: { create: { userId: me.id, role: "owner", status: "active" } },
       },
@@ -108,15 +128,10 @@ export async function POST(req: NextRequest) {
     });
     return Response.json({ group }, { status: 201 });
   } catch (err) {
-    if (isMissingTable(err)) return jsonError("Groups are being set up — try again soon", 503);
+    if (isMissingSchema(err)) return jsonError("Groups are being set up — try again soon", 503);
     console.error("[social/groups] POST failed:", err);
     return jsonError("Failed to create group", 500);
   }
-}
-
-function isMissingTable(err: unknown): boolean {
-  const e = err as { code?: string; message?: string };
-  return e?.code === "P2021" || /does not exist/i.test(e?.message || "");
 }
 
 // The rate limiter is in-memory on serverless instances; never let it break

@@ -34,6 +34,10 @@ type Props = {
   onOpenReel?: (post: Post) => void;
   onChanged?: () => void;
   compact?: boolean;
+  /** Group managers (owner/admin/moderator) can delete any post in their
+   *  group — the server re-verifies the role on DELETE, this only controls
+   *  whether the menu shows the option. */
+  canModerate?: boolean;
 };
 
 /**
@@ -49,6 +53,7 @@ export default function PostCard({
   onOpenReel,
   onChanged,
   compact,
+  canModerate = false,
 }: Props) {
   const [state, setState] = useState<Post>(post);
   const [mediaIndex, setMediaIndex] = useState(0);
@@ -193,7 +198,7 @@ export default function PostCard({
 
   const isMine = shown.author.id === state.author.id && !!state.content || editing === false && (state.author.username === shown.author.username && shown.author.id === state.author.id);
   const canEdit = state.repostedFrom === null && shown.author.id === state.author.id;
-  const canDelete = canEdit;
+  const canDelete = canEdit || canModerate;
 
   return (
     <article className={`bg-[#111827]/60 border border-white/[0.05] rounded-2xl overflow-hidden ${compact ? "" : "mb-4"}`}>

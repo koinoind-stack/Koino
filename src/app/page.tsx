@@ -329,6 +329,15 @@ export default function Home() {
     const deepUser = params.get("user");
     const deepReel = params.get("reel");
     const deepHashtag = params.get("hashtag");
+    const deepGroup = params.get("group");
+
+    // Group invite links (community upgrade): /?view=group-detail&group=<id>
+    if (deepView === "group-detail" && deepGroup) {
+      setSelectedGroupId(deepGroup);
+      navigate("group-detail");
+      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+      return;
+    }
 
     // Social deep links (Task 50): ?post= ?user= ?reel= ?hashtag=
     if (deepPost) setDetailPostId(deepPost);
