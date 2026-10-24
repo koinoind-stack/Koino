@@ -19,10 +19,11 @@ type FeedEvent = {
   location: string;
   category: string;
   eventType: string;
-  startDate: string;
+  /** /api/events serializes startDate as `date` (ISO string). */
+  date: string;
   ticketUrl: string | null;
-  coverImage: string | null;
-  coverGradient: number;
+  cover_image: string | null;
+  cover_gradient: number;
 };
 
 type Props = {
@@ -67,19 +68,19 @@ export default function EventRail({ onOpenEvents }: Props) {
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1.5">
         {events.map((ev) => {
-          const date = new Date(ev.startDate);
+          const date = new Date(ev.date);
           const day = date.toLocaleDateString("en-IN", { day: "numeric" });
           const month = date.toLocaleDateString("en-IN", { month: "short" });
-          const grad = GRADIENTS[Math.abs(ev.coverGradient ?? 0) % GRADIENTS.length];
+          const grad = GRADIENTS[Math.abs(ev.cover_gradient ?? 0) % GRADIENTS.length];
           return (
             <div
               key={ev.id}
               className="shrink-0 w-[230px] rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
             >
               <div className={`relative h-20 bg-gradient-to-br ${grad}`}>
-                {ev.coverImage ? (
+                {ev.cover_image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={ev.coverImage} alt="" className="w-full h-full object-cover" />
+                  <img src={ev.cover_image} alt="" className="w-full h-full object-cover" />
                 ) : null}
                 <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-center leading-none">
                   <div className="text-sm font-extrabold text-white">{day}</div>

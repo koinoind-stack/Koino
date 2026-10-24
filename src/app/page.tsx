@@ -652,6 +652,7 @@ export default function Home() {
                   onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
                   onHashtag={(tag) => setExploreHashtag(tag || null)}
                   initialHashtag={exploreHashtag}
+                  onNavigate={(v) => goView(v as View)}
                 />
               )}
               {view === "reels" && (

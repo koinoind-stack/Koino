@@ -17,6 +17,7 @@ import { db } from "@/lib/db";
  *   ?category=worship  — filter by category
  *   ?online=1          — only online events (eventType='online' or 'hybrid')
  *   ?featured=1        — only featured events
+ *   ?q=text            — search title/description/city/state/venue/category
  *
  * Sorted by startDate ascending (upcoming first).
  */
@@ -28,19 +29,33 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get("category") || undefined;
     const onlineOnly = searchParams.get("online") === "1";
     const featuredOnly = searchParams.get("featured") === "1";
+    const q = searchParams.get("q")?.trim() || undefined;
 
     let events: any[] = [];
     try {
+      const where: any = {
+        // CRITICAL: only PUBLISHED events are publicly visible
+        status: "PUBLISHED",
+        ...(state ? { state } : {}),
+        ...(city ? { city } : {}),
+        ...(category ? { category } : {}),
+        ...(onlineOnly ? { isOnline: true } : {}),
+        ...(featuredOnly ? { featured: true } : {}),
+      };
+      // Free-text search — case-insensitive contains on the fields people
+      // actually look for (mirrors the churches directory search).
+      if (q) {
+        where.OR = [
+          { title: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { city: { contains: q, mode: "insensitive" } },
+          { state: { contains: q, mode: "insensitive" } },
+          { venueName: { contains: q, mode: "insensitive" } },
+          { category: { contains: q, mode: "insensitive" } },
+        ];
+      }
       events = await db.event.findMany({
-        where: {
-          // CRITICAL: only PUBLISHED events are publicly visible
-          status: "PUBLISHED",
-          ...(state ? { state } : {}),
-          ...(city ? { city } : {}),
-          ...(category ? { category } : {}),
-          ...(onlineOnly ? { isOnline: true } : {}),
-          ...(featuredOnly ? { featured: true } : {}),
-        },
+        where,
         orderBy: [{ featured: "desc" }, { startDate: "asc" }],
       });
     } catch (dbError: any) {
