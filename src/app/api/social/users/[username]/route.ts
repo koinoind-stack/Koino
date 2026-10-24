@@ -28,6 +28,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
       city: true,
       verified: true,
       createdAt: true,
+      website: true,
+      instagram: true,
+      youtube: true,
+      facebook: true,
+      twitter: true,
     },
   });
   if (!user) return jsonError("User not found", 404);
@@ -107,6 +112,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
       city: user.city,
       verified: !!user.verified,
       createdAt: user.createdAt.toISOString(),
+      website: user.website,
+      instagram: user.instagram,
+      youtube: user.youtube,
+      facebook: user.facebook,
+      twitter: user.twitter,
     },
     counters: { followers, following, posts: postCount },
     isSelf,

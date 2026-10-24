@@ -9,6 +9,11 @@ import {
   Loader2,
   Check,
   AlertTriangle,
+  Globe,
+  Instagram,
+  Youtube,
+  Facebook,
+  Twitter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, type SocialUser } from "@/components/social/types";
@@ -26,6 +31,11 @@ type ProfileData = {
   gender: string | null;
   dateOfBirth: string | null;
   usernameChangedAt: string | null;
+  website: string | null;
+  instagram: string | null;
+  youtube: string | null;
+  facebook: string | null;
+  twitter: string | null;
 };
 
 const INDIAN_STATES = [
@@ -59,6 +69,13 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
 
+  // social / website links (stored server-side as normalized https URLs)
+  const [website, setWebsite] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [twitter, setTwitter] = useState("");
+
   // avatar
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -82,6 +99,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         setCity(data.city || "");
         setGender(data.gender || "");
         setDob(data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : "");
+        setWebsite(data.website || "");
+        setInstagram(data.instagram || "");
+        setYoutube(data.youtube || "");
+        setFacebook(data.facebook || "");
+        setTwitter(data.twitter || "");
         if (data.usernameChangedAt) {
           const next = new Date(
             new Date(data.usernameChangedAt).getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
@@ -190,6 +212,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
       const currentDob = profile?.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
       if (dob !== currentDob) body.dateOfBirth = dob || null;
       if (imageUrl !== undefined) body.image = imageUrl;
+      if (website.trim() !== (profile?.website || "")) body.website = website.trim();
+      if (instagram.trim() !== (profile?.instagram || "")) body.instagram = instagram.trim();
+      if (youtube.trim() !== (profile?.youtube || "")) body.youtube = youtube.trim();
+      if (facebook.trim() !== (profile?.facebook || "")) body.facebook = facebook.trim();
+      if (twitter.trim() !== (profile?.twitter || "")) body.twitter = twitter.trim();
 
       if (Object.keys(body).length > 0) {
         await api("/api/profile", { method: "PATCH", body: JSON.stringify(body) });
@@ -322,6 +349,19 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
           />
         </Field>
 
+        <Field label="Social links">
+          <div className="space-y-2.5">
+            <LinkInput icon={Globe} label="Website" value={website} onChange={setWebsite} placeholder="yourwebsite.com" />
+            <LinkInput icon={Instagram} label="Instagram" value={instagram} onChange={setInstagram} placeholder="@yourhandle" />
+            <LinkInput icon={Youtube} label="YouTube" value={youtube} onChange={setYoutube} placeholder="@yourchannel" />
+            <LinkInput icon={Facebook} label="Facebook" value={facebook} onChange={setFacebook} placeholder="facebook.com/yourpage" />
+            <LinkInput icon={Twitter} label="X (Twitter)" value={twitter} onChange={setTwitter} placeholder="@yourhandle" />
+          </div>
+          <p className="text-[11px] mt-1.5 text-[#64748B]">
+            Paste a link or type your @handle — leave blank to hide. Links show on your public profile.
+          </p>
+        </Field>
+
         <div className="grid grid-cols-2 gap-3">
           <Field label="State">
             <select value={state_} onChange={(e) => { setState(e.target.value); setCity(""); }} className={inputCls}>
@@ -376,6 +416,34 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
 
 const inputCls =
   "w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]";
+
+function LinkInput({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative">
+      <Icon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={200}
+        placeholder={placeholder}
+        aria-label={label}
+        className={`${inputCls} pl-10`}
+      />
+    </div>
+  );
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

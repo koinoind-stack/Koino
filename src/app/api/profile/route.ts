@@ -18,6 +18,13 @@ import { db } from "@/lib/db";
  *                     subject to a 30-day change cooldown tracked on
  *                     User.usernameChangedAt — initial onboarding setup
  *                     is NOT counted, only subsequent changes)
+ *   - website, instagram, youtube, facebook, twitter
+ *                     (public links — accepts a pasted URL or a bare
+ *                     @handle, normalizes to a full https URL; hostname
+ *                     must match the platform for the social fields;
+ *                     empty string clears the field. Requires migration
+ *                     20261024000000_add_user_social_links — already
+ *                     applied to production by hand.)
  *
  * Ownership: the session user is always the target user — there is no
  * user-id parameter, so no IDOR surface exists.
@@ -43,6 +50,11 @@ export async function GET() {
       usernameChangedAt: true,
       profileCompleted: true,
       createdAt: true,
+      website: true,
+      instagram: true,
+      youtube: true,
+      facebook: true,
+      twitter: true,
     },
   });
   if (!user) {
@@ -53,6 +65,53 @@ export async function GET() {
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 const USERNAME_COOLDOWN_DAYS = 30;
+
+// ─── social / website links ───
+// Accepts what users actually paste: "https://x.com/foo", "x.com/foo",
+// "@foo" or "foo" — and stores ONE canonical https URL per field.
+const LINK_FIELDS = ["website", "instagram", "youtube", "facebook", "twitter"] as const;
+const LINK_MAX_LENGTH = 200;
+const SOCIAL_HANDLE_RE = /^[A-Za-z0-9._-]{1,30}$/;
+const SOCIAL_HOST_RE: Record<Exclude<(typeof LINK_FIELDS)[number], "website">, RegExp> = {
+  instagram: /(^|\.)instagram\.com$/i,
+  youtube: /(^|\.)(youtube\.com|youtu\.be)$/i,
+  facebook: /(^|\.)(facebook\.com|fb\.com|fb\.me)$/i,
+  twitter: /(^|\.)(twitter\.com|x\.com)$/i,
+};
+const SOCIAL_HANDLE_URL: Record<Exclude<(typeof LINK_FIELDS)[number], "website">, (h: string) => string> = {
+  instagram: (h) => `https://www.instagram.com/${h}/`,
+  youtube: (h) => `https://www.youtube.com/@${h}`,
+  facebook: (h) => `https://www.facebook.com/${h}/`,
+  twitter: (h) => `https://x.com/${h}`,
+};
+
+/** Normalizes a pasted link; null = invalid (caller returns 400). */
+function normalizeLink(field: (typeof LINK_FIELDS)[number], raw: string): string | null {
+  let v = raw.trim();
+  if (!v || v.length > LINK_MAX_LENGTH || /\s/.test(v)) return null;
+
+  // Bare handle for social fields: "@foo" / "foo" (no dot-slash path).
+  if (field !== "website" && !/^https?:\/\//i.test(v) && !v.includes("/")) {
+    const handle = v.replace(/^@/, "");
+    if (!SOCIAL_HANDLE_RE.test(handle)) return null;
+    return SOCIAL_HANDLE_URL[field](handle);
+  }
+
+  // URL-shaped input — add the protocol users routinely omit, then parse.
+  if (!/^https?:\/\//i.test(v)) v = `https://${v}`;
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  if (!u.hostname || !u.hostname.includes(".")) return null;
+  // Social fields must point at their platform (blocks mis-pasted links).
+  if (field !== "website" && !SOCIAL_HOST_RE[field].test(u.hostname)) return null;
+  const out = u.toString();
+  return out.length <= LINK_MAX_LENGTH ? out : null;
+}
 
 function usernameChangeState(usernameChangedAt: Date | null | undefined) {
   if (!usernameChangedAt) {
@@ -161,6 +220,25 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // ─── social / website links (normalized server-side) ───
+  for (const f of LINK_FIELDS) {
+    if (body[f] !== undefined) {
+      const raw = typeof body[f] === "string" ? (body[f] as string).trim() : "";
+      if (!raw) {
+        data[f] = null; // empty string clears the link
+        continue;
+      }
+      const norm = normalizeLink(f, raw);
+      if (!norm) {
+        return NextResponse.json(
+          { error: `Invalid ${f} link`, code: "INVALID_LINK" },
+          { status: 400 },
+        );
+      }
+      data[f] = norm;
+    }
+  }
+
   // ─── username (cooldown + uniqueness enforced SERVER-side) ───
   if (body.username !== undefined) {
     const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
@@ -224,6 +302,11 @@ export async function PATCH(req: NextRequest) {
         gender: true,
         dateOfBirth: true,
         usernameChangedAt: true,
+        website: true,
+        instagram: true,
+        youtube: true,
+        facebook: true,
+        twitter: true,
       },
     });
     return NextResponse.json(updated);

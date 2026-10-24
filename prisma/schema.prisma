@@ -53,6 +53,15 @@ model User {
   bio              String?  // short public bio shown on the profile — max 500 chars, enforced server-side
   usernameChangedAt DateTime? // last time the username was changed — enforces the 30-day cooldown (null = never changed since signup)
 
+  // ─── PROFILE SOCIAL LINKS ───
+  // Public "paste your links" fields — stored as normalized https URLs
+  // (server normalizes @handles to full URLs; empty/null = hidden).
+  website   String? // personal/ministry website — any http(s) host
+  instagram String? // https://(www.)instagram.com/<handle>/
+  youtube   String? // https://youtube.com/@handle or /channel/… or youtu.be
+  facebook  String? // https://(www.)facebook.com/<handle>/ (fb.com aliases ok)
+  twitter   String? // https://(twitter|x).com/<handle>
+
   // ─── ADMIN MEMBER MANAGEMENT ───
   accountStatus    String   @default("active") // "active" | "blocked" | "suspended" | "deactivated"
   moderationReason String?  // internal admin reason for blocking/suspending

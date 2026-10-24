@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, Play, BadgeCheck, MoreHorizontal, Flag, Ban } from "lucide-react";
+import { ArrowLeft, Play, BadgeCheck, MoreHorizontal, Flag, Ban, Globe, Instagram, Youtube, Facebook, Twitter } from "lucide-react";
 import { toast } from "sonner";
 import type { Post, SocialUser } from "./types";
 import { api } from "./types";
@@ -18,13 +18,49 @@ type Props = {
 };
 
 type ProfileData = {
-  user: SocialUser & { bio?: string | null; state?: string | null; city?: string | null; createdAt?: string };
+  user: SocialUser & {
+    bio?: string | null;
+    state?: string | null;
+    city?: string | null;
+    createdAt?: string;
+    website?: string | null;
+    instagram?: string | null;
+    youtube?: string | null;
+    facebook?: string | null;
+    twitter?: string | null;
+  };
   counters: { followers: number; following: number; posts: number };
   isSelf: boolean;
   viewerFollows: boolean;
   posts: Post[];
   nextCursor: string | null;
 };
+
+/** Profile link chips (public, under the bio). Order + labels + icons. */
+const PROFILE_LINKS: {
+  key: "website" | "instagram" | "youtube" | "facebook" | "twitter";
+  label: string;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+}[] = [
+  { key: "website", label: "Website", Icon: Globe },
+  { key: "instagram", label: "Instagram", Icon: Instagram },
+  { key: "youtube", label: "YouTube", Icon: Youtube },
+  { key: "facebook", label: "Facebook", Icon: Facebook },
+  { key: "twitter", label: "X (Twitter)", Icon: Twitter },
+];
+
+/** Short chip label from a stored link: hostname, or @handle for platforms. */
+function linkChipLabel(key: string, url: string): string {
+  try {
+    const u = new URL(url);
+    if (key === "website") return u.hostname.replace(/^www\./, "");
+    const parts = u.pathname.split("/").filter(Boolean);
+    const last = parts[parts.length - 1] || u.hostname;
+    return "@" + decodeURIComponent(last).replace(/^@/, "");
+  } catch {
+    return url.slice(0, 40);
+  }
+}
 
 /** Instagram-style profile: header, counters, Posts/Reels/Saved tabs, grid. */
 export default function SocialProfileView({ username, onBack, onOpenProfile, onHashtag, onEditProfile }: Props) {
@@ -247,6 +283,31 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
             📍 {[data.user.city, data.user.state].filter(Boolean).join(", ")}
           </p>
         )}
+        {(() => {
+          const links = PROFILE_LINKS.flatMap(({ key, label, Icon }) => {
+            const url = data.user[key];
+            return url ? [{ key, label, Icon, url }] : [];
+          });
+          if (links.length === 0) return null;
+          return (
+            <div className="flex flex-wrap gap-2 mt-2.5">
+              {links.map(({ key, label, Icon, url }) => (
+                <a
+                  key={key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={url}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-bold text-[#CBD5E1] hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <Icon size={12} className="text-[#7C3AED]" />
+                  {key === "website" ? label : linkChipLabel(key, url)}
+                  <span className="text-[#64748B] font-semibold">· {label}</span>
+                </a>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* actions */}
