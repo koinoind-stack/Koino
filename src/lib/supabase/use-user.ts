@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -40,7 +40,16 @@ export function useSupabaseUser() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refetchProfile = useCallback(async () => {
+  // Latest Supabase auth user, kept in a ref so the profile-fetch fallback
+  // (below) can read identity metadata even from inside async retries.
+  const userRef = useRef<User | null>(null);
+
+  // How many times we retry /api/auth/me when it 401s / fails. The most
+  // common cause is a session-cookie refresh race right after page load;
+  // the browser client refreshes the cookie within that backoff window.
+  const PROFILE_FETCH_RETRIES = 3;
+
+  const refetchProfile = useCallback(async (attempt = 0) => {
     try {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
       if (res.ok) {
@@ -53,10 +62,30 @@ export function useSupabaseUser() {
           setUsername(data.username ?? null);
           setDisplayName(data.name ?? null);
           setAvatarUrl(data.image ?? null);
+          return;
         }
       }
     } catch {
-      // ignore — keep previous state
+      // network/parse error — fall through to the retry below
+    }
+    // Non-OK (401/5xx) or empty body: the server could not validate the
+    // session YET. Retry with backoff instead of silently staying on the
+    // "Member" fallback for the whole session.
+    if (attempt < PROFILE_FETCH_RETRIES) {
+      setTimeout(() => refetchProfile(attempt + 1), 800 * 2 ** attempt);
+      return;
+    }
+    // All attempts failed — last resort: show the name from Supabase auth
+    // metadata (signup/OAuth profile) rather than the generic "Member".
+    const meta = userRef.current?.user_metadata as
+      | Record<string, string | undefined>
+      | undefined;
+    const fallbackName =
+      meta?.full_name ||
+      meta?.name ||
+      (userRef.current?.email ? userRef.current.email.split("@")[0] : null);
+    if (fallbackName) {
+      setDisplayName(fallbackName);
     }
   }, []);
 
@@ -64,6 +93,7 @@ export function useSupabaseUser() {
     const supabase = createClient();
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
+      userRef.current = user;
       setUser(user);
       if (user) {
         // Populate role/points AND identity (name/username/avatar) — the
@@ -76,6 +106,7 @@ export function useSupabaseUser() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      userRef.current = session?.user ?? null;
       setUser(session?.user ?? null);
       if (session?.user) {
         await refetchProfile();
