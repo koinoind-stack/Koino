@@ -116,7 +116,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
   }
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center">
+    <div className="fixed inset-0 z-[85] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center">
       <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
         {/* header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">

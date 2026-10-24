@@ -20,13 +20,13 @@ import {
   Shield,
   FileText,
   HandHeart,
-  Play,
   Bell,
   CircleUser,
   PlusSquare,
   Users,
   Flower2,
   Clapperboard,
+  MonitorPlay,
   Church,
   ChevronDown,
 } from "lucide-react";
@@ -53,6 +53,7 @@ import GroupsView from "@/components/social/GroupsView";
 import GroupDetailView from "@/components/social/GroupDetailView";
 import ExploreView from "@/components/social/ExploreView";
 import ReelsView from "@/components/social/ReelsView";
+import WatchView from "@/components/social/WatchView";
 import ComposerView from "@/components/social/ComposerView";
 import SocialProfileView from "@/components/social/SocialProfileView";
 import NotificationsView from "@/components/social/NotificationsView";
@@ -69,7 +70,8 @@ type View =
   | "onboarding" // Profile setup flow (shown when !profileCompleted)
   | "home" // ── SOCIAL FEED (Task 50) — the default authenticated destination
   | "explore"
-  | "reels"
+  | "reels" // full-screen vertical reels overlay (deep links, feed taps)
+  | "watch" // Koino Watch hub — reels + Bible movies & stories + Christian videos
   | "notifications"
   | "groups" // Round 2: Groups & Fellowship discovery
   | "memorials" // Part 4: In Loving Memory → /memorials (public App Router page)
@@ -105,7 +107,7 @@ type View =
 const PRIMARY_LINKS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
   { id: "explore", icon: Search, label: "Explore" },
-  { id: "reels", icon: Play, label: "Reels" },
+  { id: "watch", icon: MonitorPlay, label: "Watch" },
   { id: "groups", icon: Users, label: "Groups" },
   { id: "bible", icon: BookOpen, label: "Bible" },
   { id: "events", icon: Calendar, label: "Events" },
@@ -158,7 +160,7 @@ const SIDEBAR_CATEGORIES: {
 const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
   { id: "home", icon: HomeIcon, label: "Home" },
   { id: "explore", icon: Search, label: "Explore" },
-  { id: "reels", icon: Play, label: "Reels" },
+  { id: "watch", icon: MonitorPlay, label: "Watch" },
   { id: "create", icon: PlusSquare, label: "Create" },
   { id: "profile", icon: CircleUser, label: "Profile" },
 ];
@@ -356,7 +358,7 @@ export default function Home() {
 
     // Validate that the deep-link view is a known SPA view.
     const validViews: View[] = [
-      "bible", "comic", "churches", "events", "trivia",
+      "bible", "comic", "churches", "events", "trivia", "watch",
       "prayer-wall", "apologetics", "shop", "business-directory",
     ];
     if (!validViews.includes(deepView as View)) return;
@@ -655,10 +657,19 @@ export default function Home() {
                   onNavigate={(v) => goView(v as View)}
                 />
               )}
+              {view === "watch" && (
+                <WatchView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onOpenCreate={() => goView("create")}
+                  onOpenComics={() => goView("comic")}
+                  onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
+                />
+              )}
               {view === "reels" && (
                 <ReelsView
                   onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
                   onClose={() => goView("home")}
+                  onOpenPost={(id) => { setDetailPostId(id); }}
                 />
               )}
               {view === "notifications" && (
@@ -800,6 +811,7 @@ export default function Home() {
           initialPostId={reelPost.id}
           onClose={() => setReelPost(null)}
           onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+          onOpenPost={(id) => { setReelPost(null); setDetailPostId(id); }}
         />
       )}
 
