@@ -62,6 +62,16 @@ model User {
   facebook  String? // https://(www.)facebook.com/<handle>/ (fb.com aliases ok)
   twitter   String? // https://(twitter|x).com/<handle>
 
+  // ─── COMMUNITY ROLE (self-reported, optional, NOT verified) ───
+  // Chosen at onboarding (step "profile"), editable from Edit Profile.
+  // "other" stores the free-text description in communityRoleOther.
+  // communityRoleVisible gates PUBLIC profile display ONLY — admin member
+  // search/filter always sees the raw value. This field never implies any
+  // verified-pastor / ministry-leader status.
+  communityRole        String? // one of src/lib/community-roles.ts values
+  communityRoleOther   String? // free text when communityRole = "other" (≤ 60 chars)
+  communityRoleVisible Boolean @default(true) // show role on public profile
+
   // ─── ADMIN MEMBER MANAGEMENT ───
   accountStatus    String   @default("active") // "active" | "blocked" | "suspended" | "deactivated"
   moderationReason String?  // internal admin reason for blocking/suspending

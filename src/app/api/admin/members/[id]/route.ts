@@ -32,6 +32,7 @@ export async function GET(
         accountStatus: true, moderationReason: true,
         verified: true, verifiedAt: true, verifiedBy: true,
         contributorType: true, permissions: true,
+        communityRole: true, communityRoleOther: true, communityRoleVisible: true,
         totalPoints: true,
       },
     });
@@ -126,6 +127,7 @@ export async function PATCH(
         accountStatus: true, moderationReason: true,
         verified: true, verifiedAt: true, verifiedBy: true,
         contributorType: true, permissions: true,
+        communityRole: true, communityRoleOther: true, communityRoleVisible: true,
         totalPoints: true,
       },
     });

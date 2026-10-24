@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import { isValidCommunityRole } from "@/lib/community-roles";
 
 async function requireAdmin() {
   const user = await getAuthUser();
@@ -16,11 +17,14 @@ async function requireAdmin() {
  * Admin-only — non-admins get 403.
  *
  * Query params:
- *   ?search=     — search by username, name, email, mobile, state, city
+ *   ?search=     — search by username, name, email, mobile, state, city, role
  *   ?state=       — filter by state
  *   ?city=        — filter by city
  *   ?signupMethod= — "google" | "email"
  *   ?profileCompleted= "true" | "false"
+ *   ?communityRole= — one of src/lib/community-roles.ts values (admin-only
+ *                     targeting: sees the raw value even when hidden from
+ *                     the public profile)
  *   ?limit=       — default 50, max 200
  *   ?offset=      — for pagination
  *   ?stats=       — "true" returns dashboard stats instead of member list
@@ -85,6 +89,7 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get("state") || "";
     const city = searchParams.get("city") || "";
     const signupMethod = searchParams.get("signupMethod") || "";
+    const communityRole = searchParams.get("communityRole") || "";
     const profileCompletedParam = searchParams.get("profileCompleted");
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
     const offset = parseInt(searchParams.get("offset") || "0");
@@ -98,11 +103,20 @@ export async function GET(req: NextRequest) {
         { mobileNumber: { contains: search, mode: "insensitive" } },
         { state: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
+        { communityRole: { contains: search, mode: "insensitive" } },
+        { communityRoleOther: { contains: search, mode: "insensitive" } },
       ];
     }
     if (state) where.state = state;
     if (city) where.city = city;
     if (signupMethod) where.signupMethod = signupMethod;
+    if (communityRole) {
+      if (!isValidCommunityRole(communityRole)) {
+        return NextResponse.json({ error: "Invalid communityRole filter" }, { status: 400 });
+      }
+      // Admin targeting sees the raw value regardless of public visibility.
+      where.communityRole = communityRole;
+    }
     if (profileCompletedParam === "true") where.profileCompleted = true;
     if (profileCompletedParam === "false") where.profileCompleted = false;
 
@@ -136,6 +150,9 @@ export async function GET(req: NextRequest) {
           verified: true,
           contributorType: true,
           permissions: true,
+          communityRole: true,
+          communityRoleOther: true,
+          communityRoleVisible: true,
         },
       }),
       db.user.count({ where }),

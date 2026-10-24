@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, Play, BadgeCheck, MoreHorizontal, Flag, Ban, Globe, Instagram, Youtube, Facebook, Twitter } from "lucide-react";
+import { ArrowLeft, Play, BadgeCheck, MoreHorizontal, Flag, Ban, Globe, Instagram, Youtube, Facebook, Twitter, Church } from "lucide-react";
 import { toast } from "sonner";
 import type { Post, SocialUser } from "./types";
 import { api } from "./types";
 import PostDetail from "./PostDetail";
 import { formatCount } from "@/lib/social/format";
+import { resolvedCommunityRoleLabel } from "@/lib/community-roles";
 
 type Props = {
   username: string;
@@ -29,6 +30,8 @@ type ProfileData = {
     youtube?: string | null;
     facebook?: string | null;
     twitter?: string | null;
+    communityRole?: string | null;
+    communityRoleOther?: string | null;
   };
   counters: { followers: number; following: number; posts: number };
   isSelf: boolean;
@@ -294,6 +297,21 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
             📍 {[data.user.city, data.user.state].filter(Boolean).join(", ")}
           </p>
         )}
+        {(() => {
+          // Self-reported community role — the API only returns it when the
+          // user opted in (communityRoleVisible). Never a verified title.
+          const roleLabel = resolvedCommunityRoleLabel(data.user.communityRole, data.user.communityRoleOther);
+          if (!roleLabel) return null;
+          return (
+            <span
+              title="Self-reported community role"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[11px] font-bold text-[#C4B5FD] mt-2.5"
+            >
+              <Church size={12} className="text-[#7C3AED]" />
+              {roleLabel}
+            </span>
+          );
+        })()}
         {(() => {
           const links = PROFILE_LINKS.flatMap(({ key, label, Icon }) => {
             const url = data.user[key];

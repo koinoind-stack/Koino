@@ -56,6 +56,7 @@ import {
   type PrayerPost,
   type TriviaGift,
 } from "@/lib/crosscrafted-data";
+import { COMMUNITY_ROLES, resolvedCommunityRoleLabel } from "@/lib/community-roles";
 import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import BibleComicsAdmin from "@/components/crosscrafted/BibleComicsAdmin";
 import DonationSettingsTab from "@/components/crosscrafted/admin/DonationSettingsTab";
@@ -498,6 +499,7 @@ function MembersTab() {
   const [filterState, setFilterState] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterVerified, setFilterVerified] = useState("");
+  const [filterRole, setFilterRole] = useState("");
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const limit = 20;
@@ -513,13 +515,14 @@ function MembersTab() {
       if (search) params.set("search", search);
       if (filterState) params.set("state", filterState);
       if (filterStatus) params.set("profileCompleted", filterStatus);
+      if (filterRole) params.set("communityRole", filterRole);
       const res = await fetch(`/api/admin/members?${params}`);
       const data = await res.json();
       setMembers(data.members || []);
       setTotal(data.total || 0);
     } catch { setMembers([]); }
     finally { setLoading(false); }
-  }, [search, filterState, filterStatus, page]);
+  }, [search, filterState, filterStatus, filterRole, page]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -625,6 +628,10 @@ function MembersTab() {
           <option value="true">Completed</option>
           <option value="false">Incomplete</option>
         </select>
+        <select value={filterRole} onChange={(e) => { setFilterRole(e.target.value); setPage(0); }} className="neo-input text-xs w-44">
+          <option value="">All Community Roles</option>
+          {COMMUNITY_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
       </div>
 
       {/* Members list */}
@@ -644,7 +651,7 @@ function MembersTab() {
                   <p className="text-xs font-bold text-white truncate">{m.username || m.name || m.email}</p>
                   {m.verified && <BadgeCheck size={12} className="text-[#38BDF8] shrink-0" />}
                 </div>
-                <p className="text-[9px] text-[#94A3B8]">{m.email} · {m.city || "—"}, {m.state || "—"}</p>
+                <p className="text-[9px] text-[#94A3B8]">{m.email} · {m.city || "—"}, {m.state || "—"}{m.communityRole ? ` · ${resolvedCommunityRoleLabel(m.communityRole, m.communityRoleOther) || ""}` : ""}</p>
               </div>
               <div className="text-right shrink-0">
                 <span className={`text-[8px] font-bold uppercase ${m.profileCompleted ? "text-[#22C55E]" : "text-[#F59E0B]"}`}>
@@ -700,6 +707,7 @@ function MembersTab() {
                     <div><p className="text-[#64748B]">City</p><p className="text-white">{memberDetail.city || "Not provided"}</p></div>
                     <div><p className="text-[#64748B]">Faith Status</p><p className="text-white">{memberDetail.faithStatus?.replace(/_/g, " ") || "Not provided"}</p></div>
                     <div><p className="text-[#64748B]">Faith Journey</p><p className="text-white">{memberDetail.faithJourney?.replace(/_/g, " ") || "Not provided"}</p></div>
+                    <div><p className="text-[#64748B]">Community Role</p><p className="text-white">{resolvedCommunityRoleLabel(memberDetail.communityRole, memberDetail.communityRoleOther) || "Not provided"}{memberDetail.communityRole && !memberDetail.communityRoleVisible ? " (hidden)" : ""}</p></div>
                     <div><p className="text-[#64748B]">Account Status</p><p className="text-white capitalize">{memberDetail.accountStatus}</p></div>
                     <div><p className="text-[#64748B]">Profile</p><p className="text-white">{memberDetail.profileCompleted ? "Complete" : "Incomplete"}</p></div>
                   </div>

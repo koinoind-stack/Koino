@@ -34,6 +34,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
       youtube: true,
       facebook: true,
       twitter: true,
+      communityRole: true,
+      communityRoleOther: true,
+      communityRoleVisible: true,
     },
   });
   if (!user) return jsonError("User not found", 404);
@@ -119,6 +122,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
       youtube: user.youtube,
       facebook: user.facebook,
       twitter: user.twitter,
+      // Self-reported community role — public ONLY when the user opted in
+      // via communityRoleVisible. Never implies a verified status.
+      communityRole: user.communityRoleVisible ? user.communityRole : null,
+      communityRoleOther: user.communityRoleVisible ? user.communityRoleOther : null,
     },
     counters: { followers, following, posts: postCount },
     isSelf,

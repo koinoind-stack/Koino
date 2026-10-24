@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { api, type SocialUser } from "@/components/social/types";
 import { notifyProfileUpdated } from "@/lib/supabase/use-user";
+import { COMMUNITY_ROLES, COMMUNITY_ROLE_OTHER, COMMUNITY_ROLE_OTHER_MAX } from "@/lib/community-roles";
 
 type ProfileData = {
   id: string;
@@ -36,6 +37,9 @@ type ProfileData = {
   youtube: string | null;
   facebook: string | null;
   twitter: string | null;
+  communityRole: string | null;
+  communityRoleOther: string | null;
+  communityRoleVisible: boolean;
 };
 
 const INDIAN_STATES = [
@@ -76,6 +80,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
   const [facebook, setFacebook] = useState("");
   const [twitter, setTwitter] = useState("");
 
+  // community role (optional, self-reported — never implies verification)
+  const [communityRole, setCommunityRole] = useState("");
+  const [communityRoleOther, setCommunityRoleOther] = useState("");
+  const [communityRoleVisible, setCommunityRoleVisible] = useState(true);
+
   // avatar
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -104,6 +113,9 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         setYoutube(data.youtube || "");
         setFacebook(data.facebook || "");
         setTwitter(data.twitter || "");
+        setCommunityRole(data.communityRole || "");
+        setCommunityRoleOther(data.communityRoleOther || "");
+        setCommunityRoleVisible(data.communityRoleVisible !== false);
         if (data.usernameChangedAt) {
           const next = new Date(
             new Date(data.usernameChangedAt).getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
@@ -217,6 +229,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
       if (youtube.trim() !== (profile?.youtube || "")) body.youtube = youtube.trim();
       if (facebook.trim() !== (profile?.facebook || "")) body.facebook = facebook.trim();
       if (twitter.trim() !== (profile?.twitter || "")) body.twitter = twitter.trim();
+      if (communityRole !== (profile?.communityRole || "")) body.communityRole = communityRole || null;
+      if (communityRole === COMMUNITY_ROLE_OTHER && communityRoleOther.trim() !== (profile?.communityRoleOther || "")) {
+        body.communityRoleOther = communityRoleOther.trim();
+      }
+      if (communityRoleVisible !== (profile?.communityRoleVisible !== false)) body.communityRoleVisible = communityRoleVisible;
 
       if (Object.keys(body).length > 0) {
         await api("/api/profile", { method: "PATCH", body: JSON.stringify(body) });
@@ -401,6 +418,42 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
             />
           </Field>
         </div>
+
+        <Field label="Community role">
+          <select
+            value={communityRole}
+            onChange={(e) => setCommunityRole(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">Select your role (optional)</option>
+            {COMMUNITY_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+          {communityRole === COMMUNITY_ROLE_OTHER && (
+            <input
+              value={communityRoleOther}
+              onChange={(e) => setCommunityRoleOther(e.target.value)}
+              maxLength={COMMUNITY_ROLE_OTHER_MAX}
+              placeholder="Tell us your role (e.g. Children's Ministry)"
+              className={`${inputCls} mt-2`}
+            />
+          )}
+          <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={communityRoleVisible}
+              onChange={(e) => setCommunityRoleVisible(e.target.checked)}
+              className="w-3.5 h-3.5 accent-[#7C3AED]"
+            />
+            <span className="text-[11px] text-[#64748B] font-semibold">
+              Show my role on my public profile
+            </span>
+          </label>
+          <p className="text-[11px] mt-1.5 text-[#64748B]">
+            Optional and self-reported — this is not a verified ministry title.
+          </p>
+        </Field>
       </div>
 
       <button

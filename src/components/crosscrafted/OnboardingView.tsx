@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useSupabaseUser, notifyProfileUpdated } from "@/lib/supabase/use-user";
 import { INDIAN_STATES, getCitiesForState, LANGUAGES } from "@/lib/crosscrafted-data";
+import { COMMUNITY_ROLES, COMMUNITY_ROLE_OTHER, COMMUNITY_ROLE_OTHER_MAX } from "@/lib/community-roles";
 
 type Step = 0 | 1 | 2 | 3; // 0=welcome, 1=profile, 2=faith, 3=whatsapp
 
@@ -48,6 +49,11 @@ export default function OnboardingView({ onComplete }: Props) {
   const [faithStatus, setFaithStatus] = useState("");
   const [faithJourney, setFaithJourney] = useState("");
 
+  // Community role (optional, self-reported — never implies verification)
+  const [communityRole, setCommunityRole] = useState("");
+  const [communityRoleOther, setCommunityRoleOther] = useState("");
+  const [communityRoleVisible, setCommunityRoleVisible] = useState(true);
+
   // Load existing partial profile (resume from where user left off)
   useEffect(() => {
     (async () => {
@@ -70,6 +76,9 @@ export default function OnboardingView({ onComplete }: Props) {
             if (p.mobileNumber) setMobileNumber(p.mobileNumber);
             if (p.faithStatus) setFaithStatus(p.faithStatus);
             if (p.faithJourney) setFaithJourney(p.faithJourney);
+            if (p.communityRole) setCommunityRole(p.communityRole);
+            if (p.communityRoleOther) setCommunityRoleOther(p.communityRoleOther);
+            if (p.communityRoleVisible === false) setCommunityRoleVisible(false);
             // If user already has profile fields, start from the appropriate step
             if (p.username && p.state && p.city && p.mobileNumber) {
               setStep(2); // skip to faith
@@ -177,6 +186,11 @@ export default function OnboardingView({ onComplete }: Props) {
           state,
           city,
           mobileNumber: mobileNumber || undefined,
+          communityRole: communityRole || undefined,
+          communityRoleOther: communityRole === COMMUNITY_ROLE_OTHER && communityRoleOther.trim()
+            ? communityRoleOther.trim()
+            : undefined,
+          communityRoleVisible,
         }),
       });
       const data = await res.json();
@@ -408,6 +422,45 @@ export default function OnboardingView({ onComplete }: Props) {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Community role (optional, self-reported) */}
+                <div>
+                  <label className="block text-[11px] font-bold tracking-wider text-[#94A3B8] mb-1">
+                    What best describes your role in the Christian community?{" "}
+                    <span className="text-[#64748B] font-normal">(optional)</span>
+                  </label>
+                  <select
+                    value={communityRole}
+                    onChange={(e) => setCommunityRole(e.target.value)}
+                    className="neo-input text-sm"
+                  >
+                    <option value="">Select your role (optional)</option>
+                    {COMMUNITY_ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  {communityRole === COMMUNITY_ROLE_OTHER && (
+                    <input
+                      type="text"
+                      value={communityRoleOther}
+                      onChange={(e) => setCommunityRoleOther(e.target.value)}
+                      maxLength={COMMUNITY_ROLE_OTHER_MAX}
+                      placeholder="Tell us your role (e.g. Children's Ministry)"
+                      className="neo-input text-sm mt-2"
+                    />
+                  )}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={communityRoleVisible}
+                      onChange={(e) => setCommunityRoleVisible(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-[#7C3AED]"
+                    />
+                    <span className="text-[10px] text-[#94A3B8] font-semibold">
+                      Show my role on my public profile
+                    </span>
+                  </label>
                 </div>
 
                 {/* State */}

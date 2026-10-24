@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import {
+  isValidCommunityRole,
+  COMMUNITY_ROLE_OTHER,
+  COMMUNITY_ROLE_OTHER_MAX,
+} from "@/lib/community-roles";
 
 /**
  * GET /api/profile — the signed-in user's own editable profile.
@@ -25,6 +30,15 @@ import { db } from "@/lib/db";
  *                     empty string clears the field. Requires migration
  *                     20261024000000_add_user_social_links — already
  *                     applied to production by hand.)
+ *   - communityRole, communityRoleOther, communityRoleVisible
+ *                     (self-reported, optional community role. Role must
+ *                     be one of src/lib/community-roles.ts values or
+ *                     null/"" to clear; "other" carries free text in
+ *                     communityRoleOther (≤ 60 chars, cleared whenever
+ *                     the role is not "other"); communityRoleVisible
+ *                     gates PUBLIC display only. Requires migration
+ *                     20261024110000_add_community_role — applied to
+ *                     production by hand.)
  *
  * Ownership: the session user is always the target user — there is no
  * user-id parameter, so no IDOR surface exists.
@@ -55,6 +69,9 @@ export async function GET() {
       youtube: true,
       facebook: true,
       twitter: true,
+      communityRole: true,
+      communityRoleOther: true,
+      communityRoleVisible: true,
     },
   });
   if (!user) {
@@ -144,6 +161,7 @@ export async function PATCH(req: NextRequest) {
       username: true,
       usernameChangedAt: true,
       profileCompleted: true,
+      communityRole: true,
     },
   });
   if (!current) {
@@ -239,6 +257,38 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // ─── community role (self-reported, optional, NOT verified) ───
+  if (body.communityRole !== undefined) {
+    const role = typeof body.communityRole === "string" ? body.communityRole.trim() : "";
+    if (role && !isValidCommunityRole(role)) {
+      return NextResponse.json({ error: "Invalid community role" }, { status: 400 });
+    }
+    data.communityRole = role || null;
+    // Switching away from "other" always clears the stale free-text.
+    if (role !== COMMUNITY_ROLE_OTHER) {
+      data.communityRoleOther = null;
+    }
+  }
+  if (body.communityRoleOther !== undefined) {
+    const other = typeof body.communityRoleOther === "string" ? body.communityRoleOther.trim() : "";
+    if (other.length > COMMUNITY_ROLE_OTHER_MAX) {
+      return NextResponse.json(
+        { error: `Role description must be ${COMMUNITY_ROLE_OTHER_MAX} characters or fewer` },
+        { status: 400 },
+      );
+    }
+    // Only stored when the selected role is actually "other". Uses the role
+    // from THIS request when provided (including an explicit clear), else
+    // the currently stored one.
+    const effectiveRole =
+      data.communityRole !== undefined ? data.communityRole : current.communityRole;
+    data.communityRoleOther =
+      effectiveRole === COMMUNITY_ROLE_OTHER ? other || null : null;
+  }
+  if (body.communityRoleVisible !== undefined) {
+    data.communityRoleVisible = Boolean(body.communityRoleVisible);
+  }
+
   // ─── username (cooldown + uniqueness enforced SERVER-side) ───
   if (body.username !== undefined) {
     const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
@@ -307,6 +357,9 @@ export async function PATCH(req: NextRequest) {
         youtube: true,
         facebook: true,
         twitter: true,
+        communityRole: true,
+        communityRoleOther: true,
+        communityRoleVisible: true,
       },
     });
     return NextResponse.json(updated);

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import {
+  isValidCommunityRole,
+  COMMUNITY_ROLE_OTHER,
+  COMMUNITY_ROLE_OTHER_MAX,
+} from "@/lib/community-roles";
 
 /**
  * POST /api/profile/setup
@@ -18,6 +23,9 @@ import { db } from "@/lib/db";
  *   state: string (required for step="profile")
  *   city: string (required for step="profile")
  *   mobileNumber: string (optional)
+ *   communityRole: string (optional — one of src/lib/community-roles.ts)
+ *   communityRoleOther: string (optional — free text when role = "other")
+ *   communityRoleVisible: boolean (optional — public display toggle)
  *   faithStatus: "follows_jesus" | "exploring" | "new_to_christianity" | "prefer_not_to_say"
  *   faithJourney: "growing" | "new_to_jesus" | "exploring_christianity" | "looking_for_church" | "learn_and_connect"
  *   whatsappChannelClicked: boolean (optional — true when user taps the WhatsApp link)
@@ -115,6 +123,35 @@ export async function POST(req: NextRequest) {
       if (body.mobileNumber) {
         // Strip non-numeric chars, store digits only
         data.mobileNumber = String(body.mobileNumber).replace(/[^0-9+]/g, "");
+      }
+
+      // Optional self-reported community role (never implies verification).
+      if (body.communityRole !== undefined) {
+        const role = typeof body.communityRole === "string" ? body.communityRole.trim() : "";
+        if (role && !isValidCommunityRole(role)) {
+          return NextResponse.json({ error: "Invalid community role" }, { status: 400 });
+        }
+        data.communityRole = role || null;
+      }
+      if (body.communityRoleOther !== undefined) {
+        const other = typeof body.communityRoleOther === "string" ? body.communityRoleOther.trim() : "";
+        if (other.length > COMMUNITY_ROLE_OTHER_MAX) {
+          return NextResponse.json(
+            { error: `Role description must be ${COMMUNITY_ROLE_OTHER_MAX} characters or fewer` },
+            { status: 400 },
+          );
+        }
+        // Use the role from THIS request when provided, else the stored one.
+        const effectiveRole =
+          data.communityRole !== undefined
+            ? data.communityRole
+            : (await db.user.findUnique({ where: { id: user.id }, select: { communityRole: true } }))
+                ?.communityRole;
+        data.communityRoleOther =
+          effectiveRole === COMMUNITY_ROLE_OTHER ? other || null : null;
+      }
+      if (body.communityRoleVisible !== undefined) {
+        data.communityRoleVisible = Boolean(body.communityRoleVisible);
       }
     }
 
@@ -256,6 +293,9 @@ export async function GET() {
         faithStatus: true,
         faithJourney: true,
         profileCompleted: true,
+        communityRole: true,
+        communityRoleOther: true,
+        communityRoleVisible: true,
         whatsappChannelPromptShown: true,
         whatsappChannelClicked: true,
         signupMethod: true,
