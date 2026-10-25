@@ -652,7 +652,7 @@ export default function Home() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 pb-24 md:pb-6 scroll-smooth bg-[#0B1120] min-h-[calc(100vh-56px)]">
+        <main className="flex-1 min-w-0 pb-24 md:pb-6 scroll-smooth bg-[#0B1120] min-h-[calc(100vh-56px)]">
           <AnimatePresence mode="wait">
             <motion.div
               key={view}

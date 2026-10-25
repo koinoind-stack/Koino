@@ -216,7 +216,7 @@ export default function ComicLibraryView({
   // ─── Library ─────────────────────────────────────────────────────────────
 
   return (
-    <div>
+    <div className="min-w-0">
       {/* ─── Heading + subtitle ─── */}
       <div className="mb-5">
         <div className="flex items-center gap-2">
