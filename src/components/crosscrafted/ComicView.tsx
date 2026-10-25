@@ -122,6 +122,11 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     if (!chapterData) return;
     const total = chapterData.panels.length;
     if (total === 0) return;
+    // A fresh chapter open always starts at the top — the window may carry
+    // scroll from the library view, which would instantly mark lower panels
+    // as "seen" and inflate progress. (Resume scroll below overrides this
+    // for in-progress chapters.)
+    window.scrollTo({ top: 0 });
     const prog = getComicProgress(bookId, chapter);
     if (prog && prog.lastPanel > 0) {
       setSeenPanel((prev) => Math.max(prev, Math.min(prog.lastPanel, total)));
