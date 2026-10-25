@@ -38,6 +38,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     v.summary ||
     "Watch Bible movies, Christian films, animated Bible stories, sermons, and worship on Koino.";
 
+  /* thumbnailUrl sometimes holds a YouTube WATCH page URL (bad data), which
+   * crawlers cannot render as an image — og:image must be a real image.
+   * Order: a true image URL from the DB → the video's own public YouTube
+   * thumbnail (plain preview, no Koino overlay) → the Koino branded
+   * landscape share-card (always renders). */
+  const dbThumbIsImage =
+    !!v.thumbnailUrl && /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(v.thumbnailUrl);
+  const ogImages = dbThumbIsImage
+    ? [v.thumbnailUrl!]
+    : v.youtubeId
+      ? [youtubeThumbnail(v.youtubeId)]
+      : [
+          `https://www.koino.in/api/share-card?type=video&slug=${encodeURIComponent(
+            slug
+          )}&format=landscape`,
+        ];
+
   return {
     title,
     description,
@@ -48,13 +65,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: "Koino",
       url: `https://www.koino.in/videos/${slug}`,
       type: "video.other",
-      images: v.thumbnailUrl || (v.youtubeId ? [{ url: youtubeThumbnail(v.youtubeId) }] : undefined),
+      images: ogImages,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: v.thumbnailUrl || (v.youtubeId ? [youtubeThumbnail(v.youtubeId)] : undefined),
+      images: ogImages,
     },
   };
 }

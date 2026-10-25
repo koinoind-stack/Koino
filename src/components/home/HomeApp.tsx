@@ -201,6 +201,73 @@ export default function Home() {
   // view and ?view=comic deep links); a bookId+chapter → the comic reader.
   const [comicBookId, setComicBookId] = useState<string | null>(null);
   const [comicChapter, setComicChapter] = useState(1);
+  // Task 121 Part 1 — comic reader HISTORY integration. Opening a chapter
+  // pushes /?comic=<bookId>/<chapter> onto the history stack so the BROWSER
+  // back button (not only the in-app "← Comics Library" button) returns to
+  // the library. comicPushCount tracks how many entries we pushed for the
+  // CURRENT reader session so the in-app button can unwind all of them in
+  // one go(-n) (chapter-to-chapter navigation pushes one entry per chapter).
+  const comicPushCount = useRef(0);
+
+  const openComicChapter = (bookId: string, chapter: number) => {
+    setComicBookId(bookId);
+    setComicChapter(chapter);
+    setView("comic");
+    setHeaderVisible(true);
+    setShowMoreSheet(false);
+    try {
+      window.history.pushState(
+        { koinoComic: { bookId, chapter }, koinoSeq: comicPushCount.current + 1 },
+        "",
+        `/?comic=${encodeURIComponent(bookId)}/${chapter}`
+      );
+      comicPushCount.current += 1;
+    } catch {
+      /* history unavailable — state-only navigation still works */
+    }
+  };
+
+  const closeComicReader = () => {
+    setComicBookId(null);
+    const pushed = comicPushCount.current;
+    comicPushCount.current = 0;
+    try {
+      if (pushed > 0) {
+        // Unwind every pushed chapter entry in one step; popstate lands on
+        // the pre-reader entry (library or Bible hub) and syncs the UI.
+        window.history.go(-pushed);
+      } else if (/comic=/.test(window.location.search)) {
+        // Deep-link arrival (?comic=…, nothing pushed): clean the URL.
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // popstate: sync the reader when the user moves through pushed comic
+  // entries (browser back/forward). A koinoComic entry opens that chapter;
+  // a non-comic entry closes the reader if one is open (library renders).
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      const st = e.state as {
+        koinoComic?: { bookId: string; chapter: number };
+        koinoSeq?: number;
+      } | null;
+      if (st?.koinoComic) {
+        comicPushCount.current = st.koinoSeq ?? comicPushCount.current;
+        setComicBookId(st.koinoComic.bookId);
+        setComicChapter(st.koinoComic.chapter);
+        setView((cur) => (cur === "comic" ? cur : "comic"));
+        setHeaderVisible(true);
+      } else {
+        comicPushCount.current = 0;
+        setComicBookId((cur) => (cur !== null ? null : cur));
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   // ─── SOCIAL OVERLAYS (Task 50) — render above ANY view ───
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [reelPost, setReelPost] = useState<Post | null>(null);
@@ -762,12 +829,10 @@ export default function Home() {
                   initialChapter={bibleTarget?.chapter}
                   initialVerse={bibleTarget?.verse ?? null}
                   onOpenComic={(bookId, chapter) => {
-                    // Switch from Bible hub → full ComicView for the chosen chapter.
-                    // Preserves the existing comicBookId/comicChapter state so
-                    // chapter navigation inside ComicView continues to work.
-                    setComicBookId(bookId);
-                    setComicChapter(chapter);
-                    goView("comic");
+                    // Switch from Bible hub → full ComicView for the chosen
+                    // chapter (pushes a history entry so browser back returns
+                    // to the Bible hub flow / library — Task 121 Part 1).
+                    openComicChapter(bookId, chapter);
                   }}
                 />
               )}
@@ -781,20 +846,18 @@ export default function Home() {
                 // Comics LIBRARY — the default surface for the sidebar
                 // "Bible Comics" item and ?view=comic deep links.
                 <ComicLibraryView
-                  onOpenComic={(bookId, chapter) => {
-                    setComicBookId(bookId);
-                    setComicChapter(chapter);
-                  }}
+                  onOpenComic={(bookId, chapter) => openComicChapter(bookId, chapter)}
                 />
               )}
               {view === "comic" && comicBookId && (
                 <ComicView
                   bookId={comicBookId}
                   chapter={comicChapter}
-                  onBackToLibrary={() => setComicBookId(null)}
+                  onBackToLibrary={closeComicReader}
                   onNavigateChapter={(bid, ch) => {
-                    setComicBookId(bid);
-                    setComicChapter(ch);
+                    // Prev/Next inside the reader pushes its own entry so
+                    // browser back walks the chapter history (Task 121).
+                    openComicChapter(bid, ch);
                   }}
                   onReadChapter={(bid, ch) => {
                     goView("bible");

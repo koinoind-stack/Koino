@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [{ key: "X-Koino-Round", value: "universal-share-cards.2" }],
+        headers: [{ key: "X-Koino-Round", value: "universal-share-cards.3" }],
       },
     ];
   },

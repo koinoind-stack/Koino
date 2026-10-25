@@ -259,7 +259,9 @@ export async function renderShareCard(spec: CardSpec): Promise<Buffer> {
     </linearGradient>
   </defs>
 
-  <rect width="${width}" height="${height}" fill="url(#bg)"/>
+  <!-- gradient suppressed when real artwork is composited underneath (it is
+       opaque and would hide the image); the scrim provides contrast instead -->
+  <rect width="${width}" height="${height}" fill="url(#bg)" opacity="${bgImageBuf ? 0 : 1}"/>
   <rect width="${width}" height="${height}" fill="url(#glow)"/>
   <rect width="${width}" height="${height}" fill="url(#scrim)" opacity="${scrimOpacity}"/>
   ${logoTag}
