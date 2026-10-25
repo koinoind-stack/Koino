@@ -16,6 +16,7 @@ import {
   IndianRupee,
   Tag,
   Palette,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,6 +32,8 @@ import {
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import { ImageOff, ExternalLink, BadgeCheck, Store as StoreIcon, Globe } from "lucide-react";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 // Single source of truth — pulled from crosscrafted-data so the List Item form,
 // the filter pills, and the admin product form all share the same list.
@@ -66,6 +69,9 @@ export default function ShopView() {
   const [filterCity, setFilterCity] = useState("");
   const [filterSellerType, setFilterSellerType] = useState<"all" | "believ" | "marketplace">("all");
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
+  // Universal share sheet — Task 121 (published listings only; the card
+  // endpoint re-verifies the listing status server-side).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -660,6 +666,24 @@ export default function ShopView() {
                       <WhatsAppIcon size={16} /> {t('marketplace.contactSeller')}
                     </a>
                   )}
+                  {(openProduct.status ?? "published") === "published" && (
+                    <button
+                      onClick={() =>
+                        setShareReq({
+                          heading: `Share "${openProduct.name}"`,
+                          shareText: `${openProduct.name} — ₹${openProduct.price.toLocaleString("en-IN")} on Koino Marketplace`,
+                          shareUrl: shareLinks.shop(),
+                          cardUrl: `/api/share-card?type=product&id=${encodeURIComponent(openProduct.id)}`,
+                          formats: ["square"],
+                          fileName: `koino-product-${openProduct.id}.png`,
+                        })
+                      }
+                      title="Share this listing"
+                      className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white flex items-center justify-center transition-all"
+                    >
+                      <Share2 size={18} />
+                    </button>
+                  )}
                   {openProduct.buyUrl ? (
                     <a
                       href={openProduct.in_stock ? openProduct.buyUrl : undefined}
@@ -1074,6 +1098,9 @@ export default function ShopView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

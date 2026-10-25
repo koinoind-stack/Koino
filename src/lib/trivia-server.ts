@@ -393,6 +393,7 @@ export async function submitQuiz(
 
   return {
     mode: "EARN_POINTS",
+    sessionId: quizSession.id, // Task 121: enables the real-results share card
     totalPointsEarned,
     correctCount,
     totalQuestions: answers.length,

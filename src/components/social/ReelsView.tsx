@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import type { Post } from "./types";
 import { api } from "./types";
 import { formatCount } from "@/lib/social/format";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 /**
  * Reels — full-screen vertical video feed for posts flagged `isReel`.
@@ -51,19 +53,10 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
-async function sharePost(post: Post) {
-  const url = `${window.location.origin}/?post=${encodeURIComponent(post.id)}`;
-  try {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      await navigator.share({ title: "Koino", text: post.content || "Watch this reel on Koino", url });
-      return;
-    }
-    await navigator.clipboard.writeText(url);
-    toast.success("Link copied to clipboard");
-  } catch {
-    /* user cancelled the share sheet — nothing to do */
-  }
-}
+/**
+ * Reel sharing now goes through the universal ShareSheet (Task 121) —
+ * branded card + caption + canonical /?post= link.
+ */
 
 export function ReelsFeed({
   initialPostId,
@@ -77,6 +70,8 @@ export function ReelsFeed({
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   const [broken, setBroken] = useState<Set<string>>(new Set());
+  // Universal share sheet — Task 121 (replaces the raw Web Share call).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -146,6 +141,18 @@ export function ReelsFeed({
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Could not update like");
     }
+  }
+
+  function openReelShare(post: Post) {
+    const target = (post.repostedFrom ?? post).id;
+    setShareReq({
+      heading: "Share reel",
+      shareText: (post.repostedFrom ?? post).content?.slice(0, 600) || "Watch this reel on Koino",
+      shareUrl: shareLinks.post(target),
+      cardUrl: `/api/share-card?type=post&id=${encodeURIComponent(target)}`,
+      formats: ["square"],
+      fileName: `koino-reel-${target}.png`,
+    });
   }
 
   return (
@@ -256,7 +263,7 @@ export function ReelsFeed({
                       <span className="text-[11px] font-bold">{formatCount(post.commentCount || 0)}</span>
                     </button>
                   )}
-                  <button onClick={() => sharePost(post)} className="flex flex-col items-center gap-1 text-white">
+                  <button onClick={() => openReelShare(post)} className="flex flex-col items-center gap-1 text-white">
                     <Send size={24} />
                     <span className="text-[11px] font-bold">Share</span>
                   </button>
@@ -281,6 +288,9 @@ export function ReelsFeed({
           })}
         </div>
       )}
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

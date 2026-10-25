@@ -26,6 +26,8 @@ import {
 } from "@/lib/crosscrafted-data";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 // ─── Helper: map admin category label → APOLOGETICS_TOPICS id ──────────────
 // The admin editor uses category labels like "God & Existence", "Jesus Christ",
@@ -72,6 +74,8 @@ export default function ApologeticsView() {
   const [search, setSearch] = useState("");
   const [filterTopic, setFilterTopic] = useState("");
   const [openPost, setOpenPost] = useState<ApologeticsPost | null>(null);
+  // Universal share sheet — Task 121.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [openQuestion, setOpenQuestion] = useState<ApologeticsQuestion | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [askForm, setAskForm] = useState({ title: "", body: "", topic: "", author: "" });
@@ -204,8 +208,22 @@ export default function ApologeticsView() {
   };
 
   const sharePost = (p: ApologeticsPost) => {
-    navigator.clipboard.writeText(`"${p.title}" by ${p.author} on CrossCrafted Apologetics`);
-    toast.success("Post link copied!");
+    // Published DB articles carry a slug → canonical /apologetics/<slug>
+    // link + branded card. Mock/legacy entries without a slug keep a plain
+    // text share (no fabricated URL).
+    if (p.slug) {
+      setShareReq({
+        heading: `Share "${p.title.slice(0, 60)}"`,
+        shareText: `${p.title} — Koino Apologetics by ${p.author}`,
+        shareUrl: shareLinks.apologetics(p.slug),
+        cardUrl: `/api/share-card?type=article&kind=apologetics&slug=${encodeURIComponent(p.slug)}`,
+        formats: ["portrait", "landscape"],
+        fileName: `koino-apologetics-${p.slug}.png`,
+      });
+      return;
+    }
+    navigator.clipboard.writeText(`"${p.title}" by ${p.author} on Koino Apologetics`);
+    toast.success("Post copied!");
   };
 
   const handleAskQuestion = async (e: React.FormEvent) => {
@@ -945,6 +963,9 @@ export default function ApologeticsView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

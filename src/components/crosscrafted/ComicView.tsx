@@ -26,6 +26,8 @@ import { toast } from "sonner";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { getBook, getComicProgress, saveComicProgress } from "@/lib/bible-data";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -78,6 +80,8 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Universal share sheet state (chapter + per-panel requests).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [chapterData, setChapterData] = useState<ComicChapter | null>(null);
 
   // Quiz state
@@ -202,27 +206,31 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     });
   };
 
-  // ─── Share ────────────────────────────────────────────────────────────────
+  // ─── Share (universal share sheet) ──────────────────────────────────
 
-  const handleShare = async () => {
+  const openChapterShare = () => {
     if (!chapterData) return;
-    const shareUrl = `${window.location.origin}/?comic=${chapterData.bookId}/${chapterData.chapter}`;
-    const shareText = `${chapterData.title} — Koino Bible Comics\n\nRead the story. See the bigger picture. Grow in your faith.\n\n${shareUrl}`;
+    setShareReq({
+      heading: `Share ${chapterData.title}`,
+      shareText: `${chapterData.title} — Koino Bible Comics\n\nRead the story. See the bigger picture. Grow in your faith.`,
+      shareUrl: shareLinks.comic(chapterData.bookId, chapterData.chapter),
+      cardUrl: `/api/share-card?type=comic-chapter&book=${encodeURIComponent(chapterData.bookId)}&chapter=${chapterData.chapter}&lang=${lang}`,
+      formats: ["portrait", "square"],
+      fileName: `koino-comic-${bookId}-${chapter}.png`,
+    });
+  };
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Koino Bible Comics — ${chapterData.title}`,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      navigator.clipboard.writeText(shareText);
-      toast.success("Link copied!", { description: chapterData.title });
-    }
+  const openPanelShare = (panel: ComicPanel, verseRef: string) => {
+    setShareReq({
+      heading: `Share panel — ${panel.title || verseRef}`,
+      shareText: `"${panel.title || verseRef}" (${verseRef}) — Koino Bible Comics`,
+      shareUrl: shareLinks.comic(bookId, chapter),
+      cardUrl: `/api/share-card?type=comic-panel&panel=${encodeURIComponent(panel.panelId)}&lang=${lang}`,
+      formats: ["square", "story"],
+      imageUrl: panel.artworkUrl || undefined,
+      imageLabel: "Original Illustration",
+      fileName: `koino-comic-panel-${panel.panelId}.png`,
+    });
   };
 
   // ─── Quiz ────────────────────────────────────────────────────────────────
@@ -351,6 +359,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
               onReadVerse={onReadChapter}
               bookId={bookId}
               chapter={chapter}
+              onShare={(p, ref) => openPanelShare(p, ref)}
             />
           </div>
         ))}
@@ -375,12 +384,15 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
       {/* ─── SHARE / DOWNLOAD ─── */}
       <div className="flex gap-2 mt-4">
         <button
-          onClick={handleShare}
+          onClick={openChapterShare}
           className="flex-1 py-2.5 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#7C3AED]/25 transition-all"
         >
           <Share2 size={14} /> Share Chapter
         </button>
       </div>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
 
       {/* ─── QUIZ MODAL ─── */}
       <AnimatePresence>
@@ -411,6 +423,7 @@ function ComicPanelCard({
   onReadVerse,
   bookId,
   chapter,
+  onShare,
 }: {
   panel: ComicPanel;
   index: number;
@@ -419,6 +432,7 @@ function ComicPanelCard({
   onReadVerse: (bookId: string, chapter: number) => void;
   bookId: string;
   chapter: number;
+  onShare?: (panel: ComicPanel, verseRef: string) => void;
 }) {
   const narration = (panel.narration || "").trim();
 
@@ -489,8 +503,9 @@ function ComicPanelCard({
         {/* Bottom gradient (for verse reference legibility) */}
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
-        {/* Panel number + title OVERLAID on top of artwork (top-left) */}
-        <div className="absolute top-3 left-3 right-3 flex items-start gap-2">
+        {/* Panel number + title OVERLAID on top of artwork (top-left).
+            right-12 keeps long titles clear of the panel share button. */}
+        <div className="absolute top-3 left-3 right-12 flex items-start gap-2">
           <span
             className="shrink-0 w-7 h-7 rounded-full bg-[#F39B9B] text-slate-950 text-xs font-black flex items-center justify-center shadow-lg"
             aria-label={`Panel ${index}`}
@@ -506,6 +521,19 @@ function ComicPanelCard({
         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold">
           {verseRef}
         </div>
+
+        {/* Share this panel — visible on desktop and touch (not hover-only) */}
+        {onShare && (
+          <button
+            type="button"
+            onClick={() => onShare(panel, verseRef)}
+            aria-label={`Share panel ${index}`}
+            title="Share this panel"
+            className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white/85 hover:text-white hover:bg-black/80 border border-white/10 transition-all"
+          >
+            <Share2 size={13} />
+          </button>
+        )}
       </div>
 
       {/* ─── Narration below artwork ───

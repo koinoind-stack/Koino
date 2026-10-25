@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ImageOff,
   Filter,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,8 @@ import {
   type Business,
 } from "@/lib/crosscrafted-data";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 type SortOption = "recommended" | "newest" | "name";
 
@@ -47,6 +50,9 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const [openBusiness, setOpenBusiness] = useState<Business | null>(null);
+  // Universal share sheet — Task 121 (approved listings only; the card
+  // endpoint re-verifies the listing status server-side).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
 
   // Public directory only shows approved businesses.
   // New listings created via ListYourEntity enter "pending" and don't appear
@@ -294,9 +300,22 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
           <BusinessDetailModal
             business={openBusiness}
             onClose={() => setOpenBusiness(null)}
+            onShare={(b) =>
+              setShareReq({
+                heading: `Share "${b.name}"`,
+                shareText: `${b.name}${b.category ? ` — ${b.category}` : ""}${b.city ? `, ${b.city}` : ""} · Christian Business Directory on Koino`,
+                shareUrl: shareLinks.businessDirectory(),
+                cardUrl: `/api/share-card?type=business&id=${encodeURIComponent(b.id)}`,
+                formats: ["square"],
+                fileName: `koino-business-${b.id}.png`,
+              })
+            }
           />
         )}
       </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }
@@ -427,9 +446,11 @@ function BusinessCard({
 function BusinessDetailModal({
   business,
   onClose,
+  onShare,
 }: {
   business: Business;
   onClose: () => void;
+  onShare?: (business: Business) => void;
 }) {
   return (
     <motion.div
@@ -576,6 +597,15 @@ function BusinessDetailModal({
           {/* Contact — only render buttons for info the business actually provided */}
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Contact</p>
+
+            {onShare && (business.status ?? "approved") === "approved" && (
+              <button
+                onClick={() => onShare(business)}
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] hover:bg-[#7C3AED]/25 transition-all"
+              >
+                <Share2 size={16} /> Share this business
+              </button>
+            )}
 
             {business.whatsapp_number && (
               <a

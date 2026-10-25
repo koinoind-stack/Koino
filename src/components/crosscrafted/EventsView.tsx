@@ -30,6 +30,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 import {
   EVENT_CATEGORIES,
   EVENT_DATE_FILTERS,
@@ -78,7 +80,7 @@ const formatRelative = (iso: string) => {
   return `In ${days} days`;
 };
 
-export default function EventsView() {
+export default function EventsView({ initialEventId }: { initialEventId?: string | null }) {
   const t = useTranslation();
   // ─── PUBLISHED EVENTS (loaded from real DB via /api/events) ───
   // The EVENTS mock array is NO LONGER used at runtime — all events come
@@ -103,6 +105,8 @@ export default function EventsView() {
   const [quickFilter, setQuickFilter] = useState<"near-you" | "all-india" | "online">("all-india");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [openEvent, setOpenEvent] = useState<EventItem | null>(null);
+  // Universal share sheet — Task 121.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [eventForm, setEventForm] = useState({
     title: "", description: "", category: "",
     startDate: "", startTime: "", endDate: "", endTime: "", allDay: false,
@@ -140,6 +144,17 @@ export default function EventsView() {
   useEffect(() => {
     loadEvents();
   }, []);
+
+  // Task 121: shared links arrive as /?view=events&event=<id> — once the
+  // published list loads, open that event's detail directly. The detail
+  // modal only ever shows PUBLISHED events (the list is server-filtered),
+  // so private/pending events can't be surfaced this way.
+  useEffect(() => {
+    if (!initialEventId || eventsLoading || events.length === 0) return;
+    const target = events.find((e) => e.id === initialEventId);
+    if (target) setOpenEvent(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEventId, eventsLoading, events]);
 
   const filtered = useMemo(() => {
     return events.filter((e) => {
@@ -319,9 +334,17 @@ export default function EventsView() {
   };
 
   const shareEvent = (e: EventItem) => {
-    const text = `Check out "${e.title}" on Koino — ${formatDate(e.date).weekday} ${e.date} at ${e.location}, ${e.city}!`;
-    navigator.clipboard.writeText(text);
-    toast.success("Event link copied!");
+    // Universal share sheet: branded card with real date/venue + a canonical
+    // link that opens the events hub with this event's detail (only PUBLISHED
+    // events are listed — the card endpoint re-verifies server-side).
+    setShareReq({
+      heading: `Share "${e.title}"`,
+      shareText: `Check out "${e.title}" on Koino — ${formatDate(e.date).weekday} ${e.date} at ${e.location}, ${e.city}!`,
+      shareUrl: shareLinks.event(e.id),
+      cardUrl: `/api/share-card?type=event&id=${encodeURIComponent(e.id)}`,
+      formats: ["portrait", "landscape"],
+      fileName: `koino-event-${e.id}.png`,
+    });
   };
 
   const rsvp = (e: EventItem) => {
@@ -1097,6 +1120,9 @@ export default function EventsView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

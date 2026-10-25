@@ -36,6 +36,8 @@ import PostDetail from "./PostDetail";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import GroupForm, { type GroupFormValue } from "./GroupForm";
 import GroupEventForm from "./GroupEventForm";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 type MemberUser = { id: string; name: string | null; username: string | null; image: string | null };
 
@@ -161,6 +163,9 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
 
   // edit group
   const [showEdit, setShowEdit] = useState(false);
+  // Universal share sheet — Task 121 (public groups only; the card endpoint
+  // re-verifies visibility server-side).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [saving, setSaving] = useState(false);
 
   const groupLink =
@@ -931,7 +936,29 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                   <button onClick={shareGroupWhatsApp} className="flex-1 py-2 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 text-[#4ADE80] text-xs font-bold inline-flex items-center justify-center gap-1.5">
                     <Share2 size={12} /> WhatsApp
                   </button>
+                  {group?.visibility === "public" && (
+                    <button
+                      onClick={() =>
+                        setShareReq({
+                          heading: `Share ${group.name}`,
+                          shareText: `Join "${group.name}" on Koino — a Christian community app.`,
+                          shareUrl: shareLinks.group(groupId),
+                          cardUrl: `/api/share-card?type=group&id=${encodeURIComponent(groupId)}`,
+                          formats: ["square", "portrait"],
+                          fileName: `koino-group-${groupId}.png`,
+                        })
+                      }
+                      className="flex-1 py-2 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                    >
+                      <Share2 size={12} /> Share Card
+                    </button>
+                  )}
                 </div>
+                {group?.visibility !== "public" && (
+                  <p className="text-[10px] text-[#64748B] mt-2">
+                    Private group — invitations stay member-only.
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -947,6 +974,9 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
           onChanged={loadPosts}
         />
       )}
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

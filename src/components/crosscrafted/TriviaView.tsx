@@ -37,6 +37,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 import {
   QUIZ_LEVELS,
   QUIZ_CATEGORIES,
@@ -75,6 +77,7 @@ type SubmitResult = {
   correctCount: number;
   totalQuestions: number;
   newTotalPoints: number;
+  sessionId?: string; // Task 121: real quiz session id for the share card
   bestStreak?: number;
   questionResults: {
     questionId: string;
@@ -127,6 +130,8 @@ export default function TriviaView() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [activeTab, setActiveTab] = useState<"play" | "compete" | "rewards" | "leaderboard" | "stats">("play");
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
+  // Universal share sheet (results / invite) — Task 121.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quizSession, setQuizSession] = useState<{ difficulty: string; category: string; mode: QuizMode } | null>(null);
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: number }[]>([]);
@@ -314,27 +319,28 @@ export default function TriviaView() {
   const shareResults = async () => {
     if (!submitResult) return;
     const text = `${t("triviaView.title")} ${gameMode === "EARN_POINTS" ? `(${t("triviaView.setup.mode.earn")})` : `(${t("triviaView.setup.mode.practice")})`}!\n\n${t("triviaView.results.correct", { count: submitResult.correctCount, total: submitResult.totalQuestions })}\n${gameMode === "EARN_POINTS" ? `${t("triviaView.results.pointsEarned", { points: submitResult.totalPointsEarned })}\n` : ""}Level: ${selectedLevel ? levelLabel(selectedLevel.id) : ""} | ${t("triviaView.setup.category")}: ${selectedCategory ? categoryLabel(selectedCategory.id) : ""}\n\n${t("triviaView.results.shareText", { correct: submitResult.correctCount, total: submitResult.totalQuestions })}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Koino Bible Trivia", text });
-        return;
-      } catch {}
-    }
-    navigator.clipboard.writeText(text);
-    toast.success("Results copied to clipboard!");
+    // Real numbers only: the image card renders the caller's OWN server-side
+    // session record (type=trivia enforces ownership), never fabricated data.
+    setShareReq({
+      heading: "Share your results",
+      shareText: text,
+      shareUrl: shareLinks.trivia(),
+      cardUrl: submitResult.sessionId
+        ? `/api/share-card?type=trivia&session=${encodeURIComponent(submitResult.sessionId)}`
+        : undefined,
+      formats: ["square"],
+      fileName: `koino-trivia-${submitResult.correctCount}of${submitResult.totalQuestions}.png`,
+    });
   };
 
   const inviteFriend = async () => {
     const text = `Hey! Come play Bible Trivia with me on Koino. ${gameMode === "EARN_POINTS" ? "Earn Faith Points for new questions you answer correctly!" : ""}`;
-    const url = `${window.location.origin}/`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Join me on Koino", text, url });
-        return;
-      } catch {}
-    }
-    navigator.clipboard.writeText(`${text}\n\n${url}`);
-    toast.success("Invite link copied!");
+    setShareReq({
+      heading: "Invite friends",
+      shareText: text,
+      shareUrl: shareLinks.trivia(),
+      fileName: "koino-trivia-invite.png",
+    });
   };
 
   const resetGame = () => {
@@ -866,6 +872,9 @@ export default function TriviaView() {
         {activeTab === "rewards" && <RewardsTab isAuthenticated={isAuthenticated} userPoints={userPoints || 0} />}
         {activeTab === "compete" && <CompeteView />}
       </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

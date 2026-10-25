@@ -40,6 +40,8 @@ import { useTranslation, useLanguage, LANGUAGES } from "@/lib/i18n/LanguageConte
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
 import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
 import ComicLibraryView from "@/components/crosscrafted/ComicLibraryView";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 import { Play } from "lucide-react";
 import { formatDuration } from "@/lib/videos";
 
@@ -50,10 +52,12 @@ export default function BibleView({
   onOpenComic,
   initialBookId,
   initialChapter,
+  initialVerse,
 }: {
   onOpenComic?: (bookId: string, chapter: number) => void;
   initialBookId?: string; // Part 5: deep link from video pages (?view=bible&book=&chapter=)
   initialChapter?: number;
+  initialVerse?: number | null; // Task 121: shared verse links (?…&verse=)
 }) {
   const t = useTranslation();
   const { lang, setLang } = useLanguage();
@@ -72,6 +76,12 @@ export default function BibleView({
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [bookmarkedVerses, setBookmarkedVerses] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Universal share sheet (single verse / verse range) — Task 121.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
+  // Verse to scroll to after the deep-linked chapter finishes loading.
+  const [pendingScrollVerse, setPendingScrollVerse] = useState<number | null>(
+    typeof initialVerse === "number" && initialVerse >= 1 ? initialVerse : null
+  );
 
   // Whether Bible text is available in the selected language.
   // bible-api.com only supports English (KJV/WEB). Indian-language
@@ -87,6 +97,8 @@ export default function BibleView({
   // Part 5: deep-linked passage from video pages — open the EXISTING reader
   // directly at the linked book/chapter (no duplicate reader is created).
   // The auto-jump effect below then switches to the reader view.
+  // Task 121: an optional &verse= scrolls to (and highlights) that verse once
+  // the chapter text arrives, so shared links open the exact verse.
   useEffect(() => {
     if (!initialBookId) return;
     const book = getBook(initialBookId);
@@ -97,7 +109,10 @@ export default function BibleView({
         : 1;
     setSelectedBook(book);
     setSelectedChapter(ch);
-  }, [initialBookId, initialChapter]);
+    if (typeof initialVerse === "number" && initialVerse >= 1) {
+      setPendingScrollVerse(initialVerse);
+    }
+  }, [initialBookId, initialChapter, initialVerse]);
 
   const refreshBookmarks = () => {
     const bms = getBookmarks();
@@ -279,6 +294,55 @@ export default function BibleView({
     toast.success("Verse copied!", { description: ref });
   };
 
+  // ─── Task 121: universal verse share (single verse or consecutive range) ──
+  const openVerseShare = (
+    book: BibleBook,
+    chapter: number,
+    verseStart: number,
+    verseEnd: number
+  ) => {
+    const verses = chapterVerses.filter(
+      (v) => v.verse >= verseStart && v.verse <= verseEnd
+    );
+    if (!verses.length) return;
+    const text = verses.map((v) => `${v.verse} ${v.text}`).join(" ");
+    const ref =
+      verseStart === verseEnd
+        ? `${book.name} ${chapter}:${verseStart} (${translation.toUpperCase()})`
+        : `${book.name} ${chapter}:${verseStart}-${verseEnd} (${translation.toUpperCase()})`;
+    setShareReq({
+      heading: ref,
+      shareText: `"${text.slice(0, 2200)}"\n\n— ${ref}`,
+      shareUrl: shareLinks.bible(book.id, chapter, verseStart),
+      cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=${verseStart}&ve=${verseEnd}&translation=${translation}`,
+      formats: ["square", "story", "portrait"],
+      fileName: `koino-verse-${book.id}-${chapter}-${verseStart}${verseEnd !== verseStart ? `-${verseEnd}` : ""}.png`,
+    });
+  };
+
+  // Scroll to (and briefly highlight) the deep-linked verse once text arrives.
+  useEffect(() => {
+    if (pendingScrollVerse === null) return;
+    if (!selectedBook || selectedChapter === null || chapterLoading) return;
+    if (!chapterVerses.some((v) => v.verse === pendingScrollVerse)) {
+      setPendingScrollVerse(null);
+      return;
+    }
+    const el = document.getElementById(
+      `verse-${selectedBook.id}-${selectedChapter}-${pendingScrollVerse}`
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("bg-[#7C3AED]/20");
+      const timer = window.setTimeout(
+        () => el.classList.remove("bg-[#7C3AED]/20"),
+        2600
+      );
+      setPendingScrollVerse(null);
+      return () => window.clearTimeout(timer);
+    }
+  }, [pendingScrollVerse, selectedBook, selectedChapter, chapterLoading, chapterVerses]);
+
   return (
     <div className="max-w-[680px] mx-auto px-4 py-5 pb-28 md:pb-5">
       {/* Header */}
@@ -438,6 +502,7 @@ export default function BibleView({
               onBackToChapters={() => setView("chapters")}
               onBookmark={(verse, text) => handleBookmarkToggle(selectedBook, selectedChapter, verse, text)}
               onShare={(verse, text) => handleShareVerse(selectedBook, selectedChapter, verse, text)}
+              onShareRange={(start, end) => openVerseShare(selectedBook, selectedChapter, start, end)}
             />
           )}
 
@@ -522,6 +587,9 @@ export default function BibleView({
           }}
         />
       )}
+
+      {/* ─── UNIVERSAL SHARE SHEET (verses) ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }
@@ -587,6 +655,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
           </div>
         ))}
       </div>
+      {/* ─── UNIVERSAL SHARE SHEET (verses) — rendered by the main view ─── */}
     </div>
   );
 }
@@ -654,6 +723,7 @@ function ReaderView({
   onBackToChapters,
   onBookmark,
   onShare,
+  onShareRange,
 }: {
   book: BibleBook;
   chapter: number;
@@ -668,8 +738,48 @@ function ReaderView({
   onBackToChapters: () => void;
   onBookmark: (verse: number, text: string) => void;
   onShare: (verse: number, text: string) => void;
+  onShareRange: (verseStart: number, verseEnd: number) => void;
 }) {
   const transLabel = TRANSLATIONS.find((t) => t.id === translation)?.label || "";
+
+  // ─── Verse range selection (Task 121) ───────────────────────────────────
+  // "Select" toggles tap-to-select: first tap marks the start verse, the
+  // second tap marks the end of a CONSECUTIVE range. A bar appears with the
+  // selected reference + a Share action that opens the universal share sheet.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selStart, setSelStart] = useState<number | null>(null);
+  const [selEnd, setSelEnd] = useState<number | null>(null);
+
+  const resetSelection = () => {
+    setSelectMode(false);
+    setSelStart(null);
+    setSelEnd(null);
+  };
+
+  const handleVerseTap = (verse: number) => {
+    if (!selectMode) return;
+    if (selStart === null || (selStart !== null && selEnd !== null)) {
+      // fresh selection
+      setSelStart(verse);
+      setSelEnd(null);
+    } else {
+      if (verse === selStart) {
+        // same verse twice = single-verse selection, ready to share
+        setSelEnd(verse);
+        return;
+      }
+      if (Math.abs(verse - selStart) >= 50) {
+        toast.error("Please select a shorter passage", {
+          description: "Share up to 50 verses at a time.",
+        });
+        return;
+      }
+      setSelEnd(verse);
+    }
+  };
+
+  const rangeStart = selStart !== null && selEnd !== null ? Math.min(selStart, selEnd) : null;
+  const rangeEnd = selStart !== null && selEnd !== null ? Math.max(selStart, selEnd) : null;
 
   return (
     <div>
@@ -681,10 +791,29 @@ function ReaderView({
         >
           <ChevronLeft size={14} /> Chapters
         </button>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] truncate">
-          {transLabel}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] truncate">
+            {transLabel}
+          </span>
+          <button
+            onClick={() => (selectMode ? resetSelection() : setSelectMode(true))}
+            className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+              selectMode
+                ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
+                : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
+            }`}
+            title="Select verses to share a passage"
+          >
+            {selectMode ? "Cancel" : "Select"}
+          </button>
+        </div>
       </div>
+
+      {selectMode && (
+        <p className="text-[11px] text-[#A78BFA] mb-2">
+          Tap a verse to start, tap another to finish the passage.
+        </p>
+      )}
 
       {/* Chapter header */}
       <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
@@ -731,21 +860,38 @@ function ReaderView({
             {verses.map((v) => {
               const id = `${book.id}-${chapter}-${v.verse}`;
               const isMarked = bookmarkedVerses.has(id);
+              const inRange =
+                rangeStart !== null &&
+                rangeEnd !== null &&
+                v.verse >= rangeStart &&
+                v.verse <= rangeEnd;
+              const isAnchor = selStart === v.verse;
               return (
                 <motion.div
                   key={v.verse}
+                  id={`verse-${id}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: Math.min(v.verse * 0.01, 0.3) }}
-                  className="group flex gap-2 hover:bg-white/[0.03] -mx-2 px-2 py-1 rounded-lg transition-colors"
+                  onClick={() => handleVerseTap(v.verse)}
+                  className={`group flex gap-2 hover:bg-white/[0.03] -mx-2 px-2 py-1 rounded-lg transition-colors ${
+                    inRange ? "bg-[#7C3AED]/[0.12]" : ""
+                  } ${selectMode ? "cursor-pointer" : ""}`}
                 >
-                  <span className="text-[#7C3AED] text-[11px] font-bold mt-0.5 shrink-0 w-6 text-right select-none">
+                  <span
+                    className={`text-[11px] font-bold mt-0.5 shrink-0 w-6 text-right select-none ${
+                      isAnchor ? "text-[#C4B5FD]" : "text-[#7C3AED]"
+                    }`}
+                  >
                     {v.verse}
                   </span>
                   <p className="text-sm text-[#A09DB1] leading-relaxed flex-1">{v.text}</p>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <div className="flex items-center gap-1 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                     <button
-                      onClick={() => onBookmark(v.verse, v.text)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBookmark(v.verse, v.text);
+                      }}
                       className={`p-1 rounded-md transition-all ${
                         isMarked ? "text-[#F59E0B]" : "text-[#94A3B8] hover:text-white"
                       }`}
@@ -754,16 +900,58 @@ function ReaderView({
                       {isMarked ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}
                     </button>
                     <button
-                      onClick={() => onShare(v.verse, v.text)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onShare(v.verse, v.text);
+                      }}
                       className="p-1 rounded-md text-[#94A3B8] hover:text-white transition-colors"
                       title="Copy verse"
                     >
                       <Copy size={12} />
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onShareRange(v.verse, v.verse);
+                      }}
+                      className="p-1 rounded-md text-[#94A3B8] hover:text-white transition-colors"
+                      title="Share verse (image + link)"
+                    >
+                      <Share2 size={12} />
+                    </button>
                   </div>
                 </motion.div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Selection action bar */}
+      {!loading && !error && rangeStart !== null && rangeEnd !== null && (
+        <div className="mt-3 flex items-center justify-between gap-2 bg-[#7C3AED]/15 border border-[#7C3AED]/40 rounded-2xl px-3 py-2.5">
+          <p className="text-[11px] font-bold text-[#C4B5FD] truncate">
+            {book.name} {chapter}:{rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}
+            <span className="text-[#94A3B8] font-semibold">
+              {" "}· {rangeEnd - rangeStart + 1} verse{rangeEnd - rangeStart > 0 ? "s" : ""}
+            </span>
+          </p>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={resetSelection}
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[10px] font-bold text-[#94A3B8] hover:text-white"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => {
+                onShareRange(rangeStart, rangeEnd);
+                resetSelection();
+              }}
+              className="px-3 py-1.5 rounded-lg bg-[#7C3AED] text-[10px] font-bold text-white flex items-center gap-1.5 hover:bg-[#6D28D9]"
+            >
+              <Share2 size={11} /> Share
+            </button>
           </div>
         </div>
       )}

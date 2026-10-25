@@ -12,6 +12,7 @@ import {
   BookOpen,
   Lock,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/lib/crosscrafted-data";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 export default function PrayerWallView() {
   const t = useTranslation();
@@ -99,6 +101,24 @@ export default function PrayerWallView() {
     toast.success("Comment added!");
   };
 
+  // Universal share sheet — Task 121. Only prayers the CURRENT MEMBER wrote
+  // (this session) get a share action — other people's requests stay private.
+  // The wall has no public URLs, so prayer shares are text + branded image
+  // only, never a link. The card endpoint requires a signed-in session.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
+  const [myPrayerIds, setMyPrayerIds] = useState<Set<string>>(new Set());
+
+  const openPrayerShare = (prayer: PrayerPost) => {
+    setShareReq({
+      heading: "Share your prayer",
+      shareText: `${prayer.title}\n\n${prayer.content}`,
+      shareUrl: undefined,
+      cardUrl: `/api/share-card?type=prayer&title=${encodeURIComponent(prayer.title.slice(0, 120))}&body=${encodeURIComponent(prayer.content.slice(0, 500))}&category=${encodeURIComponent(prayer.category.slice(0, 40))}`,
+      formats: ["square", "story"],
+      fileName: `koino-prayer-${prayer.id}.png`,
+    });
+  };
+
   const handleCreatePrayer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) {
@@ -117,6 +137,7 @@ export default function PrayerWallView() {
       created_at: new Date().toISOString(),
     };
     setPrayers([newPrayer, ...prayers]);
+    setMyPrayerIds((prev) => new Set(prev).add(newPrayer.id));
     setNewTitle("");
     setNewContent("");
     setNewCategory("Healing");
@@ -272,6 +293,15 @@ export default function PrayerWallView() {
                   <MessageCircle size={14} />
                   {prayer.comment_count}
                 </button>
+                {myPrayerIds.has(prayer.id) && (
+                  <button
+                    onClick={() => openPrayerShare(prayer)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F59E0B]/10 text-[#F59E0B] hover:text-white border border-[#F59E0B]/25 transition-all ml-auto"
+                    title="Share your prayer (text + branded image — no public link)"
+                  >
+                    <Share2 size={14} /> Share
+                  </button>
+                )}
               </div>
 
               <AnimatePresence>
@@ -457,6 +487,9 @@ export default function PrayerWallView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

@@ -25,6 +25,8 @@ import type { Post } from "./types";
 import { api } from "./types";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { formatCount, timeAgo, tokenizeCaption } from "@/lib/social/format";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 type Props = {
   post: Post;
@@ -62,6 +64,8 @@ export default function PostCard({
   const [editText, setEditText] = useState(post.content || "");
   const [busy, setBusy] = useState(false);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  // Universal share sheet — Task 121.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
 
   const shown = state.repostedFrom ?? state;
   const isVideo = shown.mediaType === "video";
@@ -182,18 +186,19 @@ export default function PostCard({
     }
   }
 
-  async function sharePost() {
-    const url = `${window.location.origin}/?post=${state.id}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Koino post", url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
-      }
-    } catch {
-      // user cancelled the share sheet — fine
-    }
+  function sharePost() {
+    // Universal share sheet: branded card from the post's own image (Koino
+    // storage only — private-group posts are refused server-side and the
+    // sheet degrades to text/link), caption + canonical /?post= link.
+    const target = shown.id;
+    setShareReq({
+      heading: "Share post",
+      shareText: (shown.content || "").slice(0, 600) || undefined,
+      shareUrl: shareLinks.post(target),
+      cardUrl: `/api/share-card?type=post&id=${encodeURIComponent(target)}`,
+      formats: ["square"],
+      fileName: `koino-post-${target}.png`,
+    });
   }
 
   const isMine = shown.author.id === state.author.id && !!state.content || editing === false && (state.author.username === shown.author.username && shown.author.id === state.author.id);
@@ -450,6 +455,9 @@ export default function PostCard({
           <Share2 size={19} />
         </button>
       </div>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </article>
   );
 }

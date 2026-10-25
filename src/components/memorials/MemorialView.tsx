@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { timeAgo } from "@/lib/social/format";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 type Condolence = {
   id: string;
@@ -58,6 +60,10 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
   const [posting, setPosting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  // Universal share sheet — Task 121. The card endpoint only renders
+  // status=published + visibility=public memorials; private/unlisted pages
+  // keep their existing manager-only share behaviour.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -181,18 +187,19 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
     }
   }
 
-  async function share() {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `In loving memory of ${data?.memorial.fullName}`, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied — you can paste it in a message");
-      }
-    } catch {
-      // user cancelled the share sheet — not an error
-    }
+  function share() {
+    // Universal share sheet: respectful branded card + canonical link.
+    // Server refuses non-public/unpublished memorials; in that case the sheet
+    // falls back to text + link only.
+    const m = data?.memorial;
+    setShareReq({
+      heading: m ? `In loving memory of ${m.fullName}` : "Share memorial",
+      shareText: m ? `In loving memory of ${m.fullName} — ${m.tribute || "Remembered with love on Koino."}` : undefined,
+      shareUrl: shareLinks.memorial(memorialId),
+      cardUrl: `/api/share-card?type=memorial&id=${encodeURIComponent(memorialId)}`,
+      formats: ["portrait", "square"],
+      fileName: `koino-memorial-${memorialId}.png`,
+    });
   }
 
   async function shareToFeed() {
@@ -551,6 +558,9 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
           ← All memorials
         </Link>
       </div>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

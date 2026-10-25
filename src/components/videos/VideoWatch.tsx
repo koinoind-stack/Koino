@@ -22,6 +22,8 @@ import {
   type BibleRefLike, formatBibleRef,
 } from "@/lib/videos";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 type BibleRef = BibleRefLike & { id: string };
 
@@ -79,6 +81,8 @@ export default function VideoWatch({ slug }: { slug: string }) {
   const [savedIn, setSavedIn] = useState({ watchLater: false, favorite: false });
   const [sharing, setSharing] = useState(false);
   const [descOpen, setDescOpen] = useState(false);
+  // Universal share sheet — Task 121.
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const lastSentRef = useRef(0);
@@ -193,18 +197,18 @@ export default function VideoWatch({ slug }: { slug: string }) {
     }
   }
 
-  async function shareLink() {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: data?.video.title || "Watch on Koino", url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied — you can paste it in a message");
-      }
-    } catch {
-      // user cancelled the share sheet — not an error
-    }
+  function shareLink() {
+    // Universal share sheet: branded card (gradient — no third-party YouTube
+    // thumbnail under Koino branding), caption + canonical /videos/<slug> link
+    // whose OG metadata gives platforms a real thumbnail preview.
+    setShareReq({
+      heading: "Share this video",
+      shareText: data?.video.title || undefined,
+      shareUrl: shareLinks.video(slug),
+      cardUrl: `/api/share-card?type=video&slug=${encodeURIComponent(slug)}`,
+      formats: ["landscape", "square"],
+      fileName: `koino-video-${slug}.png`,
+    });
   }
 
   async function shareToFeed() {
@@ -494,6 +498,9 @@ export default function VideoWatch({ slug }: { slug: string }) {
           </div>
         </section>
       )}
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

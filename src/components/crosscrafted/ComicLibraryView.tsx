@@ -51,6 +51,9 @@ type ComicChapterSummary = {
 
 type TestamentFilter = "all" | "OT" | "NT";
 
+// sessionStorage key for the library's filter state (survives reader round-trips)
+const FILTERS_KEY = "cc_comic_library_filters";
+
 // Rough listening/reading pace: ~30s per illustrated panel, min 1 minute.
 const estimateReadMinutes = (panelCount: number) =>
   Math.max(1, Math.round(panelCount * 0.5));
@@ -64,10 +67,47 @@ export default function ComicLibraryView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
-  const [testament, setTestament] = useState<TestamentFilter>("all");
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  // Filters — persisted in sessionStorage so returning from the reader via
+  // "← Comics Library" (or the browser back button) restores the book,
+  // testament and search state the member was browsing (Task 121, Part 1).
+  const [testament, setTestament] = useState<TestamentFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(FILTERS_KEY) || "{}");
+      return saved.testament === "OT" || saved.testament === "NT" ? saved.testament : "all";
+    } catch {
+      return "all";
+    }
+  });
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(FILTERS_KEY) || "{}");
+      return typeof saved.selectedBookId === "string" ? saved.selectedBookId : null;
+    } catch {
+      return null;
+    }
+  });
+  const [query, setQuery] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(FILTERS_KEY) || "{}");
+      return typeof saved.query === "string" ? saved.query : "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        FILTERS_KEY,
+        JSON.stringify({ testament, selectedBookId, query })
+      );
+    } catch {
+      /* storage unavailable — filters simply won't persist */
+    }
+  }, [testament, selectedBookId, query]);
 
   // Reading progress (cc_comic_progress) — refreshed on mount + window focus
   const [progress, setProgress] = useState<Record<string, ComicProgress>>({});
