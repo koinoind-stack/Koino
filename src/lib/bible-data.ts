@@ -466,6 +466,62 @@ export function startPlan(planId: string): PlanProgress {
   return all[planId];
 }
 
+// ─── BIBLE COMIC READING PROGRESS ──────────────────────────────────────────
+// Client-side reading progress for Bible Comics (same pattern as
+// cc_bible_bookmarks / cc_bible_plan_progress). Progress is per chapter,
+// keyed `${bookId}-${chapter}`. The reader records the highest panel the
+// user has actually seen (IntersectionObserver in ComicView) — the library
+// then derives reading status + the Continue Reading action from it.
+
+export type ComicProgress = {
+  bookId: string;
+  chapter: number;
+  lastPanel: number; // 1-based highest panel seen
+  totalPanels: number; // snapshot of panels when saved
+  completed: boolean;
+  startedAt: number;
+  updatedAt: number;
+};
+
+const COMIC_PROGRESS_KEY = "cc_comic_progress";
+
+export function getAllComicProgress(): Record<string, ComicProgress> {
+  try {
+    return JSON.parse(localStorage.getItem(COMIC_PROGRESS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+export function getComicProgress(bookId: string, chapter: number): ComicProgress | null {
+  return getAllComicProgress()[`${bookId}-${chapter}`] || null;
+}
+
+export function saveComicProgress(
+  bookId: string,
+  chapter: number,
+  lastPanel: number,
+  totalPanels: number
+): ComicProgress {
+  const all = getAllComicProgress();
+  const key = `${bookId}-${chapter}`;
+  const existing = all[key];
+  // Progress never regresses — keep the highest panel seen.
+  const nextLastPanel = Math.max(lastPanel, existing?.lastPanel || 0);
+  const next: ComicProgress = {
+    bookId,
+    chapter,
+    lastPanel: nextLastPanel,
+    totalPanels,
+    completed: totalPanels > 0 && nextLastPanel >= totalPanels,
+    startedAt: existing?.startedAt || Date.now(),
+    updatedAt: Date.now(),
+  };
+  all[key] = next;
+  localStorage.setItem(COMIC_PROGRESS_KEY, JSON.stringify(all));
+  return next;
+}
+
 // ─── HELPERS ───────────────────────────────────────────────────────────────
 
 export function getBook(bookId: string): BibleBook | undefined {

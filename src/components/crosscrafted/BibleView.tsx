@@ -39,22 +39,12 @@ import {
 import { useTranslation, useLanguage, LANGUAGES } from "@/lib/i18n/LanguageContext";
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
 import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
-import { BookOpen as BookOpenIcon, ArrowRight, Loader2 as ComicLoader, AlertCircle as ComicAlert } from "lucide-react";
+import ComicLibraryView from "@/components/crosscrafted/ComicLibraryView";
 import { Play } from "lucide-react";
 import { formatDuration } from "@/lib/videos";
 
 type View = "books" | "chapters" | "reader" | "search" | "bookmarks";
 type BibleMode = "read" | "comics" | "plans";
-
-type ComicChapterSummary = {
-  id: string;
-  comicId: string;
-  bookId: string;
-  chapter: number;
-  title: string;
-  coverArtUrl: string | null;
-  sortOrder: number;
-};
 
 export default function BibleView({
   onOpenComic,
@@ -341,7 +331,7 @@ export default function BibleView({
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <BookOpenIcon size={13} /> READ
+            <BookOpen size={13} /> READ
           </button>
           <button
             onClick={() => setMode("comics")}
@@ -509,7 +499,7 @@ export default function BibleView({
           COMICS MODE — chapter browser using existing /api/comic/list
           ────────────────────────────────────────────────────────────────── */}
       {mode === "comics" && (
-        <ComicsBrowserView onOpenComic={(bookId, chapter) => onOpenComic?.(bookId, chapter)} />
+        <ComicLibraryView onOpenComic={(bookId, chapter) => onOpenComic?.(bookId, chapter)} />
       )}
 
       {/* ──────────────────────────────────────────────────────────────────
@@ -532,151 +522,6 @@ export default function BibleView({
           }}
         />
       )}
-    </div>
-  );
-}
-
-// ─── COMICS BROWSER VIEW ────────────────────────────────────────────────────
-// Lists all published comic chapters from /api/comic/list (sorted by
-// sortOrder + bookId + chapter) and lets the user open any chapter —
-// which hands control to the existing ComicView (via onOpenComic).
-
-function ComicsBrowserView({ onOpenComic }: { onOpenComic: (bookId: string, chapter: number) => void }) {
-  const [chapters, setChapters] = useState<ComicChapterSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/comic/list");
-        const text = await res.text();
-        if (!text) throw new Error("Empty response from server");
-        const data = JSON.parse(text);
-        if (!res.ok) throw new Error(data.error || "Failed to load comics");
-        // Defensive sort — preserve sortOrder ordering, then bookId, then chapter.
-        const list: ComicChapterSummary[] = (data.chapters || []).slice().sort((a: ComicChapterSummary, b: ComicChapterSummary) => {
-          if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-          if (a.bookId !== b.bookId) return a.bookId.localeCompare(b.bookId);
-          return a.chapter - b.chapter;
-        });
-        if (!cancelled) setChapters(list);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message || "Failed to load comics");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <ComicLoader size={28} className="text-[#F39B9B] animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-16">
-        <ComicAlert size={28} className="mx-auto text-[#EF4444] mb-3" />
-        <p className="text-sm text-[#94A3B8]">{error}</p>
-      </div>
-    );
-  }
-
-  if (chapters.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <Sparkles size={28} className="mx-auto text-[#475569] mb-3" />
-        <p className="text-sm text-[#94A3B8]">No comics published yet.</p>
-      </div>
-    );
-  }
-
-  const bookName = (bid: string) => bid.charAt(0).toUpperCase() + bid.slice(1);
-
-  return (
-    <div>
-      {/* Section label */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B]">
-            BIBLE COMICS
-          </p>
-          <p className="text-[11px] text-[#64748B] mt-0.5">
-            Visual Bible storytelling — pick a chapter to begin
-          </p>
-        </div>
-      </div>
-
-      {/* Chapter grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {chapters.map((ch, idx) => {
-          const cover = ch.coverArtUrl;
-          return (
-            <button
-              key={ch.id}
-              onClick={() => onOpenComic(ch.bookId, ch.chapter)}
-              className="group bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col"
-            >
-              {/* Cover (uses ComicChapter.coverArtUrl when available) */}
-              <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
-                {cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={cover}
-                    alt={ch.title}
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <BookOpenIcon size={28} className="text-[#475569]" />
-                  </div>
-                )}
-
-                {/* Top gradient for legibility */}
-                <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
-                {/* Bottom gradient for legibility */}
-                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-
-                {/* Chapter number overlay (top-left) */}
-                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-[#F39B9B] text-slate-950 text-[9px] font-black">
-                  {idx + 1}
-                </div>
-
-                {/* Chapter title + reference overlay (bottom-left) */}
-                <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-xs font-extrabold text-white drop-shadow leading-tight line-clamp-2">
-                    {ch.title}
-                  </p>
-                  <p className="text-[9px] text-white/80 mt-0.5 font-bold">
-                    {bookName(ch.bookId)} {ch.chapter}
-                  </p>
-                </div>
-              </div>
-
-              {/* CTA bar */}
-              <div className="flex items-center justify-between px-3 py-2 border-t border-white/[0.04]">
-                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">
-                  Continue Reading
-                </span>
-                <ArrowRight
-                  size={14}
-                  className="text-[#94A3B8] group-hover:text-white group-hover:translate-x-0.5 transition-all"
-                />
-              </div>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

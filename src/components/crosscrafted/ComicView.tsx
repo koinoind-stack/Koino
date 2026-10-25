@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -17,10 +17,13 @@ import {
   Zap,
   Share2,
   Download,
+  Library,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { getBook, getComicProgress, saveComicProgress } from "@/lib/bible-data";
 import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -29,6 +32,7 @@ type ComicPanel = {
   panelId: string;
   sortOrder: number;
   artworkUrl: string;
+  altText: string | null;
   verseStart: number;
   verseEnd: number;
   bookId: string;
@@ -63,9 +67,10 @@ type Props = {
   onReadChapter: (bookId: string, chapter: number) => void;
   onPray: (prayerPrompt: string) => void;
   onDiscuss: (topic: string) => void;
+  onBackToLibrary?: () => void;
 };
 
-export default function ComicView({ bookId, chapter, onNavigateChapter, onReadChapter, onPray, onDiscuss }: Props) {
+export default function ComicView({ bookId, chapter, onNavigateChapter, onReadChapter, onPray, onDiscuss, onBackToLibrary }: Props) {
   const { lang } = useLanguage();
   const { isAuthenticated } = useSupabaseUser();
 
@@ -80,6 +85,12 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
 
   // TTS state
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Reading progress — highest panel actually seen (1-based). Persisted to
+  // cc_comic_progress via saveComicProgress; powers Continue Reading in the
+  // Comics library and the reading progress bar in this header.
+  const [seenPanel, setSeenPanel] = useState(0);
+  const lastSavedRef = useRef(0);
 
   // Load comic chapter
   const loadComic = useCallback(async () => {
@@ -104,6 +115,58 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   useEffect(() => {
     loadComic();
   }, [loadComic]);
+
+  // ─── Reading progress: restore + resume ─────────────────────────────────
+
+  useEffect(() => {
+    if (!chapterData) return;
+    const total = chapterData.panels.length;
+    if (total === 0) return;
+    const prog = getComicProgress(bookId, chapter);
+    if (prog && prog.lastPanel > 0) {
+      setSeenPanel((prev) => Math.max(prev, Math.min(prog.lastPanel, total)));
+      lastSavedRef.current = Math.max(lastSavedRef.current, Math.min(prog.lastPanel, total));
+      // Resume: scroll the first unseen panel into view once content settles.
+      if (!prog.completed && prog.lastPanel < total) {
+        const t = setTimeout(() => {
+          document
+            .getElementById(`comic-panel-${prog.lastPanel + 1}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 800);
+        return () => clearTimeout(t);
+      }
+    } else {
+      // First open — record that this chapter has been started.
+      saveComicProgress(bookId, chapter, 0, total);
+    }
+  }, [chapterData, bookId, chapter]);
+
+  // Observe which panels the user actually sees; persist the highest one.
+  useEffect(() => {
+    if (!chapterData || chapterData.panels.length === 0) return;
+    const total = chapterData.panels.length;
+    const els = Array.from(document.querySelectorAll<HTMLElement>("[data-comic-panel]"));
+    if (els.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let maxSeen = 0;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const n = Number((entry.target as HTMLElement).dataset.comicPanel || 0);
+            if (n > maxSeen) maxSeen = n;
+          }
+        }
+        if (maxSeen > lastSavedRef.current) {
+          lastSavedRef.current = maxSeen;
+          setSeenPanel(maxSeen);
+          saveComicProgress(bookId, chapter, maxSeen, total);
+        }
+      },
+      { threshold: 0.5, rootMargin: "0px 0px -8% 0px" }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [chapterData, bookId, chapter]);
 
   // ─── Listen (TTS) ─────────────────────────────────────────────────────────
 
@@ -201,8 +264,13 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     );
   }
 
-  const bookName = bookId.charAt(0).toUpperCase() + bookId.slice(1);
+  // Proper book name from the Bible books data (fixes naive capitalization
+  // for books like "1 Samuel" / "Song of Solomon").
+  const bookName = getBook(bookId)?.name || bookId.charAt(0).toUpperCase() + bookId.slice(1);
   const panels = chapterData.panels;
+  const totalPanels = panels.length;
+  const progressPct = totalPanels > 0 ? Math.min(100, Math.round((seenPanel / totalPanels) * 100)) : 0;
+  const chapterCompleted = totalPanels > 0 && seenPanel >= totalPanels;
 
   // Get prayer prompt from first panel's captions
   const prayerPrompt = panels[0]?.captions?.[0] ||
@@ -212,6 +280,14 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     <div className="max-w-[1200px] mx-auto px-4 py-5 pb-28 md:pb-5">
       {/* ─── HEADER ─── */}
       <div className="text-center mb-6">
+        {onBackToLibrary && (
+          <button
+            onClick={onBackToLibrary}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[11px] font-bold transition-all mb-4"
+          >
+            <Library size={13} /> Comics Library
+          </button>
+        )}
         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B] mb-2">
           BIBLE COMICS
         </p>
@@ -224,21 +300,52 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
         <p className="text-xs text-[#64748B]">
           Read the story • See the bigger picture • Grow in your faith
         </p>
+
+        {/* ─── Reading progress (panels actually seen) ─── */}
+        {totalPanels > 0 && (
+          <div className="max-w-md mx-auto mt-4">
+            {chapterCompleted && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-black mb-2">
+                <CheckCircle2 size={11} /> Chapter Completed
+              </span>
+            )}
+            <div className="flex items-center justify-between text-[9px] font-bold text-[#64748B] mb-1">
+              <span>
+                {chapterCompleted
+                  ? "All panels read"
+                  : `Panel ${Math.min(seenPanel + 1, totalPanels)} of ${totalPanels}`}
+              </span>
+              <span>{progressPct}%</span>
+            </div>
+            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] transition-all duration-500"
+                style={{ width: `${Math.max(4, progressPct)}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── COMIC PANEL GRID (3×2 on desktop, stacked on mobile) ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {panels.map((panel, idx) => (
-          <ComicPanelCard
+          <div
             key={panel.panelId}
-            panel={panel}
-            index={idx + 1}
-            bookName={bookName}
-            chapterNum={chapter}
-            onReadVerse={onReadChapter}
-            bookId={bookId}
-            chapter={chapter}
-          />
+            id={`comic-panel-${idx + 1}`}
+            data-comic-panel={idx + 1}
+            className="scroll-mt-24"
+          >
+            <ComicPanelCard
+              panel={panel}
+              index={idx + 1}
+              bookName={bookName}
+              chapterNum={chapter}
+              onReadVerse={onReadChapter}
+              bookId={bookId}
+              chapter={chapter}
+            />
+          </div>
         ))}
       </div>
 
@@ -319,8 +426,10 @@ function ComicPanelCard({
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
         <img
           src={panel.artworkUrl}
-          alt={panel.title || `Panel ${index}`}
+          alt={panel.altText || panel.title || `Panel ${index} — ${bookName} ${chapterNum}`}
           className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
         />
 
         {/* Top gradient (for overlay legibility) */}

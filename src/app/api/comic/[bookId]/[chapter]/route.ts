@@ -76,6 +76,7 @@ export async function GET(
         panelId: panel.panelId,
         sortOrder: panel.sortOrder,
         artworkUrl: panel.artworkUrl,
+        altText: panel.altText || null,
         verseStart: panel.verseStart,
         verseEnd: panel.verseEnd,
         bookId: panel.bookId,
