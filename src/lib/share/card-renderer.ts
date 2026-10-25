@@ -22,7 +22,54 @@
 
 import sharp from "sharp";
 import fs from "fs";
+import os from "os";
 import path from "path";
+
+/* ─── Bundled fonts (Vercel serverless ships NO system fonts) ─────────────
+ * librsvg renders SVG <text> through pango/fontconfig. On Vercel's minimal
+ * Node runtime there are no fonts at all — every glyph becomes a tofu box.
+ * Fix: ship DejaVu (Latin) + Noto Sans Devanagari/Telugu (Hindi/Telugu comic
+ * titles) inside public/fonts and provision an isolated fontconfig tree in
+ * /tmp at module load, BEFORE the first fontconfig initialisation.
+ * Setting FONTCONFIG_PATH replaces the (empty) system config with exactly
+ * our fonts — which is also why local smoke tests prove the same behaviour. */
+const BUNDLED_FONTS = [
+  "DejaVuSans.ttf",
+  "DejaVuSans-Bold.ttf",
+  "DejaVuSerif.ttf",
+  "DejaVuSerif-Bold.ttf",
+  "NotoSansDevanagari.ttf",
+  "NotoSansTelugu.ttf",
+];
+
+let fontConfigReady = false;
+function ensureFontConfig(): void {
+  if (fontConfigReady) return;
+  fontConfigReady = true;
+  try {
+    if (process.env.FONTCONFIG_PATH) return; // already provisioned by the host
+    const dir = path.join(os.tmpdir(), "koino-share-fonts");
+    fs.mkdirSync(dir, { recursive: true });
+    for (const f of BUNDLED_FONTS) {
+      const dst = path.join(dir, f);
+      if (!fs.existsSync(dst)) {
+        try {
+          fs.copyFileSync(path.join(process.cwd(), "public", "fonts", f), dst);
+        } catch {
+          /* missing file: the remaining fonts still cover most scripts */
+        }
+      }
+    }
+    fs.writeFileSync(
+      path.join(dir, "fonts.conf"),
+      `<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig>\n  <dir>${dir}</dir>\n  <cachedir>${dir}/cache</cachedir>\n</fontconfig>\n`
+    );
+    process.env.FONTCONFIG_PATH = dir;
+  } catch {
+    /* /tmp unavailable — fall back to whatever system fonts exist */
+  }
+}
+ensureFontConfig();
 
 export type CardFormat = "square" | "portrait" | "story" | "landscape";
 

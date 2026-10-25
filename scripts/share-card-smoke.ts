@@ -1,7 +1,11 @@
 /**
  * Local smoke test for the Task 121 share-card renderer (no DB needed).
- * Renders one card per format + one with an artwork-style background, and
+ * Renders one card per format + script coverage (Latin/Hindi/Telugu), and
  * writes PNGs to /tmp for inspection. Run: npx tsx scripts/share-card-smoke.ts
+ *
+ * NOTE: the renderer provisions an ISOLATED fontconfig (FONTCONFIG_PATH →
+ * /tmp/koino-share-fonts with ONLY the bundled fonts) at module load — so
+ * this test simulates the bare Vercel runtime exactly.
  */
 import { renderShareCard } from "../src/lib/share/card-renderer";
 import fs from "fs";
@@ -12,22 +16,33 @@ async function main() {
       name: "verse-square",
       spec: {
         format: "square" as const,
-        kicker: "Bible Verse",
-        title:
-          "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
-        reference: "John 3:16 (KJV)",
+        kicker: "Bible Verse • KJV",
+        title: "John 3:16",
+        body:
+          "16 For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life. For God did not send his Son into the world to condemn the world, but to save the world through him.",
         gradientSeed: 1,
       },
     },
     {
-      name: "verse-story",
+      name: "hindi-square",
       spec: {
-        format: "story" as const,
-        kicker: "Bible Verse",
-        title:
-          "The Lord is my shepherd, I lack nothing. He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul. He guides me along the right paths for his name's sake.",
-        reference: "Psalm 23:1-3 (WEB)",
-        gradientSeed: 1,
+        format: "square" as const,
+        kicker: "BIBLE COMICS • उत्पत्ति 1",
+        title: "आदि में परमेश्वर ने आकाश और पृथ्वी की सृष्टि की",
+        body: "परमेश्वर ने कहा, “प्रकाश हो!” और प्रकाश हो गया। यहोवा ने देखा कि प्रकाश अच्छा है।",
+        reference: "उत्पत्ति 1:1-5",
+        gradientSeed: 0,
+      },
+    },
+    {
+      name: "telugu-square",
+      spec: {
+        format: "square" as const,
+        kicker: "BIBLE COMICS • ఆదికాండము 1",
+        title: "దేవుడు ఆదిలో ఆకాశమును భూమియు సృష్టించెను",
+        body: "దేవుడు \u201cవెలుగు కలుగునుగాక\u201d అని అనెను, అప్పుడు వెలుగు కలిగెను.",
+        reference: "ఆదికాండము 1:1-5",
+        gradientSeed: 0,
       },
     },
     {
@@ -43,17 +58,14 @@ async function main() {
       },
     },
     {
-      name: "portrait-bg",
+      name: "portrait-story",
       spec: {
-        format: "portrait" as const,
-        kicker: "Bible Comics • Genesis 1",
-        title: "A Cover Card With Artwork",
-        body: "This one composites a real background image under the scrim — the path used for Koino-hosted artwork.",
-        reference: "Genesis 1",
-        bgImageUrl:
-          "https://irzkwtrawvtqfpbyapzx.supabase.co/storage/v1/object/public/believ-comic-artwork/comics/genesis/1/GEN1-P01.webp",
-        bgIsKoinoHosted: true,
-        gradientSeed: 0,
+        format: "story" as const,
+        kicker: "Bible Verse • WEB",
+        title: "Psalm 23:1-6",
+        body:
+          "1 The Lord is my shepherd; I shall not want. 2 He maketh me to lie down in green pastures: he leadeth me beside the still waters. 3 He restoreth my soul: he leadeth me in the paths of righteousness for his name's sake. 4 Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.",
+        gradientSeed: 1,
       },
     },
   ];
