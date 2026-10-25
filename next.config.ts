@@ -9,11 +9,17 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [{ key: "X-Koino-Round", value: "universal-share-cards.1" }],
+        headers: [{ key: "X-Koino-Round", value: "universal-share-cards.2" }],
       },
     ];
   },
-  /* config options here */
+  /* Share-card font fix: guarantee the bundled TTFs (public/fonts) reach the
+   * /api/share-card serverless bundle. The renderer copies them into an
+   * isolated fontconfig tree at module load; without tracing they can be
+   * absent in some runtimes and every glyph renders as tofu. */
+  outputFileTracingIncludes: {
+    "/api/share-card": ["./public/fonts/**/*", "./public/brand/logo.png"],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
