@@ -6,6 +6,8 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Brain,
   Heart,
   MessageCircle,
@@ -418,7 +420,51 @@ function ComicPanelCard({
   bookId: string;
   chapter: number;
 }) {
-  const verseRef = `${bookName} ${chapterNum}:${panel.verseStart}-${panel.verseEnd}`;
+  const narration = (panel.narration || "").trim();
+
+  // Inline expand/collapse for long narration. State lives inside this card,
+  // so every panel expands and collapses independently.
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const narrationRef = useRef<HTMLParagraphElement | null>(null);
+  const narrationBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // Detect whether the 3-line preview actually truncates the narration.
+  // With the line clamp applied, scrollHeight reflects the full (hidden)
+  // content height while clientHeight reflects the clamped box — content
+  // taller than the box means the preview is cut off. Re-measured after
+  // fonts settle and whenever the card's layout box changes (sidebar
+  // toggle, orientation change, mobile browser UI show/hide) so the
+  // control appears/disappears correctly at every breakpoint.
+  useEffect(() => {
+    if (expanded) return; // expanded shows the full text — keep state stable
+    const measure = () => {
+      const el = narrationRef.current;
+      if (!el) return;
+      setIsTruncated(el.scrollHeight - el.clientHeight > 2);
+    };
+    measure();
+    const t1 = window.setTimeout(measure, 300);
+    const t2 = window.setTimeout(measure, 1200);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && narrationBoxRef.current) {
+      ro = new ResizeObserver(measure);
+      ro.observe(narrationBoxRef.current);
+    }
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [expanded, narration]);
+
+  // Single-verse panels read "Genesis 1:31", not "Genesis 1:31-31".
+  const verseRef =
+    panel.verseStart === panel.verseEnd
+      ? `${bookName} ${chapterNum}:${panel.verseStart}`
+      : `${bookName} ${chapterNum}:${panel.verseStart}-${panel.verseEnd}`;
 
   return (
     <motion.div
@@ -462,11 +508,40 @@ function ComicPanelCard({
         </div>
       </div>
 
-      {/* ─── Narration below artwork ─── */}
-      <div className="p-3 flex-1">
-        <p className="text-[12px] text-[#A09DB1] leading-relaxed line-clamp-3">
-          {panel.narration}
-        </p>
+      {/* ─── Narration below artwork ───
+          Collapsed: 3-line readable preview. When the stored narration is
+          longer than the preview, a "Read Full Story ↓" control expands the
+          panel inline to reveal the complete saved text ("Show Less ↑"
+          collapses it again). The card grows in the page flow — nothing is
+          clipped or covered — and expanding never touches reading progress. */}
+      <div className="p-3 flex-1" ref={narrationBoxRef}>
+        {narration ? (
+          <p
+            id={`narration-${panel.panelId}`}
+            ref={narrationRef}
+            className={`text-[12px] text-[#A09DB1] leading-relaxed ${
+              expanded ? "" : "line-clamp-3"
+            }`}
+          >
+            {narration}
+          </p>
+        ) : null}
+        {narration && (expanded || isTruncated) ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-controls={`narration-${panel.panelId}`}
+            className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/25 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/25 hover:text-white transition-all"
+          >
+            {expanded ? "Show Less" : "Read Full Story"}
+            {expanded ? (
+              <ChevronUp size={12} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={12} aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
       </div>
     </motion.div>
   );
