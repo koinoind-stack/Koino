@@ -489,7 +489,7 @@ function BookPicker({
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#64748B] mb-1.5">
             {group.label}
           </p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1.5 -mx-1 px-1 [scrollbar-width:thin]">
+          <div className="flex gap-1.5 overflow-x-auto pb-1.5 [scrollbar-width:thin]">
             {group.books.map((book) => {
               const count = countByBook.get(book.id) || 0;
               const selected = selectedBookId === book.id;
