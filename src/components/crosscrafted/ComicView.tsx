@@ -19,7 +19,7 @@ import {
   Zap,
   Share2,
   Download,
-  Library,
+  ArrowLeft,
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -298,9 +298,10 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
         {onBackToLibrary && (
           <button
             onClick={onBackToLibrary}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[11px] font-bold transition-all mb-4"
+            aria-label="Back to Bible Comics library"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] border border-white/[0.14] text-white/90 hover:bg-white/[0.14] hover:text-white active:scale-[0.97] text-xs font-bold transition-all mb-4 min-h-[40px]"
           >
-            <Library size={13} /> Comics Library
+            <ArrowLeft size={15} /> Back to Bible Comics
           </button>
         )}
         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B] mb-2">
@@ -312,6 +313,15 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
         <p className="text-lg text-[#A09DB1] font-semibold mb-2">
           {chapterData.title}
         </p>
+        {onBackToLibrary && (
+          <button
+            onClick={onBackToLibrary}
+            aria-label="All Comics library"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B87A3] hover:text-white transition-colors mb-2"
+          >
+            <ArrowLeft size={11} /> All Comics
+          </button>
+        )}
         <p className="text-xs text-[#64748B]">
           Read the story • See the bigger picture • Grow in your faith
         </p>

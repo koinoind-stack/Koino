@@ -830,8 +830,11 @@ export default function Home() {
                   initialVerse={bibleTarget?.verse ?? null}
                   onOpenComic={(bookId, chapter) => {
                     // Switch from Bible hub → full ComicView for the chosen
-                    // chapter (pushes a history entry so browser back returns
-                    // to the Bible hub flow / library — Task 121 Part 1).
+                    // chapter (pushes a history entry). popstate's non-comic
+                    // branch only clears the reader and never restores the
+                    // bible view, so BOTH browser back and the in-app
+                    // "Back to Bible Comics" button land on the comics
+                    // library; a further browser back returns to the hub.
                     openComicChapter(bookId, chapter);
                   }}
                 />
