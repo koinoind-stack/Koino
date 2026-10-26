@@ -36,6 +36,12 @@ type ProfileData = {
   counters: { followers: number; following: number; posts: number };
   isSelf: boolean;
   viewerFollows: boolean;
+  faith?: {
+    points: number;
+    tier: string | null;
+    tierIcon: string | null;
+    badges: { id: string; name: string; icon: string; description: string; unlockedAt: string }[];
+  };
   posts: Post[];
   nextCursor: string | null;
 };
@@ -338,6 +344,40 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           );
         })()}
       </div>
+
+      {/* faith journey — FP balance + badges actually unlocked (server-verified) */}
+      {data.faith && (data.faith.points > 0 || data.faith.badges.length > 0) && (
+        <div className="mb-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[11px] font-extrabold text-[#FCD34D]">
+              ⚡ {data.faith.points.toLocaleString()} FP
+            </span>
+            {data.faith.tier && (
+              <span
+                title="Faith tier from earned points"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[11px] font-bold text-[#C4B5FD]"
+              >
+                {data.faith.tierIcon && <span>{data.faith.tierIcon}</span>}
+                {data.faith.tier}
+              </span>
+            )}
+          </div>
+          {data.faith.badges.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+              {data.faith.badges.map((b) => (
+                <span
+                  key={b.id}
+                  title={`${b.description} — unlocked ${new Date(b.unlockedAt).toLocaleDateString()}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-bold text-[#CBD5E1]"
+                >
+                  <span aria-hidden>{b.icon}</span>
+                  {b.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* actions */}
       <div className="flex gap-2 mb-5">

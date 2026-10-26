@@ -277,6 +277,14 @@ export default function TriviaView() {
       setSubmitResult(result);
       setGameState("result");
 
+      // Badges earned by this quiz — the server ran the badge check as part
+      // of scoring (idempotent), so anything in newlyAwarded is brand new.
+      if (result.newlyAwarded?.length > 0) {
+        result.newlyAwarded.forEach((b: { icon: string; name: string; description: string }) => {
+          toast.success(`${b.icon} Badge Unlocked: ${b.name}!`, { description: b.description });
+        });
+      }
+
       // Secondary operations (non-blocking — don't await)
       if (result.mode === "EARN_POINTS") {
         // Record localStorage streak (fire-and-forget)
@@ -1426,6 +1434,8 @@ function CompeteView() {
   const [activeCompetition, setActiveCompetition] = useState<{ id: string; title: string } | null>(null);
   const [quizResult, setQuizResult] = useState<{ result: any; title: string } | null>(null);
   const [leaderboardCompetition, setLeaderboardCompetition] = useState<string | null>(null);
+  const [showHostForm, setShowHostForm] = useState(false);
+  const [showMine, setShowMine] = useState(false);
 
   const loadCompetitions = useCallback(() => {
     fetch("/api/trivia/competitions")
@@ -1519,6 +1529,9 @@ function CompeteView() {
           <div>
             <p className="text-[9px] font-bold uppercase tracking-wider text-[#F59B9B]">{c.type}</p>
             <h3 className="text-sm font-bold text-white leading-tight">{c.title}</h3>
+            {c.hostGroup?.name && (
+              <p className="text-[10px] font-bold text-[#A78BFA] mt-0.5">Hosted by {c.hostGroup.name}</p>
+            )}
           </div>
           <span
             className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider shrink-0 ${
@@ -1606,6 +1619,25 @@ function CompeteView() {
 
   return (
     <div className="space-y-4">
+      {/* Host controls — group managers can host their own trivia */}
+      {isAuthenticated && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowHostForm(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
+          >
+            <Trophy size={13} /> Host a Trivia
+          </button>
+          <button
+            onClick={() => setShowMine((v) => !v)}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/10 text-white text-xs font-bold hover:bg-white/10 transition-all"
+          >
+            My hosted
+          </button>
+        </div>
+      )}
+      {showMine && isAuthenticated && <MyHostedCompetitions />}
+
       {/* LIVE */}
       {live.length > 0 && (
         <div>
@@ -1642,6 +1674,369 @@ function CompeteView() {
           </p>
         </div>
       )}
+
+      {/* Host modal */}
+      {showHostForm && (
+        <HostTriviaModal
+          onClose={() => setShowHostForm(false)}
+          onHosted={() => {
+            setShowHostForm(false);
+            loadCompetitions();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── HOST A TRIVIA (community hosting) ──────────────────────────────────────
+// Group managers (owner / admin / moderator) create a trivia competition for
+// their group — church quiz nights, youth fellowships, friend circles. The
+// submission starts as "pending" and a platform admin approves it before it
+// appears on the public board (same flow as event submissions).
+
+const HOST_CATEGORY_OPTIONS = [
+  { id: "full_bible", label: "Full Bible" },
+  { id: "old_testament", label: "Old Testament" },
+  { id: "new_testament", label: "New Testament" },
+  { id: "apologetics", label: "Apologetics" },
+  { id: "mixed", label: "Mixed" },
+];
+
+const HOST_DIFFICULTY_OPTIONS = [
+  { id: "beginners", label: "Beginners" },
+  { id: "intermediate", label: "Intermediate" },
+  { id: "skilled", label: "Skilled" },
+  { id: "expert", label: "Expert" },
+  { id: "mixed", label: "Mixed" },
+];
+
+function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted: () => void }) {
+  const [groups, setGroups] = useState<{ id: string; name: string; myRole: string | null }[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    groupId: "",
+    title: "",
+    description: "",
+    category: "full_bible",
+    difficulty: "beginners",
+    questionCount: "10",
+    startAt: "",
+    endAt: "",
+    rules: "",
+  });
+
+  useEffect(() => {
+    // Manageable groups only — the server enforces this too, but the picker
+    // should not offer groups the user cannot host for.
+    fetch("/api/social/groups?mine=1")
+      .then((r) => (r.ok ? r.json() : { groups: [] }))
+      .then((d) =>
+        setGroups(
+          (d.groups || []).filter(
+            (g: any) => g.myMembership === "active" && ["owner", "admin", "moderator"].includes(g.myRole),
+          ),
+        ),
+      )
+      .catch(() => {})
+      .finally(() => setLoadingGroups(false));
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.groupId) return toast.error("Choose which group will host this trivia");
+    if (form.title.trim().length < 3) return toast.error("Give your trivia a title (3+ characters)");
+    if (!form.startAt || !form.endAt) return toast.error("Pick a start and end date/time");
+    const start = new Date(form.startAt);
+    const end = new Date(form.endAt);
+    if (end <= start) return toast.error("End must be after start");
+    if (start.getTime() < Date.now() - 5 * 60 * 1000) return toast.error("Start time cannot be in the past");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/trivia/competitions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId: form.groupId,
+          title: form.title.trim(),
+          description: form.description.trim() || null,
+          category: form.category,
+          difficulty: form.difficulty,
+          questionCount: parseInt(form.questionCount, 10),
+          startAt: start.toISOString(),
+          endAt: end.toISOString(),
+          rules: form.rules.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit");
+      toast.success("Trivia submitted for review!", {
+        description: "It appears on the Compete board once the Koino team approves it.",
+      });
+      onHosted();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]";
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+          <div>
+            <h2 className="font-extrabold text-white text-sm">Host a Trivia</h2>
+            <p className="text-[10px] text-[#64748B]">Run a quiz night for your group or church</p>
+          </div>
+          <button onClick={onClose} className="text-[#94A3B8] text-sm font-bold px-2">
+            Done
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="overflow-y-auto p-4 space-y-3">
+          {loadingGroups ? (
+            <p className="text-xs text-[#94A3B8] text-center py-6">Loading your groups…</p>
+          ) : groups.length === 0 ? (
+            <div className="text-center py-6 space-y-2">
+              <p className="text-sm font-bold text-white">You need a group to host trivia</p>
+              <p className="text-[11px] text-[#94A3B8]">
+                Create a group (or become an admin/moderator of one) first. Churches can use a
+                church group so everyone knows who is hosting.
+              </p>
+              <a
+                href="/?view=groups"
+                className="inline-block mt-1 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
+              >
+                Go to Groups
+              </a>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  Hosted by (your group) *
+                </label>
+                <select
+                  value={form.groupId}
+                  onChange={(e) => setForm({ ...form, groupId: e.target.value })}
+                  className={inputCls}
+                  required
+                >
+                  <option value="">Choose a group…</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.myRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className={inputCls}
+                  placeholder="e.g. Grace Community Youth Quiz Night"
+                  maxLength={120}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className={`${inputCls} h-16 resize-none`}
+                  placeholder="What makes this trivia special?"
+                  maxLength={1000}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className={inputCls}
+                  >
+                    {HOST_CATEGORY_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                    Difficulty
+                  </label>
+                  <select
+                    value={form.difficulty}
+                    onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
+                    className={inputCls}
+                  >
+                    {HOST_DIFFICULTY_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                    Questions (5-15)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={5}
+                    max={15}
+                    value={form.questionCount}
+                    onChange={(e) => setForm({ ...form, questionCount: e.target.value })}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                    Starts *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.startAt}
+                    onChange={(e) => setForm({ ...form, startAt: e.target.value })}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                    Ends *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.endAt}
+                    onChange={(e) => setForm({ ...form, endAt: e.target.value })}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  Rules (shown to players before joining)
+                </label>
+                <textarea
+                  value={form.rules}
+                  onChange={(e) => setForm({ ...form, rules: e.target.value })}
+                  className={`${inputCls} h-16 resize-none`}
+                  placeholder="e.g. One attempt each. Top 3 on the leaderboard get shout-outs on Sunday."
+                  maxLength={2000}
+                />
+              </div>
+              <p className="text-[10px] text-[#64748B]">
+                Submissions are reviewed by the Koino team before going live — usually within a day.
+                One attempt per player, questions are drawn from the 800-question Koino bank.
+              </p>
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold disabled:opacity-50"
+              >
+                {saving ? "Submitting…" : "Submit for review"}
+              </button>
+            </>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── MY HOSTED COMPETITIONS ────────────────────────────────────────────────
+// The host's own list: every status, so a "pending" submission is visible
+// with its review state instead of silently disappearing.
+
+function MyHostedCompetitions() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    fetch("/api/trivia/competitions?mine=1")
+      .then((r) => (r.ok ? r.json() : { competitions: [] }))
+      .then((d) => setRows(d.competitions || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const statusChip = (status: string) =>
+    status === "live"
+      ? "bg-[#22C55E]/15 text-[#22C55E]"
+      : status === "scheduled"
+      ? "bg-[#38BDF8]/15 text-[#38BDF8]"
+      : status === "pending"
+      ? "bg-[#F59E0B]/15 text-[#F59E0B]"
+      : status === "cancelled"
+      ? "bg-[#EF4444]/10 text-[#EF4444]/70"
+      : "bg-white/[0.06] text-[#64748B]";
+
+  const statusLabel = (status: string) =>
+    status === "pending" ? "Pending review" : status === "cancelled" ? "Declined" : status;
+
+  if (loading) {
+    return <p className="text-[11px] text-[#64748B] text-center py-2">Loading your hosted trivia…</p>;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-[11px] text-[#64748B] text-center py-2">
+        You haven&apos;t hosted any trivia yet. Tap <span className="font-bold text-white">Host a Trivia</span> to
+        create your first quiz night.
+      </p>
+    );
+  }
+
+  return (
+    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Your hosted trivia</p>
+      {rows.map((c) => (
+        <div key={c.id} className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-white truncate">{c.title}</p>
+            <p className="text-[10px] text-[#64748B]">
+              {c.hostGroup?.name ? `${c.hostGroup.name} · ` : ""}
+              {c.questionCount} questions · {new Date(c.startAt).toLocaleDateString()} →{" "}
+              {new Date(c.endAt).toLocaleDateString()}
+              {c.participantCount > 0 ? ` · ${c.participantCount} player${c.participantCount === 1 ? "" : "s"}` : ""}
+            </p>
+          </div>
+          <span
+            className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider shrink-0 ${statusChip(c.status)}`}
+          >
+            {statusLabel(c.status)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

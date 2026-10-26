@@ -727,12 +727,14 @@ model TriviaCompetition {
   attemptLimit    Int      @default(1)
   winnerCount     Int      @default(3)
   rules           String?  // free-text rules displayed to users before participating
-  status          String   @default("draft") // "draft" | "scheduled" | "live" | "ended" | "cancelled"
+  status          String   @default("draft") // lifecycle documented below
   startAt         DateTime
   endAt           DateTime
   claimDeadlineDays Int    @default(7) // days after competition ends to claim prize
   prizeId         String?  // references TriviaPrize.id (optional — some competitions may not have prizes)
-  createdById     String?  // admin userId who created it
+  createdById     String?  // platform admin userId (admin-created) OR the group member who created a hosted competition
+  // status lifecycle: "pending" (community-hosted, awaiting admin approval —
+  // hidden from players) | "draft" | "scheduled" | "live" | "ended" | "cancelled"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -740,9 +742,16 @@ model TriviaCompetition {
   attempts        TriviaCompetitionAttempt[]
   winners         TriviaWinner[]
 
+  // Community-hosted trivia: set when a group (church / youth group / etc.)
+  // hosts a competition via POST /api/trivia/competitions. NULL = created by
+  // platform staff. Group deletion keeps the competition (SetNull).
+  hostGroup       Group?        @relation(fields: [hostGroupId], references: [id], onDelete: SetNull)
+  hostGroupId     String?
+
   @@index([status])
   @@index([type])
   @@index([endAt])
+  @@index([hostGroupId])
 }
 
 // ─── COMPETITION ATTEMPTS ──────────────────────────────────────────────────
@@ -1443,6 +1452,7 @@ model Group {
   posts     Post[]
   church    Church?       @relation(fields: [churchId], references: [id], onDelete: SetNull)
   events    Event[]
+  hostedTriviaCompetitions TriviaCompetition[]
 
   @@index([category])
   @@index([createdAt])

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, getExcludedUserIds, postSelect, serializePosts, jsonError } from "@/lib/social/server";
+import { getTier } from "@/lib/trivia-server";
 
 /**
  * GET /api/social/users/[username]?tab=posts|reels|saved
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
       verified: true,
       createdAt: true,
       role: true,
+      totalPoints: true,
       website: true,
       instagram: true,
       youtube: true,
@@ -105,6 +107,23 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
       }))
     : false;
 
+  // Faith journey for the profile header: verified FP balance, tier and the
+  // badges the user has actually unlocked (public — achievements, not PII).
+  const [badges, tier] = await Promise.all([
+    db.userBadge.findMany({
+      where: { userId: user.id },
+      orderBy: { unlockedAt: "desc" },
+      select: {
+        badgeId: true,
+        badgeName: true,
+        badgeIcon: true,
+        badgeDescription: true,
+        unlockedAt: true,
+      },
+    }),
+    Promise.resolve(getTier(user.totalPoints)),
+  ]);
+
   return Response.json({
     user: {
       id: user.id,
@@ -130,6 +149,18 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ username: s
     counters: { followers, following, posts: postCount },
     isSelf,
     viewerFollows,
+    faith: {
+      points: user.totalPoints,
+      tier: tier.current?.title ?? null,
+      tierIcon: tier.current?.icon ?? null,
+      badges: badges.map((b) => ({
+        id: b.badgeId,
+        name: b.badgeName,
+        icon: b.badgeIcon,
+        description: b.badgeDescription,
+        unlockedAt: b.unlockedAt.toISOString(),
+      })),
+    },
     posts,
     nextCursor,
   });

@@ -358,7 +358,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
           }
           case "Competitions": {
             const comps: any[] = competitions?.competitions ?? [];
-            return { ...s, value: comps.length, pending: comps.filter((c) => c.status === "scheduled").length };
+            return { ...s, value: comps.length, pending: comps.filter((c) => c.status === "pending").length };
           }
           case "Redemptions":
             return { ...s, value: redemptions?.counts?.total ?? 0, pending: redemptions?.counts?.pending ?? 0 };
@@ -1681,11 +1681,29 @@ function CompetitionsTab() {
       ? "bg-[#EF4444]/15 text-[#EF4444]"
       : status === "scheduled"
       ? "bg-[#38BDF8]/15 text-[#38BDF8]"
+      : status === "pending"
+      ? "bg-[#F59E0B]/15 text-[#F59E0B]"
       : status === "ended"
       ? "bg-white/[0.06] text-[#94A3B8]"
       : status === "cancelled"
       ? "bg-[#EF4444]/10 text-[#EF4444]/70"
       : "bg-white/[0.06] text-[#94A3B8]";
+
+  const moderate = async (id: string, action: string) => {
+    try {
+      const res = await fetch(`/api/admin/trivia/competitions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update competition");
+      toast.success(action === "approve" ? "Competition approved — now visible to players" : `Competition ${action}d`);
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update competition");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -1872,8 +1890,14 @@ function CompetitionsTab() {
                 </span>
               </div>
               <h3 className="text-sm font-bold text-white mb-1">{c.title}</h3>
+              {c.hostGroup && (
+                <p className="text-[10px] font-bold text-[#A78BFA] mb-1">Hosted by {c.hostGroup.name}</p>
+              )}
               {c.description && (
                 <p className="text-[11px] text-[#A09DB1] line-clamp-2 mb-2">{c.description}</p>
+              )}
+              {c.rules && c.status === "pending" && (
+                <p className="text-[10px] text-[#64748B] line-clamp-2 mb-2">Rules: {c.rules}</p>
               )}
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="flex items-center gap-1 text-[10px] text-[#F59E0B] font-bold">
@@ -1886,6 +1910,22 @@ function CompetitionsTab() {
                   {c._count?.attempts ?? 0} attempts · {c._count?.winners ?? 0} winners
                 </span>
               </div>
+              {c.status === "pending" && (
+                <div className="flex gap-2 mt-3 pt-3 border-t border-white/[0.06]">
+                  <button
+                    onClick={() => moderate(c.id, "approve")}
+                    className="flex-1 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-slate-950 text-xs font-bold transition-all"
+                  >
+                    Approve & schedule
+                  </button>
+                  <button
+                    onClick={() => moderate(c.id, "reject")}
+                    className="flex-1 py-2 rounded-xl bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-xs font-bold transition-all"
+                  >
+                    Decline
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

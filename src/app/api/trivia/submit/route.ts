@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { submitQuiz } from "@/lib/trivia-server";
+import { checkAndAwardBadges } from "@/lib/badges";
 import { db } from "@/lib/db";
 
 /**
@@ -95,10 +96,29 @@ export async function POST(req: NextRequest) {
     // If it fails, the user still gets their quiz result. The streak will
     // be recorded on the next trivia play or page load.
 
+    // ─── BADGE CHECK (server-authoritative, runs on every scored quiz) ───
+    // Without this the quiz badges (first_quiz, quiz_master, bible_scholar,
+    // perfect_score, fp_*) could never be earned — nothing ran the check
+    // after a quiz. The check is idempotent (@@unique on userId+badgeId) and
+    // only a handful of indexed counts, so it can safely run inline: the
+    // result screen wants to show "Badge Unlocked" immediately. Practice
+    // mode is skipped — its badges all derive from scored sessions anyway.
+    let newlyAwardedBadges: Awaited<ReturnType<typeof checkAndAwardBadges>> = [];
+    if (mode === "EARN_POINTS") {
+      try {
+        newlyAwardedBadges = await checkAndAwardBadges(user.id);
+      } catch (e) {
+        // Never fail the quiz result over a badge hiccup — the next scored
+        // quiz (or any POST /api/gamification/badges poll) re-runs the check.
+        console.error("[trivia/submit] Badge check failed:", e);
+      }
+    }
+
     // Return immediately with the quiz result
     const responseBody = {
       ...result,
       questionResults: enrichedResults,
+      newlyAwarded: newlyAwardedBadges,
       streak: null, // streak is recorded in background — don't block
     };
 
