@@ -65,7 +65,6 @@ export type EventItem = {
   organizerWebsite?: string;
   is_free: boolean;
   price: number;
-  attendees: number;
   cover_gradient: number;
   cover_image?: string;
   images?: string[];
@@ -612,7 +611,6 @@ export const EVENTS: EventItem[] = [
     organizerName: "Philip Cherian",
     is_free: false,
     price: 0,
-    attendees: 740,
     cover_gradient: 0,
     cover_image: "https://images.unsplash.com/photo-1516223298848-69b6c3c7a2d5?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     church: "Grace City Church",
@@ -638,7 +636,6 @@ export const EVENTS: EventItem[] = [
     organizerName: "New Life Team",
     is_free: true,
     price: 0,
-    attendees: 180,
     cover_gradient: 1,
     cover_image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb5c0?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     church: "New Life Fellowship",
@@ -666,7 +663,6 @@ export const EVENTS: EventItem[] = [
     organizerName: "Samuel Thomas",
     is_free: false,
     price: 1500,
-    attendees: 420,
     cover_gradient: 2,
     cover_image: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     church: "Bethel AG Church",
@@ -694,7 +690,6 @@ export const EVENTS: EventItem[] = [
     organizerName: "Covenant Team",
     is_free: false,
     price: 2200,
-    attendees: 22,
     cover_gradient: 3,
     cover_image: "https://images.unsplash.com/photo-1496950866446-3253e1470e8e?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     church: "Covenant Community Church",
@@ -721,7 +716,6 @@ export const EVENTS: EventItem[] = [
     organizerName: "Zion Mar Thoma Team",
     is_free: true,
     price: 0,
-    attendees: 1200,
     cover_gradient: 4,
     cover_image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     church: "Zion Mar Thoma Church",
@@ -748,7 +742,6 @@ export const EVENTS: EventItem[] = [
     organizerName: "Delhi Bible Chapel",
     is_free: true,
     price: 0,
-    attendees: 290,
     cover_gradient: 5,
     cover_image: "https://images.unsplash.com/photo-1520637836862-4d197d17c91a?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     church: "Delhi Bible Chapel",

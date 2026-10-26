@@ -216,8 +216,9 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
   }, [events, filterState, filterCity, filterLanguage, filterCategory, searchQuery, dateFilter, quickFilter]);
 
   // Split into Featured + Upcoming for the default landing experience.
-  // Featured = explicitly marked featured. Upcoming = everything else that
-  // hasn't ended. Cancelled events show with a CANCELLED badge.
+  // Featured = explicitly marked featured. Upcoming = everything else.
+  // (Cancelled/ended events never reach this UI — the public API only
+  // returns status=PUBLISHED events, per the Event model contract.)
   const featured = useMemo(() => filtered.filter((e) => e.featured), [filtered]);
   const upcoming = useMemo(
     () => filtered.filter((e) => !e.featured).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
@@ -347,11 +348,34 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
     });
   };
 
-  const rsvp = (e: EventItem) => {
-    toast.success(`RSVP'd for "${e.title}"!`, {
-      description: `See you on ${formatDate(e.date).weekday}. Add it to your calendar.`,
+  // Real client-side action — opens Google Calendar pre-filled with the
+  // event's date/location/link. (There is no RSVP backend on Koino; the
+  // previous button faked an "RSVP'd!" toast with nothing persisted, which
+  // breaks the no-fake-actions rule. A calendar export is honest and works
+  // without any new system.)
+  const addToCalendar = (e: EventItem) => {
+    const fmt = (d: Date) =>
+      d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const start = fmt(new Date(e.date));
+    const end = e.end_date
+      ? fmt(new Date(e.end_date))
+      : fmt(new Date(new Date(e.date).getTime() + 2 * 60 * 60 * 1000));
+    const loc =
+      e.eventType === "online"
+        ? e.onlineUrl || "Online"
+        : [e.venueName || e.location, e.city, e.state].filter(Boolean).join(", ");
+    const params = new URLSearchParams({
+      action: "TEMPLATE",
+      text: e.title,
+      dates: `${start}/${end}`,
+      location: loc,
+      details: `${e.description}\n\nVia Koino — ${window.location.origin}/?view=events&event=${e.id}`,
     });
-    setOpenEvent(null);
+    window.open(
+      `https://calendar.google.com/calendar/render?${params.toString()}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
   return (
@@ -609,14 +633,6 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
           </div>
         )}
 
-        {/* Filtered empty state — events exist but none match the filters */}
-        {!eventsLoading && !eventsError && events.length > 0 && filtered.length === 0 && (
-          <div className="text-center py-10">
-            <p className="text-sm text-[#94A3B8] mb-1">No events match your filters.</p>
-            <p className="text-xs text-[#64748B]">Try clearing filters or widening your search.</p>
-          </div>
-        )}
-
         {filtered.map((event, i) => {
           const cat = getCategoryMeta(event.category);
           const Icon = CATEGORY_ICONS[event.category] || Music;
@@ -664,11 +680,6 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         <Radio size={9} /> Hybrid
                       </span>
                     )}
-                    {event.status === "cancelled" && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#EF4444]/15 text-[#EF4444] text-[9px] font-bold uppercase tracking-wider">
-                        Cancelled
-                      </span>
-                    )}
                     {event.featured && (
                       <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
                         <Flame size={9} /> Featured
@@ -691,9 +702,6 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     <span className="flex items-center gap-1">
                       <Clock size={10} /> {date.time}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Users size={10} /> {event.attendees}
-                    </span>
                   </div>
                 </div>
 
@@ -712,9 +720,13 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               </div>
 
               <div className="px-3 py-2.5 bg-white/[0.02] border-t border-white/[0.04] flex items-center justify-between">
-                <div className="text-[10px] text-[#94A3B8]">
-                  by <span className="text-white font-bold">{event.church}</span>
-                </div>
+                {event.church ? (
+                  <div className="text-[10px] text-[#94A3B8]">
+                    by <span className="text-white font-bold">{event.church}</span>
+                  </div>
+                ) : (
+                  <div />
+                )}
                 <div className="flex items-center gap-1.5">
                   {event.is_free ? (
                     <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold">
@@ -732,7 +744,10 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
         })}
       </div>
 
-      {filtered.length === 0 && (
+      {/* Filtered empty state — events exist but none match the filters.
+          Shown ONLY when the public list has events; the "No events published
+          yet" block above covers the genuinely-empty case. */}
+      {!eventsLoading && !eventsError && events.length > 0 && filtered.length === 0 && (
         <div className="text-center py-16">
           <Calendar size={40} className="mx-auto text-[#475569] mb-3" />
           <p className="text-sm text-[#475569] mb-3">No events found for these filters.</p>
@@ -859,9 +874,15 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     )}
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Attendees</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Format</p>
                     <p className="text-xs text-white flex items-center gap-1">
-                      <Users size={11} /> {openEvent.attendees} going
+                      {openEvent.eventType === "online" ? (
+                        <><Globe size={11} /> Online</>
+                      ) : openEvent.eventType === "hybrid" ? (
+                        <><Radio size={11} /> Hybrid</>
+                      ) : (
+                        <><MapPin size={11} /> In Person</>
+                      )}
                     </p>
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
@@ -877,10 +898,12 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   <p className="text-sm text-[#A09DB1] leading-relaxed">{openEvent.description}</p>
                 </div>
 
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Hosted by</p>
-                  <p className="text-sm font-bold text-white">{openEvent.church}</p>
-                </div>
+                {openEvent.church && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Hosted by</p>
+                    <p className="text-sm font-bold text-white">{openEvent.church}</p>
+                  </div>
+                )}
 
                 {openEvent.languages.length > 0 && (
                   <div>
@@ -951,11 +974,11 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     </a>
                   ) : (
                     <button
-                      onClick={() => rsvp(openEvent)}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px"
+                      onClick={() => addToCalendar(openEvent)}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
                       style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
                     >
-                      {openEvent.is_free ? "RSVP Now" : "Get Tickets"}
+                      <Calendar size={16} /> Add to Calendar
                     </button>
                   )}
                 </div>

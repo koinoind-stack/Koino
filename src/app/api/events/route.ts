@@ -273,7 +273,14 @@ export async function POST(req: NextRequest) {
         whatsappNumber: body.whatsappNumber ? String(body.whatsappNumber).slice(0, 30) : null,
         category: String(body.category).slice(0, 100),
         languages: JSON.stringify(languages),
-        church: body.church ? String(body.church).slice(0, 200) : null,
+        // Host fallback: if no church is supplied (the public submit form
+        // doesn't ask for one), show the organizer name so cards don't
+        // render a bare "by " line.
+        church: body.church
+          ? String(body.church).slice(0, 200)
+          : body.organizerName
+            ? String(body.organizerName).slice(0, 200)
+            : null,
         coverImage: body.coverImage ? String(body.coverImage).slice(0, 1000) : null,
         coverGradient: typeof body.coverGradient === "number" ? body.coverGradient : 0,
         // CRITICAL: user-submitted events always start as PENDING
