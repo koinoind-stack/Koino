@@ -109,8 +109,17 @@ export async function GET(req: NextRequest) {
       some: {
         bookId: book,
         // A passage "covers" the chapter when the ref's chapter range spans it.
+        // Range refs (chapterEnd set): chapterStart ≤ chapter ≤ chapterEnd.
+        // Single-chapter refs (chapterEnd null): cover exactly their start
+        // chapter — SQL "chapterEnd ≥ n" is false for NULL, so without the
+        // second branch a "1 Kings 17" ref would match no chapter query at all.
         ...(chapter && Number.isFinite(chapter)
-          ? { chapterStart: { lte: chapter }, chapterEnd: { gte: chapter } }
+          ? {
+              OR: [
+                { chapterStart: { lte: chapter }, chapterEnd: { gte: chapter } },
+                { chapterStart: chapter, chapterEnd: null },
+              ],
+            }
           : {}),
       },
     };

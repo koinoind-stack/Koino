@@ -14,7 +14,7 @@ import {
   ExternalLink, Loader2, RefreshCw, X, BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
-import { VIDEO_CATEGORIES, VIDEO_LANGUAGES, parseDurationInput, formatDuration } from "@/lib/videos";
+import { VIDEO_CATEGORIES, VIDEO_LANGUAGES, parseDurationInput, formatDuration, formatBibleRef } from "@/lib/videos";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
 
 type AdminVideo = {
@@ -70,6 +70,30 @@ const emptyForm = {
   featured: false,
   refs: [] as BibleRefRow[],
 };
+
+// Live "Shows as: Genesis 1–50" preview for a passage row, so a value typed
+// into the wrong box (e.g. "50" into the verse field instead of "to ch. 50")
+// is visible before saving. tip = input looks like it may be a chapter range
+// typed into the verse box (a single verse above 3 with no chapter end).
+function refPreview(r: BibleRefRow): { text: string; tip: string | null } | null {
+  const chapterStart = parseInt(r.chapterStart, 10);
+  if (!r.bookId || !Number.isFinite(chapterStart) || chapterStart < 1) return null;
+  const text = formatBibleRef(
+    {
+      bookId: r.bookId,
+      chapterStart,
+      verseStart: r.verseStart ? parseInt(r.verseStart, 10) : null,
+      chapterEnd: r.chapterEnd ? parseInt(r.chapterEnd, 10) : null,
+      verseEnd: r.verseEnd ? parseInt(r.verseEnd, 10) : null,
+    },
+    (id) => BIBLE_BOOKS.find((b) => b.id === id)?.name || id
+  );
+  const verse = r.verseStart ? parseInt(r.verseStart, 10) : null;
+  const tip = !r.chapterEnd && verse !== null && verse > 3
+    ? "a chapter range goes in the first two boxes — e.g. 1 and 50"
+    : null;
+  return { text, tip };
+}
 
 export default function VideosTab() {
   const [q, setQ] = useState("");
@@ -657,47 +681,60 @@ export default function VideosTab() {
                 </div>
                 {form.refs.length === 0 && (
                   <p className="text-[11px] text-[#64748B]">
-                    Link the video to Bible books/chapters — it will appear in the reader's "Watch Related Videos" section.
+                    Link the video to Bible books/chapters — it will appear in the reader's "Watch Related Videos" section, on matching comic pages, and in the Watch hub. For a whole-book movie use a chapter range (Genesis: from 1 to 50).
                   </p>
                 )}
                 <div className="space-y-2">
-                  {form.refs.map((r, i) => (
-                    <div key={i} className="flex gap-1.5 items-center">
-                      <select
-                        value={r.bookId}
-                        onChange={(e) => setRefRow(i, { bookId: e.target.value })}
-                        className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none [&>option]:bg-[#1C1929]"
-                      >
-                        {BIBLE_BOOKS.map((b) => (
-                          <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                      </select>
-                      <input
-                        value={r.chapterStart}
-                        onChange={(e) => setRefRow(i, { chapterStart: e.target.value })}
-                        placeholder="Ch."
-                        className="w-14 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none"
-                      />
-                      <input
-                        value={r.chapterEnd}
-                        onChange={(e) => setRefRow(i, { chapterEnd: e.target.value })}
-                        placeholder="–to"
-                        className="w-14 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none"
-                      />
-                      <input
-                        value={r.verseStart}
-                        onChange={(e) => setRefRow(i, { verseStart: e.target.value })}
-                        placeholder="v"
-                        className="w-12 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none"
-                      />
-                      <button
-                        onClick={() => setForm((f) => ({ ...f, refs: f.refs.filter((_, idx) => idx !== i) }))}
-                        className="p-2 rounded-lg bg-[#EF4444]/10 text-[#FCA5A5]"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
+                  {form.refs.map((r, i) => {
+                    const preview = refPreview(r);
+                    return (
+                      <div key={i}>
+                        <div className="flex gap-1.5 items-center">
+                          <select
+                            value={r.bookId}
+                            onChange={(e) => setRefRow(i, { bookId: e.target.value })}
+                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none [&>option]:bg-[#1C1929]"
+                          >
+                            {BIBLE_BOOKS.map((b) => (
+                              <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                          </select>
+                          <input
+                            value={r.chapterStart}
+                            onChange={(e) => setRefRow(i, { chapterStart: e.target.value })}
+                            placeholder="From ch."
+                            inputMode="numeric"
+                            className="w-16 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none"
+                          />
+                          <input
+                            value={r.chapterEnd}
+                            onChange={(e) => setRefRow(i, { chapterEnd: e.target.value })}
+                            placeholder="to ch."
+                            inputMode="numeric"
+                            className="w-16 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none"
+                          />
+                          <input
+                            value={r.verseStart}
+                            onChange={(e) => setRefRow(i, { verseStart: e.target.value })}
+                            placeholder="v (opt.)"
+                            inputMode="numeric"
+                            className="w-16 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none"
+                          />
+                          <button
+                            onClick={() => setForm((f) => ({ ...f, refs: f.refs.filter((_, idx) => idx !== i) }))}
+                            className="p-2 rounded-lg bg-[#EF4444]/10 text-[#FCA5A5]"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                        {preview && (
+                          <p className={`mt-1 text-[10px] font-bold ${preview.tip ? "text-[#FBBF24]" : "text-[#A78BFA]"}`}>
+                            Shows as “{preview.text}”{preview.tip ? ` — ${preview.tip}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
