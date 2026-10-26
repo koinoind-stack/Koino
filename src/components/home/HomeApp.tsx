@@ -837,6 +837,9 @@ export default function Home() {
                     // library; a further browser back returns to the hub.
                     openComicChapter(bookId, chapter);
                   }}
+                  // Passage action panel (reader ↔ existing hubs):
+                  onOpenTrivia={() => goView("trivia")}
+                  onPray={() => goView("prayer-wall")}
                 />
               )}
               {view === "bible-plans" && (

@@ -19,6 +19,14 @@ import {
   Sparkles,
   Calendar,
   List,
+  Headphones,
+  Video,
+  Brain,
+  Zap,
+  Heart,
+  MessageCircle,
+  Palette,
+  ArrowUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -53,11 +61,15 @@ export default function BibleView({
   initialBookId,
   initialChapter,
   initialVerse,
+  onOpenTrivia,
+  onPray,
 }: {
   onOpenComic?: (bookId: string, chapter: number) => void;
   initialBookId?: string; // Part 5: deep link from video pages (?view=bible&book=&chapter=)
   initialChapter?: number;
   initialVerse?: number | null; // Task 121: shared verse links (?…&verse=)
+  onOpenTrivia?: () => void; // Passage panel: opens the existing Trivia/FP hub
+  onPray?: () => void; // Passage panel: opens the existing Prayer Wall
 }) {
   const t = useTranslation();
   const { lang, setLang } = useLanguage();
@@ -320,6 +332,22 @@ export default function BibleView({
     });
   };
 
+  // ─── Chapter-level share (passage action panel) ──────────────────────────
+  // Same universal ShareSheet the verse share uses; the card is the verse
+  // card for the whole chapter (the share-card API clamps long excerpts).
+  const openChapterShare = (book: BibleBook, chapter: number, verses: { verse: number; text: string }[]) => {
+    const ref = `${book.name} ${chapter} (${translation.toUpperCase()})`;
+    const first = verses[0]?.text?.trim() || "";
+    setShareReq({
+      heading: `Share ${book.name} ${chapter}`,
+      shareText: `${ref}\n\n"${first.slice(0, 160)}${first.length > 160 ? "…" : ""}"\n\nRead the full chapter on Koino.`,
+      shareUrl: shareLinks.bible(book.id, chapter),
+      cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=1&ve=${Math.max(verses.length, 1)}&translation=${translation}`,
+      formats: ["portrait", "square"],
+      fileName: `koino-chapter-${book.id}-${chapter}.png`,
+    });
+  };
+
   // Scroll to (and briefly highlight) the deep-linked verse once text arrives.
   useEffect(() => {
     if (pendingScrollVerse === null) return;
@@ -503,6 +531,11 @@ export default function BibleView({
               onBookmark={(verse, text) => handleBookmarkToggle(selectedBook, selectedChapter, verse, text)}
               onShare={(verse, text) => handleShareVerse(selectedBook, selectedChapter, verse, text)}
               onShareRange={(start, end) => openVerseShare(selectedBook, selectedChapter, start, end)}
+              onOpenComic={onOpenComic}
+              onOpenTrivia={onOpenTrivia}
+              onPray={onPray}
+              onShareChapter={() => openChapterShare(selectedBook, selectedChapter, chapterVerses)}
+              onBookmarksChanged={refreshBookmarks}
             />
           )}
 
@@ -724,6 +757,11 @@ function ReaderView({
   onBookmark,
   onShare,
   onShareRange,
+  onOpenComic,
+  onOpenTrivia,
+  onPray,
+  onShareChapter,
+  onBookmarksChanged,
 }: {
   book: BibleBook;
   chapter: number;
@@ -739,6 +777,11 @@ function ReaderView({
   onBookmark: (verse: number, text: string) => void;
   onShare: (verse: number, text: string) => void;
   onShareRange: (verseStart: number, verseEnd: number) => void;
+  onOpenComic?: (bookId: string, chapter: number) => void;
+  onOpenTrivia?: () => void;
+  onPray?: () => void;
+  onShareChapter: () => void;
+  onBookmarksChanged: () => void;
 }) {
   const transLabel = TRANSLATIONS.find((t) => t.id === translation)?.label || "";
 
@@ -927,7 +970,8 @@ function ReaderView({
         </div>
       )}
 
-      {/* Selection action bar */}
+      {/* Selection action bar — extended with copy / listen / save for the
+          selected passage (share already existed via Task 121) */}
       {!loading && !error && rangeStart !== null && rangeEnd !== null && (
         <div className="mt-3 flex items-center justify-between gap-2 bg-[#7C3AED]/15 border border-[#7C3AED]/40 rounded-2xl px-3 py-2.5">
           <p className="text-[11px] font-bold text-[#C4B5FD] truncate">
@@ -936,7 +980,37 @@ function ReaderView({
               {" "}· {rangeEnd - rangeStart + 1} verse{rangeEnd - rangeStart > 0 ? "s" : ""}
             </span>
           </p>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => {
+                const selVerses = verses.filter((v) => v.verse >= rangeStart && v.verse <= rangeEnd);
+                const ref = `${book.name} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`} (${translation.toUpperCase()})`;
+                const text = selVerses.map((v) => `${v.verse} ${v.text}`).join(" ");
+                navigator.clipboard.writeText(`"${text}"\n\n— ${ref}`);
+                toast.success("Passage copied!", { description: ref });
+              }}
+              className="p-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-colors"
+              title="Copy passage text and reference"
+            >
+              <Copy size={12} />
+            </button>
+            <SelectionListenButton
+              text={verses
+                .filter((v) => v.verse >= rangeStart && v.verse <= rangeEnd)
+                .map((v) => v.text)
+                .join(" ")}
+              refLabel={`${book.name} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}`}
+            />
+            <SelectionSaveButton
+              bookId={book.id}
+              bookName={book.name}
+              chapter={chapter}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              verses={verses}
+              translation={translation}
+              onChanged={onBookmarksChanged}
+            />
             <button
               onClick={resetSelection}
               className="px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[10px] font-bold text-[#94A3B8] hover:text-white"
@@ -976,7 +1050,378 @@ function ReaderView({
 
       {/* ─── Part 5: videos connected to this passage ─── */}
       {!loading && !error && <ChapterVideos bookId={book.id} chapter={chapter} />}
+
+      {/* ─── Passage action panel (parity with Bible Comics) ─── */}
+      {!loading && !error && verses.length > 0 && (
+        <ChapterActionPanel
+          book={book}
+          chapter={chapter}
+          verses={verses}
+          translation={translation}
+          onReadTop={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+          onOpenComic={onOpenComic}
+          onOpenTrivia={onOpenTrivia}
+          onPray={onPray}
+          onShareChapter={onShareChapter}
+          onBookmarksChanged={onBookmarksChanged}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── PASSAGE ACTION PANEL (parity with the Bible Comics action bar) ────────
+// Mirrors ComicView's end-of-chapter panel using ONLY existing systems:
+//   Read → scroll back to the scripture · Listen → browser TTS (same as
+//   comics) · Watch → published library videos linked to the passage (the
+//   SAME Video/VideoBibleRef records the Watch hub and comic pages use) ·
+//   Comic → published comic chapter (existing onOpenComic) · Quiz/Earn FP →
+//   existing Trivia hub (points are earned server-side there, never for
+//   clicks) · Pray → existing Prayer Wall · Share → existing ShareSheet ·
+//   Save → existing verse-bookmark system (chapter = verse-0 marker).
+// Buttons whose content does not exist (no videos, no comic, TTS
+// unsupported) are HIDDEN; Discuss is not built anywhere on Koino yet, so it
+// renders as a dimmed unavailable state exactly like the comics reader.
+
+// Browser TTS — same mechanism ComicView uses for audio narration. No
+// professional audio Bible exists yet; the toast says so honestly.
+function speakPassage(text: string, onEnd: () => void) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.95;
+  utterance.onend = onEnd;
+  utterance.onerror = onEnd;
+  window.speechSynthesis.speak(utterance);
+  return true;
+}
+
+function ttsSupported(): boolean {
+  return typeof window !== "undefined" && "speechSynthesis" in window;
+}
+
+// Published comic chapters, fetched once per session for availability checks
+// (same endpoint the comic chapter selector uses — published only).
+let comicChaptersCache: { at: number; keys: Set<string> } | null = null;
+async function fetchComicChapterKeys(): Promise<Set<string>> {
+  if (comicChaptersCache && Date.now() - comicChaptersCache.at < 5 * 60 * 1000) {
+    return comicChaptersCache.keys;
+  }
+  const keys = new Set<string>();
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch("/api/comic/list", { cache: "no-store", signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      (data.chapters || []).forEach((ch: { bookId: string; chapter: number }) => {
+        keys.add(`${ch.bookId}-${ch.chapter}`);
+      });
+    }
+  } catch {
+    // availability check is best-effort → button stays hidden on failure
+  }
+  comicChaptersCache = { at: Date.now(), keys };
+  return keys;
+}
+
+function PanelButton({
+  icon: Icon,
+  label,
+  sublabel,
+  onClick,
+  dimmed = false,
+  active = false,
+}: {
+  icon: typeof BookOpen;
+  label: string;
+  sublabel: string;
+  onClick: () => void;
+  dimmed?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border transition-all min-h-[56px] ${
+        dimmed
+          ? "bg-white/[0.02] border-white/[0.04] text-[#475569] cursor-default"
+          : active
+            ? "bg-[#7C3AED]/20 border-[#7C3AED]/50 text-[#C4B5FD]"
+            : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white hover:bg-white/[0.06]"
+      }`}
+    >
+      <Icon size={18} />
+      <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">{label}</span>
+      <span className="text-[8px] text-[#64748B] hidden lg:block text-center leading-tight">{sublabel}</span>
+    </button>
+  );
+}
+
+function ChapterActionPanel({
+  book,
+  chapter,
+  verses,
+  translation,
+  onReadTop,
+  onOpenComic,
+  onOpenTrivia,
+  onPray,
+  onShareChapter,
+  onBookmarksChanged,
+}: {
+  book: BibleBook;
+  chapter: number;
+  verses: { verse: number; text: string }[];
+  translation: Translation;
+  onReadTop: () => void;
+  onOpenComic?: (bookId: string, chapter: number) => void;
+  onOpenTrivia?: () => void;
+  onPray?: () => void;
+  onShareChapter: () => void;
+  onBookmarksChanged: () => void;
+}) {
+  const [speaking, setSpeaking] = useState(false);
+  const [hasVideos, setHasVideos] = useState(false);
+  const [hasComic, setHasComic] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Watch availability — same endpoint/records the ChapterVideos section and
+  // comic pages use. Button only appears when a published video is linked.
+  useEffect(() => {
+    let cancelled = false;
+    setHasVideos(false);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    fetch(`/api/videos?book=${encodeURIComponent(book.id)}&chapter=${chapter}&take=1`, {
+      cache: "no-store",
+      signal: ctrl.signal,
+    })
+      .then((r) => (r.ok ? r.json() : { videos: [] }))
+      .then((d) => !cancelled && setHasVideos((d.videos || []).length > 0))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [book.id, chapter]);
+
+  // Comic availability — published comic chapter for this exact passage.
+  useEffect(() => {
+    let cancelled = false;
+    setHasComic(false);
+    fetchComicChapterKeys().then(
+      (keys) => !cancelled && setHasComic(keys.has(`${book.id}-${chapter}`))
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [book.id, chapter]);
+
+  // Chapter save state (verse-0 bookmark marker) — recheck on passage change.
+  useEffect(() => {
+    setSaved(isBookmarked(book.id, chapter, 0));
+  }, [book.id, chapter, onBookmarksChanged]);
+
+  // Stop narration when the passage changes or the reader unmounts.
+  useEffect(() => {
+    setSpeaking(false);
+    if (ttsSupported()) window.speechSynthesis.cancel();
+    return () => {
+      if (ttsSupported()) window.speechSynthesis.cancel();
+    };
+  }, [book.id, chapter]);
+
+  const listenChapter = () => {
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const text = `${book.name} chapter ${chapter}. ` + verses.map((v) => `${v.verse}. ${v.text}`).join(" ");
+    if (speakPassage(text, () => setSpeaking(false))) {
+      setSpeaking(true);
+      toast("Audio narration", {
+        description: "Using browser voice synthesis. Professional audio coming soon.",
+      });
+    }
+  };
+
+  const toggleChapterSave = () => {
+    const added = toggleBookmark({
+      bookId: book.id,
+      bookName: book.name,
+      chapter,
+      verse: 0,
+      text: `${book.name} ${chapter} · Full chapter (${verses.length} verses)`,
+      translation,
+    });
+    setSaved(added);
+    onBookmarksChanged();
+    toast(added ? "Chapter saved" : "Saved chapter removed", {
+      description: `${book.name} ${chapter}`,
+    });
+  };
+
+  const watch = () => {
+    // Scroll to the videos section already rendered for this passage; the
+    // fallback opens the existing passage-scoped Watch library.
+    const section = document.getElementById("chapter-videos");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      window.location.href = `/videos?book=${encodeURIComponent(book.id)}&chapter=${chapter}`;
+    }
+  };
+
+  return (
+    <div className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-3.5">
+      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-[#94A3B8] mb-2.5">
+        {book.name} {chapter} · Continue your journey
+      </h3>
+      <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+        <PanelButton icon={BookOpen} label="Read" sublabel="Back to the text" onClick={onReadTop} />
+        {ttsSupported() && (
+          <PanelButton
+            icon={speaking ? X : Headphones}
+            label={speaking ? "Stop" : "Listen"}
+            sublabel="Audio narration"
+            onClick={listenChapter}
+            active={speaking}
+          />
+        )}
+        {hasVideos && <PanelButton icon={Video} label="Watch" sublabel="Related videos" onClick={watch} />}
+        {hasComic && onOpenComic && (
+          <PanelButton
+            icon={Palette}
+            label="Comic"
+            sublabel="See the story"
+            onClick={() => onOpenComic(book.id, chapter)}
+          />
+        )}
+        {onOpenTrivia && (
+          <PanelButton icon={Brain} label="Quiz" sublabel="Test your knowledge" onClick={onOpenTrivia} />
+        )}
+        {/* FP is earned inside the existing Trivia hub (quizzes/challenges,
+            server-verified) — never by clicking here, so no farming. */}
+        <PanelButton
+          icon={Zap}
+          label="Earn FP"
+          sublabel="Via quiz & challenges"
+          dimmed
+          onClick={() => toast("Earn Faith Points in Trivia", { description: "Take quizzes and daily challenges — FP is awarded for correct answers." })}
+        />
+        {onPray && <PanelButton icon={Heart} label="Pray" sublabel="Prayer wall" onClick={onPray} />}
+        <PanelButton icon={Share2} label="Share" sublabel="Chapter image + link" onClick={onShareChapter} />
+        <PanelButton
+          icon={saved ? BookmarkCheck : Bookmark}
+          label={saved ? "Saved" : "Save"}
+          sublabel={saved ? "In your bookmarks" : "Bookmark chapter"}
+          onClick={toggleChapterSave}
+          active={saved}
+        />
+        {/* Discussions do not exist anywhere on Koino yet (the comics reader
+            shows the same state) — honest unavailable, not a fake link. */}
+        <PanelButton
+          icon={MessageCircle}
+          label="Discuss"
+          sublabel="Coming soon"
+          dimmed
+          onClick={() => toast("Discussion coming soon", { description: `Talk about ${book.name} ${chapter} with the community — soon.` })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Selection-bar helpers (listen / save a selected verse range) ──────────
+
+function SelectionListenButton({ text, refLabel }: { text: string; refLabel: string }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => () => { if (ttsSupported()) window.speechSynthesis.cancel(); }, []);
+  return (
+    <button
+      onClick={() => {
+        if (speaking) {
+          window.speechSynthesis.cancel();
+          setSpeaking(false);
+          return;
+        }
+        if (speakPassage(text, () => setSpeaking(false))) {
+          setSpeaking(true);
+          toast("Audio narration", { description: `${refLabel} — browser voice synthesis.` });
+        }
+      }}
+      className={`p-2 rounded-lg border transition-colors ${
+        speaking
+          ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
+          : "bg-white/[0.06] border-white/[0.08] text-[#94A3B8] hover:text-white"
+      }`}
+      title={speaking ? "Stop narration" : "Listen to this passage"}
+    >
+      {speaking ? <X size={12} /> : <Headphones size={12} />}
+    </button>
+  );
+}
+
+function SelectionSaveButton({
+  bookId,
+  bookName,
+  chapter,
+  rangeStart,
+  rangeEnd,
+  verses,
+  translation,
+  onChanged,
+}: {
+  bookId: string;
+  bookName: string;
+  chapter: number;
+  rangeStart: number;
+  rangeEnd: number;
+  verses: { verse: number; text: string }[];
+  translation: Translation;
+  onChanged: () => void;
+}) {
+  const inRange = verses.filter((v) => v.verse >= rangeStart && v.verse <= rangeEnd);
+  const allSaved = inRange.length > 0 && inRange.every((v) => isBookmarked(bookId, chapter, v.verse));
+  return (
+    <button
+      onClick={() => {
+        let added = 0;
+        let removed = 0;
+        inRange.forEach((v) => {
+          const didAdd = toggleBookmark({
+            bookId,
+            bookName,
+            chapter,
+            verse: v.verse,
+            text: v.text,
+            translation,
+          });
+          if (didAdd) added++;
+          else removed++;
+        });
+        onChanged();
+        if (allSaved) {
+          toast("Bookmarks removed", { description: `${bookName} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}` });
+        } else {
+          toast(`Bookmarked ${added} verse${added === 1 ? "" : "s"}`, {
+            description: `${bookName} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}`,
+          });
+        }
+      }}
+      className={`p-2 rounded-lg border transition-colors ${
+        allSaved
+          ? "bg-[#F59E0B]/15 border-[#F59E0B]/40 text-[#F59E0B]"
+          : "bg-white/[0.06] border-white/[0.08] text-[#94A3B8] hover:text-white"
+      }`}
+      title={allSaved ? "Remove these bookmarks" : "Bookmark every verse in the selection"}
+    >
+      {allSaved ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}
+    </button>
   );
 }
 
@@ -1022,7 +1467,7 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
   if (!loaded || videos.length === 0) return null;
 
   return (
-    <div className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-4">
+    <div id="chapter-videos" className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#C4B5FD]">
           <Play size={12} fill="currentColor" /> Watch Related Videos
@@ -1226,7 +1671,7 @@ function BookmarksView({
   return (
     <div className="space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">
-        {bookmarks.length} saved {bookmarks.length === 1 ? "verse" : "verses"}
+        {bookmarks.length} saved {bookmarks.length === 1 ? "item" : "items"}
       </p>
       {bookmarks.map((bm) => (
         <motion.button
@@ -1239,11 +1684,18 @@ function BookmarksView({
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-bold text-[#F59E0B] flex items-center gap-1">
               <BookmarkCheck size={11} />
-              {bm.bookName} {bm.chapter}:{bm.verse}
+              {/* verse 0 = whole-chapter marker saved by the reader's action panel */}
+              {bm.verse === 0 ? `${bm.bookName} ${bm.chapter}` : `${bm.bookName} ${bm.chapter}:${bm.verse}`}
             </span>
             <span className="text-[9px] text-[#64748B] uppercase tracking-wider">{bm.translation}</span>
           </div>
-          <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-2">{bm.text}</p>
+          <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-2">
+            {bm.verse === 0 ? (
+              <span className="text-[#F59E0B] font-bold">Full chapter saved</span>
+            ) : (
+              bm.text
+            )}
+          </p>
         </motion.button>
       ))}
       <button
