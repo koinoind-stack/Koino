@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       churches = await db.church.findMany({
         where,
         orderBy: [{ createdAt: "desc" }],
+        include: { _count: { select: { followers: true } } },
       });
       counts = {
         all: await db.church.count(),
@@ -93,7 +94,8 @@ export async function GET(req: NextRequest) {
         languages: safeParseJson(c.languages, []),
         cover_gradient: c.coverGradient,
         cover_image: c.coverImage,
-        followers_count: c.followersCount,
+        followers_count: c._count.followers, // LIVE count from ChurchFollow
+        verified: c.verified,
         status: c.status,
         featured: c.featured,
         rejectionReason: c.rejectionReason,
@@ -131,6 +133,10 @@ export async function GET(req: NextRequest) {
  *   reopen    → status: any → PENDING (re-queue for review)
  *   feature   → featured: true  (church must be PUBLISHED)
  *   unfeature → featured: false
+ *   verify    → verified: true  (admin CONFIRMED this is a real, operating
+ *               congregation — e.g. contact responded). NEVER set on a plain
+ *               approval; grant deliberately, only after checks.
+ *   unverify  → verified: false
  *
  * After action, revalidates the cache so the change is immediately visible
  * on the public Churches directory + admin list.
@@ -152,7 +158,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
     }
 
-    const validActions = ["approve", "reject", "cancel", "reopen", "feature", "unfeature"];
+    const validActions = ["approve", "reject", "cancel", "reopen", "feature", "unfeature", "verify", "unverify"];
     if (!validActions.includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -164,6 +170,7 @@ export async function POST(req: NextRequest) {
 
     let newStatus = existing.status;
     let newFeatured = existing.featured;
+    let newVerified = existing.verified;
     let newRejectionReason = existing.rejectionReason;
 
     switch (action) {
@@ -191,6 +198,18 @@ export async function POST(req: NextRequest) {
       case "unfeature":
         newFeatured = false;
         break;
+      case "verify":
+        if (existing.status !== "PUBLISHED") {
+          return NextResponse.json(
+            { error: "Only published churches can be verified. Approve it first." },
+            { status: 400 }
+          );
+        }
+        newVerified = true;
+        break;
+      case "unverify":
+        newVerified = false;
+        break;
     }
 
     const updated = await db.church.update({
@@ -198,6 +217,7 @@ export async function POST(req: NextRequest) {
       data: {
         status: newStatus,
         featured: newFeatured,
+        verified: newVerified,
         rejectionReason: newRejectionReason,
         reviewedBy: user.email,
         reviewedAt: new Date(),
@@ -216,6 +236,7 @@ export async function POST(req: NextRequest) {
         id: updated.id,
         status: updated.status,
         featured: updated.featured,
+        verified: updated.verified,
         reviewedBy: updated.reviewedBy,
         reviewedAt: updated.reviewedAt?.toISOString(),
       },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
+import { rateLimit } from "@/lib/social/rate-limit";
 import { db } from "@/lib/db";
 
 /**
@@ -15,10 +16,14 @@ import { db } from "@/lib/db";
  *   ?city=Bengaluru       — filter by city
  *   ?denomination=Catholic — filter by denomination
  *   ?language=English      — filter by language (searches the languages JSON array)
+ *   ?serviceDay=Sunday     — filter by a service falling on that weekday
  *   ?featured=1           — only featured churches
  *   ?q=bible              — search by name/description/city/location
+ *   ?sort=relevance|name|newest
  *
- * Sorted by featured DESC then name ASC.
+ * relevance (default) = featured DESC, then followers DESC, then name ASC.
+ * followers_count is computed LIVE from the ChurchFollow table (_count) —
+ * never a stale counter column.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -27,8 +32,12 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city") || undefined;
     const denomination = searchParams.get("denomination") || undefined;
     const language = searchParams.get("language") || undefined;
+    const serviceDay = searchParams.get("serviceDay") || undefined;
     const featuredOnly = searchParams.get("featured") === "1";
     const q = searchParams.get("q")?.trim() || undefined;
+    const sort = ["relevance", "name", "newest"].includes(searchParams.get("sort") || "")
+      ? (searchParams.get("sort") as "relevance" | "name" | "newest")
+      : "relevance";
 
     // Build the where clause — always status=PUBLISHED for public
     const where: any = {
@@ -56,7 +65,13 @@ export async function GET(req: NextRequest) {
     // churches; for thousands, we'd add a GIN index + raw SQL.
     let churches = await db.church.findMany({
       where,
-      orderBy: [{ featured: "desc" }, { name: "asc" }],
+      orderBy:
+        sort === "name"
+          ? [{ name: "asc" }]
+          : sort === "newest"
+            ? [{ createdAt: "desc" }]
+            : [{ featured: "desc" }, { createdAt: "desc" }, { name: "asc" }],
+      include: { _count: { select: { followers: true } } },
     });
 
     // Client-side language filter (see comment above)
@@ -65,6 +80,21 @@ export async function GET(req: NextRequest) {
         try {
           const langs: string[] = JSON.parse(c.languages || "[]");
           return langs.some((l) => l.toLowerCase() === language.toLowerCase());
+        } catch {
+          return false;
+        }
+      });
+    }
+
+    // Service-day filter — matches any service row whose `day` equals the
+    // requested weekday (case-insensitive). Same JSON-array approach.
+    if (serviceDay) {
+      churches = churches.filter((c) => {
+        try {
+          const rows: Array<{ day?: string }> = JSON.parse(c.serviceTimes || "[]");
+          return rows.some(
+            (r) => typeof r.day === "string" && r.day.toLowerCase() === serviceDay.toLowerCase()
+          );
         } catch {
           return false;
         }
@@ -83,19 +113,17 @@ export async function GET(req: NextRequest) {
         address: c.address,
         postalCode: c.postalCode,
         location: c.location,
-        pastorName: c.pastorName,
         contactName: c.contactName,
-        contactEmail: c.contactEmail,
-        contactPhone: c.contactPhone,
         whatsapp_number: c.whatsappNumber,
         website: c.website,
         service_times: safeParseJson(c.serviceTimes, []),
         languages: safeParseJson(c.languages, []),
         cover_gradient: c.coverGradient,
         cover_image: c.coverImage,
-        followers_count: c.followersCount,
-        status: c.status,
+        images: safeParseJson<string[]>(c.coverImage ? JSON.stringify([c.coverImage]) : "[]", []),
+        verified: c.verified,
         featured: c.featured,
+        followers_count: c._count.followers, // LIVE count from ChurchFollow
       })),
     });
   } catch (error: any) {
@@ -115,6 +143,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 /**
  * POST /api/churches
  * Authenticated — creates a new church with status='PENDING'.
@@ -122,8 +152,12 @@ export async function GET(req: NextRequest) {
  * The church is NOT immediately visible publicly. Admin must approve it
  * (Admin → Churches → Approve) before it appears in the public directory.
  *
- * Required fields: name, description, city, state, location
- * (location is auto-derived from address + city + state if not provided)
+ * Required fields: name, description, city, state
+ * Guard rails:
+ *   - rate limit (3 submissions / 10 min)
+ *   - duplicate guard: same submitter + same (name, city, state) already
+ *     submitted within the last 24h → 409 instead of a silent double-listing
+ *   - max 5 photos, ≤ 12 languages, service rows validated to {day,time,language}
  */
 export async function POST(req: NextRequest) {
   try {
@@ -132,7 +166,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Please sign in to list your church." }, { status: 401 });
     }
 
-    const body = await req.json();
+    if (!rateLimit(`churches:create:${user.id}`, 3, 10 * 60_000)) {
+      return NextResponse.json(
+        { error: "You're submitting listings quickly. Please wait a little." },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
 
     // ─── Server-side validation ───
     if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
@@ -145,24 +186,63 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "City and State are required." }, { status: 400 });
     }
 
+    const name = String(body.name).trim().slice(0, 300);
+
+    // ─── Duplicate guard (same submitter, same church, last 24h) ───
+    const dupe = await db.church.findFirst({
+      where: {
+        createdById: user.id,
+        name: { equals: name, mode: "insensitive" },
+        city: { equals: String(body.city).trim(), mode: "insensitive" },
+        state: { equals: String(body.state).trim(), mode: "insensitive" },
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      select: { id: true, status: true },
+    });
+    if (dupe) {
+      return NextResponse.json(
+        {
+          error:
+            "You already submitted this church (same name, city and state) in the last 24 hours. It is in review — you don't need to submit it again.",
+          duplicateOf: dupe.id,
+          duplicateStatus: dupe.status,
+        },
+        { status: 409 }
+      );
+    }
+
     // ─── Build the location string if not provided ───
     const locationParts = [body.address, body.city, body.state].filter(Boolean);
     const location = body.location?.trim() || locationParts.join(", ") || "Location not specified";
 
-    // ─── Service times — JSON array stored as text ───
-    const serviceTimes = Array.isArray(body.service_times) ? body.service_times : [];
+    // ─── Service times — validated JSON array of {day, time, language} ───
+    const rawServices = Array.isArray(body.service_times) ? body.service_times : [];
+    const serviceTimes = rawServices
+      .slice(0, 14)
+      .map((s: any) => ({
+        day: DAYS.includes(s?.day) ? s.day : "Sunday",
+        time: typeof s?.time === "string" ? s.time.trim().slice(0, 120) : "",
+        language: typeof s?.language === "string" ? s.language.trim().slice(0, 60) : "English",
+      }))
+      .filter((s: { time: string }) => s.time);
 
-    // ─── Languages — JSON array of strings ───
-    const languages = Array.isArray(body.languages) ? body.languages : [];
+    // ─── Languages — JSON array of strings (max 12) ───
+    const languages = (Array.isArray(body.languages) ? body.languages : [])
+      .filter((l: any) => typeof l === "string" && l.trim())
+      .map((l: string) => l.trim().slice(0, 60))
+      .slice(0, 12);
 
-    // ─── Cover image: prefer cover_image, fall back to first image in images[] ───
-    const coverImage = body.cover_image
-      || (Array.isArray(body.images) && body.images.length > 0 ? body.images[0] : null);
+    // ─── Images — max 5 (the existing UI limit, now server-enforced) ───
+    const images = (Array.isArray(body.images) ? body.images : [])
+      .filter((i: any) => typeof i === "string" && i.trim())
+      .slice(0, 5);
+    const coverImage =
+      (typeof body.cover_image === "string" && body.cover_image.trim()) || images[0] || null;
 
     // ─── Insert into DB with status=PENDING (NEVER auto-published) ───
     const church = await db.church.create({
       data: {
-        name: String(body.name).trim().slice(0, 300),
+        name,
         description: String(body.description).trim().slice(0, 5000),
         denomination: body.denomination ? String(body.denomination).slice(0, 200) : "",
         country: body.country || "India",
@@ -171,7 +251,6 @@ export async function POST(req: NextRequest) {
         address: body.address ? String(body.address).slice(0, 500) : null,
         postalCode: body.postalCode ? String(body.postalCode).slice(0, 20) : null,
         location: location.slice(0, 500),
-        pastorName: body.pastorName ? String(body.pastorName).slice(0, 200) : null,
         contactName: body.contact_name ? String(body.contact_name).slice(0, 200) : null,
         contactEmail: body.contact_email ? String(body.contact_email).slice(0, 200) : null,
         contactPhone: body.contact_phone ? String(body.contact_phone).slice(0, 30) : null,
@@ -194,7 +273,7 @@ export async function POST(req: NextRequest) {
       success: true,
       churchId: church.id,
       status: church.status,
-      message: "Church submitted! It will appear in the directory once approved by our team.",
+      message: "Church submitted! Our team reviews every listing before it appears in the directory.",
     });
   } catch (error: any) {
     console.error("[api/churches POST] Error:", error);

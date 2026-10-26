@@ -459,6 +459,47 @@ export async function GET(req: NextRequest) {
         break;
       }
 
+      /* ── Church directory (public listing — name + location card) ── */
+      case "church": {
+        const id = q("id");
+        if (!id || id.length > 40) {
+          return NextResponse.json({ error: "Invalid church" }, { status: 400 });
+        }
+        const church = await db.church.findUnique({
+          where: { id },
+          select: {
+            name: true, denomination: true, city: true, state: true,
+            location: true, serviceTimes: true, coverImage: true, status: true, verified: true,
+          },
+        });
+        if (!church || church.status !== "PUBLISHED") {
+          return NextResponse.json({ error: "Not available for sharing" }, { status: 404 });
+        }
+        let firstService = "";
+        try {
+          const rows: Array<{ day?: string; time?: string }> = JSON.parse(church.serviceTimes || "[]");
+          const s = rows[0];
+          if (s?.day) firstService = `${s.day}${s.time ? ` ${s.time}` : ""}`;
+        } catch {}
+        spec = {
+          format,
+          kicker: church.verified ? "Verified Church" : "Church",
+          title: church.name,
+          body: [
+            church.denomination || "Church",
+            [church.location || church.city, church.city].filter(Boolean).join(", "),
+            firstService,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          reference: [church.city, church.state].filter(Boolean).join(", ") || undefined,
+          bgImageUrl: church.coverImage,
+          bgIsKoinoHosted: isKoinoHostedImage(church.coverImage),
+          gradientSeed: 2,
+        };
+        break;
+      }
+
       /* ── Prayer wall (own text only, no public URL exists) ── */
       case "prayer": {
         const user = await getAuthUser();

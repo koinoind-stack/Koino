@@ -6,6 +6,8 @@ import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   Shield,
+  ShieldCheck,
+  Pencil,
   LayoutDashboard,
   Building2,
   Calendar,
@@ -49,6 +51,7 @@ import { toast } from "sonner";
 import {
   PRODUCTS,
   INDIAN_STATES,
+  LANGUAGES,
   type Church,
   type EventItem,
   type Product,
@@ -813,6 +816,51 @@ function ChurchesTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [editing, setEditing] = useState<AdminChurch | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Duplicate detection — same normalised (name + city) submitted more than
+  // once, across ANY status. Flags both entries; the admin decides which to
+  // keep (edit or delete the other). No auto-action is taken.
+  const duplicateKeys = useMemo(() => {
+    const seen = new Map<string, string>();
+    const dupes = new Set<string>();
+    for (const c of churches) {
+      const key = `${c.name.trim().toLowerCase()}|${(c.city || "").trim().toLowerCase()}|${(c.state || "").trim().toLowerCase()}`;
+      if (seen.has(key)) {
+        dupes.add(c.id);
+        dupes.add(seen.get(key)!);
+      } else {
+        seen.set(key, c.id);
+      }
+    }
+    return dupes;
+  }, [churches]);
+
+  const duplicateOf = (c: AdminChurch): AdminChurch | null => {
+    const key = `${c.name.trim().toLowerCase()}|${(c.city || "").trim().toLowerCase()}|${(c.state || "").trim().toLowerCase()}`;
+    return churches.find((o) => o.id !== c.id && `${o.name.trim().toLowerCase()}|${(o.city || "").trim().toLowerCase()}|${(o.state || "").trim().toLowerCase()}` === key) || null;
+  };
+
+  const handleEditSave = async (id: string, patch: Record<string, unknown>) => {
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/churches/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save changes");
+      toast.success("Listing updated", { description: "Public information corrected." });
+      setEditing(null);
+      await loadChurches();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save changes");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const loadChurches = async (status: "all" | "PENDING" | "PUBLISHED" | "REJECTED" | "CANCELLED" = statusFilter) => {
     setLoading(true);
@@ -990,17 +1038,28 @@ function ChurchesTab() {
       {/* Churches list */}
       {!loading && !error && filtered.map((c) => {
         const badge = statusBadge(c.status);
+        const dupOf = duplicateOf(c);
         return (
           <AdminCard
             key={c.id}
-            title={c.name}
-            subtitle={`${c.city || "—"}, ${c.state || "—"}${c.denomination ? ` · ${c.denomination}` : ""}${c.createdByEmail ? ` · by ${c.createdByEmail}` : ""}`}
-            description={c.description}
+            title={`${c.verified ? "\u2713 " : ""}${c.name}`}
+            subtitle={`${c.city || "—"}, ${c.state || "—"}${c.denomination ? ` · ${c.denomination}` : ""}${c.createdByEmail ? ` · by ${c.createdByEmail}` : ""} · ${c.followers_count} follower${c.followers_count === 1 ? "" : "s"}`}
+            description={
+              (dupOf
+                ? `⚠ Possible duplicate of "${dupOf.name}" (${dupOf.status.toLowerCase()}, ${dupOf.city || "no city"}) — review and keep one. `
+                : "") + c.description
+            }
             image={c.cover_image}
             badge={badge.label}
             badgeColor={badge.color}
             actions={
               <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setEditing(c)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[11px] font-bold transition-all"
+                >
+                  <Pencil size={12} /> Edit
+                </button>
                 {c.status === "PENDING" && (
                   <>
                     <button
@@ -1040,6 +1099,27 @@ function ChurchesTab() {
                     >
                       Cancel
                     </button>
+                    {c.verified ? (
+                      <button
+                        onClick={() => handleAction(c.id, "unverify")}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#3B82F6] hover:bg-[#3B82F6]/25 text-[11px] font-bold transition-all"
+                        title="Remove the Koino Verified badge"
+                      >
+                        <ShieldCheck size={12} /> Unverify
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (confirm("Mark this church as Koino Verified?\n\nOnly do this after confirming the church is a real, operating congregation (e.g. contact responded, address checks out).")) {
+                            handleAction(c.id, "verify");
+                          }
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/25 text-[#60A5FA] hover:bg-[#3B82F6]/25 text-[11px] font-bold transition-all"
+                        title="Grant the Koino Verified badge — only after checks"
+                      >
+                        <ShieldCheck size={12} /> Verify
+                      </button>
+                    )}
                   </>
                 )}
                 {(c.status === "REJECTED" || c.status === "CANCELLED") && (
@@ -1106,6 +1186,175 @@ function ChurchesTab() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Edit modal — correct public information on a listing */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-end md:items-center justify-center"
+            onClick={(e) => e.target === e.currentTarget && setEditing(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[88vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-white">Edit listing</h3>
+                <button onClick={() => setEditing(null)} className="text-[#64748B] hover:text-white p-1">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-[11px] text-[#A09DB1] mb-3">
+                Fix incorrect public information (flagged reports, wrong times, etc). Changes go live immediately.
+              </p>
+              <ChurchEditForm
+                church={editing}
+                saving={savingEdit}
+                onSave={(patch) => handleEditSave(editing.id, patch)}
+                onCancel={() => setEditing(null)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Editable subset of a church listing for the admin correction form.
+function ChurchEditForm({
+  church, saving, onSave, onCancel,
+}: {
+  church: AdminChurch;
+  saving: boolean;
+  onSave: (patch: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: church.name,
+    description: church.description,
+    denomination: church.denomination || "",
+    state: church.state || "",
+    city: church.city || "",
+    address: church.address || "",
+    location: church.location || "",
+    contactName: church.contactName || "",
+    whatsappNumber: church.whatsapp_number || "",
+    website: church.website || "",
+    service_times: (church.service_times || []) as Array<{ day: string; time: string; language: string }>,
+  });
+
+  const updRow = (i: number, field: "day" | "time" | "language", v: string) =>
+    setForm((f) => ({ ...f, service_times: f.service_times.map((s, j) => (j === i ? { ...s, [field]: v } : s)) }));
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Name</label>
+        <input className="neo-input text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Description</label>
+        <textarea className="neo-input h-24 resize-none text-sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Denomination</label>
+          <input className="neo-input text-sm" value={form.denomination} onChange={(e) => setForm({ ...form, denomination: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">State</label>
+          <input className="neo-input text-sm" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">City</label>
+          <input className="neo-input text-sm" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Address</label>
+          <input className="neo-input text-sm" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Location summary</label>
+          <input className="neo-input text-sm" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">WhatsApp</label>
+          <input className="neo-input text-sm" value={form.whatsappNumber} onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Website</label>
+          <input className="neo-input text-sm" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+        </div>
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contact name (public)</label>
+        <input className="neo-input text-sm" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">Service times</label>
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, service_times: [...f.service_times, { day: "Sunday", time: "", language: "English" }] }))}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#A78BFA] text-[10px] font-bold"
+          >
+            <Plus size={10} /> Add
+          </button>
+        </div>
+        <div className="space-y-2">
+          {form.service_times.map((row, i) => (
+            <div key={i} className="flex gap-2">
+              <select className="neo-input text-xs w-24 py-2" value={row.day} onChange={(e) => updRow(i, "day", e.target.value)}>
+                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select className="neo-input text-xs w-24 py-2" value={row.language} onChange={(e) => updRow(i, "language", e.target.value)}>
+                {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+              <input className="neo-input text-xs flex-1 py-2" value={row.time} placeholder="9:00 AM" onChange={(e) => updRow(i, "time", e.target.value)} />
+              <button type="button" onClick={() => setForm((f) => ({ ...f, service_times: f.service_times.filter((_, j) => j !== i) }))} className="p-2 text-[#94A3B8] hover:text-[#EF4444]">
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex gap-2 justify-end pt-1">
+        <button onClick={onCancel} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold">
+          Cancel
+        </button>
+        <button
+          onClick={() =>
+            onSave({
+              name: form.name,
+              description: form.description,
+              denomination: form.denomination,
+              state: form.state,
+              city: form.city,
+              address: form.address,
+              location: form.location,
+              contactName: form.contactName,
+              whatsappNumber: form.whatsappNumber,
+              website: form.website,
+              service_times: form.service_times.filter((s) => s.time.trim()),
+            })
+          }
+          disabled={saving}
+          className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold disabled:opacity-60"
+        >
+          {saving ? "Saving..." : "Save changes"}
+        </button>
+      </div>
     </div>
   );
 }

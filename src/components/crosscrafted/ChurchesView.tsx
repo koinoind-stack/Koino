@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
@@ -18,6 +18,12 @@ import {
   Phone,
   Heart,
   Building2,
+  Share2,
+  Navigation,
+  CalendarDays,
+  Flag,
+  ArrowUpDown,
+  ExternalLink,
 } from "lucide-react";
 import {
   INDIAN_STATES,
@@ -30,6 +36,7 @@ import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { toast } from "sonner";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
 type Props = {
   initialOpenChurchId?: string | null;
@@ -50,19 +57,32 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   const [churches, setChurches] = useState<Church[]>([]);
   const [churchesLoading, setChurchesLoading] = useState(true);
   const [churchesError, setChurchesError] = useState<string | null>(null);
-  // Per-session follow state. NOTE: For now this is component state —
-  // when a ChurchFollow / GroupMember DB model is added, this should
-  // be hydrated from /api/churches/follows on mount and persisted via
-  // /api/churches/[id]/follow (POST/DELETE). Auth-gated below.
+  // REAL follow state — hydrated from /api/churches/follows on mount and
+  // persisted via POST/DELETE /api/churches/[id]/follow.
   const [followed, setFollowed] = useState<Set<string>>(new Set());
+  const [followBusy, setFollowBusy] = useState<string | null>(null);
   const [discoverTab, setDiscoverTab] = useState<DiscoverTab>("discover");
   const [filterState, setFilterState] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+  const [filterDenomination, setFilterDenomination] = useState("");
   const [filterLanguage, setFilterLanguage] = useState("");
+  const [filterServiceDay, setFilterServiceDay] = useState("");
+  const [sortBy, setSortBy] = useState<"featured" | "name" | "newest">("featured");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [openChurch, setOpenChurch] = useState<Church | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  // Share (existing ShareSheet — public directory link + branded card)
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
+  // Upcoming events linked to the open church (name match, server-verified)
+  const [churchEvents, setChurchEvents] = useState<Array<{ id: string; title: string; when: string; where: string; isOnline: boolean }>>([]);
+  const [churchEventsLoading, setChurchEventsLoading] = useState(false);
+  // Flag incorrect public information (reuses Report model)
+  const [flagFor, setFlagFor] = useState<Church | null>(null);
+  const [flagReason, setFlagReason] = useState("");
+  const [flagDetails, setFlagDetails] = useState("");
   // Groups affiliated with the currently-open church (community upgrade).
   const [churchGroups, setChurchGroups] = useState<
     Array<{ id: string; name: string; description: string | null; category: string; coverGradient: number; logoUrl: string | null; city: string | null; state: string | null; churchVerified: boolean; memberCount: number }>
@@ -135,6 +155,44 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     loadChurches();
   }, []);
 
+  // Hydrate REAL follow state from the DB (auth only).
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setFollowed(new Set());
+      return;
+    }
+    fetch("/api/churches/follows", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { followedChurchIds: [] }))
+      .then((d) => setFollowed(new Set(d.followedChurchIds || [])))
+      .catch(() => {
+        /* non-fatal — follow state just stays empty */
+      });
+  }, [isAuthenticated]);
+
+  // Deep link: /?view=churches&church=<id> opens that church's detail.
+  const deepLinkConsumed = useRef(false);
+  useEffect(() => {
+    if (deepLinkConsumed.current || churchesLoading || !churches.length) return;
+    deepLinkConsumed.current = true;
+    const cid = initialOpenChurchId || new URLSearchParams(window.location.search).get("church");
+    if (cid) {
+      const target = churches.find((c) => c.id === cid);
+      if (target) {
+        setOpenChurch(target);
+        setActiveImageIdx(0);
+        setTimeout(
+          () => document.getElementById(`church-${cid}`)?.scrollIntoView({ behavior: "smooth", block: "center" }),
+          300
+        );
+      } else {
+        toast("Church not available", { description: "It may no longer be published." });
+      }
+      if (!initialOpenChurchId) {
+        window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+      }
+    }
+  }, [churchesLoading, churches, initialOpenChurchId]);
+
   // Affiliated groups for the open church — public groups only, from the
   // dedicated public endpoint (no private group data ever reaches here).
   useEffect(() => {
@@ -160,96 +218,209 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     };
   }, [openChurch]);
 
+  // Upcoming events linked to the open church — server matches by name.
+  useEffect(() => {
+    if (!openChurch) {
+      setChurchEvents([]);
+      return;
+    }
+    let cancelled = false;
+    setChurchEventsLoading(true);
+    fetch(`/api/churches/${openChurch.id}/events`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { events: [] }))
+      .then((d) => {
+        if (!cancelled) setChurchEvents(d.events || []);
+      })
+      .catch(() => {
+        if (!cancelled) setChurchEvents([]);
+      })
+      .finally(() => {
+        if (!cancelled) setChurchEventsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openChurch]);
+
+  const denominations = useMemo(() => {
+    const set = new Set<string>();
+    churches.forEach((c) => c.denomination && set.add(c.denomination));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [churches]);
+
   const filtered = useMemo(() => {
-    return churches.filter((c) => {
+    const q = searchQuery.trim().toLowerCase();
+    const cityQ = filterCity.trim().toLowerCase();
+    const list = churches.filter((c) => {
       if (filterState && c.state !== filterState) return false;
+      if (cityQ && !(c.city || "").toLowerCase().includes(cityQ)) return false;
+      if (filterDenomination && c.denomination !== filterDenomination) return false;
       if (filterLanguage && !c.languages.includes(filterLanguage)) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (
-          !c.name.toLowerCase().includes(q) &&
-          !c.city.toLowerCase().includes(q) &&
-          !c.state.toLowerCase().includes(q)
-        )
-          return false;
+      if (filterServiceDay && !c.service_times.some((s) => s.day === filterServiceDay)) return false;
+      if (q) {
+        const haystack = `${c.name} ${c.city} ${c.state} ${c.denomination} ${c.description}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [churches, filterState, filterLanguage, searchQuery]);
+    if (sortBy === "name") list.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortBy === "newest") list.sort((a, b) => b.id.localeCompare(a.id)); // cuid ~ time-ordered
+    // "featured" keeps the server order (featured first, then newest, then name)
+    return list;
+  }, [churches, filterState, filterCity, filterDenomination, filterLanguage, filterServiceDay, searchQuery, sortBy]);
 
-  const activeFilters = [filterState, filterLanguage, searchQuery].filter(Boolean).length;
+  const activeFilters = [filterState, filterCity, filterDenomination, filterLanguage, filterServiceDay, searchQuery].filter(Boolean).length;
 
-  const toggleFollow = (id: string) => {
-    // Auth gate: require login to follow a church.
-    // Following a church must be tied to a user account — without that,
-    // follows cannot persist across sessions or devices, so we block
-    // the action until the user signs in.
+  // ─── REAL follow toggle — server-persisted, optimistic with rollback ───
+  const toggleFollow = async (id: string) => {
     if (!isAuthenticated) {
       toast("Sign in required", {
         description: "Please sign in to follow churches and see them in My Churches.",
       });
       return;
     }
+    if (followBusy === id) return; // double-click guard
+    setFollowBusy(id);
+    const wasFollowing = followed.has(id);
+    // Optimistic update
     setFollowed((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        setChurches((cs) =>
-          cs.map((c) => (c.id === id ? { ...c, followers_count: c.followers_count - 1 } : c))
-        );
-        toast("Unfollowed church", { description: "You'll no longer see updates." });
-      } else {
-        next.add(id);
-        setChurches((cs) =>
-          cs.map((c) => (c.id === id ? { ...c, followers_count: c.followers_count + 1 } : c))
-        );
-        toast.success("Following church!", { description: "You'll see updates in your feed." });
-      }
+      if (wasFollowing) next.delete(id);
+      else next.add(id);
       return next;
+    });
+    setChurches((cs) =>
+      cs.map((c) =>
+        c.id === id ? { ...c, followers_count: Math.max(0, c.followers_count + (wasFollowing ? -1 : 1)) } : c
+      )
+    );
+    try {
+      const res = await fetch(`/api/churches/${id}/follow`, {
+        method: wasFollowing ? "DELETE" : "POST",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      // Reconcile with server truth
+      setFollowed((prev) => {
+        const next = new Set(prev);
+        if (data.following) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+      setChurches((cs) => cs.map((c) => (c.id === id ? { ...c, followers_count: data.followers } : c)));
+      if (data.following && !wasFollowing) {
+        toast.success("Following church!", { description: "Find it anytime in My Churches." });
+      }
+    } catch {
+      // Roll back on failure
+      setFollowed((prev) => {
+        const next = new Set(prev);
+        if (wasFollowing) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+      setChurches((cs) =>
+        cs.map((c) =>
+          c.id === id ? { ...c, followers_count: Math.max(0, c.followers_count + (wasFollowing ? 1 : -1)) } : c
+        )
+      );
+      toast.error("Couldn't update — please try again.");
+    } finally {
+      setFollowBusy(null);
+    }
+  };
+
+  const openChurchShare = (c: Church) => {
+    const url = `${window.location.origin}/?view=churches&church=${c.id}`;
+    setShareReq({
+      heading: "Share this church",
+      shareText: `${c.name}${c.denomination ? ` — ${c.denomination}` : ""}\n${[c.city, c.state].filter(Boolean).join(", ")}\n\nFind them on Koino:`,
+      shareUrl: url,
+      cardUrl: `/api/share-card?type=church&id=${c.id}`,
+      formats: ["square", "story"],
+      fileName: `koino-church-${c.id}.png`,
     });
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const submitFlag = async () => {
+    if (!flagFor) return;
+    try {
+      const res = await fetch(`/api/churches/${flagFor.id}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: flagReason || "incorrect_information",
+          details: flagDetails.trim() || null,
+        }),
+      });
+      if (res.status === 401) {
+        toast("Sign in required", { description: "Please sign in to report a listing." });
+        return;
+      }
+      if (!res.ok) throw new Error();
+      toast.success("Thank you — our team will review this listing.");
+      setFlagFor(null);
+      setFlagReason("");
+      setFlagDetails("");
+    } catch {
+      toast.error("Couldn't submit the report.");
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.description) {
       toast.error("Please fill in the required fields");
       return;
     }
-    const validServices = formData.service_times.filter((s) => s.time.trim());
-    const newChurch: Church = {
-      id: `c${Date.now()}`,
-      name: formData.name,
-      description: formData.description,
-      location: formData.location,
-      state: formData.state,
-      city: formData.city,
-      languages: formData.languages,
-      denomination: formData.denomination || "Non-denominational",
-      cover_image: formData.images[0] || undefined,
-      images: formData.images.length > 0 ? formData.images : undefined,
-      whatsapp_number: formData.whatsapp_number || undefined,
-      service_times: validServices,
-      followers_count: 0,
-      cover_gradient: Math.floor(Math.random() * CHURCH_GRADIENTS.length),
-      status: "pending",
-    };
-    setChurches([newChurch, ...churches]);
-    setFormData({
-      name: "",
-      description: "",
-      location: "",
-      state: "",
-      city: "",
-      languages: [],
-      denomination: "",
-      images: [],
-      whatsapp_number: "",
-      service_times: [{ language: "English", day: "Sunday", time: "" }],
-    });
-    setShowCreateModal(false);
-    toast.success("Church submitted!", {
-      description: "Your church will appear once approved by our team.",
-    });
+    if (!formData.state || !formData.city) {
+      toast.error("Please select a state and enter a city");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const validServices = formData.service_times.filter((s) => s.time.trim());
+      const res = await fetch("/api/churches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          denomination: formData.denomination,
+          state: formData.state,
+          city: formData.city,
+          location: formData.location,
+          address: formData.location,
+          languages: formData.languages,
+          images: formData.images,
+          cover_image: formData.images[0] || null,
+          whatsapp_number: formData.whatsapp_number || null,
+          service_times: validServices,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed to submit (HTTP ${res.status})`);
+      setShowCreateModal(false);
+      setFormData({
+        name: "",
+        description: "",
+        location: "",
+        state: "",
+        city: "",
+        languages: [],
+        denomination: "",
+        images: [],
+        whatsapp_number: "",
+        service_times: [{ language: "English", day: "Sunday", time: "" }],
+      });
+      toast.success("Church submitted!", {
+        description: "Our team reviews every listing before it appears in the directory.",
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit church. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -343,7 +514,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="City, state, name..."
+                  placeholder="Name, city, denomination..."
                   className="neo-input text-sm"
                 />
               </div>
@@ -366,6 +537,35 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <MapPin size={10} className="inline mr-0.5" /> City
+                </label>
+                <input
+                  type="text"
+                  value={filterCity}
+                  onChange={(e) => setFilterCity(e.target.value)}
+                  placeholder="e.g. Bengaluru"
+                  className="neo-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <Building2 size={10} className="inline mr-0.5" /> Denomination
+                </label>
+                <select
+                  value={filterDenomination}
+                  onChange={(e) => setFilterDenomination(e.target.value)}
+                  className="neo-input text-sm"
+                >
+                  <option value="">All Denominations</option>
+                  {denominations.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
                   <Globe size={10} className="inline mr-0.5" /> Language
                 </label>
                 <select
@@ -381,12 +581,32 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <Clock size={10} className="inline mr-0.5" /> Service Day
+                </label>
+                <select
+                  value={filterServiceDay}
+                  onChange={(e) => setFilterServiceDay(e.target.value)}
+                  className="neo-input text-sm"
+                >
+                  <option value="">Any Day</option>
+                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             {activeFilters > 0 && (
               <button
                 onClick={() => {
                   setFilterState("");
+                  setFilterCity("");
+                  setFilterDenomination("");
                   setFilterLanguage("");
+                  setFilterServiceDay("");
                   setSearchQuery("");
                 }}
                 className="mt-3 text-xs text-[#94A3B8] hover:text-white transition-colors"
@@ -397,6 +617,26 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Sort */}
+      <div className="flex items-center gap-2 mb-3">
+        <ArrowUpDown size={12} className="text-[#64748B]" />
+        {([
+          ["featured", "Featured"],
+          ["name", "Name A-Z"],
+          ["newest", "Newest"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setSortBy(key)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+              sortBy === key ? "bg-white/[0.08] text-white" : "text-[#64748B] hover:text-white"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Church Cards */}
       <div className="space-y-4">
@@ -430,15 +670,22 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             </div>
             <p className="text-sm font-bold text-white mb-1">No churches listed yet</p>
             <p className="text-xs text-[#A09DB1] mb-4 max-w-sm mx-auto">
-              Be the first to add your church to the Koino directory. Submitted churches appear here after admin approval.
+              Be the first to add your church to the Koino directory. Every listing is reviewed by an admin before it appears here.
             </p>
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => (onListChurch ? onListChurch() : setShowCreateModal(true))}
                 className="px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
               >
                 List Your Church
               </button>
+            ) : (
+              <a
+                href="/api/auth/signin"
+                className="inline-block px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+              >
+                Sign in to list your church
+              </a>
             )}
           </div>
         )}
@@ -447,7 +694,20 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         {!churchesLoading && !churchesError && churches.length > 0 && filtered.length === 0 && (
           <div className="text-center py-10">
             <p className="text-sm text-[#94A3B8] mb-1">No churches match your filters.</p>
-            <p className="text-xs text-[#64748B]">Try clearing filters or widening your search.</p>
+            <p className="text-xs text-[#64748B] mb-4">Try clearing a filter or widening your search.</p>
+            <button
+              onClick={() => {
+                setFilterState("");
+                setFilterCity("");
+                setFilterDenomination("");
+                setFilterLanguage("");
+                setFilterServiceDay("");
+                setSearchQuery("");
+              }}
+              className="px-5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
+            >
+              Clear all filters
+            </button>
           </div>
         )}
 
@@ -456,9 +716,10 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
           return (
             <motion.div
               key={church.id}
+              id={`church-${church.id}`}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: Math.min(i * 0.05, 0.3) }}
               onClick={() => {
                 setOpenChurch(church);
                 setActiveImageIdx(0);
@@ -479,6 +740,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/30 to-transparent" />
+                {church.featured && (
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#F59E0B]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider">
+                    Featured
+                  </span>
+                )}
                 <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/[0.1]">
                   <Users size={11} className="text-white/80" />
                   <span className="text-[10px] font-semibold text-white/80">
@@ -488,12 +754,13 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div className="absolute bottom-0 inset-x-0 p-4">
                   <div className="flex items-center gap-1.5">
                     <h3 className="text-lg font-bold text-white leading-tight">{church.name}</h3>
-                    {church.status === "verified" && (
+                    {church.verified && (
                       <ShieldCheck
                         size={16}
                         strokeWidth={2.5}
                         className="shrink-0 drop-shadow-lg"
                         style={{ color: "white", fill: "#3B82F6" }}
+                        aria-label="Verified church"
                       />
                     )}
                   </div>
@@ -519,6 +786,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               </div>
 
               <div className="p-4">
+                {church.denomination && (
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-[#A855F7]/10 border border-[#A855F7]/25 text-[#C4B5FD] text-[10px] font-bold uppercase tracking-wider mb-2">
+                    {church.denomination}
+                  </span>
+                )}
                 {church.service_times.length > 0 && (
                   <div className="flex items-start gap-1.5 mb-2.5">
                     <Clock size={12} className="text-[#A855F7] mt-0.5 shrink-0" />
@@ -531,75 +803,53 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <p className="text-[13px] text-[#94A3B8] leading-[1.5] line-clamp-2 mb-3">
                   {church.description}
                 </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFollow(church.id);
-                  }}
-                  className={`flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-[12px] font-semibold transition-all ${
-                    isFollowing
-                      ? "bg-white/[0.06] text-[#94A3B8] border border-white/[0.06]"
-                      : "text-white hover:-translate-y-px"
-                  }`}
-                  style={
-                    !isFollowing
-                      ? {
-                          background: "linear-gradient(135deg, #3B82F6, #A855F7)",
-                          boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
-                        }
-                      : {}
-                  }
-                >
-                  {isFollowing ? (
-                    <>
-                      <UserMinus size={13} /> Following
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={13} /> Follow
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFollow(church.id);
+                    }}
+                    disabled={followBusy === church.id}
+                    className={`flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl text-[12px] font-semibold transition-all disabled:opacity-60 ${
+                      isFollowing
+                        ? "bg-white/[0.06] text-[#94A3B8] border border-white/[0.06]"
+                        : "text-white hover:-translate-y-px"
+                    }`}
+                    style={
+                      !isFollowing
+                        ? {
+                            background: "linear-gradient(135deg, #3B82F6, #A855F7)",
+                            boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
+                          }
+                        : {}
+                    }
+                  >
+                    {isFollowing ? (
+                      <>
+                        <UserMinus size={13} /> Following
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus size={13} /> Follow
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenChurch(church);
+                      setActiveImageIdx(0);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.08] text-[#C4B5FD] hover:text-white transition-all"
+                  >
+                    View Church
+                  </button>
+                </div>
               </div>
             </motion.div>
           );
         })}
       </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-[#475569] text-sm mb-4">
-            No churches found{activeFilters > 0 ? " for these filters" : ""}.
-          </p>
-          {activeFilters > 0 ? (
-            <button
-              onClick={() => {
-                setFilterState("");
-                setFilterLanguage("");
-                setSearchQuery("");
-              }}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
-            >
-              Clear Filters
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if (onListChurch) {
-                  onListChurch();
-                } else {
-                  setShowCreateModal(true);
-                }
-              }}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
-            >
-              List Your Church
-            </button>
-          )}
-        </div>
-      )}
         </>
       )}
 
@@ -676,15 +926,16 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-2xl font-extrabold text-white">{openChurch.name}</h2>
-                    {openChurch.status === "verified" && (
+                    {openChurch.verified && (
                       <ShieldCheck
                         size={20}
                         strokeWidth={2.5}
                         style={{ color: "white", fill: "#3B82F6" }}
+                        aria-label="Verified church"
                       />
                     )}
                   </div>
-                  <p className="text-xs text-white/70">{openChurch.denomination}</p>
+                  <p className="text-xs text-white/70">{openChurch.denomination || "Church"}</p>
                 </div>
               </div>
 
@@ -712,9 +963,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Location</p>
                     <p className="text-xs text-white flex items-center gap-1">
-                      <MapPin size={11} /> {openChurch.city}, {openChurch.state}
+                      <MapPin size={11} /> {openChurch.city}{openChurch.state ? `, ${openChurch.state}` : ""}
                     </p>
-                    <p className="text-[10px] text-[#94A3B8] mt-0.5">{openChurch.location}</p>
+                    {(openChurch.address || openChurch.location) && (
+                      <p className="text-[10px] text-[#94A3B8] mt-0.5">{openChurch.address || openChurch.location}</p>
+                    )}
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Followers</p>
@@ -723,6 +976,16 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     </p>
                   </div>
                 </div>
+
+                {openChurch.verified && (
+                  <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-3 flex items-start gap-2.5">
+                    <ShieldCheck size={15} className="text-[#3B82F6] shrink-0 mt-0.5" style={{ fill: "rgba(59,130,246,0.15)" }} />
+                    <p className="text-[11px] text-[#A09DB1] leading-relaxed">
+                      <span className="font-bold text-white">Koino Verified</span> — our team confirmed this
+                      is a real, operating congregation.
+                    </p>
+                  </div>
+                )}
 
                 {openChurch.service_times.length > 0 && (
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
@@ -744,6 +1007,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">About</p>
                   <p className="text-sm text-[#A09DB1] leading-relaxed">{openChurch.description}</p>
+                  {openChurch.contactName && (
+                    <p className="text-[11px] text-[#94A3B8] mt-2">
+                      Contact: <span className="font-bold text-white">{openChurch.contactName}</span>
+                    </p>
+                  )}
                 </div>
 
                 {openChurch.languages.length > 0 && (
@@ -819,6 +1087,43 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   )}
                 </div>
 
+                {/* Upcoming events linked to this church — shown only when
+                    real event data names this church (server name-match). */}
+                {(churchEventsLoading || churchEvents.length > 0) && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 flex items-center gap-1.5">
+                      <CalendarDays size={11} /> Upcoming Events
+                    </p>
+                    {churchEventsLoading ? (
+                      <div className="space-y-2">
+                        {[...Array(2)].map((_, i) => (
+                          <div key={i} className="h-14 rounded-xl bg-white/[0.04] animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {churchEvents.map((ev) => (
+                          <a
+                            key={ev.id}
+                            href={`/?view=events&event=${ev.id}`}
+                            className="flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-xl p-2.5 transition-colors"
+                          >
+                            <span className="w-9 h-9 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/25 flex items-center justify-center shrink-0">
+                              <CalendarDays size={14} className="text-[#C4B5FD]" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="text-xs font-bold text-white block truncate">{ev.title}</span>
+                              <span className="text-[10px] text-[#94A3B8] block truncate">
+                                {ev.when}{ev.where ? ` · ${ev.where}` : ""}
+                              </span>
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {openChurch.whatsapp_number && (
                   <a
                     href={`https://wa.me/${openChurch.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
@@ -835,31 +1140,76 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   </a>
                 )}
 
+                {/* Action row — every button is a real, working action */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => toggleFollow(openChurch.id)}
+                    disabled={followBusy === openChurch.id}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-60 ${
+                      followed.has(openChurch.id)
+                        ? "bg-white/[0.06] text-[#94A3B8] border border-white/[0.06]"
+                        : "text-white hover:-translate-y-px"
+                    }`}
+                    style={
+                      !followed.has(openChurch.id)
+                        ? {
+                            background: "linear-gradient(135deg, #3B82F6, #A855F7)",
+                            boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
+                          }
+                        : {}
+                    }
+                  >
+                    {followed.has(openChurch.id) ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <UserMinus size={14} /> Following
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <UserPlus size={14} /> Follow Church
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => openChurchShare(openChurch)}
+                    className="py-3 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#C4B5FD] hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <Share2 size={14} /> Share Church
+                  </button>
+                </div>
+
+                {/* Directions — Google Maps with the most specific destination
+                    available (address > location summary > city, state). */}
+                {(openChurch.address || openChurch.location || (openChurch.city && openChurch.state)) && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                      [openChurch.address || openChurch.location, openChurch.city, openChurch.state]
+                        .filter(Boolean)
+                        .join(", ")
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-all"
+                  >
+                    <Navigation size={14} /> Get Directions
+                  </a>
+                )}
+
+                {openChurch.website && (
+                  <a
+                    href={/^https?:\/\//i.test(openChurch.website) ? openChurch.website : `https://${openChurch.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-[#94A3B8] hover:text-white transition-colors"
+                  >
+                    <ExternalLink size={12} /> Visit website
+                  </a>
+                )}
+
                 <button
-                  onClick={() => toggleFollow(openChurch.id)}
-                  className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
-                    followed.has(openChurch.id)
-                      ? "bg-white/[0.06] text-[#94A3B8] border border-white/[0.06]"
-                      : "text-white hover:-translate-y-px"
-                  }`}
-                  style={
-                    !followed.has(openChurch.id)
-                      ? {
-                          background: "linear-gradient(135deg, #3B82F6, #A855F7)",
-                          boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
-                        }
-                      : {}
-                  }
+                  onClick={() => setFlagFor(openChurch)}
+                  className="w-full text-center text-[10px] text-[#475569] hover:text-[#EF4444] transition-colors flex items-center justify-center gap-1.5 py-1"
                 >
-                  {followed.has(openChurch.id) ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <UserMinus size={14} /> Following
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <UserPlus size={14} /> Follow Church
-                    </span>
-                  )}
+                  <Flag size={10} /> Something wrong? Report this listing
                 </button>
               </div>
             </motion.div>
@@ -1095,16 +1445,88 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F39B9B] hover:bg-[#E27B7B] transition-all hover:-translate-y-px"
+                    disabled={submitting}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F39B9B] hover:bg-[#E27B7B] transition-all hover:-translate-y-px disabled:opacity-60"
                   >
-                    Create
+                    {submitting ? "Submitting..." : "Submit for review"}
                   </button>
+                  <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
+                    Listings are reviewed by an admin before they appear in the public directory.
+                  </p>
                 </div>
               </form>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Flag / report modal — incorrect public information */}
+      <AnimatePresence>
+        {flagFor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[70] flex items-end md:items-center justify-center"
+            onClick={(e) => e.target === e.currentTarget && setFlagFor(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-md p-5"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-white">Report this listing</h3>
+                <button onClick={() => setFlagFor(null)} className="text-[#64748B] hover:text-white p-1">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-xs text-[#A09DB1] mb-3">
+                Tell us what is wrong with <span className="font-bold text-white">{flagFor.name}</span> — for
+                example wrong address, closed, or incorrect service times. Our team will review it.
+              </p>
+              <select
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                className="neo-input text-sm mb-2"
+              >
+                <option value="">What is incorrect?</option>
+                <option value="wrong_address">Wrong address or location</option>
+                <option value="wrong_times">Wrong service times</option>
+                <option value="closed">Church has closed / no longer meets</option>
+                <option value="duplicate">Duplicate listing</option>
+                <option value="other">Something else</option>
+              </select>
+              <textarea
+                value={flagDetails}
+                onChange={(e) => setFlagDetails(e.target.value)}
+                placeholder="Details (optional) — helps us fix it faster"
+                className="neo-input h-20 resize-none text-sm mb-3"
+                maxLength={1000}
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setFlagFor(null)}
+                  className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitFlag}
+                  className="px-4 py-2 rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs font-bold"
+                >
+                  Submit report
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Share sheet — public directory link + branded card */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
     </div>
   );
 }

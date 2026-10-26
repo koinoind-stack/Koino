@@ -101,6 +101,7 @@ model User {
   bookmarks          PostBookmark[] @relation("BookmarkOwner")
   following          Follow[]       @relation("Follower")   // people this user follows
   followers          Follow[]       @relation("Following")  // people who follow this user
+  followedChurches   ChurchFollow[] // churches this user follows (directory)
   notifications      Notification[] @relation("NotificationRecipient")
   actedNotifications Notification[] @relation("NotificationActor")
   blocksMade         Block[]        @relation("Blocker")
@@ -997,6 +998,7 @@ model Church {
   // Public /api/churches ONLY returns status=PUBLISHED.
   status          String   @default("PENDING") // "PENDING" | "PUBLISHED" | "REJECTED" | "CANCELLED"
   featured        Boolean  @default(false) // admin can feature a church
+  verified        Boolean  @default(false) // admin-confirmed real congregation — badge only when true
   rejectionReason String?
   reviewedBy      String?
   reviewedAt      DateTime?
@@ -1010,6 +1012,8 @@ model Church {
 
   // Groups affiliated with this church (display-only link, see Group.churchId)
   groups          Group[]
+  // Members who follow this church (real persistence — ChurchFollow)
+  followers       ChurchFollow[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -1019,6 +1023,22 @@ model Church {
   @@index([denomination])
   @@index([featured])
   @@index([createdById])
+}
+
+// A member following a church in the public directory. One follow per
+// (church, user) — enforced at the DB level. Powers My Churches and the
+// live followers count (computed via _count, not a stale counter column).
+model ChurchFollow {
+  id        String   @id @default(cuid())
+  churchId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, userId])
+  @@index([userId])
 }
 
 // ─── PUBLIC WEBSITE CONTENT ────────────────────────────────────────────────

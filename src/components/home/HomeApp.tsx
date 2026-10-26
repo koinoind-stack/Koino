@@ -278,6 +278,7 @@ export default function Home() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   // Task 121: shared event links (?view=events&event=<id>) open that event.
   const [deepLinkedEventId, setDeepLinkedEventId] = useState<string | null>(null);
+  const [deepLinkedChurchId, setDeepLinkedChurchId] = useState<string | null>(null);
   // PART 2: /?view=apologetics&question=<id> — deep link into a Q&A modal
   const [deepLinkedQuestionId, setDeepLinkedQuestionId] = useState<string | null>(null);
   // Part 5: Bible reader deep target — ?view=bible&book=genesis&chapter=1
@@ -477,6 +478,14 @@ export default function Home() {
       }
     }
 
+    // Shared church links — ?view=churches&church=<id> opens that listing
+    if (deepView === "churches") {
+      const cid = params.get("church");
+      if (cid && /^[a-zA-Z0-9_-]{6,40}$/.test(cid)) {
+        setDeepLinkedChurchId(cid);
+      }
+    }
+
     // Prayer-wall discussion deep links (?view=prayer-wall&prayer=<id>, used
     // by notification hrefs): KEEP the prayer param in the URL — PrayerWallView
     // consumes it on mount (opens + scrolls to the request) and then cleans
@@ -501,6 +510,20 @@ export default function Home() {
       navigate("watch");
       window.history.replaceState({}, "", window.location.pathname + window.location.hash);
       return;
+    }
+    // Church detail deep links (?view=churches&church=<id>): KEEP the church
+    // param — ChurchesView consumes it on mount (opens the listing) and then
+    // cleans the URL itself. Stripping it here would break share links.
+    if (deepView === "churches") {
+      const cid = params.get("church");
+      if (cid && /^[a-zA-Z0-9_-]{6,40}$/.test(cid)) {
+        navigate(deepView);
+        window.history.replaceState(
+          {}, "",
+          `${window.location.pathname}?church=${encodeURIComponent(cid)}${window.location.hash}`
+        );
+        return;
+      }
     }
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia", "watch",
@@ -904,6 +927,7 @@ export default function Home() {
               )}
               {view === "churches" && (
                 <ChurchesView
+                  initialOpenChurchId={deepLinkedChurchId}
                   onListChurch={() => goView("list-church")}
                 />
               )}

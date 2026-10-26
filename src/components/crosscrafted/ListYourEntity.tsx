@@ -16,6 +16,7 @@ import {
   Plus,
   Trash2,
   Loader2,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { INDIAN_STATES, LANGUAGES, BUSINESS_CATEGORIES, type ServiceTime } from "@/lib/crosscrafted-data";
@@ -24,6 +25,24 @@ import ImagePicker from "@/components/crosscrafted/ImagePicker";
 type Props = {
   variant: "church" | "business";
 };
+
+function SectionHeading({ icon, title, hint }: { icon: React.ReactNode; title: string; hint?: string }) {
+  return (
+    <div className="pt-2">
+      <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#C4B5FD] flex items-center gap-1.5 mb-3">
+        <span className="w-6 h-6 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/25 flex items-center justify-center text-[#A78BFA]">
+          {icon}
+        </span>
+        {title}
+      </p>
+      {hint && <p className="text-[10px] text-[#64748B] -mt-2 mb-3">{hint}</p>}
+    </div>
+  );
+}
+
+function RequiredMark() {
+  return <span className="text-[#F39B9B] ml-0.5" title="Required">*</span>;
+}
 
 export default function ListYourEntity({ variant }: Props) {
   const [submitted, setSubmitted] = useState(false);
@@ -37,7 +56,6 @@ export default function ListYourEntity({ variant }: Props) {
     contact_name: string;
     contact_email: string;
     contact_phone: string;
-    service_times: string;
     denomination: string;
     businessCategory: string;
     languages: string[];
@@ -53,7 +71,6 @@ export default function ListYourEntity({ variant }: Props) {
     contact_name: "",
     contact_email: "",
     contact_phone: "",
-    service_times: "",
     denomination: "",
     businessCategory: "",
     languages: [],
@@ -99,8 +116,17 @@ export default function ListYourEntity({ variant }: Props) {
     // Creates a church with status=PENDING. Admin must approve it
     // before it appears in the public Church Directory.
     if (variant === "church") {
-      if (!formData.name || !formData.description || !formData.city || !formData.state) {
-        toast.error("Please fill in all required fields.");
+      if (!formData.name || !formData.description || !formData.city || !formData.state || !formData.location) {
+        toast.error("Please fill in all required fields (marked with *).");
+        return;
+      }
+      if (!formData.languages.length) {
+        toast.error("Please select at least one service language.");
+        return;
+      }
+      const withTime = formData.serviceRows.filter((s) => s.time.trim());
+      if (!withTime.length) {
+        toast.error("Please add at least one service time.");
         return;
       }
       setSubmitting(true);
@@ -116,24 +142,33 @@ export default function ListYourEntity({ variant }: Props) {
             city: formData.city,
             location: formData.location,
             address: formData.location, // reuse location field as address
-            contact_name: formData.contact_name,
-            contact_email: formData.contact_email,
-            contact_phone: formData.contact_phone,
-            whatsapp_number: formData.whatsapp_number,
-            service_times: formData.serviceRows.filter((s) => s.time && s.day),
+            contact_name: formData.contact_name || null,
+            contact_email: formData.contact_email || null,
+            contact_phone: formData.contact_phone || null,
+            whatsapp_number: formData.whatsapp_number || null,
+            service_times: withTime,
             languages: formData.languages,
             images: formData.images,
             cover_image: formData.images[0] || null,
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          // Duplicate submission — server detected the same listing recently
+          toast.error("Already submitted", { description: data.error || "You already submitted this church in the last 24 hours." });
+          return;
+        }
+        if (res.status === 429) {
+          toast.error("Slow down a little", { description: data.error || "Too many submissions — please wait a while." });
+          return;
+        }
         if (!res.ok) {
           throw new Error(data.error || "Failed to submit church");
         }
         // Success — church created with status=PENDING
         setSubmitted(true);
         toast.success("Church submitted!", {
-          description: "Our team will review and approve within 48 hours.",
+          description: "Our team reviews every listing before it appears in the directory.",
         });
       } catch (err: any) {
         console.error("[ListYourEntity church submit] Error:", err);
@@ -165,8 +200,8 @@ export default function ListYourEntity({ variant }: Props) {
         <h2 className="text-2xl font-extrabold text-white mb-2">Submission Received!</h2>
         <p className="text-sm text-[#A09DB1] mb-6 max-w-sm mx-auto">
           Thanks for adding your {variant === "church" ? "church" : "business"} to Koino.
-          Our team will review your submission and approve it within 48 hours. You'll receive
-          an email confirmation once it's live.
+          Our team reviews every listing before it appears in the directory — this usually takes
+          about 48 hours. You can keep using Koino while you wait.
         </p>
         <button
           onClick={() => {
@@ -180,7 +215,6 @@ export default function ListYourEntity({ variant }: Props) {
               contact_name: "",
               contact_email: "",
               contact_phone: "",
-              service_times: "",
               denomination: "",
               businessCategory: "",
               languages: [],
@@ -199,7 +233,7 @@ export default function ListYourEntity({ variant }: Props) {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-4 py-5">
+    <div className="max-w-[680px] mx-auto px-4 py-5 pb-28 md:pb-5">
       <div className="mb-5">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/25 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider mb-2">
           <Sparkles size={11} />
@@ -218,23 +252,25 @@ export default function ListYourEntity({ variant }: Props) {
       <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#22C55E]/15 rounded-2xl p-4 mb-4">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#22C55E]/15 border border-[#22C55E]/30 flex items-center justify-center shrink-0">
-            <Building2 size={16} className="text-[#22C55E]" />
+            <ShieldCheck size={16} className="text-[#22C55E]" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white mb-0.5">Why list with us?</p>
+            <p className="text-sm font-bold text-white mb-0.5">Reviewed before publication</p>
             <p className="text-[11px] text-[#A09DB1] leading-relaxed">
               {variant === "church"
-                ? "Reach 5,000+ active believers looking for a church home. Add your service times, languages, and denomination to help people find you."
-                : "Connect with thousands of Christian buyers across India. No payment gateway needed — buyers contact you directly via WhatsApp."}
+                ? "Every listing is checked by a Koino admin before it appears in the public directory — this keeps the directory trustworthy. You can submit once and check back later; duplicate submissions aren't needed."
+                : "Connect with Christian buyers across India. No payment gateway needed — buyers contact you directly via WhatsApp."}
             </p>
           </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
+        {/* ─── SECTION 1: Church Information ─── */}
+        <SectionHeading icon={<Building2 size={12} />} title={variant === "church" ? "Church Information" : "Business Information"} />
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            {variant === "church" ? "Church" : "Business"} Name
+            {variant === "church" ? "Church" : "Business"} Name<RequiredMark />
           </label>
           <input
             type="text"
@@ -242,26 +278,46 @@ export default function ListYourEntity({ variant }: Props) {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="neo-input text-sm"
             required
+            maxLength={300}
           />
         </div>
 
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            Description
+            Description<RequiredMark />
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="neo-input h-24 resize-none text-sm"
-            placeholder={variant === "church" ? "Tell people about your church..." : "What does your business sell?"}
+            placeholder={variant === "church" ? "Tell people about your church, its vision and what a first visit looks like..." : "What does your business sell?"}
             required
+            maxLength={5000}
           />
         </div>
 
+        {variant === "church" && (
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+              Denomination
+            </label>
+            <input
+              type="text"
+              value={formData.denomination}
+              onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
+              className="neo-input text-sm"
+              placeholder="e.g. Assemblies of God, Catholic, Baptist, Non-denominational"
+              maxLength={200}
+            />
+          </div>
+        )}
+
+        {/* ─── SECTION 2: Location ─── */}
+        <SectionHeading icon={<MapPin size={12} />} title="Location" hint="Shown on your public listing so people can find you." />
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              <MapPin size={10} className="inline mr-0.5" /> State
+              State<RequiredMark />
             </label>
             <select
               value={formData.state}
@@ -277,7 +333,7 @@ export default function ListYourEntity({ variant }: Props) {
           </div>
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              City
+              City<RequiredMark />
             </label>
             <input
               type="text"
@@ -285,43 +341,37 @@ export default function ListYourEntity({ variant }: Props) {
               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               className="neo-input text-sm"
               required
+              maxLength={100}
             />
           </div>
         </div>
 
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            Address
+            Address<RequiredMark />
           </label>
           <input
             type="text"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             className="neo-input text-sm"
+            placeholder="Street / area / landmark"
             required
+            maxLength={500}
           />
+          <p className="text-[10px] text-[#64748B] mt-1">
+            Used for the map directions button on your listing.
+          </p>
         </div>
 
-        {variant === "church" ? (
+        {variant === "church" && (
           <>
-            <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                Denomination
-              </label>
-              <input
-                type="text"
-                value={formData.denomination}
-                onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
-                className="neo-input text-sm"
-                placeholder="Non-denominational"
-              />
-            </div>
-
-            {/* Multi-row service times */}
+            {/* ─── SECTION 3: Services & Languages ─── */}
+            <SectionHeading icon={<Clock size={12} />} title="Services & Languages" hint="Add one row per service — e.g. English Sunday 8:00 AM, Hindi Sunday 11:00 AM." />
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                  <Clock size={10} className="inline mr-0.5" /> Service Times
+                  Service Times<RequiredMark />
                 </label>
                 <button
                   type="button"
@@ -364,6 +414,7 @@ export default function ListYourEntity({ variant }: Props) {
                         type="button"
                         onClick={() => removeServiceRow(idx)}
                         className="p-2 text-[#94A3B8] hover:text-[#EF4444] transition-colors"
+                        aria-label="Remove this service time"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -371,12 +422,38 @@ export default function ListYourEntity({ variant }: Props) {
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-[#64748B] mt-1.5">
-                Add one row per service. e.g. English 8-11am, Hindi 11:30-2pm.
-              </p>
             </div>
 
-            {/* Church Photos */}
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                Languages<RequiredMark />
+              </label>
+              <div className="flex flex-wrap gap-1.5 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                {LANGUAGES.map((lang) => {
+                  const selected = formData.languages.includes(lang);
+                  return (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => handleLanguageToggle(lang)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                        selected
+                          ? "bg-[#22C55E] text-slate-950"
+                          : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
+                      }`}
+                    >
+                      {lang}
+                    </button>
+                  );
+                })}
+              </div>
+              {formData.languages.length === 0 && (
+                <p className="text-[10px] text-[#F59E0B] mt-1.5">Select at least one language — visitors filter by it.</p>
+              )}
+            </div>
+
+            {/* ─── SECTION 4: Photos ─── */}
+            <SectionHeading icon={<Sparkles size={12} />} title="Photos" hint="Up to 5 photos. The first one becomes the cover image on your listing." />
             <ImagePicker
               images={formData.images}
               onChange={(images) => setFormData({ ...formData, images })}
@@ -397,20 +474,20 @@ export default function ListYourEntity({ variant }: Props) {
                 placeholder="+91 98765 43210"
               />
               <p className="text-[10px] text-[#64748B] mt-1">
-                Visitors can contact your church directly on WhatsApp for inquiries.
+                Shown as a &quot;Contact on WhatsApp&quot; button on your public listing.
               </p>
             </div>
           </>
-        ) : (
+        )}
+
+        {variant !== "church" && (
           <>
-            {/* Business Photos */}
             <ImagePicker
               images={formData.images}
               onChange={(images) => setFormData({ ...formData, images })}
               max={5}
               label="Business Photos"
             />
-            {/* Business Category — single source of truth (BUSINESS_CATEGORIES) */}
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                 Business Category *
@@ -426,9 +503,6 @@ export default function ListYourEntity({ variant }: Props) {
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
-              <p className="text-[10px] text-[#64748B] mt-1">
-                Helps users discover your business by category in the Christian Business Directory.
-              </p>
             </div>
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
@@ -442,83 +516,61 @@ export default function ListYourEntity({ variant }: Props) {
                 placeholder="+91 98765 43210"
                 required
               />
-              <p className="text-[10px] text-[#64748B] mt-1">
-                Visitors can contact your business directly on WhatsApp for inquiries.
-              </p>
             </div>
           </>
         )}
 
+        {/* ─── SECTION 5: Contact Details ─── */}
+        <SectionHeading icon={<User size={12} />} title="Contact Details" hint="For our review team to reach you. Only the contact NAME appears on your public listing — email and phone are never shown publicly." />
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            <Globe size={10} className="inline mr-0.5" /> Languages
+            <User size={10} className="inline mr-0.5" /> Contact Name
           </label>
-          <div className="flex flex-wrap gap-1.5 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-            {LANGUAGES.map((lang) => {
-              const selected = formData.languages.includes(lang);
-              return (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => handleLanguageToggle(lang)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
-                    selected
-                      ? "bg-[#22C55E] text-slate-950"
-                      : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
-                  }`}
-                >
-                  {lang}
-                </button>
-              );
-            })}
+          <input
+            type="text"
+            value={formData.contact_name}
+            onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+            className="neo-input text-sm"
+            placeholder="Who should visitors ask for?"
+            maxLength={200}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+              <Mail size={10} className="inline mr-0.5" /> Email
+            </label>
+            <input
+              type="email"
+              value={formData.contact_email}
+              onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+              className="neo-input text-sm"
+              placeholder="For the review team only"
+              maxLength={200}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+              <Phone size={10} className="inline mr-0.5" /> Phone
+            </label>
+            <input
+              type="tel"
+              value={formData.contact_phone}
+              onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+              className="neo-input text-sm"
+              placeholder="For the review team only"
+              maxLength={30}
+            />
           </div>
         </div>
 
-        <div className="border-t border-white/[0.06] pt-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">
-            Contact Details
+        <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-3 flex items-start gap-2.5">
+          <ShieldCheck size={14} className="text-[#F59E0B] shrink-0 mt-0.5" />
+          <p className="text-[11px] text-[#A09DB1] leading-relaxed">
+            <span className="font-bold text-white">Admin review required.</span> Your listing will appear
+            in the public directory only after a Koino admin approves it. Fields marked{" "}
+            <span className="text-[#F39B9B] font-bold">*</span> are required.
           </p>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                <User size={10} className="inline mr-0.5" /> Contact Name
-              </label>
-              <input
-                type="text"
-                value={formData.contact_name}
-                onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                className="neo-input text-sm"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                  <Mail size={10} className="inline mr-0.5" /> Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                  className="neo-input text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                  <Phone size={10} className="inline mr-0.5" /> Phone
-                </label>
-                <input
-                  type="tel"
-                  value={formData.contact_phone}
-                  onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                  className="neo-input text-sm"
-                  placeholder="+91"
-                  required
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         <button
@@ -532,7 +584,7 @@ export default function ListYourEntity({ variant }: Props) {
         >
           {submitting
             ? <><Loader2 size={14} className="animate-spin" /> Submitting…</>
-            : <><Send size={14} /> Submit Listing</>
+            : <><Send size={14} /> Submit for Review</>
           }
         </button>
       </form>
