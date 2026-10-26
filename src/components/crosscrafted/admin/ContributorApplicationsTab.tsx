@@ -367,6 +367,11 @@ export default function ContributorApplicationsTab() {
         </span>
       </div>
 
+      {/* PART 2: designate an existing member as a contributor (no application
+          needed). Uses /api/admin/members?search= to find the member, then
+          POST /api/admin/contributors { action: "designate" }. */}
+      <DesignateMemberBox />
+
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-1.5">
         <FilterChip
@@ -882,4 +887,135 @@ function ActionIcon({ action }: { action: string }) {
     default:
       return null;
   }
+}
+
+// ─── DesignateMemberBox (PART 2) ────────────────────────────────────────────
+// Admin invites an existing member as a trusted contributor without an
+// application. Search by email/name → designate. The member keeps their
+// normal login; every contributor action is permission-checked server-side.
+
+function DesignateMemberBox() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const q = query.trim();
+    if (q.length < 3) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/members?search=${encodeURIComponent(q)}&limit=5`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+        if (!cancelled) setResults(data.members || []);
+      } catch {
+        if (!cancelled) setResults([]);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, open]);
+
+  const designate = async (member: any) => {
+    setBusyId(member.id);
+    try {
+      const res = await fetch("/api/admin/contributors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "designate", userId: member.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      toast.success(`${member.name || member.email} can now submit articles and answers for review`);
+      setQuery("");
+      setResults([]);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to designate contributor");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
+      >
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#A855F7]">
+          Invite a member as contributor
+        </span>
+        <span className="text-[10px] font-bold text-[#A855F7]">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-2">
+          <p className="text-[10px] text-[#94A3B8] leading-relaxed">
+            Trusted members can submit articles and proposed answers for review —
+            without admin access. They see a Contributor Studio on the Apologetics page.
+          </p>
+          <div className="relative">
+            <Search
+              size={12}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] pointer-events-none"
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search members by name or email…"
+              className="neo-input text-xs pl-8"
+            />
+          </div>
+          {searching && (
+            <div className="flex justify-center py-2">
+              <Loader2 size={14} className="animate-spin text-[#94A3B8]" />
+            </div>
+          )}
+          {results.length > 0 && (
+            <div className="space-y-1">
+              {results.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between gap-2 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate">
+                      {m.name || m.email}
+                    </p>
+                    <p className="text-[10px] text-[#64748B] truncate">{m.email}</p>
+                  </div>
+                  {busyId === m.id ? (
+                    <Loader2 size={13} className="animate-spin text-[#A855F7] shrink-0" />
+                  ) : (
+                    <button
+                      onClick={() => designate(m)}
+                      className="shrink-0 bg-[#A855F7]/15 hover:bg-[#A855F7]/25 border border-[#A855F7]/40 text-[#C4B5FD] text-[10px] font-bold rounded-lg px-2.5 py-1.5 transition-colors"
+                    >
+                      Designate
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {query.trim().length >= 3 && !searching && results.length === 0 && (
+            <p className="text-[10px] text-[#64748B] text-center py-1">No members match.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

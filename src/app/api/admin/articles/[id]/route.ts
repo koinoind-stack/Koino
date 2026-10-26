@@ -97,6 +97,8 @@ function serializeArticle(a: any) {
     difficulty: a.difficulty,
     featured: a.featured,
     bibleRefs: a.bibleRefs,
+    tags: a.tags,
+    sourceQuestionId: a.sourceQuestionId ?? null,
     sources: a.sources,
     relatedIds: a.relatedIds,
     reviewedBy: a.reviewedBy,
@@ -222,6 +224,7 @@ export async function PATCH(
     if (Object.prototype.hasOwnProperty.call(body, "difficulty")) data.difficulty = coerceString(body.difficulty);
     if (Object.prototype.hasOwnProperty.call(body, "featured")) data.featured = coerceBool(body.featured);
     if (Object.prototype.hasOwnProperty.call(body, "bibleRefs")) data.bibleRefs = coerceStringArrayToJSON(body.bibleRefs);
+    if (Object.prototype.hasOwnProperty.call(body, "tags")) data.tags = coerceStringArrayToJSON(body.tags);
     if (Object.prototype.hasOwnProperty.call(body, "sources")) data.sources = coerceStringArrayToJSON(body.sources);
     if (Object.prototype.hasOwnProperty.call(body, "relatedIds")) data.relatedIds = coerceStringArrayToJSON(body.relatedIds);
     if (Object.prototype.hasOwnProperty.call(body, "seoTitle")) data.seoTitle = coerceString(body.seoTitle);

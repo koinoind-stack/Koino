@@ -41,7 +41,13 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/admin/contributors
- * Body: { applicationId, action: "approve" | "reject" | "suspend", permissions?: [], verified?: boolean }
+ * Body (existing): { applicationId, action: "approve" | "reject" | "suspend", permissions?, verified? }
+ * Body (PART 2):   { action: "designate", userId, displayName?, permissions?, verified? }
+ *   → Admin directly designates an EXISTING member as a Contributor without
+ *     an application. Server verifies the user exists, upserts the
+ *     Contributor record (status approved). No separate auth system — the
+ *     member keeps their normal login; Contributor permissions are checked
+ *     server-side on every contributor action.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +55,56 @@ export async function POST(req: NextRequest) {
     if (!admin) return NextResponse.json({ error: "Admin access required" }, { status: 403 });
 
     const body = await req.json();
+
+    // ─── PART 2: designate an existing member as a Contributor ──────────
+    if (body.action === "designate") {
+      const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+      if (!userId) return NextResponse.json({ error: "userId is required" }, { status: 400 });
+
+      const user = await db.user.findUnique({ where: { id: userId } });
+      if (!user) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+
+      const permissions = JSON.stringify(
+        Array.isArray(body.permissions) && body.permissions.length
+          ? body.permissions.map(String)
+          : ["CAN_WRITE_ARTICLES", "CAN_WRITE_ANSWERS"]
+      );
+
+      const existing = await db.contributor.findUnique({ where: { userId } });
+      let contributor;
+      if (existing) {
+        contributor = await db.contributor.update({
+          where: { id: existing.id },
+          data: {
+            status: "approved",
+            permissions,
+            verified: body.verified === true,
+          },
+        });
+      } else {
+        const slug =
+          (user.username ||
+            user.name ||
+            `contributor-${userId.slice(-6)}`)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "")
+            .slice(0, 50) || `contributor-${Date.now()}`;
+        contributor = await db.contributor.create({
+          data: {
+            userId,
+            displayName: body.displayName?.trim() || user.name || user.email.split("@")[0],
+            slug,
+            permissions,
+            verified: body.verified === true,
+            status: "approved",
+          },
+        });
+      }
+      return NextResponse.json({ success: true, contributor });
+    }
+
     const { applicationId, action } = body;
 
     const application = await db.contributorApplication.findUnique({ where: { id: applicationId } });

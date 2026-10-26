@@ -35,6 +35,9 @@ export const shareLinks = {
   video: (slug: string) => siteUrl(`/videos/${encodeURIComponent(slug)}`),
   apologetics: (slug: string) =>
     siteUrl(`/apologetics/${encodeURIComponent(slug)}`),
+  // PART 2: deep link into the Q&A hub with a specific question's modal open
+  apologeticsQuestion: (questionId: string) =>
+    siteUrl(`/?view=apologetics&question=${encodeURIComponent(questionId)}`),
   blog: (slug: string) => siteUrl(`/blog/${encodeURIComponent(slug)}`),
   memorial: (id: string) => siteUrl(`/memorials/${encodeURIComponent(id)}`),
   trivia: () => siteUrl("/?view=trivia"),

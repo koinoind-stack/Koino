@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { canonicalizeBibleRef } from "@/lib/bible-ref";
 
 // Admin auth helper — same pattern as the other admin routes.
 async function requireAdmin(): Promise<
@@ -32,6 +33,27 @@ function safeParseJson<T>(value: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+// Canonicalize an array of raw reference strings for storage. Any invalid ref
+// fails the request with a clear message — refs are NEVER stored unvalidated.
+function canonicalizeRefs(raw: unknown): { refs: string[] } | { error: string } {
+  if (raw == null) return { refs: [] };
+  const list = Array.isArray(raw)
+    ? raw.map((v) => (typeof v === "string" ? v : String(v ?? "")))
+    : typeof raw === "string"
+      ? raw.split(",")
+      : [];
+  const refs: string[] = [];
+  for (const item of list) {
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    const result = canonicalizeBibleRef(trimmed);
+    if ("error" in result) return { error: `Bible reference "${trimmed}": ${result.error}` };
+    if (!refs.includes(result.canonical)) refs.push(result.canonical);
+    if (refs.length >= 20) break;
+  }
+  return { refs };
 }
 
 /**
@@ -81,13 +103,49 @@ export async function GET(req: NextRequest) {
 
       if (prismaCode === "P2021" || prismaCode === "P2022" || prismaCode === "P1003" ||
           /relation .* does not exist/i.test(prismaMessage || "") ||
-          /table .* does not exist/i.test(prismaMessage || "")) {
-        return NextResponse.json({
-          error: "UserQuestion table not found in the database. The Prisma migration has not been applied to production yet.",
-          prismaCode,
-          questions: [],
-          counts,
-        }, { status: 500 });
+          /table .* does not exist/i.test(prismaMessage || "") ||
+          /column .* does not exist/i.test(prismaMessage || "")) {
+        // Migration window: the PART 2 columns may not exist yet. Retry with
+        // only the pre-PART-2 columns so the admin Q&A list still works.
+        try {
+          const legacy = await db.userQuestion.findMany({
+            where,
+            orderBy: [{ createdAt: "desc" }],
+            select: {
+              id: true, question: true, askerName: true, askerEmail: true,
+              askerUserId: true, category: true, status: true, adminNotes: true,
+              articleId: true, createdAt: true,
+            },
+          });
+          return NextResponse.json({
+            questions: legacy.map((q) => ({
+              id: q.id,
+              question: q.question,
+              askerName: q.askerName || "Anonymous",
+              askerEmail: q.askerEmail,
+              askerUserId: q.askerUserId,
+              category: q.category || "",
+              answer: q.adminNotes || "",
+              answeredByName: null,
+              bibleRefs: [] as string[],
+              contributorAnswer: null,
+              contributorAnswerName: null,
+              contributorAnswerStatus: null,
+              status: q.status,
+              articleId: q.articleId,
+              createdAt: q.createdAt.toISOString(),
+            })),
+            counts,
+            migrationPending: true,
+          });
+        } catch {
+          return NextResponse.json({
+            error: "UserQuestion table not found in the database. The Prisma migration has not been applied to production yet.",
+            prismaCode,
+            questions: [],
+            counts,
+          }, { status: 500 });
+        }
       }
       throw dbError;
     }
@@ -101,6 +159,11 @@ export async function GET(req: NextRequest) {
         askerUserId: q.askerUserId,
         category: q.category || "",
         answer: q.adminNotes || "", // admin's answer is stored in adminNotes
+        answeredByName: q.answeredByName || null,
+        bibleRefs: safeParseJson<string[]>(q.bibleRefs, []),
+        contributorAnswer: q.contributorAnswer || null,
+        contributorAnswerName: q.contributorAnswerName || null,
+        contributorAnswerStatus: q.contributorAnswerStatus || null,
         status: q.status,
         articleId: q.articleId,
         createdAt: q.createdAt.toISOString(),
@@ -156,6 +219,16 @@ export async function POST(req: NextRequest) {
       const category = body.category ? String(body.category).slice(0, 100) : null;
       const askerName = body.askerName ? String(body.askerName).slice(0, 200) : "Koino";
 
+      // PART 2: optional validated Bible references on admin-created Q&As
+      let refsJson = "[]";
+      if (body.bibleRefs != null) {
+        const refs = canonicalizeRefs(body.bibleRefs);
+        if ("error" in refs) {
+          return NextResponse.json({ error: refs.error }, { status: 400 });
+        }
+        refsJson = JSON.stringify(refs.refs);
+      }
+
       const question = await db.userQuestion.create({
         data: {
           question: questionText,
@@ -165,6 +238,9 @@ export async function POST(req: NextRequest) {
           category,
           status: answerText ? "answered" : "new",
           adminNotes: answerText || null,
+          bibleRefs: refsJson,
+          answeredByName: answerText ? auth.user.name || "Koino Team" : null,
+          answeredByUserId: answerText ? auth.user.id : null,
         },
       });
 
@@ -187,7 +263,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
     }
 
-    const validActions = ["answer", "close", "reopen", "review", "turn_into_article"];
+    const validActions = [
+      "answer", "close", "reopen", "review", "turn_into_article",
+      "update", // PART 2: edit question text / category / bibleRefs
+      "approve_contributor_answer", // PART 2: promote a contributor's proposed answer
+      "reject_contributor_answer", // PART 2: reject a contributor's proposed answer
+    ];
     if (!validActions.includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -241,9 +322,12 @@ export async function POST(req: NextRequest) {
           contentType: "APOLOGETICS",
           category: existing.category,
           excerpt: `A reader asked: "${existing.question.slice(0, 200)}..."`,
-          content: `## Question\n\n${existing.question}\n\n## Answer\n\n_Write your answer here..._`,
-          authorName: "Koino",
+          content: `## Question\n\n${existing.question}\n\n## Answer\n\n${existing.adminNotes?.trim() || "_Write your answer here..._"}`,
+          authorName: existing.answeredByName || "Koino",
           status: "draft", // CRITICAL: not auto-published
+          // PART 2: preserve everything — refs, attribution, back-link
+          bibleRefs: existing.bibleRefs || "[]",
+          sourceQuestionId: existing.id,
           reviewedBy: auth.user.id,
           reviewedAt: new Date(),
         },
@@ -271,6 +355,73 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Other moderation actions (answer/close/reopen/review) ──────
+
+    // PART 2: edit question text / category / bibleRefs without touching status.
+    if (action === "update") {
+      const data: any = {};
+      if (Object.prototype.hasOwnProperty.call(body, "question")) {
+        const q = typeof body.question === "string" ? body.question.trim() : "";
+        if (!q) return NextResponse.json({ error: "Question text cannot be empty" }, { status: 400 });
+        data.question = q.slice(0, 2000);
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "category")) {
+        const c = typeof body.category === "string" ? body.category.trim() : "";
+        data.category = c ? c.slice(0, 100) : null;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "bibleRefs")) {
+        const refs = canonicalizeRefs(body.bibleRefs);
+        if ("error" in refs) return NextResponse.json({ error: refs.error }, { status: 400 });
+        data.bibleRefs = JSON.stringify(refs.refs);
+      }
+      const updatedQ = await db.userQuestion.update({ where: { id }, data });
+      try { revalidatePath("/", "layout"); } catch {}
+      return NextResponse.json({
+        success: true,
+        question: {
+          id: updatedQ.id,
+          status: updatedQ.status,
+          question: updatedQ.question,
+          category: updatedQ.category,
+          bibleRefs: safeParseJson<string[]>(updatedQ.bibleRefs, []),
+        },
+      });
+    }
+
+    // PART 2: contributor answer review.
+    if (action === "approve_contributor_answer" || action === "reject_contributor_answer") {
+      if (!existing.contributorAnswer || existing.contributorAnswerStatus !== "pending") {
+        return NextResponse.json({ error: "No pending contributor answer on this question" }, { status: 400 });
+      }
+      if (action === "approve_contributor_answer") {
+        // The proposal becomes the OFFICIAL answer, credited to the contributor.
+        const updatedQ = await db.userQuestion.update({
+          where: { id },
+          data: {
+            adminNotes: existing.contributorAnswer,
+            answeredByName: existing.contributorAnswerName,
+            answeredByUserId: existing.contributorAnswerUserId,
+            contributorAnswerStatus: "approved",
+            status: "answered",
+          },
+        });
+        try { revalidatePath("/", "layout"); } catch {}
+        console.log(`[api/admin/questions POST] Contributor answer approved on ${id} (by ${auth.user.email})`);
+        return NextResponse.json({
+          success: true,
+          question: { id: updatedQ.id, status: updatedQ.status, answer: updatedQ.adminNotes || "", answeredByName: updatedQ.answeredByName },
+        });
+      }
+      const updatedQ = await db.userQuestion.update({
+        where: { id },
+        data: { contributorAnswerStatus: "rejected" },
+      });
+      try { revalidatePath("/", "layout"); } catch {}
+      return NextResponse.json({
+        success: true,
+        question: { id: updatedQ.id, status: updatedQ.status, contributorAnswerStatus: updatedQ.contributorAnswerStatus },
+      });
+    }
+
     let newStatus = existing.status;
     let newAdminNotes = existing.adminNotes;
 
@@ -294,12 +445,19 @@ export async function POST(req: NextRequest) {
         break;
     }
 
+    const updateData: any = {
+      status: newStatus,
+      adminNotes: newAdminNotes,
+    };
+    // PART 2: attribute the official answer to whoever wrote it
+    if (action === "answer" && newStatus === "answered") {
+      updateData.answeredByName = auth.user.name || "Koino Team";
+      updateData.answeredByUserId = auth.user.id;
+    }
+
     const updated = await db.userQuestion.update({
       where: { id },
-      data: {
-        status: newStatus,
-        adminNotes: newAdminNotes,
-      },
+      data: updateData,
     });
 
     console.log(`[api/admin/questions POST] Question ${id}: ${existing.status} → ${newStatus} (by ${auth.user.email})`);

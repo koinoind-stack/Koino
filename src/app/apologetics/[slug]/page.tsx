@@ -51,15 +51,39 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function ApologeticsArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  const article = await db.koinoArticle.findUnique({
-    where: { slug },
-  });
+  // ─── Fetch the article (with PART 2 migration-window tolerance) ───
+  // After `prisma generate` but BEFORE the SQL migration is applied, a
+  // select-all query fails with P2022 (new columns missing). Retry with only
+  // the pre-PART-2 columns and degrade gracefully (no tags, no source-Q box).
+  let article: any = null;
+  let part2Available = true;
+  try {
+    article = await db.koinoArticle.findUnique({ where: { slug } });
+  } catch (e: any) {
+    if (e?.code === "P2022" || /column .* does not exist/i.test(e?.message || "")) {
+      part2Available = false;
+      article = await db.koinoArticle.findUnique({
+        where: { slug },
+        select: {
+          id: true, title: true, slug: true, contentType: true, category: true,
+          subcategory: true, excerpt: true, shortAnswer: true, content: true,
+          coverImageUrl: true, authorId: true, authorName: true, status: true,
+          difficulty: true, featured: true, bibleRefs: true, sources: true,
+          relatedIds: true, publishedAt: true, viewCount: true,
+          createdAt: true, updatedAt: true,
+        },
+      });
+    } else {
+      throw e;
+    }
+  }
 
   // Article not found, or not published, or not APOLOGETICS → 404
   if (!article || article.status !== "published" || article.contentType !== "APOLOGETICS") notFound();
 
   // ─── Safe JSON parsing ─────────────────────────────────────────────
   const bibleRefs: string[] = safeParseArray<string>(article.bibleRefs, []);
+  const tags: string[] = part2Available ? safeParseArray<string>(article.tags, []) : [];
   const sources: any[] = safeParseArray<any>(article.sources, []);
   const relatedIds: string[] = safeParseArray<string>(article.relatedIds, []);
 
@@ -74,6 +98,24 @@ export default async function ApologeticsArticlePage({ params }: { params: Promi
       });
     } catch (error) {
       console.error("[apologetics/[slug]] Related articles query error:", error);
+    }
+  }
+
+  // ─── PART 2: source Q&A back-link ────────────────────────────────────
+  // If this article was converted from a Q&A, fetch the original question so
+  // the page can show "From the Koino Q&A" with the original discussion link.
+  let sourceQuestion: { id: string; question: string; answeredByName: string | null } | null = null;
+  if (part2Available && article.sourceQuestionId) {
+    try {
+      const sq = await db.userQuestion.findUnique({
+        where: { id: article.sourceQuestionId },
+        select: { id: true, question: true, status: true, answeredByName: true },
+      });
+      if (sq && sq.status === "answered") {
+        sourceQuestion = { id: sq.id, question: sq.question, answeredByName: sq.answeredByName };
+      }
+    } catch (e) {
+      console.error("[apologetics/[slug]] sourceQuestion fetch error:", e);
     }
   }
 
@@ -94,7 +136,9 @@ export default async function ApologeticsArticlePage({ params }: { params: Promi
     authorName: article.authorName,
     publishedAt: article.publishedAt ? article.publishedAt.toISOString() : null,
     bibleRefs,
+    tags,
     sources,
+    sourceQuestion,
     relatedArticles,
   };
 

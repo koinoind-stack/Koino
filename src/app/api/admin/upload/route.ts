@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
+import { db } from "@/lib/db";
 import { createServiceClient } from "@/lib/supabase/service";
 import sharp from "sharp";
 
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
   try {
     logStage("request received");
 
-    // 1. Auth — admin only.
+    // 1. Auth — admins, plus APPROVED CONTRIBUTORS (PART 2: contributors
+    //    upload cover images for the articles they submit for review).
     stage = "AUTH";
     const user = await getAuthUser();
     if (!user) {
@@ -58,8 +60,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
     if (user.role !== "admin") {
-      logStage("FAILURE", { stage, name: "AuthError", message: "Admin access required" });
-      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+      // Not an admin — allow only if an approved Contributor record exists
+      // for this user (server-side check, never client-asserted).
+      const contributor = await db.contributor.findUnique({
+        where: { userId: user.id },
+        select: { status: true },
+      });
+      if (contributor?.status !== "approved") {
+        logStage("FAILURE", { stage, name: "AuthError", message: "Admin or approved contributor access required" });
+        return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+      }
     }
     logStage("authenticated", { userId: user.id });
 

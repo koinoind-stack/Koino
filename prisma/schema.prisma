@@ -132,6 +132,11 @@ model User {
   // Bible Movies & Video Library (Part 5)
   videoProgress VideoProgress[] @relation("VideoProgressUser")
   videoSaves    VideoSave[]     @relation("VideoSaveUser")
+
+  // Apologetics PART 2 — engagement (comments / reactions / bookmarks)
+  apologeticsComments  ApologeticsComment[]  @relation("ApologeticsCommentAuthor")
+  apologeticsReactions ApologeticsReaction[] @relation("ApologeticsReactionUser")
+  apologeticsBookmarks ApologeticsBookmark[] @relation("ApologeticsBookmarkUser")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -443,6 +448,12 @@ model Notification {
   postId    String?
   commentId String?
   storyId   String?
+  // Apologetics PART 2 — generic target for non-post notifications.
+  // targetType: "apologetics_article" | "apologetics_question" | "apologetics_comment"
+  // href lets the notifications list deep-link straight to the content.
+  targetType String?
+  targetId   String?
+  href       String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -1296,6 +1307,8 @@ model KoinoArticle {
   difficulty       String?  // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
   featured        Boolean  @default(false)
   bibleRefs       String   @default("[]") // JSON array of Bible references (e.g., "John 20:1-29")
+  tags            String   @default("[]") // PART 2: JSON array of free-form topic tags
+  sourceQuestionId String? // PART 2: UserQuestion.id this article was converted from (Q&A → article link-back)
   sources         String   @default("[]") // JSON array of source objects
   relatedIds      String   @default("[]") // JSON array of related article IDs
   reviewedBy      String?  // admin userId
@@ -1317,6 +1330,7 @@ model KoinoArticle {
   @@index([category])
   @@index([status])
   @@index([slug])
+  @@index([sourceQuestionId])
 }
 
 model ArticleSeries {
@@ -1400,12 +1414,73 @@ model UserQuestion {
   askerUserId     String?  // references User.id if logged in
   category        String?  // suggested apologetics category
   status          String   @default("new") // "new" | "in_review" | "answered" | "turned_into_article" | "archived"
-  adminNotes      String?
+  adminNotes      String?  // the OFFICIAL answer (public once status=answered)
   articleId       String?  // if turned into article
+  // ─── PART 2: Bible references + answer attribution + contributor answers ──
+  bibleRefs       String   @default("[]") // JSON array of canonical ref strings ("John 1:1–3")
+  answeredByName    String? // display name of who wrote the official answer
+  answeredByUserId  String? // User.id of who wrote the official answer
+  contributorAnswer        String?  // proposed answer from an approved Contributor (awaiting review)
+  contributorAnswerName    String?  // contributor display name (denormalized)
+  contributorAnswerUserId  String?  // contributor User.id
+  contributorAnswerStatus  String?  // null | "pending" | "approved" | "rejected"
   createdAt       DateTime @default(now())
 
   @@index([status])
   @@index([createdAt])
+}
+
+// ─── APOLOGETICS PART 2: ENGAGEMENT ────────────────────────────────────────
+// Threaded comments on published articles and answered questions, one-
+// reaction-per-user-per-kind (DB-enforced dedupe), and personal bookmarks.
+// No Post/social coupling — articles and questions are referenced by id.
+model ApologeticsComment {
+  id           String   @id @default(cuid())
+  targetType   String   // "article" | "question"
+  targetId     String   // KoinoArticle.id or UserQuestion.id
+  parentId     String?  // self-relation → threaded replies (1 level of nesting is rendered, model allows deeper)
+  authorUserId String?
+  authorName   String   // denormalized display name (snapshot at post time)
+  body         String
+  status       String   @default("visible") // "visible" | "hidden" | "removed"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  parent   ApologeticsComment?  @relation("ApologeticsCommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ApologeticsComment[] @relation("ApologeticsCommentThread")
+  author   User?                @relation("ApologeticsCommentAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId, createdAt])
+  @@index([parentId])
+  @@index([authorUserId])
+}
+
+model ApologeticsReaction {
+  id         String   @id @default(cuid())
+  targetType String   // "article" | "question"
+  targetId   String
+  userId     String
+  kind       String   // "AMEN" | "INSIGHTFUL"
+  createdAt  DateTime @default(now())
+
+  user User @relation("ApologeticsReactionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([targetType, targetId, userId, kind]) // one reaction per user per kind — dedupe at DB level
+  @@index([targetType, targetId])
+  @@index([userId])
+}
+
+model ApologeticsBookmark {
+  id         String   @id @default(cuid())
+  targetType String   // "article" | "question"
+  targetId   String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  user User @relation("ApologeticsBookmarkUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId]) // save once — toggle deletes
+  @@index([userId])
 }
 
 // ─── ROUND 2: GROUPS & FELLOWSHIP ──────────────────────────────────────────

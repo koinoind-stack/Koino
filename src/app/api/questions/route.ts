@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
-
+import { rateLimit } from "@/lib/social/rate-limit";
 /**
  * GET /api/questions
  * Public — returns answered questions for the public Q&A display.
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     }
 
     let questions: any[] = [];
+    let migrationPending = false;
     try {
       questions = await db.userQuestion.findMany({
         where,
@@ -50,19 +51,49 @@ export async function GET(req: NextRequest) {
         console.warn("[api/questions GET] UserQuestion table not found — returning empty list.");
         return NextResponse.json({ questions: [] });
       }
-      throw dbError;
+      // PART 2 columns missing (migration window) — retry with legacy columns.
+      if (prismaCode === "P2022" || /column .* does not exist/i.test(prismaMessage)) {
+        try {
+          const legacy = await db.userQuestion.findMany({
+            where,
+            orderBy: [{ createdAt: "desc" }],
+            select: {
+              id: true, question: true, askerName: true, category: true,
+              status: true, adminNotes: true, createdAt: true,
+            },
+          });
+          migrationPending = true;
+          questions = legacy;
+        } catch {
+          return NextResponse.json({ questions: [] });
+        }
+      } else {
+        throw dbError;
+      }
     }
 
     return NextResponse.json({
-      questions: questions.map((q) => ({
+      questions: questions.map((q: any) => ({
         id: q.id,
         question: q.question,
         askerName: q.askerName || "Anonymous",
         category: q.category || "",
-        answer: q.adminNotes || "", // admin's answer is stored in adminNotes
+        answer: q.adminNotes || "", // official answer (adminNotes)
+        answeredByName: q.answeredByName || null,
+        bibleRefs: q.bibleRefs
+          ? (() => {
+              try {
+                const arr = JSON.parse(q.bibleRefs);
+                return Array.isArray(arr) ? arr : [];
+              } catch {
+                return [];
+              }
+            })()
+          : [],
         status: q.status,
         createdAt: q.createdAt.toISOString(),
       })),
+      ...(migrationPending ? { migrationPending: true } : {}),
     });
   } catch (error: any) {
     console.error("[api/questions GET] Error:", error);
@@ -91,6 +122,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Please sign in to ask a question." }, { status: 401 });
     }
 
+    // ─── Spam prevention (PART 2) ───
+    // Rate limit: 3 questions per user per 10 minutes.
+    if (!rateLimit(`questions:ask:${user.id}`, 3, 10 * 60_000)) {
+      return NextResponse.json(
+        { error: "You're sending questions quickly. Please wait a few minutes and try again." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
 
     // ─── Server-side validation ───
@@ -99,6 +139,24 @@ export async function POST(req: NextRequest) {
     }
 
     const questionText = String(body.question).trim().slice(0, 2000);
+
+    // Duplicate guard: the same user asking the exact same question within
+    // 24h (double-tap / retry spam) is rejected.
+    const dupe = await db.userQuestion.findFirst({
+      where: {
+        askerUserId: user.id,
+        question: questionText,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60_000) },
+      },
+      select: { id: true },
+    });
+    if (dupe) {
+      return NextResponse.json(
+        { error: "You've already asked this question — our team is on it." },
+        { status: 429 }
+      );
+    }
+
     const askerName = body.askerName
       ? String(body.askerName).trim().slice(0, 200)
       : user.name || user.email.split("@")[0];

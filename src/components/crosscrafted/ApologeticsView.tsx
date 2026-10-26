@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Heart,
+  Bookmark,
   MessageCircle,
   Share2,
   X,
@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   HelpCircle,
   BookOpen,
-  ShieldCheck,
+  PenLine,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +28,10 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import ReactionBar, { type EngagementCounts } from "@/components/crosscrafted/ReactionBar";
+import ApologeticsComments from "@/components/crosscrafted/ApologeticsComments";
+import ContributorStudio from "@/components/crosscrafted/ContributorStudio";
+import { bibleRefFromDisplay, bibleRefHref } from "@/lib/bible-ref";
 
 // ─── Helper: map admin category label → APOLOGETICS_TOPICS id ──────────────
 // The admin editor uses category labels like "God & Existence", "Jesus Christ",
@@ -47,7 +51,11 @@ function mapCategoryToTopicId(category: string | null | undefined): string {
   return ""; // no topic match — shows under "All Topics"
 }
 
-export default function ApologeticsView() {
+export default function ApologeticsView({
+  deepLinkQuestionId = null,
+}: {
+  deepLinkQuestionId?: string | null; // ?view=apologetics&question=<id> (HomeApp)
+} = {}) {
   const t = useTranslation();
   const { isAuthenticated } = useSupabaseUser();
   const [activeTab, setActiveTab] = useState<"articles" | "qa">("articles");
@@ -60,17 +68,24 @@ export default function ApologeticsView() {
   const [postsError, setPostsError] = useState<string | null>(null);
 
   // ─── Q&A (loaded from real DB via /api/questions — answered only) ───
-  // Public API returns ONLY status=answered questions. New user submissions
-  // start as status=new and are hidden until an admin answers them
-  // (server-enforced). The `dbQuestions` snapshot is used for the tab badge
-  // count so it doesn't flicker while client-side filtering.
   const [dbQuestions, setDbQuestions] = useState<ApologeticsQuestion[]>([]);
   const [questions, setQuestions] = useState<ApologeticsQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
 
-  const [liked, setLiked] = useState<Set<string>>(new Set());
+  // ─── PART 2: real engagement (replaces the fake client-only like) ───
+  // counts keyed by target id; myReactions maps id → kinds; bookmarks is the
+  // set of saved article ids. All loaded from /api/apologetics/engagement.
+  const [engagement, setEngagement] = useState<Record<string, EngagementCounts>>({});
+  const [myReactions, setMyReactions] = useState<Record<string, string[]>>({});
+  const [myBookmarks, setMyBookmarks] = useState<Set<string>>(new Set());
+  const [savedOnly, setSavedOnly] = useState(false);
+  // PART 2: Contributor Studio (approved contributors only — server-verified)
+  const [contributorName, setContributorName] = useState<string | null>(null);
+  const [showStudio, setShowStudio] = useState(false);
+  const [commentTarget, setCommentTarget] = useState<{ type: "article" | "question"; id: string } | null>(null);
+
   const [search, setSearch] = useState("");
   const [filterTopic, setFilterTopic] = useState("");
   const [openPost, setOpenPost] = useState<ApologeticsPost | null>(null);
@@ -91,7 +106,9 @@ export default function ApologeticsView() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load articles");
       const articles = data.articles || [];
-      // Map DB article → ApologeticsPost shape
+      // Map DB article → ApologeticsPost shape. likes/comments are now real
+      // values from the engagement endpoint (PART 2) — set to 0 here and
+      // rendered from `engagement` so nothing is fabricated.
       const mapped: ApologeticsPost[] = articles.map((a: any) => ({
         id: a.id,
         title: a.title,
@@ -99,8 +116,8 @@ export default function ApologeticsView() {
         author: a.authorName || "Koino",
         topic: mapCategoryToTopicId(a.category), // map category label → topic id
         date: a.publishedAt || a.createdAt,
-        likes: a.viewCount || 0, // use viewCount as a proxy for engagement
-        comments: 0,
+        likes: 0, // real count comes from /api/apologetics/engagement
+        comments: 0, // real count comes from /api/apologetics/engagement
         cover_gradient: 0,
         cover_image: a.coverImageUrl || undefined,
         slug: a.slug, // for linking to /apologetics/[slug]
@@ -121,8 +138,8 @@ export default function ApologeticsView() {
 
   // ─── Fetch answered questions from the database ───
   // Public API returns ONLY status=answered questions. Maps DB fields to the
-  // ApologeticsQuestion shape. The admin's answer (stored in adminNotes) is
-  // rendered as a single accepted answer authored by "Koino".
+  // ApologeticsQuestion shape. The official answer (adminNotes) is rendered
+  // with its real attribution (PART 2).
   const loadQuestions = async () => {
     setQuestionsLoading(true);
     setQuestionsError(null);
@@ -130,7 +147,10 @@ export default function ApologeticsView() {
       const res = await fetch("/api/questions", { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load questions");
-      const mapped: ApologeticsQuestion[] = (data.questions || []).map((q: any) => {
+      const mapped: (ApologeticsQuestion & {
+        refs: string[]; // PART 2: validated Bible references
+        answeredByName: string | null; // PART 2: official answer attribution
+      })[] = (data.questions || []).map((q: any) => {
         const fullQuestion: string = q.question || "";
         const firstLine = fullQuestion.split("\n")[0]?.trim() || "";
         const title = (firstLine.slice(0, 100) || fullQuestion.slice(0, 100)) || "Untitled question";
@@ -138,8 +158,8 @@ export default function ApologeticsView() {
         const answers: ApologeticsAnswer[] = q.answer
           ? [{
               id: `${q.id}-a1`,
-              author: "Koino",
-              authorRole: "Admin" as const,
+              author: q.answeredByName || "Koino",
+              authorRole: (q.answeredByName ? "Contributor" : "Admin") as any,
               body: q.answer,
               date: dateStr,
               is_accepted: true,
@@ -156,6 +176,8 @@ export default function ApologeticsView() {
           likes: 0,
           answers,
           status: q.status === "answered" ? "answered" : "open",
+          refs: Array.isArray(q.bibleRefs) ? q.bibleRefs : [],
+          answeredByName: q.answeredByName || null,
         };
       });
       setDbQuestions(mapped);
@@ -173,8 +195,114 @@ export default function ApologeticsView() {
     loadQuestions();
   }, []);
 
+  // ─── PART 2: engagement batch load (reactions/comments/bookmarks) ───
+  // Re-runs when the article/question lists change (e.g. after loadPosts).
+  const loadEngagement = useCallback(async () => {
+    const articleIds = posts.map((p) => p.id).slice(0, 60);
+    const questionIds = dbQuestions.map((q) => q.id).slice(0, 60);
+    if (articleIds.length === 0 && questionIds.length === 0) return;
+    try {
+      const params = new URLSearchParams();
+      if (articleIds.length) params.set("articles", articleIds.join(","));
+      if (questionIds.length) params.set("questions", questionIds.join(","));
+      const res = await fetch(`/api/apologetics/engagement?${params.toString()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) return;
+      const merged: Record<string, EngagementCounts> = {};
+      for (const [k, v] of Object.entries(data.articles || {})) merged[k] = v as EngagementCounts;
+      for (const [k, v] of Object.entries(data.questions || {})) merged[k] = v as EngagementCounts;
+      setEngagement(merged);
+      if (data.my) {
+        setMyReactions(data.my.reactions || {});
+        setMyBookmarks(new Set(data.my.bookmarks || []));
+      }
+    } catch {
+      // engagement stays at zeros — cards still render
+    }
+  }, [posts, dbQuestions]);
+
+  useEffect(() => {
+    loadEngagement();
+  }, [loadEngagement]);
+
+  // ─── PART 2: contributor check (Studio entry point) ───
+  useEffect(() => {
+    (async () => {
+      // Server decides (401/403/null = hidden) — never client-asserted.
+      try {
+        const res = await fetch("/api/contributor/me", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.contributor?.status === "approved") {
+            setContributorName(data.contributor.displayName);
+          }
+        }
+      } catch {
+        // ignore — studio simply never shows
+      }
+    })();
+  }, []);
+
+  // Open the deep-linked question once the list is loaded
+  useEffect(() => {
+    if (questionsLoading || !dbQuestions.length || !deepLinkQuestionId) return;
+    const match = dbQuestions.find((q) => q.id === deepLinkQuestionId);
+    if (match) {
+      setActiveTab("qa");
+      setOpenQuestion(match);
+    }
+  }, [questionsLoading, dbQuestions, deepLinkQuestionId]);
+
+  // ─── PART 2: reaction toggle handler passed to every ReactionBar ───
+  const onReactionChange = (
+    targetType: string,
+    targetId: string,
+    kind: string,
+    reacted: boolean,
+    count: number
+  ) => {
+    setEngagement((prev) => ({
+      ...prev,
+      [targetId]: { ...prev[targetId] || { AMEN: 0, INSIGHTFUL: 0, comments: 0 }, [kind]: count },
+    }));
+    setMyReactions((prev) => {
+      const current = prev[targetId] || [];
+      return {
+        ...prev,
+        [targetId]: reacted ? [...new Set([...current, kind])] : current.filter((k) => k !== kind),
+      };
+    });
+  };
+
+  const toggleSaveArticle = async (articleId: string) => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to save articles");
+      return;
+    }
+    const wasSaved = myBookmarks.has(articleId);
+    try {
+      const res = await fetch("/api/apologetics/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetType: "article", targetId: articleId, saved: !wasSaved }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to save");
+      setMyBookmarks((prev) => {
+        const next = new Set(prev);
+        if (wasSaved) next.delete(articleId);
+        else next.add(articleId);
+        return next;
+      });
+      toast.success(wasSaved ? "Removed from saved" : "Saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save");
+    }
+  };
+
   const filtered = useMemo(() => {
     return posts.filter((p) => {
+      if (savedOnly && !myBookmarks.has(p.id)) return false;
       if (filterTopic && p.topic !== filterTopic) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -182,7 +310,7 @@ export default function ApologeticsView() {
       }
       return true;
     });
-  }, [posts, filterTopic, search]);
+  }, [posts, filterTopic, search, savedOnly, myBookmarks]);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
@@ -194,18 +322,6 @@ export default function ApologeticsView() {
       return true;
     });
   }, [questions, filterTopic, search]);
-
-  const toggleLike = (id: string) => {
-    setLiked((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else {
-        next.add(id);
-        toast.success("Liked!", { description: "Thanks for engaging with this content." });
-      }
-      return next;
-    });
-  };
 
   const sharePost = (p: ApologeticsPost) => {
     // Published DB articles carry a slug → canonical /apologetics/<slug>
@@ -319,28 +435,58 @@ export default function ApologeticsView() {
       {/* Topic Pills */}
       <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 mb-2">
         <button
-          onClick={() => setFilterTopic("")}
+          onClick={() => { setFilterTopic(""); setSavedOnly(false); }}
           className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            !filterTopic
+            !filterTopic && !savedOnly
               ? "bg-white text-slate-950"
               : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
           }`}
         >
           All Topics
         </button>
+        {isAuthenticated && (
+          <button
+            onClick={() => { setSavedOnly(!savedOnly); setFilterTopic(""); }}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
+              savedOnly
+                ? "bg-[#F59E0B] text-slate-950"
+                : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
+            }`}
+          >
+            <Bookmark size={11} fill={savedOnly ? "currentColor" : "none"} /> Saved
+          </button>
+        )}
         {APOLOGETICS_TOPICS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setFilterTopic(t.id)}
+            onClick={() => { setFilterTopic(t.id); setSavedOnly(false); }}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-              filterTopic === t.id ? "text-slate-950" : "text-[#94A3B8] hover:text-white border border-white/[0.06]"
+              filterTopic === t.id && !savedOnly ? "text-slate-950" : "text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
-            style={filterTopic === t.id ? { background: t.color } : {}}
+            style={filterTopic === t.id && !savedOnly ? { background: t.color } : {}}
           >
             {t.label}
           </button>
         ))}
       </div>
+
+      {/* PART 2: Contributor Studio entry (approved contributors only —
+          the flag comes from the server, never from the client) */}
+      {contributorName && (
+        <button
+          onClick={() => setShowStudio(true)}
+          className="w-full flex items-center gap-2.5 bg-gradient-to-r from-[#7C3AED]/15 to-[#38BDF8]/10 border border-[#7C3AED]/25 rounded-2xl p-3 mb-4 hover:border-[#7C3AED]/45 transition-all text-left"
+        >
+          <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center shrink-0">
+            <PenLine size={16} className="text-[#A78BFA]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-white">Contributor Studio</p>
+            <p className="text-[10px] text-[#94A3B8]">Submit articles &amp; proposed answers as {contributorName}</p>
+          </div>
+          <span className="text-[10px] font-bold text-[#A78BFA]">Open →</span>
+        </button>
+      )}
 
       <AnimatePresence mode="wait">
         {activeTab === "articles" ? (
@@ -414,7 +560,7 @@ export default function ApologeticsView() {
                     <span>{new Date(filtered[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                     <span>·</span>
                     <span className="flex items-center gap-1">
-                      <Heart size={9} /> {filtered[0].likes}
+                      🙏 {(engagement[filtered[0].id]?.AMEN ?? 0) + (engagement[filtered[0].id]?.INSIGHTFUL ?? 0)}
                     </span>
                   </div>
                 </div>
@@ -423,9 +569,9 @@ export default function ApologeticsView() {
 
             {/* Post List */}
             <div className="space-y-3">
-              {(filterTopic || search ? filtered : filtered.slice(1)).map((post, i) => {
+              {(filterTopic || search || savedOnly ? filtered : filtered.slice(1)).map((post, i) => {
                 const topic = APOLOGETICS_TOPICS.find((t) => t.id === post.topic);
-                const hasLiked = liked.has(post.id);
+                const counts = engagement[post.id] || { AMEN: 0, INSIGHTFUL: 0, comments: 0 };
                 return (
                   <motion.div
                     key={post.id}
@@ -433,8 +579,7 @@ export default function ApologeticsView() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => {
-                      // If the post has a slug (DB-backed), navigate to the
-                      // public article page. Otherwise (legacy mock), open modal.
+                      // DB-backed posts navigate to the public article page.
                       if (post.slug) {
                         window.location.href = `/apologetics/${post.slug}`;
                       } else {
@@ -457,6 +602,9 @@ export default function ApologeticsView() {
                         </span>
                         <h3 className="text-base font-bold text-white leading-tight">{post.title}</h3>
                       </div>
+                      {post.cover_image && (
+                        <img src={post.cover_image} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                      )}
                     </div>
                     <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-3 mb-3">{post.body}</p>
                     <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
@@ -471,22 +619,39 @@ export default function ApologeticsView() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-[#94A3B8]">
+                      <div
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ReactionBar
+                          targetType="article"
+                          targetId={post.id}
+                          counts={counts}
+                          myReactions={myReactions[post.id] || []}
+                          isAuthenticated={isAuthenticated}
+                          onChange={onReactionChange}
+                          compact
+                        />
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleLike(post.id);
-                          }}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            hasLiked ? "bg-[#EC4899]/15 text-[#EC4899]" : "hover:text-white"
+                          onClick={() => toggleSaveArticle(post.id)}
+                          title={myBookmarks.has(post.id) ? "Saved" : "Save"}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            myBookmarks.has(post.id)
+                              ? "text-[#F59E0B]"
+                              : "text-[#94A3B8] hover:text-white"
                           }`}
                         >
-                          <Heart size={12} fill={hasLiked ? "currentColor" : "none"} />
-                          {post.likes + (hasLiked ? 1 : 0)}
+                          <Bookmark size={13} fill={myBookmarks.has(post.id) ? "currentColor" : "none"} />
                         </button>
-                        <span className="flex items-center gap-1 text-[10px]">
-                          <MessageCircle size={12} /> {post.comments}
-                        </span>
+                        <button
+                          onClick={() => {
+                            // Comments live on the public article page
+                            if (post.slug) window.location.href = `/apologetics/${post.slug}`;
+                          }}
+                          className="flex items-center gap-1 text-[10px] text-[#94A3B8] hover:text-white px-1"
+                        >
+                          <MessageCircle size={12} /> {counts.comments}
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -578,7 +743,6 @@ export default function ApologeticsView() {
               <div className="space-y-3">
                 {filteredQuestions.map((q, i) => {
                 const topic = APOLOGETICS_TOPICS.find((t) => t.id === q.topic);
-                const hasLiked = liked.has(q.id);
                 return (
                   <motion.div
                     key={q.id}
@@ -609,7 +773,7 @@ export default function ApologeticsView() {
                     </div>
                     <h3 className="text-base font-bold text-white leading-tight mb-1">{q.title}</h3>
                     <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-2 mb-2">{q.body}</p>
-                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
+                      <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-white/[0.06] flex items-center justify-center text-[10px] font-bold text-white">
                           {q.author === "Anonymous" ? "?" : q.author.charAt(0)}
@@ -621,15 +785,19 @@ export default function ApologeticsView() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-[#94A3B8]">
-                        {q.answers.length > 0 && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold">
-                            <MessageCircle size={12} /> {q.answers.length} {q.answers.length === 1 ? "answer" : "answers"}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1 text-[10px]">
-                          <Heart size={12} /> {q.likes}
-                        </span>
+                      <div
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ReactionBar
+                          targetType="question"
+                          targetId={q.id}
+                          counts={engagement[q.id] || { AMEN: 0, INSIGHTFUL: 0, comments: 0 }}
+                          myReactions={myReactions[q.id] || []}
+                          isAuthenticated={isAuthenticated}
+                          onChange={onReactionChange}
+                          compact
+                        />
                       </div>
                     </div>
                   </motion.div>
@@ -705,17 +873,18 @@ export default function ApologeticsView() {
                 <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-line">{openPost.body}</p>
 
                 <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
-                  <button
-                    onClick={() => toggleLike(openPost.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      liked.has(openPost.id)
-                        ? "bg-[#EC4899]/15 text-[#EC4899] border border-[#EC4899]/30"
-                        : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
-                    }`}
-                  >
-                    <Heart size={14} fill={liked.has(openPost.id) ? "currentColor" : "none"} />
-                    {openPost.likes + (liked.has(openPost.id) ? 1 : 0)}
-                  </button>
+                  {openPost.slug ? (
+                    <ReactionBar
+                      targetType="article"
+                      targetId={openPost.id}
+                      counts={engagement[openPost.id] || { AMEN: 0, INSIGHTFUL: 0, comments: 0 }}
+                      myReactions={myReactions[openPost.id] || []}
+                      isAuthenticated={isAuthenticated}
+                      onChange={onReactionChange}
+                    />
+                  ) : (
+                    <span className="text-[10px] text-[#64748B]">Open the full article to react and comment.</span>
+                  )}
                   <button
                     onClick={() => sharePost(openPost)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06] transition-all"
@@ -723,7 +892,7 @@ export default function ApologeticsView() {
                     <Share2 size={14} /> Share
                   </button>
                   <div className="ml-auto flex items-center gap-1 text-[10px] text-[#94A3B8]">
-                    <Eye size={12} /> {(openPost.likes * 8).toLocaleString()} views
+                    <Eye size={12} /> {(engagement[openPost.id]?.AMEN ?? 0) + (engagement[openPost.id]?.INSIGHTFUL ?? 0)} reactions
                   </div>
                 </div>
               </div>
@@ -783,6 +952,30 @@ export default function ApologeticsView() {
                 <h2 className="text-xl font-extrabold text-white leading-tight">{openQuestion.title}</h2>
                 <p className="text-sm text-[#A09DB1] leading-relaxed">{openQuestion.body}</p>
 
+                {/* PART 2: Bible references — validated, clickable */}
+                {(openQuestion as any).refs?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(openQuestion as any).refs.map((ref: string, i: number) => {
+                      const parsed = bibleRefFromDisplay(ref);
+                      return parsed ? (
+                        <a
+                          key={i}
+                          href={bibleRefHref(parsed)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-2 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[10px] font-bold hover:bg-[#38BDF8]/20 transition-colors"
+                          title="Open this passage in the Bible reader"
+                        >
+                          {ref} ↗
+                        </a>
+                      ) : (
+                        <span key={i} className="px-2 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[10px] font-bold">
+                          {ref}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
                   <div className="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center text-[10px] font-bold text-white">
                     {openQuestion.author === "Anonymous" ? "?" : openQuestion.author.charAt(0)}
@@ -795,7 +988,7 @@ export default function ApologeticsView() {
                   </div>
                 </div>
 
-                {/* Answers — read-only display of the admin's answer */}
+                {/* Answers — the official answer with real attribution */}
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">
                     {openQuestion.answers.length} {openQuestion.answers.length === 1 ? "Answer" : "Answers"}
@@ -841,14 +1034,52 @@ export default function ApologeticsView() {
                     </div>
                   )}
 
-                  {/* Admin-only answer notice — normal users cannot post answers */}
-                  <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-start gap-2">
-                    <ShieldCheck size={14} className="text-[#38BDF8] shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-[#64748B] leading-relaxed">
-                      Official answers are written by the Koino team. Your question is reviewed
-                      before an answer is posted here.
-                    </p>
-                  </div>
+                {/* PART 2: reactions + threaded discussion on the question */}
+                <div className="pt-3 border-t border-white/[0.06] space-y-3">
+                  <ReactionBar
+                    targetType="question"
+                    targetId={openQuestion.id}
+                    counts={engagement[openQuestion.id] || { AMEN: 0, INSIGHTFUL: 0, comments: 0 }}
+                    myReactions={myReactions[openQuestion.id] || []}
+                    isAuthenticated={isAuthenticated}
+                    onChange={onReactionChange}
+                  />
+                  {commentTarget?.type === "question" && commentTarget.id === openQuestion.id ? (
+                    <ApologeticsComments targetType="question" targetId={openQuestion.id} />
+                  ) : (
+                    <button
+                      onClick={() => setCommentTarget({ type: "question", id: openQuestion.id })}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-[#38BDF8] hover:bg-[#38BDF8]/10 rounded-lg px-2 py-1.5 transition-colors"
+                    >
+                      <MessageCircle size={12} />
+                      Discussion ({engagement[openQuestion.id]?.comments ?? 0})
+                    </button>
+                  )}
+                  <button
+                    onClick={() =>
+                      setShareReq({
+                        heading: "Share this Q&A",
+                        shareText: `${openQuestion.title} — Koino Apologetics Q&A`,
+                        shareUrl: shareLinks.apologeticsQuestion(openQuestion.id),
+                        formats: ["landscape"],
+                        fileName: `koino-qa-${openQuestion.id.slice(-8)}.png`,
+                      })
+                    }
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-[#94A3B8] hover:text-white px-2 py-1.5 transition-colors"
+                  >
+                    <Share2 size={12} /> Share
+                  </button>
+                </div>
+
+                {/* Sign-in notice — only approved contributors may propose answers,
+                    and those go through admin review before publishing */}
+                <div className="pt-3 border-t border-white/[0.06] flex items-start gap-2">
+                  <BookOpen size={14} className="text-[#38BDF8] shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-[#64748B] leading-relaxed">
+                    Official answers are written by the Koino team and approved contributors,
+                    then reviewed before they appear here.
+                  </p>
+                </div>
                 </div>
               </div>
             </motion.div>
@@ -966,6 +1197,11 @@ export default function ApologeticsView() {
 
       {/* ─── UNIVERSAL SHARE SHEET ─── */}
       <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
+
+      {/* ─── PART 2: CONTRIBUTOR STUDIO ─── */}
+      {showStudio && contributorName && (
+        <ContributorStudio displayName={contributorName} onClose={() => setShowStudio(false)} />
+      )}
     </div>
   );
 }

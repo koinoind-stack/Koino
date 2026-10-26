@@ -278,6 +278,8 @@ export default function Home() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   // Task 121: shared event links (?view=events&event=<id>) open that event.
   const [deepLinkedEventId, setDeepLinkedEventId] = useState<string | null>(null);
+  // PART 2: /?view=apologetics&question=<id> — deep link into a Q&A modal
+  const [deepLinkedQuestionId, setDeepLinkedQuestionId] = useState<string | null>(null);
   // Part 5: Bible reader deep target — ?view=bible&book=genesis&chapter=1
   // lets video pages open the EXISTING reader at a linked passage.
   const [bibleTarget, setBibleTarget] = useState<{ bookId: string; chapter: number; verse?: number | null } | null>(null);
@@ -464,6 +466,14 @@ export default function Home() {
       const ev = params.get("event");
       if (ev && /^[a-zA-Z0-9_-]{6,40}$/.test(ev)) {
         setDeepLinkedEventId(ev);
+      }
+    }
+
+    // PART 2: shared Q&A links — ?view=apologetics&question=<id>
+    if (deepView === "apologetics") {
+      const qid = params.get("question");
+      if (qid && /^[a-zA-Z0-9_-]{6,40}$/.test(qid)) {
+        setDeepLinkedQuestionId(qid);
       }
     }
 
@@ -884,7 +894,7 @@ export default function Home() {
               {view === "events" && <EventsView initialEventId={deepLinkedEventId} />}
               {view === "trivia" && <TriviaView />}
               {view === "prayer-wall" && <PrayerWallView />}
-              {view === "apologetics" && <ApologeticsView />}
+              {view === "apologetics" && <ApologeticsView deepLinkQuestionId={deepLinkedQuestionId} />}
               {view === "shop" && <ShopView />}
               {view === "list-church" && <ListYourEntity variant="church" />}
               {view === "list-business" && <ListYourEntity variant="business" />}

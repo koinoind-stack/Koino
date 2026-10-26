@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Heart, MessageCircle, UserPlus, Repeat2, AtSign, Camera, CheckCheck } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Repeat2, AtSign, Camera, CheckCheck, BookOpen, HelpCircle, PenLine, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import type { NotificationItem } from "./types";
 import { api } from "./types";
@@ -21,6 +21,12 @@ const ICONS: Record<string, { icon: typeof Heart; color: string }> = {
   mention: { icon: AtSign, color: "text-[#FBBF24]" },
   repost: { icon: Repeat2, color: "text-[#34D399]" },
   story_reply: { icon: Camera, color: "text-[#EC4899]" },
+  // Apologetics PART 2
+  apologetics_comment: { icon: MessageCircle, color: "text-[#38BDF8]" },
+  apologetics_reply: { icon: MessageCircle, color: "text-[#38BDF8]" },
+  apologetics_reaction: { icon: BookOpen, color: "text-[#A855F7]" },
+  apologetics_submission: { icon: PenLine, color: "text-[#FBBF24]" },
+  apologetics_review: { icon: ShieldCheck, color: "text-[#34D399]" },
 };
 
 const LABELS: Record<string, string> = {
@@ -31,6 +37,12 @@ const LABELS: Record<string, string> = {
   mention: "mentioned you",
   repost: "reposted your post",
   story_reply: "replied to your story",
+  // Apologetics PART 2
+  apologetics_comment: "commented on your apologetics content",
+  apologetics_reply: "replied to your comment",
+  apologetics_reaction: "reacted to your apologetics content",
+  apologetics_submission: "submitted apologetics content for review",
+  apologetics_review: "reviewed your apologetics submission",
 };
 
 /** Notifications hub: 7 types, unread dots, mark-all-read, pagination. */
@@ -92,6 +104,12 @@ export default function NotificationsView({ onOpenProfile, onOpenPost }: Props) 
       api("/api/social/notifications", { method: "POST", body: JSON.stringify({ id: n.id }) }).catch(() => {});
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       setUnreadCount((c) => Math.max(0, c - 1));
+    }
+    // Apologetics PART 2 notifications carry a deep-link href
+    const anyN = n as any;
+    if (anyN.href) {
+      window.location.href = anyN.href as string;
+      return;
     }
     if (n.postId) onOpenPost(n.postId);
     else if (n.actor?.username) onOpenProfile(n.actor.username);

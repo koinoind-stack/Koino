@@ -20,6 +20,15 @@ import {
   FileText,
 } from "lucide-react";
 import { APOLOGETICS_TOPICS } from "@/lib/crosscrafted-data";
+import BibleRefPicker from "@/components/crosscrafted/BibleRefPicker";
+
+// The 11 canonical apologetics categories (same list as the article editor
+// and the public /apologetics hub page).
+const APOLOGETICS_CATEGORIES = [
+  "God & Existence", "Jesus Christ", "Resurrection", "Bible", "Science & Faith",
+  "Suffering & Evil", "Morality & Ethics", "Other Worldviews", "Doubt & Faith",
+  "Culture & Christianity", "Salvation",
+];
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -32,6 +41,11 @@ type AdminQuestion = {
   askerUserId: string | null;
   category: string;
   answer: string; // adminNotes — empty string when unanswered
+  answeredByName: string | null; // PART 2: official answer attribution
+  bibleRefs: string[]; // PART 2: canonical refs ("John 1:1–3")
+  contributorAnswer: string | null; // PART 2: proposed answer awaiting review
+  contributorAnswerName: string | null;
+  contributorAnswerStatus: string | null; // null | pending | approved | rejected
   status: "new" | "in_review" | "answered" | "turned_into_article" | "archived";
   articleId: string | null;
   createdAt: string;
@@ -449,6 +463,13 @@ function QuestionDetailModal({
   const [turning, setTurning] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // PART 2: editable question text / category / bible refs + answer preview
+  const [questionText, setQuestionText] = useState(question.question);
+  const [category, setCategory] = useState(question.category || "");
+  const [bibleRefs, setBibleRefs] = useState<string[]>(question.bibleRefs || []);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [previewAnswer, setPreviewAnswer] = useState(false);
+  const [reviewingContributor, setReviewingContributor] = useState(false);
 
   // Re-sync the answer textarea if the question prop changes after a refresh.
   useEffect(() => {
@@ -457,6 +478,55 @@ function QuestionDetailModal({
 
   const meta = statusMeta(question.status);
   const topic = topicLabel(question.category);
+
+  // ─── PART 2: save question edits (text / category / bible refs) ───
+  const handleSaveEdits = async () => {
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/admin/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: question.id,
+          action: "update",
+          question: questionText,
+          category,
+          bibleRefs,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      toast.success("Question updated");
+      onMutated();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update question");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // ─── PART 2: approve / reject the contributor's proposed answer ───
+  const handleContributorAnswer = async (approve: boolean) => {
+    setReviewingContributor(true);
+    try {
+      const res = await fetch("/api/admin/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: question.id,
+          action: approve ? "approve_contributor_answer" : "reject_contributor_answer",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      toast.success(approve ? "Contributor answer published" : "Contributor answer rejected");
+      onMutated();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to review contributor answer");
+    } finally {
+      setReviewingContributor(false);
+    }
+  };
 
   // ─── Save Answer ───
   const handleSaveAnswer = async () => {
@@ -617,14 +687,49 @@ function QuestionDetailModal({
 
         {/* Body */}
         <div className="space-y-4">
-          {/* Question text */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              Question
-            </p>
-            <p className="text-sm text-white leading-relaxed whitespace-pre-line">
-              {question.question}
-            </p>
+          {/* PART 2: editable question text + category */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-3">
+            <Field
+              label="Question"
+              hint="Editing here updates what the public sees once answered."
+            >
+              <textarea
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                className="neo-input text-sm h-24 resize-y"
+                disabled={saving || savingEdit}
+              />
+            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Category">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="neo-input text-sm bg-[#1C1929]"
+                >
+                  <option value="">— None —</option>
+                  {APOLOGETICS_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </Field>
+              <div className="flex items-end">
+                <button
+                  onClick={handleSaveEdits}
+                  disabled={savingEdit || saving || !questionText.trim()}
+                  className="bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all disabled:opacity-50"
+                >
+                  {savingEdit ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                  Save Question
+                </button>
+              </div>
+            </div>
+            <Field
+              label="Bible References"
+              hint="Shown with the public answer; clickable on the article page."
+            >
+              <BibleRefPicker value={bibleRefs} onChange={setBibleRefs} />
+            </Field>
           </div>
 
           {/* Asker info */}
@@ -662,6 +767,11 @@ function QuestionDetailModal({
             <div className="rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/8 p-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E] mb-1 flex items-center gap-1">
                 <CheckCircle2 size={10} /> Current Answer
+                {question.answeredByName && (
+                  <span className="normal-case tracking-normal text-[#94A3B8] font-semibold">
+                    — {question.answeredByName}
+                  </span>
+                )}
               </p>
               <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-line">
                 {question.answer}
@@ -669,19 +779,102 @@ function QuestionDetailModal({
             </div>
           )}
 
-          {/* Answer editor */}
-          <Field
-            label="Answer"
-            hint="Saving an answer marks this question as status=answered and exposes it publicly on /apologetics."
-          >
-            <textarea
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Write a thoughtful, biblically-grounded answer…"
-              className="neo-input text-sm h-40 resize-y"
-              disabled={saving}
-            />
-          </Field>
+          {/* PART 2: contributor answer awaiting review */}
+          {question.contributorAnswer && question.contributorAnswerStatus === "pending" && (
+            <div className="rounded-xl border border-[#38BDF8]/30 bg-[#38BDF8]/8 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-1">
+                Contributor answer — awaiting review
+                {question.contributorAnswerName && ` by ${question.contributorAnswerName}`}
+              </p>
+              <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-line mb-2">
+                {question.contributorAnswer}
+              </p>
+              <p className="text-[10px] text-[#94A3B8] mb-2">
+                Approving makes this the official public answer, credited to the contributor.
+              </p>
+              <div className="flex items-center gap-2">
+                {reviewingContributor ? (
+                  <Loader2 size={12} className="animate-spin text-[#94A3B8]" />
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleContributorAnswer(true)}
+                      className="bg-[#22C55E]/15 hover:bg-[#22C55E]/25 border border-[#22C55E]/40 text-[#22C55E] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
+                    >
+                      Approve &amp; publish
+                    </button>
+                    <button
+                      onClick={() => handleContributorAnswer(false)}
+                      className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          {question.contributorAnswerStatus === "rejected" && (
+            <p className="text-[10px] text-[#64748B]">
+              Contributor answer rejected{question.contributorAnswerName ? ` (${question.contributorAnswerName})` : ""} — they can submit a revised proposal.
+            </p>
+          )}
+
+          {/* Answer editor — with Edit/Preview tabs */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <button
+                type="button"
+                onClick={() => setPreviewAnswer(false)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  !previewAnswer ? "bg-[#7C3AED]/20 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewAnswer(true)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  previewAnswer ? "bg-[#7C3AED]/20 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                Preview (how readers see it)
+              </button>
+            </div>
+            {previewAnswer ? (
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Question</p>
+                <p className="text-sm text-white leading-relaxed whitespace-pre-line mb-3">{questionText}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#22C55E] mb-1">Answer</p>
+                <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-line">
+                  {answer.trim() || "— no answer yet —"}
+                </p>
+                {bibleRefs.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-white/[0.06]">
+                    {bibleRefs.map((r) => (
+                      <span key={r} className="bg-[#38BDF8]/10 text-[#38BDF8] text-[10px] font-bold px-2 py-1 rounded-md">
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Field
+                label="Answer"
+                hint="Saving an answer marks this question as status=answered and exposes it publicly on /apologetics."
+              >
+                <textarea
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="Write a thoughtful, biblically-grounded answer…"
+                  className="neo-input text-sm h-40 resize-y"
+                  disabled={saving}
+                />
+              </Field>
+            )}
+          </div>
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 pt-2 border-t border-white/[0.06]">
@@ -817,6 +1010,8 @@ function CreateQAModal({
   const [category, setCategory] = useState("");
   const [askerName, setAskerName] = useState("Koino");
   const [creating, setCreating] = useState(false);
+  // PART 2: bible references on admin-created Q&As
+  const [bibleRefs, setBibleRefs] = useState<string[]>([]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -835,6 +1030,7 @@ function CreateQAModal({
           answer: answer.trim() || undefined,
           category: category || undefined,
           askerName: askerName.trim() || "Koino",
+          bibleRefs,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -901,6 +1097,13 @@ function CreateQAModal({
               className="neo-input text-sm h-40 resize-y"
               disabled={creating}
             />
+          </Field>
+
+          <Field
+            label="Bible References"
+            hint="Shown with the public answer; validated against Koino's canon."
+          >
+            <BibleRefPicker value={bibleRefs} onChange={setBibleRefs} />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

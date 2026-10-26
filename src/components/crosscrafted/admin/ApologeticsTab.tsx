@@ -6,6 +6,8 @@ import ReactMarkdown from "react-markdown";
 import ImageUploader from "@/components/crosscrafted/admin/ImageUploader";
 import InlineImagePopover from "@/components/crosscrafted/admin/InlineImagePopover";
 import ImportPdfModal from "@/components/crosscrafted/admin/ImportPdfModal";
+import BibleRefPicker from "@/components/crosscrafted/BibleRefPicker";
+import EngagementModeration from "@/components/crosscrafted/admin/EngagementModeration";
 import {
   FileText,
   Loader2,
@@ -56,6 +58,7 @@ type KoinoArticle = {
   difficulty: string | null; // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
   featured: boolean;
   bibleRefs: string; // JSON array string
+  tags?: string; // JSON array string (PART 2)
   sources: string; // JSON array string
   relatedIds: string; // JSON array string
   publishedAt: string | null;
@@ -78,8 +81,11 @@ type FormState = {
   shortAnswer: string;
   content: string;
   coverImageUrl: string;
+  authorId: string; // Contributor.id ("" = admin-created)
   authorName: string;
-  bibleRefs: string; // CSV
+  bibleRefs: string[]; // canonical display strings ("John 1:1–3")
+  tags: string; // CSV for the input, serialized to JSON array server-side
+  publishedAt: string; // datetime-local string ("" = auto)
   status: string; // "draft" | "published"
   featured: boolean;
   seoTitle: string;
@@ -97,8 +103,11 @@ const EMPTY_FORM: FormState = {
   shortAnswer: "",
   content: "",
   coverImageUrl: "",
+  authorId: "",
   authorName: "",
-  bibleRefs: "",
+  bibleRefs: [],
+  tags: "",
+  publishedAt: "",
   status: "draft",
   featured: false,
   seoTitle: "",
@@ -187,8 +196,11 @@ function toFormState(article: KoinoArticle | null): FormState {
     shortAnswer: article.shortAnswer ?? "",
     content: article.content,
     coverImageUrl: article.coverImageUrl ?? "",
+    authorId: article.authorId ?? "",
     authorName: article.authorName ?? "",
-    bibleRefs: parseStringArray(article.bibleRefs).join(", "),
+    bibleRefs: parseStringArray(article.bibleRefs),
+    tags: parseStringArray((article as any).tags).join(", "),
+    publishedAt: article.publishedAt ? article.publishedAt.slice(0, 16) : "",
     status: article.status === "published" ? "published" : "draft",
     featured: article.featured,
     seoTitle: article.seoTitle ?? "",
@@ -197,15 +209,26 @@ function toFormState(article: KoinoArticle | null): FormState {
   };
 }
 
+// Reading time — words / 200 wpm, min 1. Computed from the markdown content
+// (no DB field; the public page computes the same way).
+export function readingMinutes(content: string): number {
+  const words = (content || "").replace(/[#>*_\-\[\]()`]/g, " ").split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export default function ApologeticsTab() {
+  // PART 2: three internal surfaces — article CMS, comment moderation, reports.
+  const [surface, setSurface] = useState<"articles" | "engagement">("articles");
   const [articles, setArticles] = useState<KoinoArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "draft" | "published" | "featured">("all");
+  const [filter, setFilter] = useState<"all" | "draft" | "submitted" | "published" | "featured">("all");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<{ id: string | null } | null>(null);
   const [showImportPdf, setShowImportPdf] = useState(false);
+  const [reviewing, setReviewing] = useState<string | null>(null); // article id being reviewed
+  const [reviewNotes, setReviewNotes] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -246,10 +269,39 @@ export default function ApologeticsTab() {
     return {
       total: articles.length,
       draft: articles.filter((a) => a.status === "draft").length,
+      submitted: articles.filter((a) => a.status === "submitted").length,
       published: articles.filter((a) => a.status === "published").length,
       featured: articles.filter((a) => a.featured).length,
     };
   }, [articles]);
+
+  // PART 2: contributor submission review — approve / request changes / reject.
+  // All three go through the existing PATCH /api/admin/articles/[id] with a
+  // status + reviewNotes (the same endpoint the editor uses), so no new
+  // server surface is needed.
+  const review = async (id: string, status: "approved" | "changes_requested" | "rejected") => {
+    try {
+      const res = await fetch(`/api/admin/articles/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reviewNotes: reviewNotes.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      toast.success(
+        status === "approved"
+          ? "Submission approved — you can now publish it"
+          : status === "changes_requested"
+            ? "Changes requested — the contributor will see your notes"
+            : "Submission rejected"
+      );
+      setReviewing(null);
+      setReviewNotes("");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Review action failed");
+    }
+  };
 
   const openNew = () => setEditing({ id: null });
   const openEdit = (id: string) => setEditing({ id });
@@ -277,6 +329,30 @@ export default function ApologeticsTab() {
 
   return (
     <div className="space-y-3">
+      {/* Surface tabs: Articles | Engagement moderation (PART 2) */}
+      <div className="flex gap-1 p-1 bg-white/[0.03] border border-white/[0.06] rounded-xl w-fit">
+        <button
+          onClick={() => setSurface("articles")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            surface === "articles" ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+          }`}
+        >
+          Articles
+        </button>
+        <button
+          onClick={() => setSurface("engagement")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+            surface === "engagement" ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+          }`}
+        >
+          Comments &amp; Reports
+        </button>
+      </div>
+
+      {surface === "engagement" ? (
+        <EngagementModeration />
+      ) : (
+      <>
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="w-1 h-5 rounded-full bg-[#7C3AED]" />
@@ -318,6 +394,13 @@ export default function ApologeticsTab() {
           label="Drafts"
           count={counts.draft}
           color="#F59E0B"
+        />
+        <FilterChip
+          active={filter === "submitted"}
+          onClick={() => setFilter("submitted")}
+          label="Submitted"
+          count={counts.submitted}
+          color="#38BDF8"
         />
         <FilterChip
           active={filter === "published"}
@@ -369,10 +452,10 @@ export default function ApologeticsTab() {
       ) : (
         <div className="space-y-2">
           {filtered.map((a) => (
-            <button
+            <div
               key={a.id}
               onClick={() => openEdit(a.id)}
-              className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 hover:border-white/[0.15] transition-all flex gap-3"
+              className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 hover:border-white/[0.15] transition-all flex gap-3 cursor-pointer"
             >
               {/* Cover image thumbnail — 16:9, ~140px wide on desktop */}
               <div className="w-32 sm:w-36 shrink-0">
@@ -406,6 +489,14 @@ export default function ApologeticsTab() {
                     {a.featured && <StatusBadge color="#A855F7" label="Featured" />}
                     {a.status === "published" ? (
                       <StatusBadge color="#22C55E" label="Published" />
+                    ) : a.status === "submitted" ? (
+                      <StatusBadge color="#38BDF8" label="Submitted" />
+                    ) : a.status === "changes_requested" ? (
+                      <StatusBadge color="#EF4444" label="Changes requested" />
+                    ) : a.status === "approved" ? (
+                      <StatusBadge color="#38BDF8" label="Approved" />
+                    ) : a.status === "rejected" ? (
+                      <StatusBadge color="#EF4444" label="Rejected" />
                     ) : (
                       <StatusBadge color="#F59E0B" label="Draft" />
                     )}
@@ -439,11 +530,86 @@ export default function ApologeticsTab() {
                       <Clock size={9} /> {formatTimeAgo(a.updatedAt)}
                     </span>
                   )}
+                  <span className="text-[#64748B]">·</span>
+                  <span>{readingMinutes(a.content)} min read</span>
                 </div>
+                {/* Review notes from a previous review round */}
+                {a.status === "changes_requested" && (a as any).reviewNotes && (
+                  <p className="mt-1.5 text-[10px] text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg px-2 py-1 line-clamp-2">
+                    Notes sent: {(a as any).reviewNotes}
+                  </p>
+                )}
+                {/* PART 2: review trigger for contributor submissions */}
+                {(a.status === "submitted" || a.status === "changes_requested") && (
+                  <div className="mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReviewing(reviewing === a.id ? null : a.id);
+                        setReviewNotes((a as any).reviewNotes || "");
+                      }}
+                      className={`text-[10px] font-bold rounded-lg px-2.5 py-1.5 transition-colors ${
+                        reviewing === a.id
+                          ? "bg-[#38BDF8]/25 text-[#38BDF8]"
+                          : "bg-[#38BDF8]/10 text-[#38BDF8] hover:bg-[#38BDF8]/20"
+                      }`}
+                    >
+                      {reviewing === a.id ? "Close review" : "Review submission"}
+                    </button>
+                  </div>
+                )}
               </div>
-            </button>
+            </div>
           ))}
         </div>
+      )}
+
+      {/* PART 2: contributor submission review panel */}
+      {reviewing && (
+        <div className="bg-[#1C1929] border border-[#38BDF8]/25 rounded-2xl p-4 space-y-2">
+          <p className="text-xs font-bold text-white">Review submission</p>
+          <p className="text-[10px] text-[#94A3B8]">
+            Approving marks the article ready-to-publish (you still press Publish).
+            "Request changes" / "Reject" send your notes to the contributor.
+          </p>
+          <textarea
+            value={reviewNotes}
+            onChange={(e) => setReviewNotes(e.target.value)}
+            placeholder="Optional notes for the contributor…"
+            className="neo-input text-xs h-16 resize-none"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => review(reviewing, "approved")}
+              className="bg-[#22C55E]/15 hover:bg-[#22C55E]/25 border border-[#22C55E]/40 text-[#22C55E] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => review(reviewing, "changes_requested")}
+              className="bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 border border-[#F59E0B]/40 text-[#F59E0B] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Request changes
+            </button>
+            <button
+              onClick={() => review(reviewing, "rejected")}
+              className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Reject
+            </button>
+            <button
+              onClick={() => {
+                setReviewing(null);
+                setReviewNotes("");
+              }}
+              className="text-[#94A3B8] hover:text-white text-[11px] font-bold px-2 py-1.5"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      </>
       )}
 
       {/* Editor modal */}
@@ -614,20 +780,35 @@ function MarkdownPreview({
   excerpt,
   shortAnswer,
   bibleRefs,
+  tags,
+  authorName,
+  category,
 }: {
   content: string;
   coverImageUrl: string;
   title: string;
   excerpt: string;
   shortAnswer: string;
-  bibleRefs: string;
+  bibleRefs: string[];
+  tags: string;
+  authorName: string;
+  category: string;
 }) {
-  const bibleList = bibleRefs
+  const bibleList = bibleRefs;
+  const tagList = tags
     .split(",")
     .map((t) => t.trim())
     .filter((t) => t.length > 0);
   return (
     <div className="space-y-4 text-sm text-[#A09DB1]">
+      <div className="flex items-center gap-2 text-[10px] text-[#64748B]">
+        {category && (
+          <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] font-bold uppercase tracking-wider">
+            {category}
+          </span>
+        )}
+        <span>~{readingMinutes(content)} min read</span>
+      </div>
       {coverImageUrl && (
         <div className="rounded-xl overflow-hidden border border-white/[0.08] bg-[#0f0f1a]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -644,6 +825,9 @@ function MarkdownPreview({
       <h1 className="text-2xl font-extrabold text-white leading-tight">
         {title || "Untitled article"}
       </h1>
+      {authorName && (
+        <p className="text-[11px] text-[#94A3B8]">by <span className="font-bold text-white">{authorName}</span></p>
+      )}
       {excerpt && <p className="italic text-[#94A3B8]">{excerpt}</p>}
       {shortAnswer && (
         <div className="rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 p-3">
@@ -751,6 +935,23 @@ function MarkdownPreview({
           </div>
         </div>
       )}
+      {tagList.length > 0 && (
+        <div className="pt-3 border-t border-white/[0.06]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+            Tags
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {tagList.map((t, i) => (
+              <span
+                key={i}
+                className="bg-[#A855F7]/10 text-[#A855F7] text-[10px] font-bold px-2 py-1 rounded-md"
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -782,6 +983,8 @@ function ApologeticsEditorModal({
   // button). When open, the admin can pick a file, set alt text, and upload —
   // the resulting ![alt](url) markdown is inserted at the cursor.
   const [showImagePopover, setShowImagePopover] = useState(false);
+  // PART 2: contributor list for the attribution dropdown.
+  const [contributors, setContributors] = useState<{ id: string; displayName: string; status: string }[]>([]);
 
   // Refs: textarea for cursor-aware markdown insertion, snapshot for the
   // unsaved-changes guard.
@@ -847,6 +1050,28 @@ function ApologeticsEditorModal({
       onClose();
     }
   }, [hasUnsavedChanges, showDiscardConfirm, onClose]);
+
+  // PART 2: load the contributor list once for the attribution dropdown.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/contributors", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setContributors(
+            (data.contributors || []).filter((c: any) => c.status === "approved")
+          );
+        }
+      } catch {
+        // dropdown stays empty — admin can still type a name manually
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Escape to close (with guard) + lock body scroll while modal is open.
   useEffect(() => {
@@ -950,10 +1175,13 @@ function ApologeticsEditorModal({
         shortAnswer: form.shortAnswer,
         content: form.content,
         coverImageUrl: form.coverImageUrl,
+        authorId: form.authorId || null,
         authorName: form.authorName,
-        bibleRefs: form.bibleRefs, // CSV → server coerces to JSON array
+        bibleRefs: form.bibleRefs, // canonical string[] — server validates + stores
+        tags: form.tags, // CSV — server coerces to JSON array
         status: targetStatus, // "draft" | "published"
         featured: form.featured,
+        ...(form.publishedAt ? { publishedAt: new Date(form.publishedAt).toISOString() } : {}),
         seoTitle: form.seoTitle,
         seoDescription: form.seoDescription,
         canonicalUrl: form.canonicalUrl,
@@ -1203,6 +1431,9 @@ function ApologeticsEditorModal({
                 excerpt={form.excerpt}
                 shortAnswer={form.shortAnswer}
                 bibleRefs={form.bibleRefs}
+                tags={form.tags}
+                authorName={form.authorName}
+                category={form.category}
               />
             ) : (
               <>
@@ -1330,15 +1561,40 @@ function ApologeticsEditorModal({
 
           {/* ▸ AUTHOR */}
           <Section title="Author">
-            <Field label="Author Name">
-              <input
-                type="text"
-                value={form.authorName}
-                onChange={(e) => set("authorName", e.target.value)}
-                className="neo-input text-sm"
-                placeholder="Author name (defaults to Admin)"
-              />
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Contributor" hint="Attribution link for approved contributors. Optional.">
+                <select
+                  value={form.authorId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const c = contributors.find((x) => x.id === id);
+                    setForm((f) => ({
+                      ...f,
+                      authorId: id,
+                      // auto-fill the display name from the contributor record
+                      authorName: c ? c.displayName : f.authorName,
+                    }));
+                  }}
+                  className="neo-input text-sm bg-[#1C1929]"
+                >
+                  <option value="">— Admin / no contributor —</option>
+                  {contributors.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.displayName}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Display Name" hint="Shown publicly as the author.">
+                <input
+                  type="text"
+                  value={form.authorName}
+                  onChange={(e) => set("authorName", e.target.value)}
+                  className="neo-input text-sm"
+                  placeholder="Author name (defaults to Admin)"
+                />
+              </Field>
+            </div>
           </Section>
 
           {/* ▸ SEO */}
@@ -1393,32 +1649,33 @@ function ApologeticsEditorModal({
               />
             </div>
             <Field
-              label="Bible References"
-              hint="Comma-separated. e.g. John 20:1-29, 1 Cor 15"
+              label="Publication date"
+              hint="Shown on the public page. Leave empty to auto-set when publishing."
             >
               <input
-                type="text"
-                value={form.bibleRefs}
-                onChange={(e) => set("bibleRefs", e.target.value)}
+                type="datetime-local"
+                value={form.publishedAt}
+                onChange={(e) => set("publishedAt", e.target.value)}
                 className="neo-input text-sm"
-                placeholder="John 20:1-29, 1 Cor 15, Romans 1:20"
               />
-              {form.bibleRefs.trim().length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {form.bibleRefs
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter((t) => t.length > 0)
-                    .map((t, i) => (
-                      <span
-                        key={i}
-                        className="bg-[#38BDF8]/10 text-[#38BDF8] text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                </div>
-              )}
+            </Field>
+            <Field
+              label="Bible References"
+              hint="Validated against Koino's canon. Readers can tap them to open the passage in the Bible reader."
+            >
+              <BibleRefPicker
+                value={form.bibleRefs}
+                onChange={(refs) => set("bibleRefs", refs)}
+              />
+            </Field>
+            <Field label="Tags" hint="Comma-separated, shown on the article page. Optional.">
+              <input
+                type="text"
+                value={form.tags}
+                onChange={(e) => set("tags", e.target.value)}
+                className="neo-input text-sm"
+                placeholder="resurrection, evidence, history"
+              />
             </Field>
           </Section>
 

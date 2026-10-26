@@ -119,6 +119,8 @@ function serializeArticle(a: any) {
     difficulty: a.difficulty,
     featured: a.featured,
     bibleRefs: a.bibleRefs,
+    tags: a.tags,
+    sourceQuestionId: a.sourceQuestionId ?? null,
     sources: a.sources,
     relatedIds: a.relatedIds,
     reviewedBy: a.reviewedBy,
@@ -279,6 +281,7 @@ export async function POST(req: NextRequest) {
         difficulty: coerceString(body.difficulty),
         featured,
         bibleRefs: coerceStringArrayToJSON(body.bibleRefs),
+        tags: coerceStringArrayToJSON(body.tags),
         sources: coerceStringArrayToJSON(body.sources),
         relatedIds: coerceStringArrayToJSON(body.relatedIds),
         reviewedBy: auth.user.id, // admin who created it
