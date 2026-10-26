@@ -1,23 +1,42 @@
 "use client";
 
 /**
- * Memorial create/edit form (Part 4 — In Loving Memory).
+ * Memorial create/edit form — 4 steps (In Loving Memory).
  * Used by /memorials/new (create) and /memorials/[id]/manage (edit tab).
  *
- * - Saves as DRAFT or PUBLISHES (explicit consent buttons).
+ * Step 1 — Basic information (name, photo, dates, place, short tribute)
+ * Step 2 — Life story (biography, memories, favourite verse, testimony)
+ * Step 3 — Photos & videos (gallery upload + YouTube links)
+ * Step 4 — Privacy & submission (visibility + authorization consent)
+ *
+ * - SAVE AS DRAFT any time (drafts stay private to the managers).
+ * - SUBMIT FOR REVIEW requires the name, a short tribute, and the consent
+ *   checkbox. A Koino admin reviews the memorial before it is published.
  * - Photographs upload directly to Supabase Storage via the existing
  *   /api/social/upload-url signed-URL endpoint (same as the feed composer).
- * - Clear notice: the creator must have permission to share photos and
- *   personal information of the deceased.
+ * - Entered data is never lost when moving between steps (single state object).
+ * - YouTube links collected in step 3 are submitted right after the memorial
+ *   exists — they stay pending until an admin approves them.
  */
 
 import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Flower2, ImagePlus, Loader2, ShieldCheck, X } from "lucide-react";
+import {
+  Flower2, ImagePlus, Loader2, ShieldCheck, X, ArrowLeft, ArrowRight,
+  Check, Film,
+} from "lucide-react";
 import { toast } from "sonner";
 import { INDIAN_STATES, INDIAN_CITIES_BY_STATE } from "@/lib/crosscrafted-data";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { extractYouTubeId, MEMORIAL_VIDEO_CATEGORIES } from "@/lib/youtube";
+
+export type MemorialVideoDraft = {
+  url: string;
+  title: string;
+  description: string;
+  category: string;
+};
 
 export type MemorialFormData = {
   fullName: string;
@@ -33,15 +52,17 @@ export type MemorialFormData = {
   qualities: string;
   verse: string;
   verseRef: string;
+  testimony: string;
   creatorRelation: string;
   visibility: "public" | "unlisted" | "private";
+  videos: MemorialVideoDraft[];
 };
 
 export const EMPTY_MEMORIAL_FORM: MemorialFormData = {
   fullName: "", photoUrl: "", gallery: [], dob: "", dod: "",
   state: "", city: "", tribute: "", lifeStory: "", milestones: "",
-  qualities: "", verse: "", verseRef: "", creatorRelation: "Family",
-  visibility: "public",
+  qualities: "", verse: "", verseRef: "", testimony: "",
+  creatorRelation: "Family", visibility: "public", videos: [],
 };
 
 async function uploadImage(file: File): Promise<string> {
@@ -67,11 +88,19 @@ type Props = {
   onSaved?: (memorialId: string, status: string) => void;
 };
 
+const STEPS = ["Basic information", "Life story", "Photos & videos", "Privacy & submit"];
+
 export default function MemorialForm({ mode, memorialId, initial, onSaved }: Props) {
   const { user, username, displayName, loading: authLoading } = useSupabaseUser();
   const [form, setForm] = useState<MemorialFormData>(initial || EMPTY_MEMORIAL_FORM);
+  const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<"photo" | "gallery" | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoDesc, setVideoDesc] = useState("");
+  const [videoCat, setVideoCat] = useState("life_story");
   const photoInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
 
@@ -134,16 +163,79 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     }
   }
 
-  async function save(status: "draft" | "published") {
+  function addVideo() {
+    const url = videoUrl.trim();
+    if (!url) return;
+    if (!extractYouTubeId(url)) {
+      toast.error("That is not a valid YouTube link. Use youtube.com/watch, youtu.be, or a Shorts link.");
+      return;
+    }
+    if (videoTitle.trim().length < 2) {
+      toast.error("Please give the video a title");
+      return;
+    }
+    if (form.videos.length >= 30) {
+      toast.error("A memorial can hold up to 30 videos");
+      return;
+    }
+    set("videos", [
+      ...form.videos,
+      { url, title: videoTitle.trim(), description: videoDesc.trim(), category: videoCat },
+    ]);
+    setVideoUrl("");
+    setVideoTitle("");
+    setVideoDesc("");
+    setVideoCat("life_story");
+    toast.success("Video added — it will be reviewed before it appears");
+  }
+
+  /** Per-step validation before moving forward. */
+  function next() {
+    if (step === 0) {
+      if (form.fullName.trim().length < 2) return toast.error("Please enter the full name of your loved one");
+      if (form.dob && form.dod && form.dob > form.dod) {
+        return toast.error("Date of birth cannot be after the date of passing");
+      }
+    }
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function submitVideos(createdId: string) {
+    for (const v of form.videos) {
+      try {
+        const res = await fetch(`/api/memorials/${createdId}/videos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(v),
+        });
+        if (!res.ok) {
+          const b = await res.json().catch(() => ({}));
+          toast.error(`Video "${v.title}" could not be added: ${b.error || "unknown error"}`);
+        }
+      } catch {
+        toast.error(`Video "${v.title}" could not be added`);
+      }
+    }
+  }
+
+  async function save(status: "draft" | "pending") {
     if (busy) return;
     if (form.fullName.trim().length < 2) return toast.error("Please enter the full name");
-    if (!form.dod) return toast.error("Please enter the date of passing");
     if (form.dob && form.dod && form.dob > form.dod) {
       return toast.error("Date of birth cannot be after the date of passing");
     }
+    if (status === "pending") {
+      if (form.tribute.trim().length < 2) {
+        return toast.error("Please write a short tribute for the memorial card (step 1)");
+      }
+      if (!consent) {
+        return toast.error("Please confirm you have the family's permission to submit this memorial");
+      }
+    }
     setBusy(true);
     try {
-      const payload = { ...form, status, creatorName: displayName || username || undefined };
+      const payload = { ...form, videos: undefined, status, creatorName: displayName || username || undefined };
       const res = await fetch(mode === "create" ? "/api/memorials" : `/api/memorials/${memorialId}`, {
         method: mode === "create" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -151,8 +243,13 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not save the memorial");
-      toast.success(status === "published" ? "Memorial published" : "Draft saved");
       const id = mode === "create" ? data.memorial.id : memorialId!;
+      if (form.videos.length > 0) await submitVideos(id);
+      toast.success(
+        status === "pending"
+          ? "Submitted for review — a Koino admin will check it before it appears publicly"
+          : "Draft saved — continue any time from this page",
+      );
       onSaved?.(id, status);
       if (!onSaved) window.location.href = `/memorials/${id}`;
     } catch (err) {
@@ -166,6 +263,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
   const inputCls =
     "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50";
   const labelCls = "block text-xs font-bold text-[#94A3B8] mb-1.5";
+  const canSubmit = form.fullName.trim().length >= 2 && form.tribute.trim().length >= 2 && consent;
 
   return (
     <div className="max-w-[680px] mx-auto px-4 pt-8 pb-24">
@@ -179,201 +277,330 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         <p className="text-sm text-[#94A3B8] mt-1.5">Honour the life of someone you loved.</p>
       </div>
 
+      {/* step indicator */}
+      <div className="flex items-center gap-1.5 mb-7" role="group" aria-label="Form progress">
+        {STEPS.map((label, i) => (
+          <button
+            key={label}
+            onClick={() => i < step && setStep(i)}
+            disabled={i >= step}
+            className={`flex-1 rounded-full h-1.5 transition-colors ${i <= step ? "bg-[#7C3AED]" : "bg-white/[0.08]"} ${i < step ? "cursor-pointer" : ""}`}
+            aria-label={`Step ${i + 1}: ${label}${i < step ? " (go back)" : ""}`}
+            title={`Step ${i + 1}: ${label}`}
+          />
+        ))}
+      </div>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#C4B5FD] mb-5">
+        Step {step + 1} of {STEPS.length} — {STEPS[step]}
+      </p>
+
       {/* consent notice */}
       <div className="rounded-xl bg-[#7C3AED]/[0.06] border border-[#7C3AED]/20 px-4 py-3 mb-6 flex gap-2.5">
         <ShieldCheck size={16} className="text-[#C4B5FD] shrink-0 mt-0.5" />
         <p className="text-[11px] text-[#94A3B8] leading-relaxed">
           Please only share photographs and personal information that your family permits.
-          Do not publish private addresses, phone numbers, or sensitive details. Memorials
-          are reviewed when reported, and managers can moderate every message.
+          Do not publish private addresses, phone numbers, or sensitive details. Every
+          memorial is reviewed by a Koino administrator before it becomes public, and
+          managers can moderate every message left on the page.
         </p>
       </div>
 
       <div className="space-y-5">
-        {/* photograph */}
-        <div>
-          <span className={labelCls}>Photograph</span>
-          <div className="flex items-center gap-4">
-            {form.photoUrl ? (
-              <div className="relative">
-                <Image src={form.photoUrl} alt="" width={72} height={72} className="w-[72px] h-[72px] rounded-full object-cover border border-white/10" unoptimized />
+        {/* ─── STEP 1: basic information ─── */}
+        {step === 0 && (
+          <>
+            <div>
+              <span className={labelCls}>Photograph (optional)</span>
+              <div className="flex items-center gap-4">
+                {form.photoUrl ? (
+                  <div className="relative">
+                    <Image src={form.photoUrl} alt="" width={72} height={72} className="w-[72px] h-[72px] rounded-full object-cover border border-white/10" unoptimized />
+                    <button
+                      onClick={() => set("photoUrl", "")}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
+                      aria-label="Remove photo"
+                    >
+                      <X size={10} className="text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-[72px] h-[72px] rounded-full bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center">
+                    <Flower2 size={24} className="text-[#475569]" />
+                  </div>
+                )}
                 <button
-                  onClick={() => set("photoUrl", "")}
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
-                  aria-label="Remove photo"
+                  onClick={() => photoInput.current?.click()}
+                  disabled={uploading !== null}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
                 >
-                  <X size={10} className="text-white" />
+                  {uploading === "photo" ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                  {uploading === "photo" ? "Uploading…" : form.photoUrl ? "Change photo" : "Add photo"}
+                </button>
+                <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => handlePhoto(e.target.files?.[0])} />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Full name of your loved one *</label>
+              <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} maxLength={120} placeholder="e.g. George Mathew Varghese" className={inputCls} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Date of birth (optional)</label>
+                <input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Date of passing (optional)</label>
+                <input type="date" value={form.dod} onChange={(e) => set("dod", e.target.value)} className={inputCls} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>State (optional)</label>
+                <select value={form.state} onChange={(e) => { set("state", e.target.value); set("city", ""); }} className={`${inputCls} [&>option]:bg-[#1C1929]`}>
+                  <option value="">—</option>
+                  {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>City (optional)</label>
+                <select value={form.city} onChange={(e) => set("city", e.target.value)} disabled={!form.state} className={`${inputCls} disabled:opacity-40 [&>option]:bg-[#1C1929]`}>
+                  <option value="">—</option>
+                  {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Short tribute for the memorial card *</label>
+              <textarea value={form.tribute} onChange={(e) => set("tribute", e.target.value)} rows={2} maxLength={500} placeholder="A sentence or two that captures their life — this is what people see first." className={`${inputCls} resize-none`} />
+            </div>
+          </>
+        )}
+
+        {/* ─── STEP 2: life story ─── */}
+        {step === 1 && (
+          <>
+            <div>
+              <label className={labelCls}>Biography & life story</label>
+              <textarea value={form.lifeStory} onChange={(e) => set("lifeStory", e.target.value)} rows={6} maxLength={20000} placeholder="Tell their story — where they were born, their family, their faith, the life they built." className={`${inputCls} resize-y`} />
+            </div>
+            <div>
+              <label className={labelCls}>Personal memories & achievements</label>
+              <textarea value={form.qualities} onChange={(e) => set("qualities", e.target.value)} rows={4} maxLength={10000} placeholder="What they loved, how they cared for people, the things they were proud of." className={`${inputCls} resize-y`} />
+            </div>
+            <div>
+              <label className={labelCls}>Family background & life milestones</label>
+              <textarea value={form.milestones} onChange={(e) => set("milestones", e.target.value)} rows={4} maxLength={10000} placeholder="Marriage, children, career, ministry, service to the community…" className={`${inputCls} resize-y`} />
+            </div>
+            <div className="grid grid-cols-[1fr_180px] gap-3">
+              <div>
+                <label className={labelCls}>Favourite Bible verse (optional)</label>
+                <textarea value={form.verse} onChange={(e) => set("verse", e.target.value)} rows={2} maxLength={500} placeholder="“I am the resurrection and the life…”" className={`${inputCls} resize-none`} />
+              </div>
+              <div>
+                <label className={labelCls}>Reference</label>
+                <input value={form.verseRef} onChange={(e) => set("verseRef", e.target.value)} maxLength={120} placeholder="John 11:25" className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Faith testimony or message of hope (optional)</label>
+              <textarea value={form.testimony} onChange={(e) => set("testimony", e.target.value)} rows={4} maxLength={10000} placeholder="What their faith meant to them — or a word of hope for everyone who visits." className={`${inputCls} resize-y`} />
+            </div>
+          </>
+        )}
+
+        {/* ─── STEP 3: photos & videos ─── */}
+        {step === 2 && (
+          <>
+            <div>
+              <span className={labelCls}>Photographs (up to 12)</span>
+              <div className="flex flex-wrap gap-2.5">
+                {form.gallery.map((g) => (
+                  <div key={g} className="relative">
+                    <Image src={g} alt="" width={64} height={64} className="w-16 h-16 rounded-xl object-cover border border-white/10" unoptimized />
+                    <button
+                      onClick={() => set("gallery", form.gallery.filter((x) => x !== g))}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
+                      aria-label="Remove photo"
+                    >
+                      <X size={10} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+                {form.gallery.length < 12 && (
+                  <button
+                    onClick={() => galleryInput.current?.click()}
+                    disabled={uploading !== null}
+                    className="w-16 h-16 rounded-xl bg-white/[0.03] border border-dashed border-white/15 flex items-center justify-center hover:border-[#7C3AED]/40 disabled:opacity-40"
+                    aria-label="Add photos"
+                  >
+                    {uploading === "gallery" ? <Loader2 size={16} className="animate-spin text-[#94A3B8]" /> : <ImagePlus size={16} className="text-[#64748B]" />}
+                  </button>
+                )}
+              </div>
+              <input ref={galleryInput} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => handleGallery(e.target.files)} />
+            </div>
+
+            <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+              <p className="text-xs font-bold text-white inline-flex items-center gap-1.5 mb-1">
+                <Film size={13} className="text-[#C4B5FD]" /> YouTube videos &amp; memories
+              </p>
+              <p className="text-[11px] text-[#64748B] mb-3 leading-relaxed">
+                Add links to YouTube videos of their life, testimony, funeral service, or family
+                memories. Videos play right here on Koino and stay pending until a Koino admin
+                approves them. Koino does not upload or own these videos.
+              </p>
+              <div className="space-y-2.5">
+                <input
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="YouTube link — youtube.com/watch?v=… , youtu.be/… , or Shorts"
+                  className={inputCls}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addVideo(); } }}
+                />
+                <div className="grid grid-cols-[1fr_150px] gap-2.5">
+                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder="Video title *" maxLength={150} className={inputCls} />
+                  <select value={videoCat} onChange={(e) => setVideoCat(e.target.value)} className={`${inputCls} [&>option]:bg-[#1C1929]`} aria-label="Video category">
+                    {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
+                </div>
+                <input value={videoDesc} onChange={(e) => setVideoDesc(e.target.value)} placeholder="Short description (optional)" maxLength={1000} className={inputCls} />
+                <button
+                  onClick={addVideo}
+                  disabled={!videoUrl.trim() || videoTitle.trim().length < 2}
+                  className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
+                >
+                  + Add video
                 </button>
               </div>
-            ) : (
-              <div className="w-[72px] h-[72px] rounded-full bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center">
-                <Flower2 size={24} className="text-[#475569]" />
+              {form.videos.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {form.videos.map((v, i) => (
+                    <li key={`${v.url}-${i}`} className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate">{v.title}</p>
+                        <p className="text-[10px] text-[#64748B] truncate">{v.url}</p>
+                      </div>
+                      <button
+                        onClick={() => set("videos", form.videos.filter((_, j) => j !== i))}
+                        className="text-[10px] font-bold text-[#64748B] hover:text-red-300 shrink-0"
+                        aria-label={`Remove video ${v.title}`}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ─── STEP 4: privacy & submission ─── */}
+        {step === 3 && (
+          <>
+            <div>
+              <span className={labelCls}>Who can visit this memorial?</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {([
+                  { id: "public", label: "Public", desc: "Anyone — listed in the directory & search engines" },
+                  { id: "unlisted", label: "Unlisted", desc: "Anyone with the link — hidden from search" },
+                  { id: "private", label: "Private", desc: "Only managers and Koino admins" },
+                ] as const).map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => set("visibility", v.id)}
+                    className={`text-left rounded-xl border px-3 py-2.5 transition-colors ${
+                      form.visibility === v.id
+                        ? "bg-[#7C3AED]/15 border-[#7C3AED]/50"
+                        : "bg-white/[0.03] border-white/[0.06] hover:border-white/15"
+                    }`}
+                  >
+                    <p className={`text-xs font-bold ${form.visibility === v.id ? "text-[#C4B5FD]" : "text-white"}`}>{v.label}</p>
+                    <p className="text-[10px] text-[#64748B] mt-0.5 leading-snug">{v.desc}</p>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Your name (shown as creator)</label>
+                <input value={displayName || username || ""} disabled className={`${inputCls} opacity-60`} />
+              </div>
+              <div>
+                <label className={labelCls}>Your relationship</label>
+                <input value={form.creatorRelation} onChange={(e) => set("creatorRelation", e.target.value)} maxLength={80} placeholder="e.g. Daughter, Church friend" className={inputCls} />
+              </div>
+            </div>
+
+            <label className="flex items-start gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-[#7C3AED] shrink-0"
+              />
+              <span className="text-[11px] text-[#94A3B8] leading-relaxed">
+                I confirm that I am authorised to create this memorial, that the information is
+                submitted respectfully, and that I have permission to publish the photographs and
+                personal details of the person remembered here. *
+              </span>
+            </label>
+
+            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3">
+              <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                <span className="font-bold text-white">Submitting for review:</span> a Koino
+                administrator will check the memorial before it appears publicly. You will be able
+                to follow its status from the memorial page, keep editing while it is in review,
+                and unpublish it at any time.
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* ─── navigation ─── */}
+        <div className="flex items-center gap-2.5 pt-2">
+          {step > 0 && (
             <button
-              onClick={() => photoInput.current?.click()}
-              disabled={uploading !== null}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
+              onClick={() => setStep((s) => s - 1)}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 px-4 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
             >
-              {uploading === "photo" ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-              {uploading === "photo" ? "Uploading…" : "Change photo"}
+              <ArrowLeft size={14} /> Back
             </button>
-            <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => handlePhoto(e.target.files?.[0])} />
-          </div>
-        </div>
-
-        {/* name + dates */}
-        <div>
-          <label className={labelCls}>Full name of your loved one *</label>
-          <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} maxLength={120} placeholder="e.g. George Mathew Varghese" className={inputCls} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Date of birth (if known)</label>
-            <input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Date of passing *</label>
-            <input type="date" value={form.dod} onChange={(e) => set("dod", e.target.value)} className={inputCls} />
-          </div>
-        </div>
-
-        {/* location */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>State (optional)</label>
-            <select value={form.state} onChange={(e) => { set("state", e.target.value); set("city", ""); }} className={`${inputCls} [&>option]:bg-[#1C1929]`}>
-              <option value="">—</option>
-              {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>City (optional)</label>
-            <select value={form.city} onChange={(e) => set("city", e.target.value)} disabled={!form.state} className={`${inputCls} disabled:opacity-40 [&>option]:bg-[#1C1929]`}>
-              <option value="">—</option>
-              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* tribute */}
-        <div>
-          <label className={labelCls}>Short tribute (shown on memorial cards) </label>
-          <textarea value={form.tribute} onChange={(e) => set("tribute", e.target.value)} rows={2} maxLength={500} placeholder="A sentence or two that captures their life." className={`${inputCls} resize-none`} />
-        </div>
-
-        {/* story sections */}
-        <div>
-          <label className={labelCls}>Life story / obituary</label>
-          <textarea value={form.lifeStory} onChange={(e) => set("lifeStory", e.target.value)} rows={6} maxLength={20000} placeholder="Tell their story — where they were born, their family, their faith, the life they built." className={`${inputCls} resize-y`} />
-        </div>
-        <div>
-          <label className={labelCls}>Family background & life milestones</label>
-          <textarea value={form.milestones} onChange={(e) => set("milestones", e.target.value)} rows={4} maxLength={10000} placeholder="Marriage, children, career, ministry, service to the community…" className={`${inputCls} resize-y`} />
-        </div>
-        <div>
-          <label className={labelCls}>Personal qualities, achievements & memories</label>
-          <textarea value={form.qualities} onChange={(e) => set("qualities", e.target.value)} rows={4} maxLength={10000} placeholder="What they loved, how they cared for people, the things they were proud of." className={`${inputCls} resize-y`} />
-        </div>
-
-        {/* verse */}
-        <div className="grid grid-cols-[1fr_180px] gap-3">
-          <div>
-            <label className={labelCls}>Bible verse or words of comfort (optional)</label>
-            <textarea value={form.verse} onChange={(e) => set("verse", e.target.value)} rows={2} maxLength={500} placeholder="“I am the resurrection and the life…”" className={`${inputCls} resize-none`} />
-          </div>
-          <div>
-            <label className={labelCls}>Reference</label>
-            <input value={form.verseRef} onChange={(e) => set("verseRef", e.target.value)} maxLength={120} placeholder="John 11:25" className={inputCls} />
-          </div>
-        </div>
-
-        {/* gallery */}
-        <div>
-          <span className={labelCls}>Additional photographs (up to 12)</span>
-          <div className="flex flex-wrap gap-2.5">
-            {form.gallery.map((g) => (
-              <div key={g} className="relative">
-                <Image src={g} alt="" width={64} height={64} className="w-16 h-16 rounded-xl object-cover border border-white/10" unoptimized />
-                <button
-                  onClick={() => set("gallery", form.gallery.filter((x) => x !== g))}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
-                  aria-label="Remove photo"
-                >
-                  <X size={10} className="text-white" />
-                </button>
-              </div>
-            ))}
-            {form.gallery.length < 12 && (
-              <button
-                onClick={() => galleryInput.current?.click()}
-                disabled={uploading !== null}
-                className="w-16 h-16 rounded-xl bg-white/[0.03] border border-dashed border-white/15 flex items-center justify-center hover:border-[#7C3AED]/40 disabled:opacity-40"
-                aria-label="Add photos"
-              >
-                {uploading === "gallery" ? <Loader2 size={16} className="animate-spin text-[#94A3B8]" /> : <ImagePlus size={16} className="text-[#64748B]" />}
-              </button>
-            )}
-          </div>
-          <input ref={galleryInput} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => handleGallery(e.target.files)} />
-        </div>
-
-        {/* creator */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Your name (shown as creator)</label>
-            <input value={displayName || username || ""} disabled className={`${inputCls} opacity-60`} />
-          </div>
-          <div>
-            <label className={labelCls}>Your relationship</label>
-            <input value={form.creatorRelation} onChange={(e) => set("creatorRelation", e.target.value)} maxLength={80} placeholder="e.g. Daughter, Church friend" className={inputCls} />
-          </div>
-        </div>
-
-        {/* visibility */}
-        <div>
-          <span className={labelCls}>Who can visit this memorial?</span>
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              { id: "public", label: "Public", desc: "Anyone — listed in the directory & search engines" },
-              { id: "unlisted", label: "Unlisted", desc: "Anyone with the link — hidden from search" },
-              { id: "private", label: "Private", desc: "Only managers and Koino admins" },
-            ] as const).map((v) => (
-              <button
-                key={v.id}
-                onClick={() => set("visibility", v.id)}
-                className={`text-left rounded-xl border px-3 py-2.5 transition-colors ${
-                  form.visibility === v.id
-                    ? "bg-[#7C3AED]/15 border-[#7C3AED]/50"
-                    : "bg-white/[0.03] border-white/[0.06] hover:border-white/15"
-                }`}
-              >
-                <p className={`text-xs font-bold ${form.visibility === v.id ? "text-[#C4B5FD]" : "text-white"}`}>{v.label}</p>
-                <p className="text-[10px] text-[#64748B] mt-0.5 leading-snug">{v.desc}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* actions */}
-        <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-          <button
-            onClick={() => save("published")}
-            disabled={busy || form.fullName.trim().length < 2 || !form.dod}
-            className="flex-1 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
-          >
-            {busy ? "Saving…" : mode === "create" ? "Publish memorial" : "Save & publish"}
-          </button>
+          )}
+          {step < STEPS.length - 1 ? (
+            <button
+              onClick={next}
+              disabled={busy}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
+            >
+              Continue <ArrowRight size={14} />
+            </button>
+          ) : (
+            <button
+              onClick={() => save("pending")}
+              disabled={busy || !canSubmit}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
+            >
+              {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {busy ? "Submitting…" : "Submit for review"}
+            </button>
+          )}
           <button
             onClick={() => save("draft")}
-            disabled={busy || form.fullName.trim().length < 2 || !form.dod}
-            className="flex-1 px-5 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/10 disabled:opacity-40"
+            disabled={busy || form.fullName.trim().length < 2}
+            className="inline-flex items-center px-4 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
+            title="Save as draft — continue later"
           >
-            {busy ? "Saving…" : mode === "create" ? "Save as draft" : "Save as draft"}
+            {busy ? "Saving…" : "Save draft"}
           </button>
         </div>
         <p className="text-[11px] text-[#64748B] text-center">
-          Drafts are private to the memorial managers until you publish.
+          Drafts are private to the memorial managers until you submit them for review.
         </p>
       </div>
     </div>

@@ -6,11 +6,12 @@ import { canView, memorialRole } from "@/lib/memorials";
 import type { Prisma } from "@prisma/client";
 
 /**
- * GET  /api/memorials/[id]/condolences — list visible condolences/memories.
- *      Anyone who can view the memorial can read; hidden ones only for
- *      managers/admins. Cursor pagination (?cursor=<iso>).
- * POST /api/memorials/[id]/condolences — leave a condolence or memory.
- *      Body: { body, kind: "condolence" | "memory" } — authentication required.
+ * GET  /api/memorials/[id]/condolences — list visible condolences/memories
+ *      (top-level, newest first, with their replies, heart counts and whether
+ *      the viewer liked each). Anyone who can view the memorial can read;
+ *      hidden ones only for managers/admins. Cursor pagination (?cursor=<iso>).
+ * POST /api/memorials/[id]/condolences — leave a condolence, memory, or a
+ *      reply to one ({ parentId }). Authentication required.
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const take = 50;
     const condolenceWhere: Prisma.MemorialCondolenceWhereInput = {
       memorialId: id,
+      parentId: null,
       ...(role || isAdmin ? {} : { hidden: false }),
     };
     // Keyset pagination — createdAt is not unique, so filter lt the cursor.
@@ -42,14 +44,50 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: condolenceWhere,
       orderBy: { createdAt: "desc" },
       take,
-      select: {
-        id: true, authorId: true, authorName: true, kind: true,
-        body: true, hidden: true, createdAt: true,
+      include: {
+        replies: {
+          orderBy: { createdAt: "asc" },
+          ...(role || isAdmin ? {} : { where: { hidden: false } }),
+          select: {
+            id: true, authorId: true, authorName: true, kind: true,
+            body: true, hidden: true, parentId: true, createdAt: true,
+          },
+        },
       },
     });
+    const ids = rows.map((c) => c.id);
+    const [hearts, myHearts] = ids.length
+      ? await Promise.all([
+          db.memorialCondolenceHeart.groupBy({
+            by: ["condolenceId"],
+            where: { condolenceId: { in: ids } },
+            _count: { id: true },
+          }),
+          viewer ? db.memorialCondolenceHeart.findMany({
+            where: { condolenceId: { in: ids }, userId: viewer.id },
+            select: { condolenceId: true },
+          }) : Promise.resolve([]),
+        ])
+      : [[], []];
+    const heartMap = new Map(hearts.map((h) => [h.condolenceId, h._count.id]));
+    const myHeartSet = new Set(myHearts.map((h) => h.condolenceId));
+
+    const withHearts = (c: {
+      id: string; authorId: string; authorName: string; kind: string;
+      body: string; hidden: boolean; parentId: string | null; createdAt: Date;
+    }) => ({
+      id: c.id, authorId: c.authorId, authorName: c.authorName, kind: c.kind,
+      body: c.body, hidden: c.hidden, parentId: c.parentId, createdAt: c.createdAt,
+      heartCount: heartMap.get(c.id) || 0,
+      likedByViewer: myHeartSet.has(c.id),
+    });
+
     const hasMore = rows.length === take;
     return Response.json({
-      condolences: rows,
+      condolences: rows.map((c) => ({
+        ...withHearts(c),
+        replies: c.replies.map(withHearts),
+      })),
       nextCursor: hasMore ? rows[rows.length - 1].createdAt.toISOString() : null,
     });
   } catch (err: unknown) {
@@ -81,6 +119,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (text.length < 2) return jsonError("Please write a short message first");
   const kind = body.kind === "memory" ? "memory" : "condolence";
 
+  // Replies: only 1 level — a reply must reference a top-level message on
+  // the same memorial.
+  let parentId: string | null = null;
+  if (typeof body.parentId === "string" && body.parentId.trim()) {
+    const parent = await db.memorialCondolence.findUnique({
+      where: { id: body.parentId.trim() },
+      select: { memorialId: true, parentId: true, hidden: true },
+    });
+    if (!parent || parent.memorialId !== id) return jsonError("The message you replied to was not found", 404);
+    if (parent.parentId) return jsonError("Replies to replies are not supported — reply to the original message", 400);
+    parentId = body.parentId.trim();
+  }
+
   try {
     const m = await db.memorial.findUnique({
       where: { id },
@@ -101,10 +152,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         memorialId: id,
         authorId: me.id,
         authorName: author?.name || author?.username || "A friend",
-        kind,
+        kind: parentId ? "condolence" : kind,
         body: text,
+        parentId,
       },
-      select: { id: true, createdAt: true },
+      select: { id: true, parentId: true, createdAt: true },
     });
     return Response.json({ success: true, condolence }, { status: 201 });
   } catch (err: unknown) {

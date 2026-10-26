@@ -9,7 +9,7 @@ import type { Prisma } from "@prisma/client";
  *
  * GET  /api/memorials — public directory. Only status="published" AND
  *      visibility="public" memorials are listed (unlisted/private are NEVER
- *      exposed here). Supports:
+ *      exposed here; pending/rejected/draft are manager-only). Supports:
  *        ?q=<name substring>     search by the person's name
  *        ?state=<state>          browse by state
  *        ?city=<city>            browse by city
@@ -19,9 +19,11 @@ import type { Prisma } from "@prisma/client";
  * POST /api/memorials — create a memorial (authentication required).
  *      Body: { fullName, photoUrl?, gallery?, dob?, dod?, city?, state?,
  *              tribute?, lifeStory?, milestones?, qualities?, verse?,
- *              verseRef?, creatorRelation, visibility?, status? }
- *      status "draft" saves without publishing; "published" goes live.
- *      The creator becomes the memorial's first manager (role "owner").
+ *              verseRef?, testimony?, creatorRelation, visibility?, status? }
+ *      status "draft" saves without submitting; "pending" submits it for
+ *      admin review (requires the name + a short tribute for the card).
+ *      Dates of birth/passing are optional. The creator becomes the
+ *      memorial's first manager (role "owner").
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -59,7 +61,12 @@ export async function GET(req: NextRequest) {
         publishedAt: true,
         createdAt: true,
         creatorName: true,
-        _count: { select: { condolences: { where: { hidden: false } } } },
+        _count: {
+          select: {
+            condolences: { where: { hidden: false } },
+            candles: true,
+          },
+        },
       },
     });
     const hasMore = rows.length === take;
@@ -75,6 +82,7 @@ export async function GET(req: NextRequest) {
         tribute: m.tribute,
         creatorName: m.creatorName,
         condolenceCount: m._count.condolences,
+        candleCount: m._count.candles,
       })),
       nextCursor: hasMore ? rows[rows.length - 1].createdAt.toISOString() : null,
     });
@@ -130,10 +138,9 @@ export async function POST(req: NextRequest) {
     return Number.isNaN(d.getTime()) ? null : d;
   };
 
-  const dod = date("dod");
-  if (!dod) return jsonError("Date of passing is required");
+  const dod = date("dod"); // optional per the memorial form spec
   const dob = date("dob");
-  if (dob && dob > dod) return jsonError("Date of birth cannot be after the date of passing");
+  if (dob && dod && dob > dod) return jsonError("Date of birth cannot be after the date of passing");
 
   const photoUrl = str("photoUrl", 600);
   let gallery: string[] = [];
@@ -152,6 +159,13 @@ export async function POST(req: NextRequest) {
   const milestones = str("milestones", 10000);
   const qualities = str("qualities", 10000);
   const tribute = str("tribute", 500);
+  const testimony = str("testimony", 10000);
+
+  const status = body.status === "pending" ? "pending" : "draft";
+  // Submitting for review requires the directory-card fields.
+  if (status === "pending") {
+    if (!tribute) return jsonError("Please write a short tribute for the memorial card before submitting");
+  }
 
   // Privacy guard: refuse obvious phone numbers in free-text fields.
   for (const [label, text] of [
@@ -171,7 +185,6 @@ export async function POST(req: NextRequest) {
   const visibility = ["public", "unlisted", "private"].includes(String(body.visibility))
     ? String(body.visibility)
     : "public";
-  const status = body.status === "published" ? "published" : "draft";
 
   try {
     const memorial = await db.$transaction(async (tx) => {
@@ -190,12 +203,13 @@ export async function POST(req: NextRequest) {
           qualities,
           verse: str("verse", 500),
           verseRef: str("verseRef", 120),
+          testimony,
           visibility,
           status,
           creatorId: me.id,
           creatorName: str("creatorName", 80) || "A family member",
           creatorRelation,
-          publishedAt: status === "published" ? new Date() : null,
+          publishedAt: null,
         },
         select: { id: true, status: true },
       });

@@ -129,6 +129,8 @@ model User {
   memorialsCreated    Memorial[]           @relation("MemorialCreator")
   memorialManagerships MemorialManager[]   @relation("MemorialManagerUser")
   condolencesWritten  MemorialCondolence[] @relation("MemorialCondolenceAuthor")
+  memorialHeartsGiven MemorialCondolenceHeart[] @relation("MemorialCondolenceHeartUser")
+  memorialCandlesLit  MemorialCandle[]          @relation("MemorialCandleUser")
 
   // Bible Movies & Video Library (Part 5)
   videoProgress VideoProgress[] @relation("VideoProgressUser")
@@ -1603,8 +1605,12 @@ model Memorial {
   qualities       String?   // personal qualities, achievements, memories
   verse           String?   // Bible verse or words of comfort
   verseRef        String?   // e.g. "John 14:1-3" or "Psalm 23"
+  testimony       String?   // faith testimony / message of hope (optional)
+  display         String    @default("{\"photos\":true,\"videos\":true,\"tributes\":true,\"verse\":true,\"family\":true,\"candles\":true}") // JSON section-visibility toggles chosen by the family
   visibility      String    @default("public")
-  status          String    @default("draft")
+  status          String    @default("draft") // draft | pending | published | rejected | unpublished
+  rejectionReason String?   // admin-facing reason when status="rejected" (shown to managers)
+  moderatedAt     DateTime? // last admin moderation action
   creatorId       String
   creatorName     String    // display snapshot at creation time
   creatorRelation String    // e.g. "Son", "Church friend"
@@ -1615,6 +1621,8 @@ model Memorial {
   creator     User                 @relation("MemorialCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   managers    MemorialManager[]
   condolences MemorialCondolence[]
+  candles     MemorialCandle[]
+  videos      MemorialVideo[]
   posts       Post[]
 
   @@index([status, visibility, createdAt])
@@ -1640,6 +1648,7 @@ model MemorialManager {
 
 // Condolence message or personal memory/tribute left on a memorial.
 // hidden: moderation flag set by managers or admins (message body is kept).
+// parentId: optional 1-level reply to another top-level condolence.
 model MemorialCondolence {
   id         String   @id @default(cuid())
   memorialId String
@@ -1648,12 +1657,71 @@ model MemorialCondolence {
   kind       String   @default("condolence") // "condolence" | "memory"
   body       String
   hidden     Boolean  @default(false)
+  parentId   String?
   createdAt  DateTime @default(now())
 
   memorial Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
   author   User     @relation("MemorialCondolenceAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parent   MemorialCondolence?  @relation("CondolenceThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  MemorialCondolence[] @relation("CondolenceThread")
+  hearts   MemorialCondolenceHeart[]
 
   @@index([memorialId, createdAt])
+  @@index([parentId])
+}
+
+// One ❤ per member per tribute — DB-enforced so counts stay genuine.
+model MemorialCondolenceHeart {
+  id          String   @id @default(cuid())
+  condolenceId String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  condolence MemorialCondolence @relation(fields: [condolenceId], references: [id], onDelete: Cascade)
+  user       User               @relation("MemorialCondolenceHeartUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([condolenceId, userId])
+  @@index([condolenceId])
+}
+
+// A symbolic candle lit by a signed-in member. One per member per memorial
+// (DB-enforced) so the displayed count is always genuine.
+model MemorialCandle {
+  id         String   @id @default(cuid())
+  memorialId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  memorial Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  user     User     @relation("MemorialCandleUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([memorialId, userId])
+  @@index([memorialId])
+}
+
+// YouTube video linked to a memorial (external embed only — never rehosted).
+// Videos stay "pending" until an admin approves them; pending/rejected videos
+// are never exposed through public pages or APIs.
+model MemorialVideo {
+  id              String   @id @default(cuid())
+  memorialId      String
+  videoId         String   // YouTube video id (11 chars, extracted server-side)
+  url             String   // originally submitted URL (audit trail)
+  title           String
+  description     String?
+  category        String   @default("other") // life_story|testimony|funeral|family|worship|other
+  status          String   @default("pending") // pending | approved | rejected
+  rejectionReason String?
+  addedById       String
+  addedByName     String   // display snapshot
+  moderatedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memorial Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+
+  @@index([memorialId, status])
+  @@index([status, createdAt])
 }
 
 // ─── PART 5: BIBLE MOVIES & VIDEO LIBRARY ──────────────────────────────────

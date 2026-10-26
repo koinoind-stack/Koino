@@ -1,17 +1,20 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, jsonError } from "@/lib/social/server";
-import { canView, containsPhoneNumber, memorialRole, parseGallery } from "@/lib/memorials";
+import { canView, containsPhoneNumber, memorialRole, parseDisplay, parseGallery, serializeDisplay } from "@/lib/memorials";
 
 /**
  * GET /api/memorials/[id] — one memorial, auth-aware.
  *   public/unlisted + published → anyone with the link
- *   private / draft / unpublished → managers and admins only (404 otherwise,
- *   so we never leak the existence of a restricted memorial).
- * Response includes the viewer's management role, the manager list, and
- * condolences (hidden ones only for managers/admins).
+ *   private / draft / pending / rejected / unpublished → managers and admins
+ *   only (404 otherwise, so we never leak the existence of a restricted
+ *   memorial). Response includes the viewer's management role, the manager
+ *   list, candles (genuine count), and videos (approved only for the public;
+ *   all statuses for managers/admins).
  *
  * PATCH  /api/memorials/[id] — managers/owner edit memorial details.
+ *        Managers may set status draft|pending|unpublished. Publishing is an
+ *        ADMIN action (approve) — the family submits for review instead.
  * DELETE /api/memorials/[id] — owner or admin deletes the memorial.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -26,8 +29,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         id: true, fullName: true, photoUrl: true, gallery: true,
         dob: true, dod: true, city: true, state: true,
         tribute: true, lifeStory: true, milestones: true, qualities: true,
-        verse: true, verseRef: true,
-        visibility: true, status: true,
+        verse: true, verseRef: true, testimony: true, display: true,
+        visibility: true, status: true, rejectionReason: true,
         creatorId: true, creatorName: true, creatorRelation: true,
         createdAt: true, publishedAt: true,
         managers: {
@@ -36,6 +39,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
             user: { select: { id: true, name: true, username: true, image: true } },
           },
         },
+        _count: { select: { candles: true } },
       },
     });
     if (!m) return jsonError("Memorial not found", 404);
@@ -44,15 +48,50 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const isAdmin = viewer?.role === "admin";
     if (!canView(m, role, isAdmin)) return jsonError("Memorial not found", 404);
 
+    const showAllVideos = !!role || isAdmin;
+    const [videos, candles, lit] = await Promise.all([
+      db.memorialVideo.findMany({
+        where: { memorialId: id, ...(showAllVideos ? {} : { status: "approved" }) },
+        orderBy: { createdAt: "desc" },
+        take: 60,
+        select: {
+          id: true, videoId: true, title: true, description: true,
+          category: true, status: true, rejectionReason: true,
+          addedByName: true, createdAt: true,
+        },
+      }),
+      db.memorialCandle.count({ where: { memorialId: id } }),
+      viewer ? db.memorialCandle.findUnique({
+        where: { memorialId_userId: { memorialId: id, userId: viewer.id } },
+        select: { id: true },
+      }) : Promise.resolve(null),
+    ]);
+
     const condolences = await db.memorialCondolence.findMany({
       where: { memorialId: id, ...(role || isAdmin ? {} : { hidden: false }) },
       orderBy: { createdAt: "desc" },
       take: 100,
       select: {
         id: true, authorId: true, authorName: true, kind: true,
-        body: true, hidden: true, createdAt: true,
+        body: true, hidden: true, parentId: true, createdAt: true,
       },
     });
+    const condolenceIds = condolences.map((c) => c.id);
+    const [hearts, myHearts] = condolenceIds.length
+      ? await Promise.all([
+          db.memorialCondolenceHeart.groupBy({
+            by: ["condolenceId"],
+            where: { condolenceId: { in: condolenceIds } },
+            _count: { id: true },
+          }),
+          viewer ? db.memorialCondolenceHeart.findMany({
+            where: { condolenceId: { in: condolenceIds }, userId: viewer.id },
+            select: { condolenceId: true },
+          }) : Promise.resolve([]),
+        ])
+      : [[], []];
+    const heartMap = new Map(hearts.map((h) => [h.condolenceId, h._count.id]));
+    const myHeartSet = new Set(myHearts.map((h) => h.condolenceId));
 
     return Response.json({
       memorial: {
@@ -70,8 +109,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         qualities: m.qualities,
         verse: m.verse,
         verseRef: m.verseRef,
+        testimony: m.testimony,
+        display: parseDisplay(m.display),
         visibility: m.visibility,
         status: m.status,
+        rejectionReason: m.rejectionReason,
         creatorName: m.creatorName,
         creatorRelation: m.creatorRelation,
         createdAt: m.createdAt,
@@ -85,7 +127,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         image: mm.user.image,
         role: mm.role,
       })),
-      condolences,
+      candleCount: candles,
+      viewerLitCandle: !!lit,
+      videos: videos.map((v) => ({ ...v, url: undefined })),
+      condolences: condolences.map((c) => ({
+        ...c,
+        heartCount: heartMap.get(c.id) || 0,
+        likedByViewer: myHeartSet.has(c.id),
+      })),
     });
   } catch (err: unknown) {
     const code = (err as { code?: string })?.code;
@@ -129,7 +178,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   for (const [key, max] of [
     ["photoUrl", 600], ["city", 80], ["state", 80], ["tribute", 500],
     ["lifeStory", 20000], ["milestones", 10000], ["qualities", 10000],
-    ["verse", 500], ["verseRef", 120], ["creatorRelation", 80],
+    ["verse", 500], ["verseRef", 120], ["testimony", 10000], ["creatorRelation", 80],
   ] as const) {
     const v = str(key, max);
     if (v !== undefined) data[key] = v;
@@ -163,6 +212,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data.gallery = JSON.stringify(gallery);
   }
 
+  if ("display" in body) {
+    const d = serializeDisplay(body.display);
+    if (!d) return jsonError("Invalid display settings");
+    data.display = JSON.stringify(d);
+  }
+
   if ("visibility" in body) {
     const v = String(body.visibility);
     if (!["public", "unlisted", "private"].includes(v)) return jsonError("Invalid visibility");
@@ -171,14 +226,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if ("status" in body) {
     const s = String(body.status);
-    // Managers may draft / publish / unpublish. Deleting is a separate route.
-    if (!["draft", "published", "unpublished"].includes(s)) return jsonError("Invalid status");
+    // Managers may save drafts, submit for review, or unpublish a live
+    // memorial. PUBLISHING is an admin action — submissions go through
+    // admin review (status "pending" → admin approve/reject).
+    if (!["draft", "pending", "unpublished"].includes(s)) {
+      return jsonError("Invalid status — publishing requires Koino admin approval");
+    }
+    if (s === "pending") {
+      const cur = await db.memorial.findUnique({
+        where: { id },
+        select: { tribute: true, fullName: true },
+      });
+      if (!cur) return jsonError("Memorial not found", 404);
+      const tribute = typeof data.tribute === "string" ? data.tribute : cur.tribute;
+      if (!tribute) {
+        return jsonError("Please write a short tribute for the memorial card before submitting");
+      }
+      data.rejectionReason = null; // resubmission clears a past rejection
+    }
     data.status = s;
-    if (s === "published") data.publishedAt = new Date();
+    data.moderatedAt = new Date();
   }
 
   // Privacy guard on every free-text field being written.
-  for (const key of ["tribute", "lifeStory", "milestones", "qualities"] as const) {
+  for (const key of ["tribute", "lifeStory", "milestones", "qualities", "testimony"] as const) {
     const v = data[key];
     if (typeof v === "string" && v && containsPhoneNumber(v)) {
       return jsonError(

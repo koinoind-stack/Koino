@@ -10,8 +10,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Flower2, Search, MapPin, MessageCircle, ArrowLeft } from "lucide-react";
+import { Flower2, Search, MapPin, MessageCircle, ArrowLeft, Flame, Clock } from "lucide-react";
 import { INDIAN_STATES, INDIAN_CITIES_BY_STATE } from "@/lib/crosscrafted-data";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
 
 type MemorialCard = {
   id: string;
@@ -24,6 +25,17 @@ type MemorialCard = {
   tribute: string | null;
   creatorName: string;
   condolenceCount: number;
+  candleCount: number;
+};
+
+type MyMemorial = {
+  id: string;
+  fullName: string;
+  photoUrl: string | null;
+  status: string;
+  visibility: string;
+  rejectionReason: string | null;
+  updatedAt: string;
 };
 
 const yr = (iso: string | null): string => (iso ? String(new Date(iso).getFullYear()) : "");
@@ -37,12 +49,14 @@ function lifespan(m: MemorialCard): string {
 }
 
 export default function MemorialsDirectory() {
+  const { isAuthenticated } = useSupabaseUser();
   const [q, setQ] = useState("");
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [items, setItems] = useState<MemorialCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  const [mine, setMine] = useState<MyMemorial[]>([]);
   const nextCursor = useRef<string | null>(null);
 
   const load = useCallback(
@@ -74,6 +88,15 @@ export default function MemorialsDirectory() {
     return () => clearTimeout(t);
   }, [load, q]);
 
+  // Signed-in members: recover drafts and follow review outcomes.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/memorials/mine", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { memorials: [] }))
+      .then((b) => setMine(b.memorials || []))
+      .catch(() => {});
+  }, [isAuthenticated]);
+
   const cities = state ? INDIAN_CITIES_BY_STATE[state] || [] : [];
 
   return (
@@ -85,10 +108,48 @@ export default function MemorialsDirectory() {
         </div>
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">In Loving Memory</h1>
         <p className="text-sm text-[#94A3B8] mt-2 max-w-md mx-auto leading-relaxed">
-          A lasting place to remember, honour, and celebrate the lives of loved ones —
-          their stories, their faith, and the memories they left behind.
+          Remembering lives, celebrating faith, keeping their stories alive.
         </p>
+        <Link
+          href="/memorials/new"
+          className="inline-flex items-center gap-2 px-6 py-3 mt-5 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] shadow-lg shadow-[#7C3AED]/20"
+        >
+          <Flower2 size={15} /> Create a Memorial
+        </Link>
       </div>
+
+      {/* ─── your memorials (drafts / in review / rejected) ─── */}
+      {isAuthenticated && mine.length > 0 && (
+        <div className="mb-7">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">Your memorials</h2>
+          <ul className="space-y-2">
+            {mine.map((mm) => (
+              <li key={mm.id}>
+                <Link
+                  href={`/memorials/${mm.id}`}
+                  className="flex items-center gap-3 rounded-2xl bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/30 transition-colors px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white truncate">{mm.fullName}</p>
+                    <p className="text-[10px] text-[#64748B] mt-0.5 flex items-center gap-1">
+                      <Clock size={9} /> updated {new Date(mm.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ${
+                    mm.status === "published" ? "bg-emerald-500/15 text-emerald-300"
+                    : mm.status === "pending" ? "bg-sky-500/15 text-sky-300"
+                    : mm.status === "rejected" ? "bg-red-500/15 text-red-300"
+                    : mm.status === "draft" ? "bg-amber-500/15 text-amber-300"
+                    : "bg-white/[0.06] text-[#94A3B8]"
+                  }`}>
+                    {mm.status}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ─── search + location browse ─── */}
       <div className="space-y-2.5 mb-6">
@@ -151,7 +212,7 @@ export default function MemorialsDirectory() {
           <p className="text-[#64748B] text-xs mb-6 max-w-xs mx-auto leading-relaxed">
             {q || state || city
               ? "Try a different name or location."
-              : "When a loved one passes away, family and friends can create a memorial here to honour their life."}
+              : "Their love remains. Their stories live on — when a loved one passes away, family and friends can create a memorial here to honour their life."}
           </p>
           <Link
             href="/memorials/new"
@@ -199,8 +260,13 @@ export default function MemorialsDirectory() {
                 )}
                 <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.04]">
                   <span className="text-[10px] text-[#64748B]">Remembered by {m.creatorName}</span>
-                  <span className="text-[10px] font-bold text-[#64748B] inline-flex items-center gap-1">
-                    <MessageCircle size={10} /> {m.condolenceCount}
+                  <span className="text-[10px] font-bold text-[#64748B] inline-flex items-center gap-2.5">
+                    <span className="inline-flex items-center gap-1" aria-label={`${m.candleCount} candles lit`}>
+                      <Flame size={10} className={m.candleCount > 0 ? "text-amber-300/80" : ""} /> {m.candleCount}
+                    </span>
+                    <span className="inline-flex items-center gap-1" aria-label={`${m.condolenceCount} tributes`}>
+                      <MessageCircle size={10} /> {m.condolenceCount}
+                    </span>
                   </span>
                 </div>
               </Link>

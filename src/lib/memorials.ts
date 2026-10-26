@@ -17,6 +17,39 @@ export async function memorialRole(memorialId: string, userId: string | null | u
   return (row?.role as MemorialRole) ?? null;
 }
 
+/** Family-chosen section visibility. Unknown keys / bad JSON → all shown. */
+const DISPLAY_KEYS = ["photos", "videos", "tributes", "verse", "family", "candles"] as const;
+export type MemorialDisplay = Record<(typeof DISPLAY_KEYS)[number], boolean>;
+
+export function parseDisplay(json: string | null | undefined): MemorialDisplay {
+  const out = { photos: true, videos: true, tributes: true, verse: true, family: true, candles: true };
+  try {
+    const parsed = JSON.parse(json || "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      for (const key of DISPLAY_KEYS) {
+        if (typeof parsed[key] === "boolean") out[key] = parsed[key];
+      }
+    }
+  } catch {
+    // default: everything visible
+  }
+  return out;
+}
+
+export function serializeDisplay(body: unknown): MemorialDisplay | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const out = { photos: true, videos: true, tributes: true, verse: true, family: true, candles: true };
+  let touched = false;
+  for (const key of DISPLAY_KEYS) {
+    const v = (body as Record<string, unknown>)[key];
+    if (typeof v === "boolean") {
+      out[key] = v;
+      touched = true;
+    }
+  }
+  return touched ? out : null;
+}
+
 /** Parse the gallery JSON column (Post.mediaUrls convention). */
 export function parseGallery(json: string | null | undefined): string[] {
   try {

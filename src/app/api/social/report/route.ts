@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
 
   const targetType = String(body.targetType || "");
   const targetId = String(body.targetId || "");
-  const validTargets = ["post", "comment", "user", "story", "memorial", "video"];
+  const validTargets = [
+    "post", "comment", "user", "story", "memorial", "video",
+    "memorial_condolence", "memorial_video",
+  ];
   if (!validTargets.includes(targetType)) return jsonError("Invalid target type");
   if (!targetId) return jsonError("targetId is required");
 
@@ -51,6 +54,12 @@ export async function POST(req: NextRequest) {
       if (!found) return jsonError("Memorial not found", 404);
     } else if (targetType === "video") {
       const found = await db.video.findUnique({ where: { id: targetId }, select: { id: true } });
+      if (!found) return jsonError("Video not found", 404);
+    } else if (targetType === "memorial_condolence") {
+      const found = await db.memorialCondolence.findUnique({ where: { id: targetId }, select: { id: true } });
+      if (!found) return jsonError("Message not found", 404);
+    } else if (targetType === "memorial_video") {
+      const found = await db.memorialVideo.findUnique({ where: { id: targetId }, select: { id: true } });
       if (!found) return jsonError("Video not found", 404);
     }
   } catch {
