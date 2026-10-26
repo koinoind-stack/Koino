@@ -23,13 +23,52 @@ export async function GET() {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const competitions = await db.triviaCompetition.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        prize: true,
-        _count: { select: { attempts: true, winners: true } },
-      },
-    });
+    // hostGroup ships with migration 20261026000000 — degrade gracefully
+    // while the column is missing (P2022) instead of failing the admin list.
+    // NOTE: the fallback needs an explicit select — Prisma selects every
+    // scalar of the schema for include-only queries, so omitting hostGroup
+    // from the include is not enough while the column is missing.
+    let competitions;
+    try {
+      competitions = await db.triviaCompetition.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          prize: true,
+          hostGroup: { select: { id: true, name: true } },
+          _count: { select: { attempts: true, winners: true } },
+        },
+      });
+    } catch (e: any) {
+      const missing =
+        e?.code === "P2021" || e?.code === "P2022" || /hostGroupId does not exist/i.test(e?.message || "");
+      if (!missing) throw e;
+      competitions = await db.triviaCompetition.findMany({
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          imageUrl: true,
+          type: true,
+          category: true,
+          difficulty: true,
+          questionCount: true,
+          attemptLimit: true,
+          winnerCount: true,
+          rules: true,
+          status: true,
+          startAt: true,
+          endAt: true,
+          claimDeadlineDays: true,
+          prizeId: true,
+          createdById: true,
+          createdAt: true,
+          updatedAt: true,
+          prize: true,
+          _count: { select: { attempts: true, winners: true } },
+        },
+      });
+    }
 
     return NextResponse.json({ competitions });
   } catch (error: any) {

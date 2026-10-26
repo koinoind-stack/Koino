@@ -4,6 +4,42 @@ import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 
 /**
+ * The hostGroup column ships with migration 20261026000000. Until that is
+ * applied to the database, Prisma fails every query that touches it — and
+ * note findMany/include WITHOUT an explicit select also fails, because
+ * Prisma selects every scalar column of the schema. So the migration-window
+ * fallbacks must use an explicit select that omits hostGroupId entirely.
+ */
+function isMissingHostSchema(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  return e?.code === "P2021" || e?.code === "P2022" || /hostGroupId does not exist/i.test(e?.message || "");
+}
+
+// Every scalar of TriviaCompetition EXCEPT hostGroupId (+ prize relation).
+const COMPETITION_SELECT_WITHOUT_HOST = {
+  id: true,
+  title: true,
+  description: true,
+  imageUrl: true,
+  type: true,
+  category: true,
+  difficulty: true,
+  questionCount: true,
+  attemptLimit: true,
+  winnerCount: true,
+  rules: true,
+  status: true,
+  startAt: true,
+  endAt: true,
+  claimDeadlineDays: true,
+  prizeId: true,
+  createdById: true,
+  createdAt: true,
+  updatedAt: true,
+  prize: true,
+} as const;
+
+/**
  * GET /api/trivia/competitions
  *   ?mine=1  → the caller's hosted competitions (any status, incl. pending /
  *              cancelled) instead of the public board.
@@ -30,20 +66,35 @@ export async function GET(req: NextRequest) {
         where: { userId: user.id, status: "active" },
         select: { groupId: true },
       });
-      const rows = await db.triviaCompetition.findMany({
-        where: {
-          OR: [
-            { createdById: user.id },
-            { hostGroupId: { in: myGroups.map((m) => m.groupId) } },
-          ],
-        },
-        orderBy: { createdAt: "desc" },
-        include: {
-          prize: { select: { id: true, name: true, imageUrl: true } },
-          hostGroup: { select: { id: true, name: true } },
-          _count: { select: { attempts: true } },
-        },
-      });
+      let rows: any[] = [];
+      try {
+        rows = await db.triviaCompetition.findMany({
+          where: {
+            OR: [
+              { createdById: user.id },
+              { hostGroupId: { in: myGroups.map((m) => m.groupId) } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          include: {
+            prize: { select: { id: true, name: true, imageUrl: true } },
+            hostGroup: { select: { id: true, name: true } },
+            _count: { select: { attempts: true } },
+          },
+        });
+      } catch (e) {
+        if (!isMissingHostSchema(e)) throw e;
+        // Migration window: fall back to created-by matches, no host info.
+        rows = await db.triviaCompetition.findMany({
+          where: { createdById: user.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            ...COMPETITION_SELECT_WITHOUT_HOST,
+            prize: { select: { id: true, name: true, imageUrl: true } },
+            _count: { select: { attempts: true } },
+          },
+        });
+      }
       return NextResponse.json({
         competitions: rows.map((c) => ({
           id: c.id,
@@ -57,7 +108,7 @@ export async function GET(req: NextRequest) {
           startAt: c.startAt,
           endAt: c.endAt,
           rules: c.rules,
-          hostGroup: c.hostGroup,
+          hostGroup: c.hostGroup ?? null,
           prize: c.prize,
           participantCount: c._count.attempts,
           createdAt: c.createdAt,
@@ -65,14 +116,24 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const competitions = await db.triviaCompetition.findMany({
-      where: { status: { in: ["scheduled", "live", "ended"] } },
-      orderBy: [{ status: "asc" }, { startAt: "desc" }],
-      include: {
-        prize: true,
-        hostGroup: { select: { id: true, name: true } },
-      },
-    });
+    let competitions: any[] = [];
+    try {
+      competitions = await db.triviaCompetition.findMany({
+        where: { status: { in: ["scheduled", "live", "ended"] } },
+        orderBy: [{ status: "asc" }, { startAt: "desc" }],
+        include: {
+          prize: true,
+          hostGroup: { select: { id: true, name: true } },
+        },
+      });
+    } catch (e) {
+      if (!isMissingHostSchema(e)) throw e;
+      competitions = await db.triviaCompetition.findMany({
+        where: { status: { in: ["scheduled", "live", "ended"] } },
+        orderBy: [{ status: "asc" }, { startAt: "desc" }],
+        select: COMPETITION_SELECT_WITHOUT_HOST,
+      });
+    }
 
     // For each competition, compute time remaining + user's best score + rank
     const enriched = await Promise.all(
@@ -129,7 +190,7 @@ export async function GET(req: NextRequest) {
           claimDeadlineDays: c.claimDeadlineDays,
           timeRemaining,
           participantCount,
-          hostGroup: c.hostGroup,
+          hostGroup: c.hostGroup ?? null,
           prize: c.prize
             ? {
                 id: c.prize.id,
@@ -250,6 +311,9 @@ export async function POST(req: NextRequest) {
     // Anti-spam: cap simultaneous pending submissions per group.
     const pendingCount = await db.triviaCompetition.count({
       where: { hostGroupId: groupId, status: "pending" },
+    }).catch((e) => {
+      if (!isMissingHostSchema(e)) throw e;
+      return 0; // migration window: cap unenforceable, submission still allowed
     });
     if (pendingCount >= MAX_PENDING_PER_GROUP) {
       return NextResponse.json(
@@ -258,27 +322,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const competition = await db.triviaCompetition.create({
-      data: {
-        title: title.trim(),
-        description: typeof description === "string" && description.trim() ? description.trim() : null,
-        type: "custom",
-        category: String(category),
-        difficulty: String(difficulty),
-        questionCount: Math.round(qCount),
-        attemptLimit: 1,
-        winnerCount: 3,
-        rules: typeof rules === "string" && rules.trim() ? rules.trim() : null,
-        status: "pending",
-        startAt: start,
-        endAt: end,
-        claimDeadlineDays: 7,
-        prizeId: null, // hosted competitions are for fun — prizes stay admin-managed
-        createdById: user.id,
-        hostGroupId: groupId,
-      },
-      include: { hostGroup: { select: { id: true, name: true } } },
-    });
+    let competition;
+    try {
+      competition = await db.triviaCompetition.create({
+        data: {
+          title: title.trim(),
+          description: typeof description === "string" && description.trim() ? description.trim() : null,
+          type: "custom",
+          category: String(category),
+          difficulty: String(difficulty),
+          questionCount: Math.round(qCount),
+          attemptLimit: 1,
+          winnerCount: 3,
+          rules: typeof rules === "string" && rules.trim() ? rules.trim() : null,
+          status: "pending",
+          startAt: start,
+          endAt: end,
+          claimDeadlineDays: 7,
+          prizeId: null, // hosted competitions are for fun — prizes stay admin-managed
+          createdById: user.id,
+          hostGroupId: groupId,
+        },
+        include: { hostGroup: { select: { id: true, name: true } } },
+      });
+    } catch (e) {
+      if (!isMissingHostSchema(e)) throw e;
+      // Migration window: create without the host link — the competition is
+      // still tracked by createdById and visible to the admin panel.
+      competition = await db.triviaCompetition.create({
+        data: {
+          title: title.trim(),
+          description: typeof description === "string" && description.trim() ? description.trim() : null,
+          type: "custom",
+          category: String(category),
+          difficulty: String(difficulty),
+          questionCount: Math.round(qCount),
+          attemptLimit: 1,
+          winnerCount: 3,
+          rules: typeof rules === "string" && rules.trim() ? rules.trim() : null,
+          status: "pending",
+          startAt: start,
+          endAt: end,
+          claimDeadlineDays: 7,
+          prizeId: null,
+          createdById: user.id,
+        },
+        select: COMPETITION_SELECT_WITHOUT_HOST,
+      });
+    }
 
     return NextResponse.json({
       success: true,
