@@ -137,6 +137,10 @@ model User {
   apologeticsComments  ApologeticsComment[]  @relation("ApologeticsCommentAuthor")
   apologeticsReactions ApologeticsReaction[] @relation("ApologeticsReactionUser")
   apologeticsBookmarks ApologeticsBookmark[] @relation("ApologeticsBookmarkUser")
+  // Prayer Wall (persistence upgrade)
+  prayerRequests PrayerRequest[]
+  prayerPrayers  PrayerPrayer[]
+  prayerComments PrayerComment[]
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -1727,4 +1731,61 @@ model VideoSave {
 
   @@unique([userId, videoId, list])
   @@index([userId, list, createdAt])
+}
+
+// ─── Prayer Wall (persistence upgrade — additive, mirrors migration 20261026150000) ──
+model PrayerRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  content     String
+  category    String    // Healing | Family | Guidance | Thanksgiving | Salvation | Provision
+  isAnonymous Boolean   @default(false)
+  status      String    @default("visible") // visible | hidden | removed (admin moderation)
+  answered    Boolean   @default(false) // author marked it answered (praise report)
+  testimony   String?   // optional praise-report text
+  answeredAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prayers  PrayerPrayer[]
+  comments PrayerComment[]
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@index([answered, status, createdAt])
+}
+
+model PrayerPrayer {
+  id        String   @id @default(cuid())
+  prayerId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  prayer PrayerRequest @relation(fields: [prayerId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([prayerId, userId]) // one "I Prayed" per member per request — dedupe at DB level
+  @@index([userId])
+}
+
+model PrayerComment {
+  id        String   @id @default(cuid())
+  prayerId  String
+  parentId  String?
+  userId    String
+  body      String
+  status    String   @default("visible") // visible | hidden | removed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prayer  PrayerRequest   @relation(fields: [prayerId], references: [id], onDelete: Cascade)
+  parent  PrayerComment?  @relation("PrayerCommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies PrayerComment[] @relation("PrayerCommentThread")
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([prayerId, createdAt])
+  @@index([userId])
+  @@index([parentId])
 }

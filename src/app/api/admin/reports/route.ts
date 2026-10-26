@@ -86,6 +86,22 @@ export async function GET(req: NextRequest) {
               preview = (st as { caption?: string | null }).caption?.slice(0, 140) || "(story)";
               targetAuthor = (st as { user?: { username?: string | null; name?: string | null } }).user?.username || null;
             }
+          } else if (r.targetType === "prayer") {
+            const pr = await db.prayerRequest
+              .findUnique({ where: { id: r.targetId }, select: { title: true, content: true } })
+              .catch(() => null);
+            if (pr) {
+              preview = `${pr.title} — ${pr.content.slice(0, 120)}`;
+              targetAuthor = "Prayer Wall";
+            }
+          } else if (r.targetType === "prayer_comment") {
+            const pc = await db.prayerComment
+              .findUnique({ where: { id: r.targetId }, select: { body: true } })
+              .catch(() => null);
+            if (pc) {
+              preview = pc.body.slice(0, 140);
+              targetAuthor = "Prayer Wall comment";
+            }
           } else if (r.targetType === "video") {
             const vid = await db.video.findUnique({
               where: { id: r.targetId },

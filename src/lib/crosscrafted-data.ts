@@ -74,17 +74,6 @@ export type EventItem = {
   featured?: boolean;
 };
 
-export type PrayerPost = {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  author: string;
-  is_anonymous: boolean;
-  pray_count: number;
-  comment_count: number;
-  created_at: string;
-};
 
 export type ApologeticsPost = {
   id: string;
@@ -752,83 +741,6 @@ export const EVENTS: EventItem[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRAYER POSTS
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const PRAYERS: PrayerPost[] = [
-  {
-    id: "p1",
-    title: "Healing for my mother's cancer treatment",
-    content:
-      "My mother was diagnosed with stage 3 breast cancer last month. She starts chemo next week. Please pray for complete healing, strength for the journey, and peace for our family. We trust Jehovah Rapha, the Lord who heals.",
-    category: "Healing",
-    author: "Rebecca Thomas",
-    is_anonymous: false,
-    pray_count: 142,
-    comment_count: 28,
-    created_at: inDays(-2),
-  },
-  {
-    id: "p2",
-    title: "Job interview — guidance needed",
-    content:
-      "I have a final-round interview on Friday for a role I've been praying about for 6 months. Please pray for clarity, peace, and God's will to be done — whether this is the door He's opening or closing.",
-    category: "Guidance",
-    author: "Anonymous",
-    is_anonymous: true,
-    pray_count: 89,
-    comment_count: 12,
-    created_at: inDays(-1),
-  },
-  {
-    id: "p3",
-    title: "Salvation for my husband",
-    content:
-      "After 12 years of marriage, my husband still hasn't accepted Christ. He's respectful of my faith but hasn't taken the step himself. Pray that the Holy Spirit would soften his heart and that my life would be a faithful witness.",
-    category: "Salvation",
-    author: "Grace Sharma",
-    is_anonymous: false,
-    pray_count: 234,
-    comment_count: 45,
-    created_at: inDays(-3),
-  },
-  {
-    id: "p4",
-    title: "Thanksgiving — baby girl born safely!",
-    content:
-      "After two miscarriages and 4 years of waiting, God has blessed us with a healthy baby girl, Sarah! She was born yesterday at 3.2kg. Both mother and baby are doing well. Praise God for His faithfulness — He is the God who sees.",
-    category: "Thanksgiving",
-    author: "Daniel & Esther Kumar",
-    is_anonymous: false,
-    pray_count: 412,
-    comment_count: 96,
-    created_at: inDays(-1),
-  },
-  {
-    id: "p5",
-    title: "Provision — rent due, no income",
-    content:
-      "I lost my job 2 months ago. Rent is due in 5 days and I have nothing left. Praying for Jehovah Jireh, the Lord who provides. Even if He doesn't send money, I trust Him to make a way. Please pray for strength and faith.",
-    category: "Provision",
-    author: "Anonymous",
-    is_anonymous: true,
-    pray_count: 318,
-    comment_count: 67,
-    created_at: inDays(-2),
-  },
-  {
-    id: "p6",
-    title: "Restoration of marriage",
-    content:
-      "My wife and I have been separated for 4 months. There's been infidelity and a lot of hurt. I'm believing God for supernatural restoration of our marriage and healing of our hearts. Please stand with me in prayer.",
-    category: "Family",
-    author: "Joseph Isaac",
-    is_anonymous: false,
-    pray_count: 196,
-    comment_count: 38,
-    created_at: inDays(-4),
-  },
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APOLOGETICS POSTS

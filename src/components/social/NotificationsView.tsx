@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Heart, MessageCircle, UserPlus, Repeat2, AtSign, Camera, CheckCheck, BookOpen, HelpCircle, PenLine, ShieldCheck } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Repeat2, AtSign, Camera, CheckCheck, BookOpen, HelpCircle, PenLine, ShieldCheck, HeartHandshake } from "lucide-react";
 import { toast } from "sonner";
 import type { NotificationItem } from "./types";
 import { api } from "./types";
@@ -25,6 +25,9 @@ const ICONS: Record<string, { icon: typeof Heart; color: string }> = {
   apologetics_comment: { icon: MessageCircle, color: "text-[#38BDF8]" },
   apologetics_reply: { icon: MessageCircle, color: "text-[#38BDF8]" },
   apologetics_reaction: { icon: BookOpen, color: "text-[#A855F7]" },
+  prayer_prayed: { icon: HeartHandshake, color: "text-[#F59E0B]" },
+  prayer_comment: { icon: MessageCircle, color: "text-[#F59E0B]" },
+  prayer_reply: { icon: MessageCircle, color: "text-[#FBBF24]" },
   apologetics_submission: { icon: PenLine, color: "text-[#FBBF24]" },
   apologetics_review: { icon: ShieldCheck, color: "text-[#34D399]" },
 };
@@ -41,6 +44,9 @@ const LABELS: Record<string, string> = {
   apologetics_comment: "commented on your apologetics content",
   apologetics_reply: "replied to your comment",
   apologetics_reaction: "reacted to your apologetics content",
+  prayer_prayed: "prayed for your prayer request",
+  prayer_comment: "commented on your prayer request",
+  prayer_reply: "replied to your comment on a prayer request",
   apologetics_submission: "submitted apologetics content for review",
   apologetics_review: "reviewed your apologetics submission",
 };

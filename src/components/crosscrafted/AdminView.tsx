@@ -48,12 +48,10 @@ import {
 import { toast } from "sonner";
 import {
   PRODUCTS,
-  PRAYERS,
   INDIAN_STATES,
   type Church,
   type EventItem,
   type Product,
-  type PrayerPost,
   type TriviaGift,
 } from "@/lib/crosscrafted-data";
 import { COMMUNITY_ROLES, resolvedCommunityRoleLabel } from "@/lib/community-roles";
@@ -448,10 +446,10 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
         </div>
         <div className="space-y-1.5 text-[11px] text-[#A09DB1] leading-relaxed">
           <p>
-            <span className="text-[#22C55E] font-bold">● DB-backed:</span> Members, Churches, Events, Bible Comics, Blog, Apologetics articles & questions, Trivia Competitions/Prizes/Winners, Gifts & Redemptions, Donation settings, Contact messages, Partner inquiries, Contributor applications — all persisted via Prisma admin APIs.
+            <span className="text-[#22C55E] font-bold">● DB-backed:</span> Members, Churches, Events, Bible Comics, Blog, Apologetics articles & questions, Prayer Wall moderation, Trivia Competitions/Prizes/Winners, Gifts & Redemptions, Donation settings, Contact messages, Partner inquiries, Contributor applications — all persisted via Prisma admin APIs.
           </p>
           <p>
-            <span className="text-[#F59E0B] font-bold">● Still preview/mock:</span> Marketplace Products, Prayers moderation, Announcements — these tabs use local state only (no Prisma model or admin API yet). Changes there do NOT persist. Analytics time-series also needs a dedicated backend.
+            <span className="text-[#F59E0B] font-bold">● Still preview/mock:</span> Marketplace Products, Announcements — these tabs use local state only (no Prisma model or admin API yet). Changes there do NOT persist. Analytics time-series also needs a dedicated backend.
           </p>
         </div>
       </div>
@@ -1505,39 +1503,200 @@ function MarketplaceTab() {
   );
 }
 
-// ─── PRAYERS ─────────────────────────────────────────────────────────────
+// ─── PRAYERS (DB-backed — real moderation, no more Preview Mode) ────────────
+
+type AdminPrayer = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  isAnonymous: boolean;
+  status: string;
+  answered: boolean;
+  testimony: string | null;
+  createdAt: string;
+  prayCount: number;
+  commentCount: number;
+  author: { name: string; username: string | null; email: string };
+};
+type AdminPrayerReport = {
+  id: string;
+  targetType: string;
+  targetId: string;
+  reason: string | null;
+  details: string | null;
+  createdAt: string;
+  preview: string | null;
+  reporter: string;
+};
 
 function PrayersTab() {
-  const [prayers, setPrayers] = useState<PrayerPost[]>(PRAYERS);
+  const [prayers, setPrayers] = useState<AdminPrayer[]>([]);
+  const [reports, setReports] = useState<AdminPrayerReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const remove = (id: string) => {
-    setPrayers((ps) => ps.filter((p) => p.id !== id));
-    toast("Prayer removed", { description: "Inappropriate content moderated." });
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/admin/prayers", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setPrayers(data.prayers || []);
+      setReports(data.reports || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const moderate = async (id: string, status: string) => {
+    setBusy(id);
+    try {
+      const res = await fetch(`/api/prayers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setPrayers((ps) => ps.map((p) => (p.id === id ? { ...p, status } : p)));
+      toast(
+        status === "visible" ? "Prayer restored" : status === "hidden" ? "Prayer hidden" : "Prayer removed",
+        { description: status === "visible" ? "Visible on the public wall again." : "Members can no longer see it." }
+      );
+    } catch {
+      toast.error("Moderation action failed — please try again.");
+    } finally {
+      setBusy(null);
+    }
   };
+
+  const removeHard = async (id: string) => {
+    if (!confirm("Permanently delete this request (and its comments)?")) return;
+    setBusy(id);
+    try {
+      const res = await fetch(`/api/prayers/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setPrayers((ps) => ps.filter((p) => p.id !== id));
+      toast.success("Prayer permanently deleted.");
+    } catch {
+      toast.error("Delete failed — please try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const shown = prayers.filter((p) => statusFilter === "all" || p.status === statusFilter);
 
   return (
     <div className="space-y-3">
-      <PreviewModeBanner section="Prayers" />
       <AdminSectionHeader title="Prayer Requests" count={prayers.length} color="#F59E0B" />
       <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-3 mb-3">
         <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-          Review prayer requests for spam, abuse, or inappropriate content. Remove anything that
-          violates community guidelines. Legitimate prayers stay up to encourage the community.
+          Live moderation for the public Prayer Wall. Hidden/removed requests disappear from the wall
+          but stay listed here. Anonymous requests show their real author to admins only — the public
+          API never exposes anonymous identity.
         </p>
       </div>
-      {prayers.map((p) => (
+
+      {reports.length > 0 && (
+        <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-xl p-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#EF4444] mb-2">
+            Pending reports ({reports.length})
+          </p>
+          <div className="space-y-2">
+            {reports.map((r) => (
+              <div key={r.id} className="text-[11px] text-[#A09DB1] leading-relaxed">
+                <span className="font-bold text-white">{r.targetType === "prayer" ? "Request" : "Comment"}:</span>{" "}
+                {r.preview || "(deleted)"} — <span className="text-[#64748B]">by {r.reporter}{r.reason ? ` · ${r.reason}` : ""}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {["all", "visible", "hidden", "removed"].map((st) => (
+          <button
+            key={st}
+            onClick={() => setStatusFilter(st)}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${
+              statusFilter === st
+                ? "bg-[#F59E0B] text-slate-950"
+                : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
+            }`}
+          >
+            {st === "all" ? "All" : st.charAt(0).toUpperCase() + st.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p className="text-xs text-[#64748B] py-4">Loading prayers…</p>}
+      {error && (
+        <div className="text-center py-8">
+          <p className="text-xs text-[#94A3B8] mb-2">Couldn&apos;t load prayers.</p>
+          <button onClick={load} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-[#F59E0B]">
+            Retry
+          </button>
+        </div>
+      )}
+      {!loading && !error && shown.length === 0 && (
+        <p className="text-xs text-[#64748B] py-4">
+          {statusFilter === "all" ? "No prayer requests yet." : `No ${statusFilter} requests.`}
+        </p>
+      )}
+
+      {shown.map((p) => (
         <AdminCard
           key={p.id}
-          title={p.title}
-          subtitle={`${p.author} · ${p.category} · ${p.pray_count} praying`}
-          description={p.content}
+          title={`${p.title}${p.answered ? "  ✅ Answered" : ""}`}
+          subtitle={`${p.author.name}${p.isAnonymous ? " (posted anonymously)" : ""} · ${p.category} · ${p.prayCount} praying · ${p.commentCount} comments · ${p.status.toUpperCase()}`}
+          description={p.content + (p.testimony ? ` — Testimony: ${p.testimony}` : "")}
           actions={
-            <button
-              onClick={() => remove(p.id)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] text-xs font-bold hover:bg-[#EF4444]/25 transition-all"
-            >
-              <Trash2 size={12} /> Remove
-            </button>
+            <div className="flex gap-1.5 flex-wrap">
+              {p.status !== "visible" && (
+                <button
+                  disabled={busy === p.id}
+                  onClick={() => moderate(p.id, "visible")}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#34D399]/15 border border-[#34D399]/30 text-[#34D399] text-xs font-bold hover:bg-[#34D399]/25 transition-all disabled:opacity-50"
+                >
+                  Restore
+                </button>
+              )}
+              {p.status === "visible" && (
+                <button
+                  disabled={busy === p.id}
+                  onClick={() => moderate(p.id, "hidden")}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[#F59E0B] text-xs font-bold hover:bg-[#F59E0B]/25 transition-all disabled:opacity-50"
+                >
+                  Hide
+                </button>
+              )}
+              {p.status !== "removed" && (
+                <button
+                  disabled={busy === p.id}
+                  onClick={() => moderate(p.id, "removed")}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] text-xs font-bold hover:text-white transition-all disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              )}
+              <button
+                disabled={busy === p.id}
+                onClick={() => removeHard(p.id)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] text-xs font-bold hover:bg-[#EF4444]/25 transition-all disabled:opacity-50"
+              >
+                <Trash2 size={12} /> Delete
+              </button>
+            </div>
           }
         />
       ))}

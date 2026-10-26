@@ -477,6 +477,22 @@ export default function Home() {
       }
     }
 
+    // Prayer-wall discussion deep links (?view=prayer-wall&prayer=<id>, used
+    // by notification hrefs): KEEP the prayer param in the URL — PrayerWallView
+    // consumes it on mount (opens + scrolls to the request) and then cleans
+    // the URL itself. Stripping it here would break those links.
+    if (deepView === "prayer-wall") {
+      const pid = params.get("prayer");
+      if (pid && /^[a-zA-Z0-9_-]{6,40}$/.test(pid)) {
+        navigate(deepView);
+        window.history.replaceState(
+          {}, "",
+          `${window.location.pathname}?prayer=${encodeURIComponent(pid)}${window.location.hash}`
+        );
+        return;
+      }
+    }
+
     // Validate that the deep-link view is a known SPA view.
     // Old `?view=videos` deep links redirect to the unified Watch hub —
     // Bible Movies & Videos is now a Watch category, and the /videos route
