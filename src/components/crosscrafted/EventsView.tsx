@@ -28,6 +28,7 @@ import {
   ImageOff,
   Upload,
   Loader2,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { shareLinks } from "@/lib/share/links";
@@ -60,6 +61,30 @@ const CATEGORY_ICONS: Record<string, typeof Music> = {
 };
 
 const getCategoryMeta = (cat: string) => EVENT_CATEGORIES.find((c) => c.value === cat) || EVENT_CATEGORIES[0];
+
+// Category quick-filter row surfaced above the event grid. Every value maps
+// to a REAL EVENT_CATEGORIES entry (the same list the public submit form and
+// the admin flow use) — no invented categories, every pill filters real data.
+const QUICK_CATEGORY_VALUES = ["worship", "conference", "youth", "prayer", "bible-study", "outreach", "other"];
+const QUICK_CATEGORIES = QUICK_CATEGORY_VALUES
+  .map((v) => EVENT_CATEGORIES.find((c) => c.value === v))
+  .filter((c): c is (typeof EVENT_CATEGORIES)[number] => Boolean(c));
+
+// Card time label: honours the allDay flag and the separate startTime field
+// ("HH:MM") stored by the submit/admin forms, falling back to the ISO date's
+// own time. Keeps "12:00 AM" from leaking onto all-day events.
+const formatTimeLabel = (e: { date: string; startTime?: string; allDay?: boolean }) => {
+  if (e.allDay) return "All Day";
+  if (e.startTime) {
+    const [h, m] = e.startTime.split(":").map(Number);
+    if (!isNaN(h)) {
+      const d = new Date();
+      d.setHours(h, m || 0, 0, 0);
+      return d.toLocaleString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    }
+  }
+  return formatDate(e.date).time;
+};
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -379,7 +404,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
   };
 
   return (
-    <div className="max-w-[680px] mx-auto px-4 py-5 pb-28 md:pb-5">
+    <div className="max-w-[680px] md:max-w-5xl lg:max-w-6xl mx-auto px-4 py-5 pb-28 md:pb-5">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="text-xl font-bold text-white">{t("events.title")}</h1>
@@ -476,6 +501,39 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             {d.l}
           </button>
         ))}
+      </div>
+
+      {/* Category quick filters — all 7 map to real category values on
+          existing events; tap an active pill again to clear it. Stays in
+          sync with the advanced panel's full category list (same state). */}
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 mb-3">
+        <button
+          onClick={() => setFilterCategory("")}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+            !filterCategory
+              ? "bg-white text-slate-950 border-white"
+              : "bg-white/[0.04] text-[#94A3B8] hover:text-white border-white/[0.06]"
+          }`}
+        >
+          All Categories
+        </button>
+        {QUICK_CATEGORIES.map((c) => {
+          const active = filterCategory === c.value;
+          return (
+            <button
+              key={c.value}
+              onClick={() => setFilterCategory(active ? "" : c.value)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                active
+                  ? "text-white border-transparent"
+                  : "bg-white/[0.04] text-[#94A3B8] hover:text-white border-white/[0.06]"
+              }`}
+              style={active ? { background: c.color } : {}}
+            >
+              {c.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -633,139 +691,279 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
           </div>
         )}
 
-        {filtered.map((event, i) => {
-          const cat = getCategoryMeta(event.category);
-          const Icon = CATEGORY_ICONS[event.category] || Music;
-          const date = formatDate(event.date);
-          const isSaved = savedEvents.has(event.id);
-          return (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              onClick={() => setOpenEvent(event)}
-              className="rounded-2xl overflow-hidden cursor-pointer border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929]"
-            >
-              <div className="flex">
-                {/* Date block */}
-                <div
-                  className="w-20 shrink-0 flex flex-col items-center justify-center p-3"
-                  style={{ background: `${cat.color}25` }}
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: cat.color }}>
-                    {date.month}
-                  </p>
-                  <p className="text-2xl font-extrabold text-white leading-none my-0.5">{date.day}</p>
-                  <p className="text-[10px] text-white/60">{date.weekday}</p>
-                </div>
-
-                <div className="flex-1 p-3 min-w-0">
-                  <div className="flex items-start gap-2 mb-1">
-                    <span
-                      className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0"
-                      style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
-                    >
-                      <Icon size={9} className="inline mr-0.5" />
-                      {cat.label}
-                    </span>
-                    {/* Event type badge */}
-                    {event.eventType === "online" && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#38BDF8]/15 text-[#38BDF8] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                        <Globe size={9} /> Online
-                      </span>
-                    )}
-                    {event.eventType === "hybrid" && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#A855F7]/15 text-[#A855F7] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                        <Radio size={9} /> Hybrid
-                      </span>
-                    )}
-                    {event.featured && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                        <Flame size={9} /> Featured
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">{event.title}</h3>
-                  <p className="text-[11px] text-[#94A3B8] line-clamp-1 mb-2">{event.description}</p>
-                  <div className="flex items-center gap-3 text-[10px] text-[#94A3B8] flex-wrap">
-                    {/* Location: city/state for in-person+hybrid; 🌐 Online for online-only */}
-                    {event.eventType === "online" ? (
-                      <span className="flex items-center gap-1 text-[#38BDF8]">
-                        <Globe size={10} /> Online Event
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <MapPin size={10} /> {event.city}{event.city && event.state ? ", " : ""}{event.state}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Clock size={10} /> {date.time}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end justify-between p-3 border-l border-white/[0.04]">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSave(event.id);
-                    }}
-                    className="text-[#94A3B8] hover:text-white p-1"
+        {/* ─── FEATURED EVENTS ── Rendered ONLY when at least one featured
+            event exists (no empty section, no filler). Mobile: snap-scroll
+            strip; desktop: 2-column grid. Uses the existing featured flag
+            set via Admin → Events → Feature. */}
+        {!eventsLoading && !eventsError && featured.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Flame size={13} className="text-[#F59E0B]" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#F59E0B]">Featured Events</h2>
+              <span className="text-[10px] text-[#64748B]">({featured.length})</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto snap-x pb-2 -mx-4 px-4 md:grid md:grid-cols-2 md:overflow-visible md:mx-0 md:px-0">
+              {featured.map((event) => {
+                const cat = getCategoryMeta(event.category);
+                const Icon = CATEGORY_ICONS[event.category] || Music;
+                const date = formatDate(event.date);
+                return (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => setOpenEvent(event)}
+                    className="relative shrink-0 w-[300px] snap-start rounded-2xl overflow-hidden cursor-pointer border border-white/[0.08] hover:border-[#F59E0B]/40 transition-all bg-[#1C1929] md:w-auto"
                   >
-                    {isSaved ? <BookmarkCheck size={16} className="text-[#EC4899]" /> : <Bookmark size={16} />}
-                  </button>
-                  <span className="text-[10px] font-bold text-[#94A3B8]">{formatRelative(event.date)}</span>
-                </div>
-              </div>
+                    <div className="relative h-40">
+                      {event.cover_image ? (
+                        <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ background: CHURCH_GRADIENTS[(event.cover_gradient || 0) % CHURCH_GRADIENTS.length] }}
+                        >
+                          <Icon size={44} className="text-white/25" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-[#1C1929]/30 to-transparent" />
+                      <div className="absolute top-3 left-3 px-2.5 py-1.5 rounded-xl bg-black/55 backdrop-blur-sm border border-white/10 text-center leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">{date.month}</p>
+                        <p className="text-lg font-extrabold text-white my-0.5">{date.day}</p>
+                        <p className="text-[8px] text-white/60">{date.weekday}</p>
+                      </div>
+                      <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#F59E0B] text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1">
+                        <Flame size={9} /> Featured
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <h3 className="text-sm font-bold text-white mb-1.5 line-clamp-2">{event.title}</h3>
+                        <div className="flex items-center gap-2.5 text-[10px] text-white/75 flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Clock size={10} /> {formatTimeLabel(event)}
+                          </span>
+                          {event.eventType === "online" ? (
+                            <span className="flex items-center gap-1 text-[#38BDF8]">
+                              <Globe size={10} /> Online
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <MapPin size={10} /> {event.city}{event.city && event.state ? ", " : ""}{event.state}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0"
+                          style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
+                        >
+                          {cat.label}
+                        </span>
+                        {event.is_free ? (
+                          <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[9px] font-bold shrink-0">FREE</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold flex items-center gap-1 shrink-0">
+                            <Ticket size={8} /> ₹{event.price}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenEvent(event); }}
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-white flex items-center gap-1 shrink-0 transition-all hover:-translate-y-px"
+                        style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+                      >
+                        View Event <ArrowRight size={11} />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-              <div className="px-3 py-2.5 bg-white/[0.02] border-t border-white/[0.04] flex items-center justify-between">
-                {event.church ? (
-                  <div className="text-[10px] text-[#94A3B8]">
-                    by <span className="text-white font-bold">{event.church}</span>
-                  </div>
-                ) : (
-                  <div />
-                )}
-                <div className="flex items-center gap-1.5">
-                  {event.is_free ? (
-                    <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold">
-                      FREE
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[10px] font-bold flex items-center gap-1">
-                      <Ticket size={9} /> ₹{event.price}
-                    </span>
-                  )}
-                </div>
+        {/* ─── ALL EVENTS GRID ── Responsive: 1 col mobile / 2 sm / 3 lg.
+            When a featured section is shown above, the grid holds the
+            non-featured events (no duplicates); otherwise everything. */}
+        {!eventsLoading && !eventsError && (featured.length > 0 ? upcoming.length > 0 : filtered.length > 0) && (
+          <div>
+            {featured.length > 0 && (
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Calendar size={13} className="text-[#94A3B8]" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">All Events</h2>
+                <span className="text-[10px] text-[#64748B]">({upcoming.length})</span>
               </div>
-            </motion.div>
-          );
-        })}
+            )}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(featured.length > 0 ? upcoming : filtered).map((event, i) => {
+                const cat = getCategoryMeta(event.category);
+                const Icon = CATEGORY_ICONS[event.category] || Music;
+                const date = formatDate(event.date);
+                const isSaved = savedEvents.has(event.id);
+                return (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i, 8) * 0.04 }}
+                    onClick={() => setOpenEvent(event)}
+                    className="rounded-2xl overflow-hidden cursor-pointer border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929] flex flex-col"
+                  >
+                    {/* Cover: organizer-uploaded flyer, or a tasteful gradient
+                        + category icon placeholder (existing cover fields). */}
+                    <div className="relative h-28 shrink-0">
+                      {event.cover_image ? (
+                        <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ background: CHURCH_GRADIENTS[(event.cover_gradient || 0) % CHURCH_GRADIENTS.length] }}
+                        >
+                          <Icon size={30} className="text-white/25" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent opacity-70" />
+                      <div className="absolute top-2.5 left-2.5 px-2 py-1.5 rounded-lg bg-black/55 backdrop-blur-sm border border-white/10 text-center leading-none">
+                        <p className="text-[8px] font-bold uppercase tracking-wider text-white/70">{date.month}</p>
+                        <p className="text-base font-extrabold text-white my-0.5">{date.day}</p>
+                      </div>
+                      <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
+                        {event.eventType === "online" && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#38BDF8]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-0.5">
+                            <Globe size={9} /> Online
+                          </span>
+                        )}
+                        {event.eventType === "hybrid" && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#A855F7]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-0.5">
+                            <Radio size={9} /> Hybrid
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-3 flex-1 flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                          style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
+                        >
+                          <Icon size={9} className="inline mr-0.5" />
+                          {cat.label}
+                        </span>
+                        {event.featured && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                            <Flame size={9} /> Featured
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-bold text-white mb-1.5 line-clamp-2">{event.title}</h3>
+                      <div className="space-y-1 text-[11px] text-[#94A3B8] mb-2.5">
+                        <p className="flex items-center gap-1.5">
+                          <Clock size={11} className="shrink-0" />
+                          <span className="truncate">
+                            {date.weekday}, {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {formatTimeLabel(event)}
+                          </span>
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          {event.eventType === "online" ? (
+                            <>
+                              <Globe size={11} className="shrink-0 text-[#38BDF8]" />
+                              <span className="truncate text-[#38BDF8]">Online Event</span>
+                            </>
+                          ) : (
+                            <>
+                              <MapPin size={11} className="shrink-0" />
+                              <span className="truncate">
+                                {[event.venueName, event.city].filter(Boolean).join(" · ")}{event.state ? `, ${event.state}` : ""}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                        {(event.church || event.organizerName) && (
+                          <p className="flex items-center gap-1.5">
+                            <Users size={11} className="shrink-0" />
+                            <span className="truncate">by {event.church || event.organizerName}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-auto pt-2.5 border-t border-white/[0.05] flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {event.is_free ? (
+                            <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold shrink-0">FREE</span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[10px] font-bold flex items-center gap-1 shrink-0">
+                              <Ticket size={9} /> ₹{event.price}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-[#64748B] shrink-0">{formatRelative(event.date)}</span>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            aria-label="Save event"
+                            onClick={(e) => { e.stopPropagation(); toggleSave(event.id); }}
+                            className="h-11 w-11 flex items-center justify-center text-[#94A3B8] hover:text-white"
+                          >
+                            {isSaved ? <BookmarkCheck size={16} className="text-[#EC4899]" /> : <Bookmark size={16} />}
+                          </button>
+                          <button
+                            aria-label="Share event"
+                            onClick={(e) => { e.stopPropagation(); shareEvent(event); }}
+                            className="h-11 w-11 flex items-center justify-center text-[#94A3B8] hover:text-white"
+                          >
+                            <Share2 size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setOpenEvent(event); }}
+                            className="h-11 px-1.5 text-[11px] font-bold text-[#EC4899] hover:text-white flex items-center"
+                          >
+                            Details <ArrowRight size={12} className="ml-0.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filtered empty state — events exist but none match the filters.
           Shown ONLY when the public list has events; the "No events published
           yet" block above covers the genuinely-empty case. */}
       {!eventsLoading && !eventsError && events.length > 0 && filtered.length === 0 && (
-        <div className="text-center py-16">
-          <Calendar size={40} className="mx-auto text-[#475569] mb-3" />
-          <p className="text-sm text-[#475569] mb-3">No events found for these filters.</p>
-          <button
-            onClick={() => {
-              setFilterState("");
-              setFilterCity("");
-              setFilterLanguage("");
-              setFilterCategory("");
-              setSearchQuery("");
-              setDateFilter("all");
-              setQuickFilter("all-india");
-            }}
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
-          >
-            Clear Filters
-          </button>
+        <div className="text-center py-14">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
+            <Calendar size={24} className="text-[#A78BFA]" />
+          </div>
+          <p className="text-sm font-bold text-white mb-1 max-w-sm mx-auto">No events found yet. Be the first to bring your community together!</p>
+          <p className="text-xs text-[#A09DB1] mb-4">Try different filters, or clear them to browse everything.</p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider text-white transition-all hover:-translate-y-px flex items-center gap-1.5"
+              style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+            >
+              <Plus size={13} /> List Your Event
+            </button>
+            <button
+              onClick={() => {
+                setFilterState("");
+                setFilterCity("");
+                setFilterLanguage("");
+                setFilterCategory("");
+                setSearchQuery("");
+                setDateFilter("all");
+                setQuickFilter("all-india");
+              }}
+              className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
       )}
 
