@@ -6,7 +6,12 @@
  * language + duration meta. Clicking navigates to /videos/[slug].
  */
 
-import { categoryLabel, formatDuration, languageLabel } from "@/lib/videos";
+import { BookOpen } from "lucide-react";
+import { categoryLabel, formatDuration, languageLabel, formatBibleRef, type BibleRefLike } from "@/lib/videos";
+import { BIBLE_BOOKS } from "@/lib/bible-data";
+
+const cardBookName = (bookId: string) =>
+  BIBLE_BOOKS.find((b) => b.id === bookId)?.name || bookId;
 
 export type VideoCardData = {
   id: string;
@@ -21,6 +26,10 @@ export type VideoCardData = {
   featured?: boolean;
   positionSec?: number;
   completed?: boolean;
+  // Optional Bible passage coverage (P3/P4): cards label which book and
+  // chapter range the video brings to life, e.g. "Genesis 1–50" — a whole-book
+  // movie must never look like it belongs to a single chapter.
+  bibleRefs?: BibleRefLike[];
 };
 
 export default function VideoCard({ video, href }: { video: VideoCardData; href?: string }) {
@@ -98,6 +107,18 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
           <span className="px-1.5 py-0.5 rounded-md bg-white/[0.05] text-[#94A3B8] text-[10px] font-bold">
             {languageLabel(video.language)}
           </span>
+          {video.bibleRefs && video.bibleRefs.length > 0 && (
+            <span
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#38BDF8]/10 text-[#7DD3FC] text-[10px] font-bold max-w-full"
+              title={video.bibleRefs.map((r) => formatBibleRef(r, cardBookName)).join(" · ")}
+            >
+              <BookOpen size={9} className="shrink-0" />
+              <span className="truncate">
+                {formatBibleRef(video.bibleRefs[0], cardBookName)}
+                {video.bibleRefs.length > 1 && ` +${video.bibleRefs.length - 1}`}
+              </span>
+            </span>
+          )}
         </div>
       </div>
     </a>

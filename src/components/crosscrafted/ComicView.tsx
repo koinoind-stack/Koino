@@ -380,7 +380,10 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
           <ActionButton icon={BookOpen} label="Read" sublabel="The full comic story" onClick={() => onReadChapter(bookId, chapter)} />
           <ActionButton icon={isSpeaking ? X : Headphones} label={isSpeaking ? "Stop" : "Listen"} sublabel="Audio narration" onClick={handleListen} />
-          <ActionButton icon={Video} label="Watch" sublabel="Animated version" onClick={() => toast("Coming Soon", { description: "Animated version is being prepared." })} dimmed />
+          {/* P5: real comic→video link — published library videos for THIS
+              passage (VideoBibleRef). Renders nothing when none exist, so the
+              action bar only ever offers what is actually available. */}
+          <ChapterVideoAction bookId={bookId} chapter={chapter} />
           <ActionButton icon={Brain} label="Quiz" sublabel="Test your knowledge" onClick={startQuiz} />
           <ActionButton icon={Zap} label="Earn FP" sublabel="Get Faith Points" onClick={() => toast("Take the quiz to earn FP!")} dimmed />
           <ActionButton icon={Heart} label="Pray" sublabel="Daily prayer" onClick={() => onPray(prayerPrompt)} />
@@ -613,6 +616,58 @@ function ActionButton({
       <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
       <span className="text-[8px] text-[#64748B] hidden lg:block">{sublabel}</span>
     </button>
+  );
+}
+
+// ─── Chapter Video Action (P5) ──────────────────────────────────────────────
+// The comic page's "Watch" action: opens published library videos linked to
+// the passage being comic-ified (admin-curated via VideoBibleRef — the SAME
+// records the Watch hub and Bible reader use; nothing is duplicated or stored
+// on the comic side). One video → straight to its watch page; several → the
+// passage-scoped library list; none/unavailable → renders nothing at all so
+// the bar never offers a dead or fake action.
+
+function ChapterVideoAction({ bookId, chapter }: { bookId: string; chapter: number }) {
+  const [videos, setVideos] = useState<Array<{ id: string; slug: string; title: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    setVideos([]);
+    fetch(`/api/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}&take=2`, {
+      cache: "no-store",
+      signal: ctrl.signal,
+    })
+      .then((r) => (r.ok ? r.json() : { videos: [] }))
+      .then((d) => {
+        if (!cancelled) setVideos(d.videos || []);
+      })
+      .catch(() => {}); // network hiccup → button simply stays hidden
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [bookId, chapter]);
+
+  if (videos.length === 0) return null;
+
+  function open() {
+    if (videos.length === 1) {
+      window.location.href = `/videos/${videos[0].slug}`;
+    } else {
+      window.location.href = `/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}`;
+    }
+  }
+
+  return (
+    <ActionButton
+      icon={Video}
+      label="Watch"
+      sublabel={videos.length === 1 ? "Watch the video" : "Related videos"}
+      onClick={open}
+    />
   );
 }
 

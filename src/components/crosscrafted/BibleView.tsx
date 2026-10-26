@@ -43,7 +43,7 @@ import ComicLibraryView from "@/components/crosscrafted/ComicLibraryView";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 import { Play } from "lucide-react";
-import { formatDuration } from "@/lib/videos";
+import { formatDuration, formatBibleRef } from "@/lib/videos";
 
 type View = "books" | "chapters" | "reader" | "search" | "bookmarks";
 type BibleMode = "read" | "comics" | "plans";
@@ -989,6 +989,7 @@ type ChapterVideoCard = {
   thumbnailUrl: string | null;
   youtubeId: string | null;
   durationSec: number | null;
+  bibleRefs: { bookId: string; chapterStart: number; verseStart: number | null; chapterEnd: number | null; verseEnd: number | null }[];
 };
 
 /**
@@ -1055,9 +1056,16 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
                 </span>
               )}
             </div>
-            <p className="p-2 text-[11px] font-bold text-white leading-snug line-clamp-2 group-hover:text-[#C4B5FD] transition-colors">
+            <p className="p-2 pb-1 text-[11px] font-bold text-white leading-snug line-clamp-2 group-hover:text-[#C4B5FD] transition-colors">
               {v.title}
             </p>
+            {/* Coverage label — a whole-book video must be visibly "Genesis 1–50",
+                never mistaken for a single-chapter clip (P4). */}
+            {v.bibleRefs?.length > 0 && (
+              <p className="px-2 pb-2 text-[9px] font-extrabold uppercase tracking-wide text-[#7DD3FC] truncate">
+                {formatBibleRef(v.bibleRefs[0], (id) => getBook(id)?.name || id)}
+              </p>
+            )}
           </a>
         ))}
       </div>
