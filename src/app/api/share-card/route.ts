@@ -562,14 +562,12 @@ export async function GET(req: NextRequest) {
           body: product.description || undefined,
           reference: `${price}${product.vendor ? ` • ${product.vendor}` : ""}`,
           bgImageUrl: product.images[0],
-          bgIsKoinoHostedImage: isKoinoHostedImage(product.images[0]),
+          bgIsKoinoHosted: isKoinoHostedImage(product.images[0]),
           gradientSeed: 1,
         };
         break;
       }
 
-        break;
-      }
 
       /* ── Business directory (approved DB listings only) ── */
       case "business": {
@@ -595,6 +593,8 @@ export async function GET(req: NextRequest) {
       default:
         return NextResponse.json({ error: "Unknown card type" }, { status: 400 });
     }
+
+    if (!spec) return NextResponse.json({ error: "Unknown card type" }, { status: 400 });
 
     const png = await renderShareCard(spec);
     const isUserScoped = type === "trivia" || type === "prayer";
