@@ -12,19 +12,22 @@
  *     - under 18        → respectful block
  *     - account problem → block
  *     - no profile      → intro + "Create my profile"
- *     - profile         → tabs: My Profile · Photos · Preview · Privacy
+ *     - profile         → tabs: Discover · My Profile · Photos · Preview · Privacy
  *
  * Stage B scope: profile CRUD, photos (private bucket), visibility control.
- * NO discovery/search/interests/messaging yet — the UI says so honestly.
+ * Stage C scope: Discover tab — view-only browse of ACTIVE profiles
+ * (search/filter/paginate). Interest & messaging arrive later — the UI
+ * says so honestly.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft, Heart, ShieldCheck, Camera, Eye, Info, PauseCircle,
-  PlayCircle, Trash2, CheckCircle2, AlertTriangle,
+  PlayCircle, Trash2, CheckCircle2, AlertTriangle, Search,
 } from "lucide-react";
 
+import MatrimonyDiscover from "./MatrimonyDiscover";
 import MatrimonyProfileEditor, { type EditorProfile } from "./MatrimonyProfileEditor";
 import MatrimonyPhotos from "./MatrimonyPhotos";
 import MatrimonyProfilePreview from "./MatrimonyProfilePreview";
@@ -32,9 +35,10 @@ import { MATRIMONY_PHOTO_VISIBILITY } from "@/lib/matrimony";
 
 type GateCode = "DOB_REQUIRED" | "AGE_NOT_ELIGIBLE" | "ACCOUNT_INACTIVE";
 
-type TabId = "profile" | "photos" | "preview" | "privacy";
+type TabId = "discover" | "profile" | "photos" | "preview" | "privacy";
 
 const TABS: { id: TabId; label: string; icon: typeof Heart }[] = [
+  { id: "discover", label: "Discover", icon: Search },
   { id: "profile", label: "My Profile", icon: Heart },
   { id: "photos", label: "Photos", icon: Camera },
   { id: "preview", label: "Preview", icon: Eye },
@@ -47,7 +51,7 @@ const STATUS_BANNERS: Record<string, { text: string; cls: string }> = {
     cls: "border-amber-400/20 bg-amber-400/[0.07] text-amber-300",
   },
   active: {
-    text: "Active — your profile is ready. Matching & discovery arrive in the next update.",
+    text: "Active — eligible members can discover your profile in Matrimony.",
     cls: "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300",
   },
   paused: {
@@ -125,7 +129,9 @@ export default function MatrimonyView({
         action === "pause" ? "Profile paused — hidden from other members." :
         "Profile resumed."
       );
-      setTab("privacy");
+      // Activation pays off immediately: land on Discover. Other status
+      // changes keep the member on the Privacy tab where the controls live.
+      setTab(action === "activate" ? "discover" : "privacy");
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -290,6 +296,8 @@ export default function MatrimonyView({
 
       {/* Tab panels */}
       <div className="mt-4">
+        {tab === "discover" && <MatrimonyDiscover />}
+
         {tab === "profile" && (
           <MatrimonyProfileEditor profile={profile} account={account} onSaved={handleSaved} />
         )}

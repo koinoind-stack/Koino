@@ -49,6 +49,7 @@ expect() { # name expected_status url method
 
 echo ""
 echo "── Unauthenticated access must be rejected with 401 (auth before DB) ──"
+expect "GET  /api/matrimony/discover (Stage C)" 401 "/api/matrimony/discover"
 expect "GET  /api/matrimony/profile"            401 "/api/matrimony/profile"
 expect "PUT  /api/matrimony/profile"            401 "/api/matrimony/profile" PUT
 expect "DEL /api/matrimony/profile"             401 "/api/matrimony/profile" DELETE
