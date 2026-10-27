@@ -42,13 +42,21 @@ export async function GET(req: NextRequest) {
 
   const memberWhere: Prisma.MarketplaceListingWhereInput = { status: "APPROVED" };
   const storeWhere: Prisma.StoreProductWhereInput = { active: true };
-  for (const w of [memberWhere, storeWhere] as Prisma.MarketplaceListingWhereInput[]) {
-    if (q) w.OR = [{ title: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }];
-    if (category) w.category = category;
-    if (state) w.state = state;
-    if (city) w.city = city;
-    if (featured) w.featured = true;
+  if (q) {
+    memberWhere.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+    ];
+    storeWhere.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+    ];
   }
+  if (category) { memberWhere.category = category; storeWhere.category = category; }
+  if (featured) { memberWhere.featured = true; storeWhere.featured = true; }
+  // Store products ship nationwide — state/city filters apply to member listings only.
+  if (state) memberWhere.state = state;
+  if (city) memberWhere.city = city;
 
   try {
     const wantKoino = source === "all" || source === "koino";

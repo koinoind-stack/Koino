@@ -55,7 +55,6 @@ export async function GET(req: NextRequest) {
         id: true, name: true, description: true, category: true, state: true, city: true,
         images: true, coverGradient: true, verified: true, featured: true, hours: true,
         services: true, createdAt: true, ownerName: true,
-        _count: { select: {} },
       },
     });
     const hasMore = rows.length > limit;
@@ -138,7 +137,7 @@ export async function POST(req: NextRequest) {
   if (!validWebsite(website)) return jsonError("Website must be a valid https link");
 
   const services = Array.isArray(body.services)
-    ? body.services.filter((s): s is string => typeof s === "string" && s.trim()).slice(0, 10).map((s) => s.trim().slice(0, 80))
+    ? body.services.filter((s): s is string => typeof s === "string" && s.trim() !== "").slice(0, 10).map((s) => s.trim().slice(0, 80))
     : [];
 
   try {

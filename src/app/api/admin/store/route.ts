@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     const result = validateProductBody(body as Record<string, unknown>, false);
     if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
-    const row = await db.storeProduct.create({ data: result.data, select: { id: true, name: true } });
+    const row = await db.storeProduct.create({ data: result.data as any, select: { id: true, name: true } });
     revalidatePath("/", "layout");
     return NextResponse.json({ success: true, product: row }, { status: 201 });
   } catch (err: unknown) {

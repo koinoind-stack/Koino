@@ -134,7 +134,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if ("hours" in body) data.hours = str(body.hours, 120);
     if ("services" in body) {
       const services = Array.isArray(body.services)
-        ? body.services.filter((s): s is string => typeof s === "string" && s.trim()).slice(0, 10).map((s) => s.trim().slice(0, 80))
+        ? body.services.filter((s): s is string => typeof s === "string" && s.trim() !== "").slice(0, 10).map((s) => s.trim().slice(0, 80))
         : [];
       data.services = JSON.stringify(services);
     }

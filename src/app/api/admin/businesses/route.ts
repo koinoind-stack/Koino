@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const status = ["PENDING", "APPROVED", "REJECTED", "ARCHIVED"].includes(String(body.status))
       ? String(body.status) : "PENDING";
     const services = Array.isArray(body.services)
-      ? body.services.filter((s: unknown): s is string => typeof s === "string" && s.trim()).slice(0, 10).map((s: string) => s.trim().slice(0, 80))
+      ? body.services.filter((s: unknown): s is string => typeof s === "string" && s.trim() !== "").slice(0, 10).map((s: string) => s.trim().slice(0, 80))
       : [];
 
     const row = await db.business.create({
@@ -200,7 +200,7 @@ export async function PATCH(req: NextRequest) {
       }
       if (edit.services !== undefined) {
         const services = Array.isArray(edit.services)
-          ? edit.services.filter((s: unknown): s is string => typeof s === "string" && s.trim()).slice(0, 10).map((s: string) => s.trim().slice(0, 80))
+          ? edit.services.filter((s: unknown): s is string => typeof s === "string" && s.trim() !== "").slice(0, 10).map((s: string) => s.trim().slice(0, 80))
           : [];
         data.services = JSON.stringify(services);
       }
