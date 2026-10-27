@@ -179,12 +179,44 @@ export default function ListYourEntity({ variant }: Props) {
       return;
     }
 
-    // ─── BUSINESS variant: still uses the legacy fake flow ───
-    // (Businesses will be migrated to a real DB pipeline in a separate task.)
-    setSubmitted(true);
-    toast.success("Business listing submitted!", {
-      description: "Our team will review and approve within 48 hours.",
-    });
+    // ─── BUSINESS variant: real database pipeline (admin approval required) ───
+    if (!formData.businessCategory) {
+      toast.error("Please choose a business category");
+      return;
+    }
+    if (!formData.whatsapp_number && !formData.contact_phone) {
+      toast.error("Please add a WhatsApp or phone number for the business");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/businesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          category: formData.businessCategory,
+          state: formData.state || null,
+          city: formData.city || null,
+          address: formData.location || null,
+          images: formData.images,
+          whatsappNumber: formData.whatsapp_number || null,
+          phone: formData.contact_phone || null,
+          email: formData.contact_email || null,
+          ownerName: formData.contact_name || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit business. Please try again.");
+      setSubmitted(true);
+      toast.success("Business listing submitted!", {
+        description: "Our team will review and approve it before it appears in the directory.",
+      });
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
