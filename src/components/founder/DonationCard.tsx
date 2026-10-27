@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   Copy,
+  Download,
   HandHeart,
   Loader2,
+  QrCode,
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import {
   DONATION_CONFIG,
@@ -95,6 +98,40 @@ export default function DonationCard() {
       toast.success("UPI ID copied");
     } catch {
       toast.error(`Couldn't copy — UPI ID: ${DONATION_CONFIG.upiId}`);
+    }
+  };
+
+  // The QR encodes the exact same single-source URI as the donate button.
+  // With a valid amount selected it is amount-locked; otherwise it is an
+  // open-amount QR (no `am` parameter) and the donor chooses in their app.
+  const qrTileRef = useRef<HTMLDivElement>(null);
+  const qrValue = useMemo(
+    () => buildUpiUri(selectedAmount ?? undefined),
+    [selectedAmount]
+  );
+  const qrFileName =
+    selectedAmount !== null
+      ? `koino-upi-qr-${selectedAmount}.png`
+      : "koino-upi-qr.png";
+
+  const downloadQr = () => {
+    const canvas = qrTileRef.current?.querySelector("canvas");
+    if (!canvas) {
+      toast.error("QR isn't ready yet — please try again in a moment.");
+      return;
+    }
+    try {
+      const url = (canvas as HTMLCanvasElement).toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = qrFileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      toast.error(
+        "Couldn't generate the QR download — you can screenshot the code instead."
+      );
     }
   };
 
@@ -299,9 +336,84 @@ export default function DonationCard() {
               <p className="text-[11px] text-[#726E88] text-center mt-2.5 leading-relaxed">
                 Securely continue to a compatible UPI payment app to make your
                 voluntary contribution. Works with Google Pay, PhonePe, Paytm
-                and any UPI app on Android. On a computer? Use the details
-                below.
+                and any UPI app on Android. On a computer? Scan the QR code
+                below — or use the details under &ldquo;Pay manually&rdquo;.
               </p>
+
+              {/* Scan & Pay — QR built from the same single-source UPI builder */}
+              <div className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <QrCode
+                    size={14}
+                    className="text-[#F59E0B]"
+                    aria-hidden="true"
+                  />
+                  <p className="text-xs font-black text-white">
+                    Scan &amp; Pay with any UPI app
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div
+                    ref={qrTileRef}
+                    role="img"
+                    aria-label={
+                      selectedAmount !== null
+                        ? `UPI QR code to pay ${formatINR(selectedAmount)} to ${DONATION_CONFIG.payeeName} (${DONATION_CONFIG.upiId})`
+                        : `UPI QR code to pay any amount to ${DONATION_CONFIG.payeeName} (${DONATION_CONFIG.upiId})`
+                    }
+                    className="shrink-0 rounded-xl bg-white p-2.5"
+                  >
+                    <QRCodeCanvas
+                      value={qrValue}
+                      size={512}
+                      marginSize={2}
+                      level="Q"
+                      bgColor="#ffffff"
+                      fgColor="#111827"
+                      style={{ width: 160, height: 160, display: "block" }}
+                    />
+                  </div>
+                  <div className="min-w-0 text-center sm:text-left">
+                    <p className="text-xs text-[#A09DB1] leading-relaxed">
+                      {selectedAmount !== null ? (
+                        <>
+                          Scanning pays{" "}
+                          <span className="font-black text-white">
+                            {formatINR(selectedAmount)}
+                          </span>{" "}
+                          to {DONATION_CONFIG.payeeName}. Change the amount
+                          above and the QR updates.
+                        </>
+                      ) : (
+                        <>
+                          No amount fixed — you choose it in your UPI app after
+                          scanning. Pick an amount above to lock it into the
+                          QR.
+                        </>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-[#726E88] mt-1.5 leading-relaxed">
+                      Point a phone camera or UPI app at the code. On this
+                      phone already? The Donate button above is faster.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={downloadQr}
+                      className="mt-2.5 px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-white inline-flex items-center gap-1.5 transition-colors"
+                    >
+                      <Download size={13} /> Download QR
+                      {selectedAmount !== null
+                        ? ` — ${formatINR(selectedAmount)}`
+                        : ""}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[10px] text-[#726E88] mt-3 leading-relaxed">
+                  The QR encodes the same UPI address as above — payments still
+                  happen entirely inside your own UPI app and Koino cannot
+                  verify them.
+                </p>
+              </div>
 
               {/* Manual / desktop fallback */}
               <details className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
