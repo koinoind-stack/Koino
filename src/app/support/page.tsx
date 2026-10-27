@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import DonationMethods from "@/components/crosscrafted/DonationMethods";
+import DonationCard from "@/components/founder/DonationCard";
 import { Heart, Server, BookOpen, Trophy, Users, ShieldCheck, Code } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -31,7 +32,8 @@ const SUPPORT_AREAS = [
 export default async function SupportPage() {
   // Server-side fetch of the donation settings singleton.
   // Falls back to a fully-null payload (acceptingDonations=true) if the row
-  // is missing — the DonationMethods client component handles the empty state.
+  // is missing — in that case the founder DonationCard below (same
+  // single-source UPI + QR payment mode as /founder) is the give method.
   const row = await db.donationSettings.findUnique({
     where: { id: "default" },
   });
@@ -47,6 +49,16 @@ export default async function SupportPage() {
     donationMessage: row?.donationMessage ?? null,
     acceptingDonations: row?.acceptingDonations ?? true,
   };
+
+  // Admin has configured at least one donation-method card (UPI ID, QR image,
+  // or a complete bank-transfer set — same rule DonationMethods applies).
+  // When false, DonationMethods would only render its "not configured" empty
+  // state, so it is skipped entirely and the founder card covers giving.
+  const hasAdminCards = Boolean(
+    row?.upiId ||
+      row?.qrCodeUrl ||
+      (row?.accountName && row?.accountNumber && row?.ifsc && row?.bankName)
+  );
 
   return (
     <PublicPageLayout>
@@ -114,23 +126,30 @@ export default async function SupportPage() {
           </div>
         )}
 
-        {settings.acceptingDonations ? (
-          <DonationMethods settings={settings} />
-        ) : (
+        {!settings.acceptingDonations ? (
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
             <p className="text-sm text-[#A09DB1]">
               Donations are temporarily paused. Please check back later.
             </p>
           </div>
-        )}
-
-        {/* Thank-you footer */}
-        {settings.acceptingDonations && (
-          <p className="text-center text-sm font-semibold text-white mt-6">
-            Thank you for considering a gift to Koino.
-          </p>
-        )}
+        ) : hasAdminCards ? (
+          /* Admin-configured methods (admin UPI ID / QR image / bank transfer) */
+          <DonationMethods settings={settings} />
+        ) : null}
       </section>
+
+      {/* Working UPI payment mode — the same single-source Donate card (with
+          live Scan & Pay QR and PNG download) as the founder page. Always
+          shown while donations are accepting, so /support offers a real way
+          to give even before any admin DonationSettings are configured. */}
+      {settings.acceptingDonations && <DonationCard />}
+
+      {/* Thank-you footer */}
+      {settings.acceptingDonations && (
+        <p className="text-center text-sm font-semibold text-white pb-16 px-6 -mt-4">
+          Thank you for considering a gift to Koino.
+        </p>
+      )}
 
       {/* Payment honesty note — Koino does NOT process online payments */}
       <section className="pb-16 pt-4 px-6 max-w-2xl mx-auto">
