@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import { syncArticleFeedWrapper } from "@/lib/blog-server";
 
 // Admin auth helper — same shape as /api/admin/donation-settings.
 async function requireAdmin(): Promise<
@@ -204,6 +205,9 @@ export async function PATCH(
       canonicalUrl?: string | null;
       relatedArticleIds?: string;
       publishedAt?: Date | null;
+      // Task 73 workflow columns (kept consistent with the boolean gate)
+      status?: string;
+      publishedById?: string;
     } = {};
 
     if (Object.prototype.hasOwnProperty.call(body, "title")) {
@@ -302,6 +306,12 @@ export async function PATCH(
         const effectivePublishedAt =
           bodyPublishedAt ?? existing.publishedAt ?? new Date();
         data.publishedAt = effectivePublishedAt;
+        // Task 73: keep workflow columns consistent with the boolean gate.
+        data.status = "published";
+        data.publishedById = auth.user.id;
+      } else if (!newPublished && wasPublished) {
+        // true → false: pull the article out of the public workflow.
+        data.status = "draft";
       } else if (Object.prototype.hasOwnProperty.call(body, "publishedAt")) {
         // Admin is explicitly setting publishedAt on an already-published
         // post (e.g. back-dating). Respect the value.
@@ -318,6 +328,9 @@ export async function PATCH(
       where: { id },
       data,
     });
+
+    // Task 73: keep the social feed card in sync (create/refresh/hide).
+    await syncArticleFeedWrapper(updated);
 
     return NextResponse.json({ success: true, post: serializePost(updated) });
   } catch (e: any) {

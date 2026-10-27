@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import { estimateReadingMinutes } from "@/lib/blog";
+import {
+  blogAuthorSelect,
+  syncArticleFeedWrapper,
+} from "@/lib/blog-server";
 
 // Single PrismaClient instance at module scope — same pattern as the other
 // admin routes (comics, donation-settings, contributor-applications, etc.).
@@ -134,6 +139,14 @@ function serializePost(p: {
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  // Task 73 workflow columns
+  status?: string;
+  authorId?: string | null;
+  reviewNotes?: string | null;
+  readingMinutes?: number | null;
+  submittedAt?: Date | null;
+  authorUser?: { id: string; name: string | null; username: string | null; image: string | null; verified: boolean } | null;
+  publishedBy?: { id: string; name: string | null; username: string | null; image: string | null; verified: boolean } | null;
 }) {
   return {
     id: p.id,
@@ -155,6 +168,14 @@ function serializePost(p: {
     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
+    // Task 73 workflow fields
+    status: p.status ?? "draft",
+    authorId: p.authorId ?? null,
+    reviewNotes: p.reviewNotes ?? null,
+    readingMinutes: p.readingMinutes ?? null,
+    submittedAt: p.submittedAt ? p.submittedAt.toISOString() : null,
+    authorUser: p.authorUser ?? null,
+    publishedBy: p.publishedBy ?? null,
   };
 }
 
@@ -171,9 +192,11 @@ function serializePost(p: {
  *   status — "draft"     → published=false
  *           "published" → published=true
  *           "featured"  → featured=true
+ *           Task 73 workflow statuses: "pending", "changes_requested",
+ *           "rejected", "archived" → filter on the status column
  *
  * Response:
- *   { posts: BlogPost[] }
+ *   { posts: BlogPost[], counts: { pending, published } }
  */
 export async function GET(req: NextRequest) {
   try {
@@ -186,17 +209,33 @@ export async function GET(req: NextRequest) {
     const where: {
       published?: boolean;
       featured?: boolean;
+      status?: string;
     } = {};
     if (status === "draft") where.published = false;
     if (status === "published") where.published = true;
     if (status === "featured") where.featured = true;
+    // Task 73 workflow statuses
+    if (status && ["pending", "changes_requested", "rejected", "archived"].includes(status)) {
+      where.status = status;
+    }
 
-    const posts = await db.blogPost.findMany({
-      where,
-      orderBy: [{ updatedAt: "desc" }],
+    const [posts, pendingCount, publishedCount] = await Promise.all([
+      db.blogPost.findMany({
+        where,
+        orderBy: [{ updatedAt: "desc" }],
+        include: {
+          authorUser: { select: blogAuthorSelect },
+          publishedBy: { select: blogAuthorSelect },
+        },
+      }),
+      db.blogPost.count({ where: { status: "pending" } }),
+      db.blogPost.count({ where: { status: "published", published: true } }),
+    ]);
+
+    return NextResponse.json({
+      posts: posts.map(serializePost),
+      counts: { pending: pendingCount, published: publishedCount },
     });
-
-    return NextResponse.json({ posts: posts.map(serializePost) });
   } catch (e: any) {
     console.error("[admin/blog] GET error:", e);
     return NextResponse.json(
@@ -264,6 +303,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Build create payload ────────────────────────────────────────
+    // Task 73: attribute admin-written articles to the authenticated admin
+    // account (never to a member) and keep the workflow columns consistent.
     const created = await db.blogPost.create({
       data: {
         title,
@@ -271,10 +312,14 @@ export async function POST(req: NextRequest) {
         excerpt: coerceString(body.excerpt),
         content,
         featuredImage: coerceString(body.featuredImage),
-        author: coerceString(body.author),
+        author: coerceString(body.author) ?? auth.user.name ?? auth.user.username ?? null,
+        authorId: auth.user.id,
         category,
         tags: coerceStringArrayToJSON(body.tags),
         published,
+        status: published ? "published" : "draft",
+        publishedById: published ? auth.user.id : null,
+        readingMinutes: estimateReadingMinutes(content),
         featured,
         seoTitle: coerceString(body.seoTitle),
         seoDescription: coerceString(body.seoDescription),
@@ -284,6 +329,9 @@ export async function POST(req: NextRequest) {
         publishedAt,
       },
     });
+
+    // Keep the social feed card in sync for anything created public.
+    await syncArticleFeedWrapper(created);
 
     return NextResponse.json({ success: true, post: serializePost(created) }, { status: 201 });
   } catch (e: any) {

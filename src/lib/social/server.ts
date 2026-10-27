@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth-server";
+import { isPubliclyVisible } from "@/lib/blog";
 
 /**
  * Shared server helpers for /api/social/* routes (Task 50).
@@ -145,6 +146,17 @@ export type SerializedPost = {
   isReel: boolean;
   memorial: { id: string; fullName: string } | null; // Part 4: "View Memorial" feed card
   video: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null; // Part 5: "Watch Now" feed card
+  // Task 73: "Read Article" feed card — attached ONLY while the article
+  // passes the full public-visibility gate (never leaks unpublished content).
+  article: {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string | null;
+    featuredImage: string | null;
+    category: string;
+    readingMinutes: number | null;
+  } | null;
   editedAt: string | null;
   createdAt: string;
   author: {
@@ -186,6 +198,20 @@ export const postSelect = {
   isReel: true,
   memorial: { select: { id: true, fullName: true } },
   video: { select: { id: true, slug: true, title: true, thumbnailUrl: true, durationSec: true } },
+  article: {
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      excerpt: true,
+      featuredImage: true,
+      category: true,
+      readingMinutes: true,
+      status: true,
+      published: true,
+      publishedAt: true,
+    },
+  },
   editedAt: true,
   createdAt: true,
   author: {
@@ -268,6 +294,23 @@ export async function serializePosts(
           durationSec: r.video.durationSec,
         }
       : null,
+    article:
+      r.article &&
+      isPubliclyVisible({
+        published: r.article.published,
+        status: r.article.status,
+        publishedAt: r.article.publishedAt,
+      })
+        ? {
+            id: r.article.id,
+            slug: r.article.slug,
+            title: r.article.title,
+            excerpt: r.article.excerpt,
+            featuredImage: r.article.featuredImage,
+            category: r.article.category,
+            readingMinutes: r.article.readingMinutes,
+          }
+        : null,
     editedAt: r.editedAt ? r.editedAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     author: {

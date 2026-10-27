@@ -148,6 +148,12 @@ model User {
   // Marketplace & Business Directory (persistence upgrade)
   marketplaceListings MarketplaceListing[]
   businessesOwned     Business[]
+
+  // Blog & Articles (Task 73) — author / reviewer / publisher roles are
+  // recorded separately on each article
+  authoredBlogPosts   BlogPost[] @relation("BlogPostAuthor")
+  reviewedBlogPosts   BlogPost[] @relation("BlogPostReviewer")
+  publishedBlogPosts  BlogPost[] @relation("BlogPostPublisher")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -389,6 +395,12 @@ model Post {
   // card renders a Watch Now banner). SetNull: deleting the video keeps the post.
   video        Video?          @relation(fields: [videoId], references: [id], onDelete: SetNull)
   videoId      String?
+  // Blog & Articles (Task 73): set when this post is the feed card of a
+  // published blog article (card renders a "Read Article" banner). @unique:
+  // exactly one feed wrapper per article — prevents duplicate feed entries.
+  // SetNull: deleting the article keeps the post and its engagement history.
+  article      BlogPost?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  articleId    String?         @unique
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -1080,6 +1092,33 @@ model BlogPost {
   publishedAt     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  // ─── Community publishing workflow (Task 73) ─────────────────────────
+  // status: draft | pending | changes_requested | published | rejected | archived
+  // Legacy rows (admin CMS era) default to "published" semantics via the
+  // `published` boolean below; status governs the member submission flow.
+  status          String   @default("draft")
+  // Real author relation (null = legacy rows that only carry the display-name
+  // string in `author`). SetNull: deleting a user keeps their articles.
+  authorId        String?
+  authorUser      User?    @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  submittedAt     DateTime?
+  // Moderation — one admin per review action
+  reviewedById    String?
+  reviewedBy      User?    @relation("BlogPostReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  // Admin feedback for changes_requested / rejection reason
+  reviewNotes     String?
+  // Admin who performed the publish action (distinct from the author)
+  publishedById   String?
+  publishedBy     User?    @relation("BlogPostPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  readingMinutes  Int?
+  // Feed wrapper posts that cross-post this article into the social feed
+  // (exactly one per article — Post.articleId is @unique)
+  feedPosts       Post[]
+
+  @@index([status, submittedAt])
+  @@index([authorId, updatedAt])
 
   @@index([published, publishedAt])
   @@index([category])
