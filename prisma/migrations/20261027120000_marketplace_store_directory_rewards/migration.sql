@@ -50,6 +50,7 @@ CREATE TABLE "StoreProduct" (
     "variations" TEXT NOT NULL DEFAULT '[]',
     "attributes" TEXT NOT NULL DEFAULT '[]',
     "featured" BOOLEAN NOT NULL DEFAULT false,
+    "coverGradient" INTEGER NOT NULL DEFAULT 0,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "buyUrl" TEXT,
     "contactWhatsapp" TEXT,

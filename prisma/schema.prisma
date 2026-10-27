@@ -1943,6 +1943,7 @@ model StoreProduct {
   variations    String   @default("[]")   // JSON [{name, options[]}]
   attributes    String   @default("[]")   // JSON [{label, value}]
   featured      Boolean  @default(false)
+  coverGradient Int      @default(0)      // 0-7 gradient fallback when no image
   active        Boolean  @default(true)   // false = archived (hidden publicly)
   buyUrl        String?                   // optional external checkout (existing workflow)
   contactWhatsapp String?                 // store contact for WhatsApp order CTA (optional)
