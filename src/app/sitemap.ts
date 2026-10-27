@@ -50,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     posts = await db.blogPost.findMany({
       where: {
         published: true,
+        status: "published", // Task 73: dual gate — never list unpublished workflow articles
         OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
       },
       select: { slug: true, publishedAt: true, updatedAt: true },

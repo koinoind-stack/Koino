@@ -209,7 +209,7 @@ export const en: Record<string, string> = {
   "admin.tab.contactMessages": "Contact Messages",
   "admin.tab.partnerInquiries": "Partner Inquiries",
   "admin.tab.contributors": "Contributors",
-  "admin.tab.blog": "Blog",
+  "admin.tab.blog": "Blog & Articles",
 
   // ─── Trivia view ───
   "triviaView.title": "Bible Trivia",

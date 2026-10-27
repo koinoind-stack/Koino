@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import Link from "next/link";
-import { Calendar, ArrowLeft, Tag } from "lucide-react";
+import { Calendar, ArrowLeft, Clock, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { BRAND, siteUrl } from "@/lib/brand";
+import { displayArticleAuthor } from "@/lib/blog-server";
+import MarkdownRenderer from "@/components/crosscrafted/MarkdownRenderer";
+import ArticleShareBar from "@/components/blog/ArticleShareBar";
 
 export const dynamic = "force-dynamic";
 
@@ -23,20 +27,21 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await db.blogPost.findUnique({ where: { slug } });
 
-  if (!post || !post.published) {
-    return { title: "Article Not Found — Koino Blog" };
-  }
-
-  // Public visibility gate for SEO too — if the post is future-scheduled,
-  // we don't want search engines indexing it yet.
+  // Dual public-visibility gate for SEO (Task 73): legacy boolean + workflow
+  // status + schedule — unpublished content must never be indexed.
   const now = new Date();
-  if (post.publishedAt && post.publishedAt > now) {
+  if (
+    !post ||
+    !post.published ||
+    post.status !== "published" ||
+    (post.publishedAt && post.publishedAt > now)
+  ) {
     return { title: "Article Not Found — Koino Blog" };
   }
 
   const title = post.seoTitle || `${post.title} — Koino Blog`;
   const description = post.seoDescription || post.excerpt || "";
-  const canonical = post.canonicalUrl || `https://www.koino.in/blog/${post.slug}`;
+  const canonical = post.canonicalUrl || siteUrl(`/blog/${post.slug}`);
   const images = post.featuredImage ? [post.featuredImage] : [];
 
   return {
@@ -47,7 +52,7 @@ export async function generateMetadata({
       title: post.seoTitle || post.title,
       description,
       images,
-      siteName: "Koino",
+      siteName: BRAND.name,
       url: canonical,
       type: "article",
       ...(post.publishedAt
@@ -71,12 +76,23 @@ export default async function BlogArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = await db.blogPost.findUnique({ where: { slug } });
+  const post = await db.blogPost.findUnique({
+    where: { slug },
+    include: {
+      authorUser: { select: { id: true, name: true, username: true, image: true } },
+    },
+  });
 
-  // Visibility gate — drafts and future-scheduled posts are NOT publicly
-  // visible. Call notFound() so the response is a clean 404.
+  // Visibility gate — drafts, pending submissions, rejected/archived and
+  // future-scheduled posts are NOT publicly visible (dual gate). Call
+  // notFound() so the response is a clean 404.
   const now = new Date();
-  if (!post || !post.published || (post.publishedAt && post.publishedAt > now)) {
+  if (
+    !post ||
+    !post.published ||
+    post.status !== "published" ||
+    (post.publishedAt && post.publishedAt > now)
+  ) {
     notFound();
   }
 
@@ -103,42 +119,84 @@ export default async function BlogArticlePage({
     relatedIds = [];
   }
 
-  // Fetch related posts — only published, only the ones the admin picked.
-  // Exclude the current post defensively (in case the admin accidentally
-  // listed the post as related to itself).
-  const related =
+  // Fetch related posts — admin-picked first; if none were chosen, fall back
+  // to the latest published posts in the same category (Task 73).
+  const relatedVisibility = {
+    published: true,
+    status: "published",
+    OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
+  };
+  const relatedSelect = {
+    id: true,
+    title: true,
+    slug: true,
+    excerpt: true,
+    featuredImage: true,
+    category: true,
+    publishedAt: true,
+    readingMinutes: true,
+  } as const;
+
+  const picked =
     relatedIds.length > 0
       ? await db.blogPost.findMany({
           where: {
             AND: [
               { id: { in: relatedIds } },
               { NOT: { id: post.id } },
-              { published: true },
-              { OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] },
+              relatedVisibility,
             ],
           },
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            excerpt: true,
-            featuredImage: true,
-            category: true,
-            publishedAt: true,
-          },
-          // Preserve the order the admin chose in relatedArticleIds.
+          select: relatedSelect,
         })
       : [];
 
-  // Re-sort the related posts to match the admin's chosen order.
-  const orderedRelated = relatedIds
-    .map((id) => related.find((r) => r.id === id))
+  // Re-sort the picked posts to match the admin's chosen order.
+  let orderedRelated = relatedIds
+    .map((id) => picked.find((r) => r.id === id))
     .filter((r): r is NonNullable<typeof r> => Boolean(r));
 
-  const canonical = post.canonicalUrl || `/blog/${post.slug}`;
+  // Auto-related fallback: same category, newest first.
+  if (orderedRelated.length < 3) {
+    const auto = await db.blogPost.findMany({
+      where: {
+        AND: [
+          { category: post.category },
+          { NOT: { id: post.id } },
+          { id: { notIn: orderedRelated.map((r) => r.id) } },
+          relatedVisibility,
+        ],
+      },
+      select: relatedSelect,
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      take: 3 - orderedRelated.length,
+    });
+    orderedRelated = [...orderedRelated, ...auto];
+  }
+
+  const canonical = post.canonicalUrl || siteUrl(`/blog/${post.slug}`);
+  const author = displayArticleAuthor(post);
+
+  // JSON-LD Article schema (SEO)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt || undefined,
+    image: post.featuredImage || undefined,
+    datePublished: post.publishedAt?.toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    author: { "@type": "Person", name: author.name },
+    publisher: { "@type": "Organization", name: BRAND.name, url: BRAND.url },
+    mainEntityOfPage: canonical,
+  };
 
   return (
     <PublicPageLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <article className="max-w-2xl mx-auto px-6 py-12">
         {/* Back link */}
         <Link
@@ -157,8 +215,8 @@ export default async function BlogArticlePage({
         </h1>
 
         {/* Byline */}
-        {(post.publishedAt || post.author) && (
-          <p className="text-[11px] text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div className="text-[11px] text-[#64748B] flex items-center gap-2 flex-wrap">
             {post.publishedAt && (
               <span className="flex items-center gap-1">
                 <Calendar size={11} />
@@ -169,13 +227,23 @@ export default async function BlogArticlePage({
                 })}
               </span>
             )}
-            {post.author && (
-              <span>
-                · by <span className="text-[#94A3B8] font-semibold">{post.author}</span>
+            <span>
+              · by <span className="text-[#94A3B8] font-semibold">{author.name}</span>
+            </span>
+            {post.readingMinutes != null && (
+              <span className="inline-flex items-center gap-1">
+                · <Clock size={11} /> {post.readingMinutes} min read
               </span>
             )}
-          </p>
-        )}
+          </div>
+          <ArticleShareBar
+            title={post.title}
+            excerpt={post.excerpt}
+            slug={post.slug}
+            imageUrl={post.featuredImage}
+            shareUrl={canonical}
+          />
+        </div>
 
         {/* Featured image */}
         {post.featuredImage && (
@@ -194,12 +262,11 @@ export default async function BlogArticlePage({
           </p>
         )}
 
-        {/* Content — rendered as pre-wrap so admins can paste markdown
-            or plain text and have whitespace respected. */}
+        {/* Content — Markdown rendered through the existing MarkdownRenderer
+            (react-markdown + safeUrl): headings, bold/italic, lists, quotes,
+            links and inline images; raw HTML is never executed. */}
         <div className="prose prose-invert max-w-none">
-          <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">
-            {post.content}
-          </p>
+          <MarkdownRenderer content={post.content} />
         </div>
 
         {/* Tags */}

@@ -52,15 +52,17 @@ export type SerializedArticleAuthor = {
  * admin-written content to anyone else.
  */
 export function displayArticleAuthor(post: {
-  authorUser: { id: string | null; name: string | null; username: string | null } | null;
-  author: string | null;
+  authorUser?:
+    | { id?: string | null; name?: string | null; username?: string | null; image?: string | null }
+    | null;
+  author?: string | null;
 }): SerializedArticleAuthor {
   if (post.authorUser) {
     return {
-      id: post.authorUser.id,
+      id: post.authorUser.id ?? null,
       name: post.authorUser.name || post.authorUser.username || "Koino member",
-      username: post.authorUser.username,
-      image: null,
+      username: post.authorUser.username ?? null,
+      image: post.authorUser.image ?? null,
     };
   }
   return { id: null, name: post.author || "Koino Team", username: null, image: null };

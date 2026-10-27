@@ -219,7 +219,14 @@ export async function GET(req: NextRequest) {
       where.status = status;
     }
 
-    const [posts, pendingCount, publishedCount] = await Promise.all([
+    const [
+      posts,
+      pendingCount,
+      publishedCount,
+      changesCount,
+      rejectedCount,
+      archivedCount,
+    ] = await Promise.all([
       db.blogPost.findMany({
         where,
         orderBy: [{ updatedAt: "desc" }],
@@ -230,11 +237,20 @@ export async function GET(req: NextRequest) {
       }),
       db.blogPost.count({ where: { status: "pending" } }),
       db.blogPost.count({ where: { status: "published", published: true } }),
+      db.blogPost.count({ where: { status: "changes_requested" } }),
+      db.blogPost.count({ where: { status: "rejected" } }),
+      db.blogPost.count({ where: { status: "archived" } }),
     ]);
 
     return NextResponse.json({
       posts: posts.map(serializePost),
-      counts: { pending: pendingCount, published: publishedCount },
+      counts: {
+        pending: pendingCount,
+        published: publishedCount,
+        changes_requested: changesCount,
+        rejected: rejectedCount,
+        archived: archivedCount,
+      },
     });
   } catch (e: any) {
     console.error("[admin/blog] GET error:", e);

@@ -25,6 +25,10 @@ const ICONS: Record<string, { icon: typeof Heart; color: string }> = {
   apologetics_comment: { icon: MessageCircle, color: "text-[#38BDF8]" },
   apologetics_reply: { icon: MessageCircle, color: "text-[#38BDF8]" },
   apologetics_reaction: { icon: BookOpen, color: "text-[#A855F7]" },
+  // Task 73: blog article moderation outcomes
+  article_published: { icon: BookOpen, color: "text-emerald-400" },
+  article_changes_requested: { icon: BookOpen, color: "text-[#38BDF8]" },
+  article_rejected: { icon: BookOpen, color: "text-red-400" },
   prayer_prayed: { icon: HeartHandshake, color: "text-[#F59E0B]" },
   prayer_comment: { icon: MessageCircle, color: "text-[#F59E0B]" },
   prayer_reply: { icon: MessageCircle, color: "text-[#FBBF24]" },
@@ -44,6 +48,10 @@ const LABELS: Record<string, string> = {
   apologetics_comment: "commented on your apologetics content",
   apologetics_reply: "replied to your comment",
   apologetics_reaction: "reacted to your apologetics content",
+  // Task 73
+  article_published: "published your article",
+  article_changes_requested: "requested changes on your article",
+  article_rejected: "rejected your article",
   prayer_prayed: "prayed for your prayer request",
   prayer_comment: "commented on your prayer request",
   prayer_reply: "replied to your comment on a prayer request",
