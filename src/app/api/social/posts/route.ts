@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (!groupId) where.groupId = null; // group posts live on their group page only
+  // Task 73: hidden article wrapper posts (published=false) must never appear
+  // in the feed. Every regular post is created published=true, so this filter
+  // only ever hides deliberately-unpublished content.
+  where.published = true;
   if (reels) where.isReel = true;
   if (hashtag) where.hashtags = { has: hashtag.toLowerCase() };
   if (userId) where.authorId = userId;

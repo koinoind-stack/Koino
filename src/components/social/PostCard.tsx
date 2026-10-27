@@ -16,6 +16,7 @@ import {
   Ban,
   Flower2,
   Clapperboard,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   BadgeCheck,
@@ -352,6 +353,32 @@ export default function PostCard({
             <p className="text-xs text-white font-bold truncate">{shown.video.title}</p>
           </div>
           <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">Watch Now →</span>
+        </a>
+      )}
+
+      {/* ─── community article (Task 73) ─── */}
+      {state.article && !state.repostedFrom && (
+        <a
+          href={`/blog/${state.article.slug}`}
+          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-[#F39B9B]/[0.06] border border-[#F39B9B]/20 p-2.5 hover:border-[#F39B9B]/40 transition-colors"
+        >
+          <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-[#1C1929] shrink-0">
+            {state.article.featuredImage ? (
+              <Image src={state.article.featuredImage} alt="" fill sizes="80px" className="object-cover" unoptimized />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[#F39B9B]">
+                <BookOpen size={14} />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold text-[#F39B9B] uppercase tracking-wide truncate">
+              Article{state.article.category ? ` · ${state.article.category}` : ""}
+              {state.article.readingMinutes ? ` · ${state.article.readingMinutes} min read` : ""}
+            </p>
+            <p className="text-xs text-white font-bold truncate">{state.article.title}</p>
+          </div>
+          <span className="shrink-0 text-[11px] font-bold text-[#F39B9B]">Read Article →</span>
         </a>
       )}
 

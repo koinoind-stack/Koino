@@ -25,6 +25,16 @@ export type Post = {
   isReel: boolean;
   memorial?: { id: string; fullName: string } | null; // Part 4: memorial announcement
   video?: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null; // Part 5: shared library video
+  // Task 73: "Read Article" banner (present only while publicly visible)
+  article?: {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string | null;
+    featuredImage: string | null;
+    category: string;
+    readingMinutes: number | null;
+  } | null;
   editedAt: string | null;
   createdAt: string;
   author: SocialUser;

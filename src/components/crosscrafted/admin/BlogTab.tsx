@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   FileText,
@@ -17,7 +17,21 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import MarkdownRenderer from "@/components/crosscrafted/MarkdownRenderer";
+import InlineImagePopover from "@/components/crosscrafted/admin/InlineImagePopover";
+
 // ─── Types ─────────────────────────────────────────────────────────────────
+
+// Task 73 workflow filters (extends the legacy draft/published/featured set).
+type AdminFilter =
+  | "all"
+  | "draft"
+  | "published"
+  | "featured"
+  | "pending"
+  | "changes_requested"
+  | "rejected"
+  | "archived";
 
 // Mirrors the API response shape from /api/admin/blog.
 type BlogPost = {
@@ -40,6 +54,14 @@ type BlogPost = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Task 73 workflow fields
+  status?: string;
+  authorId?: string | null;
+  reviewNotes?: string | null;
+  readingMinutes?: number | null;
+  submittedAt?: string | null;
+  authorUser?: { id: string; name: string | null; username: string | null; image: string | null } | null;
+  publishedBy?: { id: string; name: string | null; username: string | null; image: string | null } | null;
 };
 
 type FormState = {
@@ -170,7 +192,9 @@ function toFormState(post: BlogPost | null): FormState {
 export default function BlogTab() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "draft" | "published" | "featured">("all");
+  const [filter, setFilter] = useState<AdminFilter>("all");
+  const [serverCounts, setServerCounts] = useState<Partial<Record<AdminFilter, number>> | null>(null);
+  const [moderating, setModerating] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<{ id: string | null } | null>(null);
 
@@ -186,8 +210,12 @@ export default function BlogTab() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      const data = (await res.json()) as { posts: BlogPost[] };
+      const data = (await res.json()) as {
+        posts: BlogPost[];
+        counts?: Partial<Record<AdminFilter, number>>;
+      };
       setPosts(data.posts || []);
+      setServerCounts(data.counts ?? null);
     } catch (e: any) {
       toast.error(e?.message || "Failed to load blog posts");
     } finally {
@@ -209,13 +237,20 @@ export default function BlogTab() {
   }, [posts, search]);
 
   const counts = useMemo(() => {
-    return {
+    const local = {
       total: posts.length,
       draft: posts.filter((p) => !p.published).length,
       published: posts.filter((p) => p.published).length,
       featured: posts.filter((p) => p.featured).length,
+      pending: posts.filter((p) => p.status === "pending").length,
+      changes_requested: posts.filter((p) => p.status === "changes_requested").length,
+      rejected: posts.filter((p) => p.status === "rejected").length,
+      archived: posts.filter((p) => p.status === "archived").length,
     };
-  }, [posts]);
+    // Prefer global server counts (correct under any active filter).
+    if (serverCounts) return { ...local, ...serverCounts } as typeof local;
+    return local;
+  }, [posts, serverCounts]);
 
   const openNew = () => setEditing({ id: null });
   const openEdit = (id: string) => setEditing({ id });
@@ -233,6 +268,49 @@ export default function BlogTab() {
     load();
   };
 
+  // Task 73 moderation actions (server-side admin gate enforces everything).
+  const moderate = async (id: string, action: string, feedback?: string) => {
+    setModerating(id);
+    try {
+      const res = await fetch(`/api/admin/blog/${id}/moderate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, feedback }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Action failed");
+      const messages: Record<string, string> = {
+        publish: "Article published — it is now live on the Blog and the feed.",
+        unpublish: "Article unpublished and hidden from the Blog and feed.",
+        feature: "Article featured.",
+        unfeature: "Article unfeatured.",
+        request_changes: "Changes requested — the author has been notified.",
+        reject: "Article rejected — the author has been notified.",
+        archive: "Article archived.",
+      };
+      toast.success(messages[action] || "Done.");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed");
+    } finally {
+      setModerating(null);
+    }
+  };
+
+  const requestFeedback = (id: string, action: "request_changes" | "reject") => {
+    const prompt =
+      action === "reject"
+        ? "Rejection reason (sent to the author):"
+        : "Describe the changes you're requesting (sent to the author):";
+    const feedback = window.prompt(prompt, "");
+    if (feedback === null) return; // cancelled
+    if (!feedback.trim()) {
+      toast.error(action === "reject" ? "A rejection reason is required." : "Please describe the changes.");
+      return;
+    }
+    moderate(id, action, feedback.trim());
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -246,16 +324,21 @@ export default function BlogTab() {
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="w-1 h-5 rounded-full bg-[#7C3AED]" />
-        <h2 className="text-sm font-bold text-white">Blog Posts</h2>
+        <h2 className="text-sm font-bold text-white">Blog &amp; Articles</h2>
         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#7C3AED]/15 text-[#A78BFA]">
           {counts.total}
         </span>
+        {(serverCounts?.pending ?? 0) > 0 && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F59E0B]/15 text-[#F59E0B]">
+            {serverCounts?.pending} pending review
+          </span>
+        )}
         <button
           onClick={openNew}
           className="ml-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
         >
           <Plus size={12} />
-          New Post
+          Write Article
         </button>
       </div>
 
@@ -287,6 +370,34 @@ export default function BlogTab() {
           label="Featured"
           count={counts.featured}
           color="#A855F7"
+        />
+        <FilterChip
+          active={filter === "pending"}
+          onClick={() => setFilter("pending")}
+          label="Pending Review"
+          count={counts.pending}
+          color="#F59E0B"
+        />
+        <FilterChip
+          active={filter === "changes_requested"}
+          onClick={() => setFilter("changes_requested")}
+          label="Changes Requested"
+          count={counts.changes_requested}
+          color="#38BDF8"
+        />
+        <FilterChip
+          active={filter === "rejected"}
+          onClick={() => setFilter("rejected")}
+          label="Rejected"
+          count={counts.rejected}
+          color="#EF4444"
+        />
+        <FilterChip
+          active={filter === "archived"}
+          onClick={() => setFilter("archived")}
+          label="Archived"
+          count={counts.archived}
+          color="#64748B"
         />
       </div>
 
@@ -323,36 +434,64 @@ export default function BlogTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((p) => (
-            <button
+          {filtered.map((p) => {
+            const status = p.status ?? (p.published ? "published" : "draft");
+            const statusBadge =
+              status === "published" ? { color: "#22C55E", label: "Published" }
+              : status === "pending" ? { color: "#F59E0B", label: "Pending Review" }
+              : status === "changes_requested" ? { color: "#38BDF8", label: "Changes Requested" }
+              : status === "rejected" ? { color: "#EF4444", label: "Rejected" }
+              : status === "archived" ? { color: "#64748B", label: "Archived" }
+              : { color: "#F59E0B", label: "Draft" };
+            const authorName = p.authorUser?.name || p.authorUser?.username || p.author || null;
+            const busy = moderating === p.id;
+            return (
+            <div
               key={p.id}
               onClick={() => openEdit(p.id)}
-              className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
+              className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between gap-2 mb-1">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-white truncate">{p.title}</h3>
-                  <p className="text-[11px] text-[#94A3B8] truncate">
-                    /{p.slug}
-                    {p.author && ` · ${p.author}`}
-                  </p>
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  {p.featuredImage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.featuredImage}
+                      alt=""
+                      className="w-14 h-10 rounded-lg object-cover border border-white/[0.06] shrink-0"
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-white truncate">{p.title}</h3>
+                    <p className="text-[11px] text-[#94A3B8] truncate">
+                      /{p.slug}
+                      {authorName && ` · by ${authorName}`}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {p.featured && <StatusBadge color="#A855F7" label="Featured" />}
-                  {p.published ? (
-                    <StatusBadge color="#22C55E" label="Published" />
-                  ) : (
-                    <StatusBadge color="#F59E0B" label="Draft" />
-                  )}
+                  <StatusBadge color={statusBadge.color} label={statusBadge.label} />
                 </div>
               </div>
               {p.excerpt && (
                 <p className="text-[11px] text-[#A09DB1] line-clamp-1 mb-1.5">{p.excerpt}</p>
               )}
-              <div className="flex items-center gap-2 text-[10px] text-[#64748B]">
+              {p.reviewNotes && (status === "changes_requested" || status === "rejected") && (
+                <p className="text-[10px] text-[#94A3B8] bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 mb-1.5 line-clamp-2">
+                  Feedback: {p.reviewNotes}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-[10px] text-[#64748B]">
                 <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] font-bold uppercase tracking-wider">
                   {p.category}
                 </span>
+                {status === "pending" && p.submittedAt && (
+                  <span className="flex items-center gap-0.5 text-[#F59E0B]">
+                    <Clock size={9} /> submitted {formatTimeAgo(p.submittedAt)}
+                  </span>
+                )}
                 {p.published && p.publishedAt ? (
                   <span className="flex items-center gap-0.5">
                     <Eye size={9} /> {formatTimeAgo(p.publishedAt)}
@@ -363,8 +502,44 @@ export default function BlogTab() {
                   </span>
                 )}
               </div>
-            </button>
-          ))}
+
+              {/* Moderation actions (Task 73) — server-side gate re-verifies */}
+              <div
+                className="mt-2.5 pt-2.5 border-t border-white/[0.05] flex flex-wrap items-center gap-1.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {status === "pending" && (
+                  <>
+                    <RowAction label="Approve & Publish" onClick={() => { if (window.confirm(`Publish \"${p.title}\" to the Blog and feed?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
+                    <RowAction label="Request Changes" onClick={() => requestFeedback(p.id, "request_changes")} disabled={busy} tone="#38BDF8" />
+                    <RowAction label="Reject" onClick={() => requestFeedback(p.id, "reject")} disabled={busy} tone="#EF4444" />
+                  </>
+                )}
+                {status === "changes_requested" || status === "rejected" ? (
+                  <>
+                    <RowAction label="Publish Anyway" onClick={() => { if (window.confirm(`Publish \"${p.title}\" as-is?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
+                    <RowAction label="Archive" onClick={() => { if (window.confirm("Archive this article?")) moderate(p.id, "archive"); }} disabled={busy} />
+                  </>
+                ) : null}
+                {status === "published" && (
+                  <>
+                    <RowAction label="Unpublish" onClick={() => { if (window.confirm("Unpublish this article? It will be hidden from the Blog and feed.")) moderate(p.id, "unpublish"); }} disabled={busy} tone="#F59E0B" />
+                    <RowAction label={p.featured ? "Unfeature" : "Feature"} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
+                    <RowAction label="Archive" onClick={() => { if (window.confirm("Archive this article?")) moderate(p.id, "archive"); }} disabled={busy} />
+                  </>
+                )}
+                {status === "draft" && (
+                  <>
+                    <RowAction label="Publish" onClick={() => { if (window.confirm(`Publish \"${p.title}\" to the Blog and feed?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
+                    <RowAction label={p.featured ? "Unfeature" : "Feature"} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
+                    <RowAction label="Archive" onClick={() => { if (window.confirm("Archive this article?")) moderate(p.id, "archive"); }} disabled={busy} />
+                  </>
+                )}
+                {busy && <span className="text-[10px] text-[#94A3B8]">Working…</span>}
+              </div>
+            </div>
+            );
+          })}
         </div>
       )}
 
@@ -382,6 +557,35 @@ export default function BlogTab() {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────
+
+// Task 73: compact moderation action button inside an article row.
+function RowAction({
+  label,
+  onClick,
+  disabled,
+  tone,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-40"
+      style={{
+        borderColor: tone ? `${tone}55` : "rgba(255,255,255,0.1)",
+        color: tone || "#94A3B8",
+        background: tone ? `${tone}14` : "rgba(255,255,255,0.04)",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
 function FilterChip({
   active,
@@ -447,6 +651,27 @@ function BlogEditorModal({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  // Task 73: markdown preview + inline image insertion
+  const [showPreview, setShowPreview] = useState(false);
+  const [showImagePopover, setShowImagePopover] = useState(false);
+  const contentAreaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertContentAtCursor = (markdown: string) => {
+    const el = contentAreaRef.current;
+    if (!el) {
+      set("content", `${form.content}\n${markdown}`);
+      return;
+    }
+    const start = el.selectionStart ?? form.content.length;
+    const end = el.selectionEnd ?? start;
+    const next = form.content.slice(0, start) + markdown + form.content.slice(end);
+    set("content", next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + markdown.length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
 
   // Load existing post if editing.
   useEffect(() => {
@@ -664,14 +889,41 @@ function BlogEditorModal({
           {/* Content */}
           <Field
             label="Content"
-            hint="Markdown / plain text. Rendered as whitespace-pre-wrap on /blog/[slug]."
+            hint="Markdown — headings, bold/italic, lists, quotes, links and inline images. Rendered through the community markdown renderer (raw HTML is never executed)."
           >
-            <textarea
-              value={form.content}
-              onChange={(e) => set("content", e.target.value)}
-              className="neo-input text-sm h-44 resize-y font-mono"
-              placeholder={"# Heading\n\nWrite your article here…"}
-            />
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <button
+                type="button"
+                onClick={() => setShowPreview((v) => !v)}
+                className="rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-2.5 py-1.5 text-[10px] font-bold text-white transition-colors"
+              >
+                {showPreview ? "Edit" : "Preview"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowImagePopover(true)}
+                className="rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-2.5 py-1.5 text-[10px] font-bold text-white transition-colors"
+              >
+                Insert Image
+              </button>
+            </div>
+            {showPreview ? (
+              <div className="rounded-xl border border-white/10 bg-[#0F1420] p-4 min-h-44">
+                {form.content.trim() ? (
+                  <MarkdownRenderer content={form.content} />
+                ) : (
+                  <p className="text-sm text-[#64748B]">Nothing to preview yet.</p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                ref={contentAreaRef}
+                value={form.content}
+                onChange={(e) => set("content", e.target.value)}
+                className="neo-input text-sm h-44 resize-y font-mono"
+                placeholder={"# Heading\n\nWrite your article here…"}
+              />
+            )}
           </Field>
 
           {/* Featured image */}
@@ -864,6 +1116,18 @@ function BlogEditorModal({
           </div>
         </div>
       </div>
+
+      {/* Inline image upload popover — z-[70], above the modal. Inserts
+          ![alt](url) markdown at the content cursor. */}
+      {showImagePopover && (
+        <InlineImagePopover
+          onInsert={(markdown) => {
+            insertContentAtCursor(markdown);
+            setShowImagePopover(false);
+          }}
+          onClose={() => setShowImagePopover(false)}
+        />
+      )}
     </div>
   );
 }
