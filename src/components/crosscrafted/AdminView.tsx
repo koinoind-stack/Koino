@@ -49,12 +49,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  PRODUCTS,
   INDIAN_STATES,
   LANGUAGES,
   type Church,
   type EventItem,
-  type Product,
   type TriviaGift,
 } from "@/lib/crosscrafted-data";
 import { COMMUNITY_ROLES, resolvedCommunityRoleLabel } from "@/lib/community-roles";
@@ -70,6 +68,12 @@ import QuestionsTab from "@/components/crosscrafted/admin/QuestionsTab";
 import ReportsTab from "@/components/crosscrafted/admin/ReportsTab";
 import MemorialsTab from "@/components/crosscrafted/admin/MemorialsTab";
 import VideosTab from "@/components/crosscrafted/admin/VideosTab";
+import {
+  MarketplaceListingsTab,
+  StoreAdminTab,
+  BusinessAdminTab,
+  RewardsAdminTab,
+} from "@/components/crosscrafted/admin/MarketplaceAdminTabs";
 
 type AdminTab =
   | "dashboard"
@@ -77,6 +81,9 @@ type AdminTab =
   | "churches"
   | "events"
   | "marketplace"
+  | "store"
+  | "business"
+  | "rewards"
   | "prayers"
   | "apologetics"
   | "competitions"
@@ -98,7 +105,10 @@ const TABS: { id: AdminTab; icon: typeof Shield; labelKey: string }[] = [
   { id: "members",      icon: Users,             labelKey: "admin.tab.members" },
   { id: "churches",     icon: Building2,        labelKey: "admin.tab.churches" },
   { id: "events",       icon: Calendar,         labelKey: "admin.tab.events" },
-  { id: "marketplace",  icon: Store,             labelKey: "admin.tab.marketplace" },
+  { id: "marketplace", icon: Package, labelKey: "admin.tab.marketplace" },
+  { id: "store",       icon: Tag,             labelKey: "admin.tab.store" },
+  { id: "business",    icon: Handshake,       labelKey: "admin.tab.business" },
+  { id: "rewards",     icon: Gift,            labelKey: "admin.tab.rewards" },
   { id: "prayers",      icon: HeartHandshake,   labelKey: "admin.tab.prayers" },
   { id: "apologetics",  icon: HelpCircle,       labelKey: "admin.tab.apologetics" },
   { id: "competitions", icon: Trophy,            labelKey: "admin.tab.competitions" },
@@ -277,7 +287,10 @@ export default function AdminView() {
           {activeTab === "members" && <MembersTab />}
           {activeTab === "churches" && <ChurchesTab />}
           {activeTab === "events" && <EventsTab />}
-          {activeTab === "marketplace" && <MarketplaceTab />}
+          {activeTab === "marketplace" && <MarketplaceListingsTab />}
+          {activeTab === "store" && <StoreAdminTab />}
+          {activeTab === "business" && <BusinessAdminTab />}
+          {activeTab === "rewards" && <RewardsAdminTab />}
           {activeTab === "prayers" && <PrayersTab />}
           {activeTab === "apologetics" && <ApologeticsAdminWrapper />}
           {activeTab === "competitions" && <CompetitionsTab />}
@@ -452,7 +465,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
             <span className="text-[#22C55E] font-bold">● DB-backed:</span> Members, Churches, Events, Bible Comics, Blog, Apologetics articles & questions, Prayer Wall moderation, Trivia Competitions/Prizes/Winners, Gifts & Redemptions, Donation settings, Contact messages, Partner inquiries, Contributor applications — all persisted via Prisma admin APIs.
           </p>
           <p>
-            <span className="text-[#F59E0B] font-bold">● Still preview/mock:</span> Marketplace Products, Announcements — these tabs use local state only (no Prisma model or admin API yet). Changes there do NOT persist. Analytics time-series also needs a dedicated backend.
+            <span className="text-[#F59E0B] font-bold">● Still preview/mock:</span> Announcements only — it uses local state (no admin API yet). Marketplace Listings, Koino Store, Business Directory and Trivia Rewards are now fully database-backed.
           </p>
         </div>
       </div>
@@ -1696,58 +1709,6 @@ npx prisma db push`}
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── MARKETPLACE ─────────────────────────────────────────────────────────
-
-function MarketplaceTab() {
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
-
-  const remove = (id: string) => {
-    setProducts((ps) => ps.filter((p) => p.id !== id));
-    toast("Product removed");
-  };
-
-  const toggleStock = (id: string) => {
-    setProducts((ps) =>
-      ps.map((p) => (p.id === id ? { ...p, in_stock: !p.in_stock } : p))
-    );
-    toast("Stock updated");
-  };
-
-  return (
-    <div className="space-y-3">
-      <PreviewModeBanner section="Marketplace" />
-      <AdminSectionHeader title="All Products" count={products.length} color="#9786E3" />
-      {products.map((p) => (
-        <AdminCard
-          key={p.id}
-          title={p.name}
-          subtitle={`₹${p.price} · ${p.vendor} · ${p.city}`}
-          description={p.description}
-          image={p.cover_image}
-          badge={p.in_stock ? "In Stock" : "Out"}
-          badgeColor={p.in_stock ? "#22C55E" : "#EF4444"}
-          actions={
-            <>
-              <button
-                onClick={() => toggleStock(p.id)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
-              >
-                {p.in_stock ? "Mark Out" : "Mark In"}
-              </button>
-              <button
-                onClick={() => remove(p.id)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] text-xs font-bold hover:bg-[#EF4444]/25 transition-all"
-              >
-                <Trash2 size={12} /> Remove
-              </button>
-            </>
-          }
-        />
-      ))}
     </div>
   );
 }
