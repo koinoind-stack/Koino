@@ -27,7 +27,8 @@ import KoinoFooter from "@/components/crosscrafted/KoinoFooter";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { BRAND } from "@/lib/brand";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
-import { PRODUCTS, BUSINESSES, CHURCH_GRADIENTS } from "@/lib/crosscrafted-data";
+import { CHURCH_GRADIENTS } from "@/lib/crosscrafted-data";
+import { useFeaturedPicks } from "@/lib/showcase";
 
 type Props = {
   onEnterApp: (view: string) => void;
@@ -117,13 +118,7 @@ const FEATURE_GROUPS: FeatureGroup[] = [
 // §7 — a small selection from the SAME datasets the in-app Marketplace and
 // Business Directory render. Featured listings float to the front. No data
 // is invented; if a list is empty its subsection is hidden.
-const PRODUCT_PICKS = [...PRODUCTS]
-  .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
-  .slice(0, 3);
 
-const BUSINESS_PICKS = [...BUSINESSES]
-  .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
-  .slice(0, 3);
 
 const gradientFor = (idx: number | undefined) =>
   CHURCH_GRADIENTS[(idx ?? 0) % CHURCH_GRADIENTS.length];
@@ -136,6 +131,7 @@ const inr = new Intl.NumberFormat("en-IN", {
 
 export default function LandingHero({ onEnterApp }: Props) {
   const t = useTranslation();
+  const { products: PRODUCT_PICKS, businesses: BUSINESS_PICKS } = useFeaturedPicks(3);
   const { isAuthenticated } = useSupabaseUser();
   const [menuOpen, setMenuOpen] = useState(false);
 

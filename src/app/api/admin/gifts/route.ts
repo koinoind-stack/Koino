@@ -50,6 +50,9 @@ async function requireAdmin() {
 
 export async function GET() {
   try {
+    const adminId = await requireAdmin();
+    if (!adminId) return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+
     const gifts = await db.gift.findMany({
       where: { isActive: true },
       orderBy: { pointsRequired: "asc" },
@@ -65,6 +68,11 @@ export async function GET() {
         stock: g.stock,
         variations: safeParseArray(g.variations),
         attributes: safeParseArray(g.attributes),
+        isActive: g.isActive,
+        rewardType: g.rewardType,
+        deliveryType: g.deliveryType,
+        eligibilityType: g.eligibilityType,
+        eligibilityValue: g.eligibilityValue,
         isAdmin: !["g1", "g2", "g3", "g4", "g5", "g6"].includes(g.giftId),
       })),
     });
@@ -120,7 +128,43 @@ export async function PUT(req: NextRequest) {
     if (updates.imageUrl !== undefined) data.imageUrl = updates.imageUrl;
     if (updates.pointsRequired !== undefined) data.pointsRequired = Number(updates.pointsRequired);
     if (updates.tier !== undefined) data.tier = updates.tier;
-    if (updates.stock !== undefined) data.stock = Number(updates.stock);
+    if (updates.stock !== undefined) {
+      const stock = Number(updates.stock);
+      if (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000) {
+        return NextResponse.json({ error: "Stock must be 0 or more" }, { status: 400 });
+      }
+      data.stock = stock;
+    }
+    if (updates.isActive !== undefined) data.isActive = updates.isActive === true;
+    if (updates.rewardType !== undefined) {
+      if (!["fp_reward", "competition_prize", "streak_milestone"].includes(String(updates.rewardType))) {
+        return NextResponse.json({ error: "Invalid rewardType" }, { status: 400 });
+      }
+      data.rewardType = String(updates.rewardType);
+    }
+    if (updates.deliveryType !== undefined) {
+      if (!["physical", "merchandise", "voucher"].includes(String(updates.deliveryType))) {
+        return NextResponse.json({ error: "Invalid deliveryType" }, { status: 400 });
+      }
+      data.deliveryType = String(updates.deliveryType);
+    }
+    if (updates.eligibilityType !== undefined) {
+      if (!["points", "competition_winner", "leaderboard_top"].includes(String(updates.eligibilityType))) {
+        return NextResponse.json({ error: "Invalid eligibilityType" }, { status: 400 });
+      }
+      data.eligibilityType = String(updates.eligibilityType);
+    }
+    if (updates.eligibilityValue !== undefined) {
+      if (updates.eligibilityValue == null) {
+        data.eligibilityValue = null;
+      } else {
+        const ev = Number(updates.eligibilityValue);
+        if (!Number.isInteger(ev) || ev < 1 || ev > 1_000_000) {
+          return NextResponse.json({ error: "Invalid eligibilityValue" }, { status: 400 });
+        }
+        data.eligibilityValue = ev;
+      }
+    }
     if (updates.variations !== undefined) {
       data.variations = JSON.stringify(normalizeVariations(updates.variations));
     }

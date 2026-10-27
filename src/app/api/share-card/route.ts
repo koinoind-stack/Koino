@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth-server";
 import { rateLimit } from "@/lib/social/rate-limit";
 import {
@@ -9,7 +8,8 @@ import {
   isKoinoHostedImage,
   type CardFormat,
 } from "@/lib/share/card-renderer";
-import { PRODUCTS, BUSINESSES } from "@/lib/crosscrafted-data";
+import { db } from "@/lib/db";
+import { safeParseArray } from "@/lib/marketplace";
 
 /**
  * ─── UNIVERSAL SHARE-CARD API (Task 121) ─────────────────────────────────────
@@ -526,11 +526,32 @@ export async function GET(req: NextRequest) {
         break;
       }
 
-      /* ── Marketplace product (published mock listings only) ── */
+      /* ── Marketplace product (approved member listing or store product) ── */
       case "product": {
         const id = q("id");
-        const product = PRODUCTS.find((p) => p.id === id);
-        if (!product || (product.status && product.status !== "published")) {
+        const listing = await db.marketplaceListing.findUnique({ where: { id } });
+        const storeProduct = listing ? null : await db.storeProduct.findUnique({ where: { id } });
+        if (listing && listing.status !== "APPROVED") {
+          return NextResponse.json({ error: "Not available for sharing" }, { status: 404 });
+        }
+        const product = listing
+          ? {
+              name: listing.title,
+              description: listing.description,
+              price: listing.price,
+              vendor: listing.sellerName,
+              images: safeParseArray(listing.images),
+            }
+          : storeProduct && storeProduct.active
+          ? {
+              name: storeProduct.name,
+              description: storeProduct.description,
+              price: storeProduct.price,
+              vendor: "Koino Store",
+              images: safeParseArray(storeProduct.images),
+            }
+          : null;
+        if (!product) {
           return NextResponse.json({ error: "Not available for sharing" }, { status: 404 });
         }
         const price = `₹${product.price.toLocaleString("en-IN")}`;
@@ -540,28 +561,30 @@ export async function GET(req: NextRequest) {
           title: product.name,
           body: product.description || undefined,
           reference: `${price}${product.vendor ? ` • ${product.vendor}` : ""}`,
-          bgImageUrl: Array.isArray(product.images) ? product.images[0] : undefined,
-          bgIsKoinoHosted: isKoinoHostedImage(Array.isArray(product.images) ? product.images[0] : undefined),
+          bgImageUrl: product.images[0],
+          bgIsKoinoHosted: isKoinoHostedImage(product.images[0]),
           gradientSeed: 1,
         };
         break;
       }
 
-      /* ── Business directory (approved mock listings only) ── */
+
+      /* ── Business directory (approved DB listings only) ── */
       case "business": {
         const id = q("id");
-        const business = BUSINESSES.find((b) => b.id === id);
-        if (!business || (business.status && business.status !== "approved")) {
+        const business = await db.business.findUnique({ where: { id } });
+        if (!business || business.status !== "APPROVED") {
           return NextResponse.json({ error: "Not available for sharing" }, { status: 404 });
         }
+        const images = safeParseArray(business.images);
         spec = {
           format,
           kicker: "Christian Business Directory",
           title: business.name,
           body: business.description || undefined,
           reference: [business.category, business.city].filter(Boolean).join(" • "),
-          bgImageUrl: business.cover_image || business.logo,
-          bgIsKoinoHosted: isKoinoHostedImage(business.cover_image || business.logo),
+          bgImageUrl: images[0],
+          bgIsKoinoHosted: isKoinoHostedImage(images[0]),
           gradientSeed: 2,
         };
         break;
@@ -570,6 +593,8 @@ export async function GET(req: NextRequest) {
       default:
         return NextResponse.json({ error: "Unknown card type" }, { status: 400 });
     }
+
+    if (!spec) return NextResponse.json({ error: "Unknown card type" }, { status: 400 });
 
     const png = await renderShareCard(spec);
     const isUserScoped = type === "trivia" || type === "prayer";

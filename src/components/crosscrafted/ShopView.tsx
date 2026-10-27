@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  PRODUCTS,
   CHURCH_GRADIENTS,
   INDIAN_STATES,
   getCitiesForState,
@@ -34,6 +33,29 @@ import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import { ImageOff, ExternalLink, BadgeCheck, Store as StoreIcon, Globe } from "lucide-react";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
+
+// Card shape returned by /api/marketplace and /api/store (DB-backed).
+type ApiProduct = {
+  id: string; kind: "member" | "koino"; name: string; description: string;
+  price: number; mrp: number | null; category: string; vendor: string;
+  sellerType: "marketplace" | "believ"; state: string; city: string;
+  cover_gradient: number; cover_image: string | null; images: string[];
+  in_stock: boolean; featured: boolean; buyUrl: string | null;
+  rating: null; reviews: null; createdAt: string;
+};
+
+function mapApiToProduct(c: ApiProduct): Product {
+  return {
+    id: c.id, name: c.name, description: c.description, price: c.price,
+    mrp: c.mrp ?? c.price, category: c.category, vendor: c.vendor,
+    sellerType: c.sellerType, state: c.state, city: c.city,
+    rating: 0, reviews: 0, cover_gradient: c.cover_gradient,
+    cover_image: c.cover_image ?? undefined, images: c.images,
+    in_stock: c.in_stock, status: "published", featured: c.featured,
+    buyUrl: c.buyUrl ?? undefined,
+  };
+}
 
 // Single source of truth — pulled from crosscrafted-data so the List Item form,
 // the filter pills, and the admin product form all share the same list.
@@ -60,7 +82,13 @@ const WhatsAppIcon = ({ size = 18 }: { size?: number }) => (
 
 export default function ShopView() {
   const t = useTranslation();
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const firstLoad = useRef(true);
+  const { isAuthenticated } = useSupabaseUser();
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [cart, setCart] = useState<Set<string>>(new Set());
   const [activeCategory, setActiveCategory] = useState("All");
@@ -91,80 +119,125 @@ export default function ShopView() {
     attributes: [] as ProductAttribute[],
   });
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  const loadProducts = useCallback(async (cursor?: string | null) => {
+    if (cursor) setLoadingMore(true); else setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      const source = filterSellerType === "believ" ? "koino" : filterSellerType === "marketplace" ? "member" : "all";
+      params.set("source", source);
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (activeCategory !== "All") params.set("category", activeCategory);
+      if (filterState) params.set("state", filterState);
+      if (filterCity) params.set("city", filterCity);
+      if (cursor) params.set("cursor", cursor);
+      const res = await fetch(`/api/marketplace?${params.toString()}`, { cache: "no-store" });
+      const data = await res.json();
+      const mapped: Product[] = ((data.products || []) as ApiProduct[]).map(mapApiToProduct);
+      if (cursor) {
+        setProducts((prev) => [...prev, ...mapped.filter((m) => !prev.some((p) => p.id === m.id))]);
+      } else {
+        setProducts(mapped);
+      }
+      setNextCursor(data.nextCursor || null);
+    } catch {
+      toast.error("Could not load the marketplace");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [filterSellerType, searchQuery, activeCategory, filterState, filterCity]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadProducts(null), firstLoad.current ? 0 : 350);
+    firstLoad.current = false;
+    return () => clearTimeout(t);
+  }, [loadProducts]);
+
+  // Open the detail modal immediately, then hydrate contact/variations from
+  // the detail endpoint (contact details are never in the public list API).
+  const openDetail = (p: Product) => {
+    setOpenProduct(p);
+    setActiveImageIdx(0);
+    const initial: Record<string, string> = {};
+    (p.variations || []).forEach((v) => {
+      if (v.options.length > 0) initial[v.name] = v.options[0];
+    });
+    setSelectedVariations(initial);
+    const kind = (p as Product & { kind?: string }).kind;
+    const url = kind === "koino" ? `/api/store/${p.id}` : `/api/marketplace/${p.id}`;
+    fetch(url, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const row = d?.product || d?.listing;
+        if (!row) return;
+        setOpenProduct((cur) =>
+          cur && cur.id === p.id
+            ? {
+                ...cur,
+                whatsapp_number: row.whatsappNumber ?? cur.whatsapp_number,
+                buyUrl: row.buyUrl ?? cur.buyUrl,
+                variations: Array.isArray(row.variations) ? row.variations : cur.variations,
+                attributes: Array.isArray(row.attributes) ? row.attributes : cur.attributes,
+                in_stock: typeof row.in_stock === "boolean" ? row.in_stock : cur.in_stock,
+              }
+            : cur
+        );
+      })
+      .catch(() => {});
+  };
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Please sign in to list an item", { description: "Use the Sign in button at the top of the page." });
+      return;
+    }
     if (!formData.name || !formData.price || !formData.whatsapp_number) {
       toast.error("Please fill in name, price, and WhatsApp number");
       return;
     }
-    if (formData.variations.some((v) => v.name.trim() && v.options.length === 0)) {
-      toast.error("Add at least 1 option for each variation name");
+    if (formData.description.trim().length < 10) {
+      toast.error("Please write a short description (at least 10 characters)");
       return;
     }
-    const newProduct: Product = {
-      id: `pr${Date.now()}`,
-      name: formData.name,
-      description: formData.description,
-      price: Number(formData.price),
-      mrp: formData.mrp ? Number(formData.mrp) : Number(formData.price),
-      category: formData.category,
-      vendor: formData.vendor || "Individual Seller",
-      sellerType: "marketplace", // user-submitted products are always marketplace (not official Koino Store)
-      state: formData.state || "",
-      city: formData.city || "—",
-      rating: 0,
-      reviews: 0,
-      cover_gradient: Math.floor(Math.random() * CHURCH_GRADIENTS.length),
-      cover_image: formData.images[0] || undefined,
-      images: formData.images.length > 0 ? formData.images : undefined,
-      in_stock: true,
-      whatsapp_number: formData.whatsapp_number,
-      buyUrl: formData.buyUrl || undefined,
-      status: "published",
-      featured: false,
-      variations: formData.variations
-        .filter((v) => v.name.trim() && v.options.length > 0)
-        .map((v) => ({ name: v.name.trim(), options: v.options })),
-      attributes: formData.attributes
-        .filter((a) => a.label.trim() && a.value.trim())
-        .map((a) => ({ label: a.label.trim(), value: a.value.trim() })),
-    };
-    setProducts([newProduct, ...products]);
-    setFormData({
-      name: "",
-      description: "",
-      price: "",
-      mrp: "",
-      category: "Bibles",
-      vendor: "",
-      city: "",
-      state: "",
-      buyUrl: "",
-      images: [],
-      whatsapp_number: "",
-      variations: [],
-      attributes: [],
-    });
-    setShowCreateModal(false);
-    toast.success("Product listed!", {
-      description: "Buyers can now contact you on WhatsApp to purchase.",
-    });
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/marketplace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.name,
+          description: formData.description,
+          price: Number(formData.price),
+          mrp: formData.mrp ? Number(formData.mrp) : null,
+          category: formData.category,
+          images: formData.images,
+          state: formData.state || null,
+          city: formData.city || null,
+          whatsappNumber: formData.whatsapp_number,
+          sellerName: formData.vendor || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not submit the listing");
+      setFormData({
+        name: "", description: "", price: "", mrp: "", category: "Bibles",
+        vendor: "", city: "", state: "", buyUrl: "", images: [],
+        whatsapp_number: "", variations: [], attributes: [],
+      });
+      setShowCreateModal(false);
+      toast.success("Submitted for review!", {
+        description: "A Koino admin will check your listing before it appears publicly. Track it any time from this page after approval.",
+      });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const filtered = useMemo(() => {
-    return products.filter((p) => {
-      if (activeCategory !== "All" && p.category !== activeCategory) return false;
-      if (filterSellerType !== "all" && p.sellerType !== filterSellerType) return false;
-      if (filterState && p.state !== filterState) return false;
-      if (filterCity && p.city !== filterCity) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const haystack = `${p.name} ${p.description} ${p.vendor} ${p.category} ${p.subcategory || ""} ${p.state} ${p.city}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [products, activeCategory, filterSellerType, filterState, filterCity, searchQuery]);
+  // Filtering, sorting and pagination happen server-side against the database.
+  const filtered = products;
 
   const toggleWishlist = (id: string) => {
     setWishlist((prev) => {
@@ -318,15 +391,7 @@ export default function ShopView() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              onClick={() => {
-                setOpenProduct(product);
-                setActiveImageIdx(0);
-                const initial: Record<string, string> = {};
-                (product.variations || []).forEach((v) => {
-                  if (v.options.length > 0) initial[v.name] = v.options[0];
-                });
-                setSelectedVariations(initial);
-              }}
+              onClick={() => openDetail(product)}
               className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] transition-all group"
             >
               <div className="relative w-full aspect-square bg-[#0f0f1a] overflow-hidden">
@@ -402,8 +467,12 @@ export default function ShopView() {
                   {product.name}
                 </h3>
                 <div className="flex items-center gap-1 mb-1.5">
-                  <StarRating rating={product.rating} />
-                  <span className="text-[9px] text-[#94A3B8]">({product.reviews})</span>
+                  {product.rating > 0 && (
+                    <>
+                      <StarRating rating={product.rating} />
+                      <span className="text-[9px] text-[#94A3B8]">({product.reviews})</span>
+                    </>
+                  )}
                   {product.variations && product.variations.length > 0 && (
                     <span
                       className="ml-auto px-1 py-0.5 rounded bg-[#9786E3]/15 text-[#9786E3] text-[8px] font-bold uppercase tracking-wider"
@@ -425,7 +494,23 @@ export default function ShopView() {
         })}
       </div>
 
-      {filtered.length === 0 && (
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-7 h-7 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      {!loading && nextCursor && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => loadProducts(nextCursor)}
+            disabled={loadingMore}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white disabled:opacity-50"
+          >
+            {loadingMore ? "Loading..." : "Show more listings"}
+          </button>
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
         <div className="text-center py-16">
           <Search size={40} className="mx-auto text-[#475569] mb-3" />
           <p className="text-sm text-[#475569]">{t('marketplace.empty')}</p>
@@ -878,170 +963,10 @@ export default function ShopView() {
                   label="Product Photos"
                 />
 
-                {/* Variations (Size / Color / etc.) */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                      <Tag size={10} /> Variations
-                      <span className="text-[9px] text-[#475569] normal-case tracking-normal">(sizes, colors...)</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          variations: [...formData.variations, { name: "", options: [] }],
-                        })
-                      }
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#9786E3]/15 text-[#9786E3] text-[10px] font-bold hover:bg-[#9786E3]/25"
-                    >
-                      <Plus size={10} /> Add
-                    </button>
-                  </div>
-                  {formData.variations.length === 0 && (
-                    <p className="text-[10px] text-[#475569] px-1 py-1 italic">
-                      Optional. Add a "Size" with options like S, M, L, XL or a "Color" with Black, White.
-                    </p>
-                  )}
-                  {formData.variations.map((v, vIdx) => (
-                    <div
-                      key={vIdx}
-                      className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-2.5 space-y-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={v.name}
-                          onChange={(e) => {
-                            const next = [...formData.variations];
-                            next[vIdx] = { ...next[vIdx], name: e.target.value };
-                            setFormData({ ...formData, variations: next });
-                          }}
-                          className="neo-input text-xs flex-1"
-                          placeholder="Variation name (e.g. Size, Color)"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              variations: formData.variations.filter((_, i) => i !== vIdx),
-                            })
-                          }
-                          className="w-7 h-7 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] flex items-center justify-center hover:bg-[#EF4444]/25"
-                        >
-                          <X size={11} />
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {v.options.map((opt, oIdx) => (
-                          <span
-                            key={oIdx}
-                            className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-md bg-[#9786E3]/10 border border-[#9786E3]/20 text-[10px] font-semibold text-[#9786E3]"
-                          >
-                            {opt}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = [...formData.variations];
-                                next[vIdx].options = next[vIdx].options.filter((_, i) => i !== oIdx);
-                                setFormData({ ...formData, variations: next });
-                              }}
-                              className="w-4 h-4 rounded-full bg-[#9786E3]/20 hover:bg-[#9786E3]/40 flex items-center justify-center"
-                            >
-                              <X size={9} />
-                            </button>
-                          </span>
-                        ))}
-                        <input
-                          type="text"
-                          placeholder="Add option + Enter"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const target = e.target as HTMLInputElement;
-                              const val = target.value.trim();
-                              if (!val) return;
-                              const next = [...formData.variations];
-                              next[vIdx] = {
-                                ...next[vIdx],
-                                options: [...next[vIdx].options, val],
-                              };
-                              setFormData({ ...formData, variations: next });
-                              target.value = "";
-                            }
-                          }}
-                          className="bg-transparent border border-dashed border-white/[0.12] rounded-md px-2 py-1 text-[10px] text-white outline-none focus:border-[#9786E3]/50 flex-1 min-w-[100px]"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-[10px] text-[#475569] px-1 py-2 italic">
+                  Tip: mention sizes, colours or specs in the description — Koino admins can help feature your listing.
+                </p>
 
-                {/* Attributes (Material, Fit, Weight, etc.) */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                      <Palette size={10} /> Attributes
-                      <span className="text-[9px] text-[#475569] normal-case tracking-normal">(material, weight...)</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          attributes: [...formData.attributes, { label: "", value: "" }],
-                        })
-                      }
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#38BDF8]/15 text-[#38BDF8] text-[10px] font-bold hover:bg-[#38BDF8]/25"
-                    >
-                      <Plus size={10} /> Add
-                    </button>
-                  </div>
-                  {formData.attributes.length === 0 && (
-                    <p className="text-[10px] text-[#475569] px-1 py-1 italic">
-                      Optional. Add specs like "Material: 100% Cotton".
-                    </p>
-                  )}
-                  {formData.attributes.map((a, aIdx) => (
-                    <div key={aIdx} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={a.label}
-                        onChange={(e) => {
-                          const next = [...formData.attributes];
-                          next[aIdx] = { ...next[aIdx], label: e.target.value };
-                          setFormData({ ...formData, attributes: next });
-                        }}
-                        className="neo-input text-xs w-[40%]"
-                        placeholder="Label (e.g. Material)"
-                      />
-                      <input
-                        type="text"
-                        value={a.value}
-                        onChange={(e) => {
-                          const next = [...formData.attributes];
-                          next[aIdx] = { ...next[aIdx], value: e.target.value };
-                          setFormData({ ...formData, attributes: next });
-                        }}
-                        className="neo-input text-xs flex-1"
-                        placeholder="Value (e.g. 100% Cotton)"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            attributes: formData.attributes.filter((_, i) => i !== aIdx),
-                          })
-                        }
-                        className="w-7 h-7 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] flex items-center justify-center hover:bg-[#EF4444]/25 shrink-0"
-                      >
-                        <X size={11} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
@@ -1087,10 +1012,11 @@ export default function ShopView() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
+                    disabled={submitting}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                     style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
                   >
-                    List Item
+                    {submitting ? "Submitting..." : "List Item"}
                   </button>
                 </div>
               </form>

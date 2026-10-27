@@ -446,20 +446,35 @@ export async function claimGift(
     throw new Error(`Not enough points. Need ${gift.pointsRequired}, have ${user.totalPoints}`);
   }
 
+  // Server-side eligibility (Trivia Rewards): points-based by default, plus
+  // optional competition-winner or leaderboard-rank gates configured by admins.
+  if (gift.eligibilityType === "competition_winner") {
+    const wins = await db.triviaWinner.count({ where: { userId, NOT: { status: { in: ["disqualified", "cancelled"] } } } });
+    if (wins === 0) throw new Error("This reward is only for trivia competition winners");
+  } else if (gift.eligibilityType === "leaderboard_top") {
+    const topN = Math.max(gift.eligibilityValue ?? 10, 1);
+    const better = await db.user.count({ where: { totalPoints: { gt: user.totalPoints } } });
+    if (better >= topN) throw new Error(`This reward is only for the top ${topN} players on the leaderboard`);
+  }
+
   // Check stock
   if (gift.stock <= 0) {
     throw new Error("Gift out of stock");
   }
 
-  // Use a transaction for atomicity
-  const result = await db.$transaction([
-    // Deduct points from user
-    db.user.update({
-      where: { id: userId },
+  // Use a transaction for atomicity. Point deduction and stock decrement are
+  // CONDITIONAL (updateMany + count check) so concurrent claims can never
+  // drive points negative or stock negative — a lost race rolls everything back.
+  const result = await db.$transaction(async (tx) => {
+    const pointsUpdate = await tx.user.updateMany({
+      where: { id: userId, totalPoints: { gte: gift.pointsRequired } },
       data: { totalPoints: { decrement: gift.pointsRequired } },
-    }),
-    // Create redemption record — includes selected variations for fulfilment
-    db.giftRedemption.create({
+    });
+    if (pointsUpdate.count !== 1) throw new Error(`Not enough points. Need ${gift.pointsRequired}, have ${user.totalPoints}`);
+
+    // Create redemption record — includes selected variations for fulfilment.
+    // The @@unique([userId, giftId]) constraint is the final duplicate guard.
+    const redemption = await tx.giftRedemption.create({
       data: {
         userId,
         giftId,
@@ -468,28 +483,34 @@ export async function claimGift(
         status: "pending",
         selectedVariations: JSON.stringify(selectedVariations || []),
       },
-    }),
-    // Decrement gift stock
-    db.gift.update({
-      where: { id: gift.id },
+    });
+
+    // Conditional stock decrement — never below zero.
+    const stockUpdate = await tx.gift.updateMany({
+      where: { id: gift.id, stock: { gt: 0 } },
       data: { stock: { decrement: 1 } },
-    }),
+    });
+    if (stockUpdate.count !== 1) throw new Error("Gift out of stock");
+
     // Create transaction record (giftId stored in reason since the model
     // doesn't have a giftId field — avoids schema migration)
-    db.triviaPointTransaction.create({
+    await tx.triviaPointTransaction.create({
       data: {
         userId,
         points: -gift.pointsRequired,
         reason: `GIFT_REDEMPTION:${gift.giftId}:${gift.title}`,
       },
-    }),
-  ]);
+    });
+
+    const fresh = await tx.user.findUnique({ where: { id: userId }, select: { totalPoints: true } });
+    return { newTotalPoints: fresh?.totalPoints ?? 0 };
+  });
 
   return {
     success: true,
     giftTitle: gift.title,
     pointsSpent: gift.pointsRequired,
-    newTotalPoints: result[0].totalPoints,
+    newTotalPoints: result.newTotalPoints,
     selectedVariations,
   };
 }

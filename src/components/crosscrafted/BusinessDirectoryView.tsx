@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -20,15 +20,34 @@ import {
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
-  BUSINESSES,
   BUSINESS_CATEGORIES,
   INDIAN_STATES,
   getCitiesForState,
   CHURCH_GRADIENTS,
   type Business,
 } from "@/lib/crosscrafted-data";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+
+// Card shape returned by /api/businesses (DB-backed; contacts in detail only).
+type ApiBusiness = {
+  id: string; name: string; description: string; category: string;
+  state: string; city: string; cover_image: string | null; images: string[];
+  cover_gradient: number; verified: boolean; featured: boolean;
+  hours: string | null; services: string[]; ownerName: string; createdAt: string;
+};
+
+function mapApiToBusiness(c: ApiBusiness): Business {
+  return {
+    id: c.id, name: c.name, description: c.description, category: c.category,
+    country: "India", state: c.state, city: c.city, languages: [],
+    cover_image: c.cover_image ?? undefined, cover_gradient: c.cover_gradient,
+    hours: c.hours ?? undefined, services: c.services,
+    verified: c.verified, featured: c.featured, status: "approved",
+    createdAt: c.createdAt,
+  };
+}
+
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
@@ -42,7 +61,11 @@ type Props = {
 
 export default function BusinessDirectoryView({ onListBusiness }: Props) {
   const t = useTranslation();
-  const [businesses] = useState<Business[]>(BUSINESSES);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const firstLoad = useRef(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterState, setFilterState] = useState("");
@@ -54,44 +77,70 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
   // endpoint re-verifies the listing status server-side).
   const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
 
-  // Public directory only shows approved businesses.
-  // New listings created via ListYourEntity enter "pending" and don't appear
-  // here until admin approves them (matches the spec's moderation requirement).
-  const approved = useMemo(() => businesses.filter((b) => b.status === "approved"), [businesses]);
-
-  const filtered = useMemo(() => {
-    const list = approved.filter((b) => {
-      if (filterCategory && b.category !== filterCategory) return false;
-      if (filterState && b.state !== filterState) return false;
-      if (filterCity && b.city !== filterCity) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const haystack = `${b.name} ${b.description} ${b.category} ${b.city} ${b.state} ${(b.services || []).join(" ")}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
+  const loadBusinesses = useCallback(async (cursor?: string | null) => {
+    if (cursor) setLoadingMore(true); else setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (filterCategory) params.set("category", filterCategory);
+      if (filterState) params.set("state", filterState);
+      if (filterCity) params.set("city", filterCity);
+      if (sortBy === "newest") params.set("sort", "newest");
+      else if (sortBy === "name") params.set("sort", "name");
+      // "recommended" = server default (featured first)
+      if (cursor) params.set("cursor", cursor);
+      const res = await fetch(`/api/businesses?${params.toString()}`, { cache: "no-store" });
+      const data = await res.json();
+      const mapped: Business[] = ((data.businesses || []) as ApiBusiness[]).map(mapApiToBusiness);
+      if (cursor) {
+        setBusinesses((prev) => [...prev, ...mapped.filter((m) => !prev.some((b) => b.id === m.id))]);
+      } else {
+        setBusinesses(mapped);
       }
-      return true;
-    });
-
-    // Sort
-    const sorted = [...list];
-    if (sortBy === "newest") {
-      sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-    } else if (sortBy === "name") {
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
-    } else {
-      // "recommended" — featured first, then highest rating (if any), then most reviews
-      sorted.sort((a, b) => {
-        if (!!a.featured !== !!b.featured) return a.featured ? -1 : 1;
-        const ra = a.rating || 0;
-        const rb = b.rating || 0;
-        if (rb !== ra) return rb - ra;
-        return (b.reviews || 0) - (a.reviews || 0);
-      });
+      setNextCursor(data.nextCursor || null);
+    } catch {
+      toast.error("Could not load the business directory");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-    return sorted;
-  }, [approved, filterCategory, filterState, filterCity, searchQuery, sortBy]);
+  }, [searchQuery, filterCategory, filterState, filterCity, sortBy]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadBusinesses(null), firstLoad.current ? 0 : 350);
+    firstLoad.current = false;
+    return () => clearTimeout(t);
+  }, [loadBusinesses]);
+
+  // Server returns only APPROVED businesses, already filtered and sorted.
+  const filtered = businesses;
 
   const featured = useMemo(() => filtered.filter((b) => b.featured), [filtered]);
+
+  // Open detail immediately, then hydrate contact details (privacy: contacts
+  // are only served by the detail endpoint for approved businesses).
+  const openDetail = (b: Business) => {
+    setOpenBusiness(b);
+    fetch(`/api/businesses/${b.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const row = d?.business;
+        if (!row) return;
+        setOpenBusiness((cur) =>
+          cur && cur.id === b.id
+            ? {
+                ...cur,
+                whatsapp_number: row.whatsappNumber ?? cur.whatsapp_number,
+                phone: row.phone ?? cur.phone,
+                email: row.email ?? cur.email,
+                website: row.website ?? cur.website,
+                address: row.address ?? cur.address,
+              }
+            : cur
+        );
+      })
+      .catch(() => {});
+  };
 
   const activeFilters = [filterCategory, filterState, filterCity, searchQuery].filter(Boolean).length;
 
@@ -247,7 +296,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
                 key={b.id}
                 business={b}
                 index={i}
-                onClick={() => setOpenBusiness(b)}
+                onClick={() => openDetail(b)}
               />
             ))}
           </div>
@@ -263,19 +312,39 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
         </p>
       </div>
 
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-7 h-7 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && (
       <div className="space-y-3">
         {filtered.map((b, i) => (
           <BusinessCard
             key={b.id}
             business={b}
             index={i}
-            onClick={() => setOpenBusiness(b)}
+            onClick={() => openDetail(b)}
           />
         ))}
       </div>
+      )}
+
+      {!loading && nextCursor && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => loadBusinesses(nextCursor)}
+            disabled={loadingMore}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white disabled:opacity-50"
+          >
+            {loadingMore ? "Loading..." : "Show more businesses"}
+          </button>
+        </div>
+      )}
 
       {/* ─── EMPTY STATE ─── */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="text-center py-16">
           <Building2 size={40} className="mx-auto text-[#475569] mb-3" />
           <p className="text-sm text-[#475569] mb-1">No businesses found.</p>

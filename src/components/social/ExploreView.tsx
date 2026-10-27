@@ -24,13 +24,14 @@ import {
 import { toast } from "sonner";
 import type { Post, SocialUser } from "./types";
 import { api } from "./types";
+import { useFeaturedPicks } from "@/lib/showcase";
 import PostDetail from "./PostDetail";
 import EventRail from "./EventRail";
 import VideoRail from "./VideoRail";
 import ReelsOverlay from "./ReelsView";
 import { formatCount } from "@/lib/social/format";
 import {
-  PRODUCTS, BUSINESSES, CHURCH_GRADIENTS, QUIZ_CATEGORIES,
+  CHURCH_GRADIENTS, QUIZ_CATEGORIES,
   type Product, type Business,
 } from "@/lib/crosscrafted-data";
 
@@ -927,8 +928,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
 /** Marketplace + Business Directory highlights — same curated data the
  *  Shop and Business Directory features render (no invented listings). */
 function MarketplaceHighlights({ onNavigate }: { onNavigate?: (view: string) => void }) {
-  const products: Product[] = PRODUCTS.filter((p) => p.in_stock).slice(0, 6);
-  const businesses: Business[] = BUSINESSES.slice(0, 6);
+  const { products, businesses } = useFeaturedPicks(6);
   if (products.length === 0 && businesses.length === 0) return null;
 
   return (
