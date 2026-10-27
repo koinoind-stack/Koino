@@ -6,6 +6,8 @@ import {
   COMMUNITY_ROLE_OTHER,
   COMMUNITY_ROLE_OTHER_MAX,
 } from "@/lib/community-roles";
+import { ageFromDOB, matrimonyStatusAfterDobChange } from "@/lib/matrimony";
+import { logMatrimonyAudit } from "@/lib/matrimony/server";
 
 /**
  * GET /api/profile — the signed-in user's own editable profile.
@@ -162,6 +164,7 @@ export async function PATCH(req: NextRequest) {
       usernameChangedAt: true,
       profileCompleted: true,
       communityRole: true,
+      dateOfBirth: true, // matrimony DOB-change audit needs the previous age
     },
   });
   if (!current) {
@@ -227,6 +230,13 @@ export async function PATCH(req: NextRequest) {
       const dob = new Date(String(body.dateOfBirth));
       if (isNaN(dob.getTime())) {
         return NextResponse.json({ error: "Invalid date of birth" }, { status: 400 });
+      }
+      // Future dates are always invalid — explicit check with a clear message.
+      if (dob.getTime() > Date.now()) {
+        return NextResponse.json(
+          { error: "Date of birth cannot be in the future" },
+          { status: 400 }
+        );
       }
       // Sanity: DOB must be in the past and the person at least ~5 years old.
       const now = new Date();
@@ -362,6 +372,50 @@ export async function PATCH(req: NextRequest) {
         communityRoleVisible: true,
       },
     });
+
+    // ─── Matrimony DOB-change safeguard (Task 74 Stage B) ───
+    // A DOB change must never be a route around the 18+ gate. If this member
+    // has a matrimony profile, re-validate eligibility server-side; an
+    // ineligible DOB (under 18, invalid, or cleared) immediately RESTRICTS
+    // the matrimony profile (never deletes the account or unrelated content).
+    // Every change is audit-logged with AGES ONLY — never the DOB itself.
+    if (data.dateOfBirth !== undefined) {
+      const matrimonyProfile = await db.matrimonyProfile.findUnique({
+        where: { userId: current.id },
+        select: { id: true, status: true },
+      });
+      if (matrimonyProfile) {
+        const policy = matrimonyStatusAfterDobChange({
+          hasMatrimonyProfile: true,
+          newDob: data.dateOfBirth as Date | null,
+        });
+        const previousAge = ageFromDOB(current.dateOfBirth);
+        const newAge = data.dateOfBirth ? ageFromDOB(data.dateOfBirth as Date) : -1;
+        if (policy.restrict && matrimonyProfile.status !== "restricted") {
+          await db.matrimonyProfile.update({
+            where: { id: matrimonyProfile.id },
+            data: {
+              status: "restricted",
+              restrictedReason: "dob_change_ineligible",
+            },
+          });
+        }
+        await logMatrimonyAudit({
+          actorId: current.id,
+          actorRole: "member",
+          action: policy.restrict ? "dob_changed_ineligible" : "dob_changed",
+          targetUserId: current.id,
+          targetType: "user",
+          targetId: current.id,
+          outcome: policy.restrict ? "restricted" : "eligible",
+          metadata: {
+            previousAge: previousAge >= 0 ? previousAge : null,
+            newAge: newAge >= 0 ? newAge : null,
+          },
+        });
+      }
+    }
+
     return NextResponse.json(updated);
   } catch (err: unknown) {
     if (
