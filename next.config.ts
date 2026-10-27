@@ -20,6 +20,28 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/share-card": ["./public/fonts/**/*", "./public/brand/logo.png"],
   },
+  /* Prisma tracing fix (approved 2026-10-27): stop copying 21 never-executed
+   * WASM runtime variants into every serverless function. Koino uses the
+   * Node.js library engine (verified: engineType "library", no driver
+   * adapters / Accelerate in src or lockfile), whose runtime is
+   * runtime/library.js + libquery_engine-*.so.node - NOT these files:
+   *  - @prisma/client/runtime/*wasm-base64* (20 files, ~53.3MB per function):
+   *    only reachable via the edge/workerd/driver-adapter entry branches
+   *  - .prisma/client/query_engine_bg.wasm (2.19MB): only reachable via the
+   *    wasm engine loader used by edge/driver-adapter modes
+   * Excluding them here only filters Next's own file trace (the same .nft.json
+   * Vercel bundles from); it does not change any runtime behavior on Node.
+   * Library-engine files (.so.node, library.js, generated client) untouched. */
+  outputFileTracingExcludes: {
+    "/api/**": [
+      "node_modules/@prisma/client/runtime/*wasm-base64*",
+      "node_modules/.prisma/client/query_engine_bg.wasm",
+    ],
+    "/**": [
+      "node_modules/@prisma/client/runtime/*wasm-base64*",
+      "node_modules/.prisma/client/query_engine_bg.wasm",
+    ],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
