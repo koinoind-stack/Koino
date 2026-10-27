@@ -1,0 +1,407 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  Check,
+  Copy,
+  HandHeart,
+  Loader2,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  DONATION_CONFIG,
+  buildUpiUri,
+  formatINR,
+  validateDonationAmount,
+} from "@/lib/founder";
+
+/**
+ * Voluntary donation card (Google Pay / UPI intent).
+ *
+ * Honesty guarantees (per spec):
+ * - No preselected amount; the donate button stays disabled until a valid
+ *   amount is chosen.
+ * - The UPI intent is built programmatically from the validated amount —
+ *   nothing is hardcoded per donation.
+ * - There is NO success state: opening a UPI app does not prove a payment
+ *   happened, so we only ever show a neutral, grateful status with manual
+ *   fallback details. Reliable confirmation would require a payment gateway
+ *   with server-side verification (deliberately out of scope here).
+ */
+type Status = "idle" | "opening" | "initiated";
+
+export default function DonationCard() {
+  const [selection, setSelection] = useState<number | "other" | null>(null);
+  const [custom, setCustom] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>("idle");
+
+  const validation = useMemo(() => {
+    if (selection === null) return null;
+    return validateDonationAmount(
+      selection === "other" ? custom : String(selection)
+    );
+  }, [selection, custom]);
+
+  const hasValidAmount = validation?.ok === true;
+  const selectedAmount = hasValidAmount ? validation.amount : null;
+
+  // Live validation message while typing a custom amount — the donate button
+  // is intentionally disabled for invalid input, so the message must surface
+  // as the user types instead of on click.
+  const liveError =
+    selection === "other" && custom.trim() !== "" && validation && !validation.ok
+      ? validation.error
+      : null;
+  const shownError = error ?? liveError;
+
+  // After the UPI intent is opened: if the donor returns to the tab (or the
+  // app never took focus on desktop), show the honest "we can't verify" panel.
+  useEffect(() => {
+    if (status !== "opening") return;
+    const onBack = () => {
+      if (document.visibilityState === "visible") setStatus("initiated");
+    };
+    const timer = window.setTimeout(() => {
+      if (document.visibilityState === "visible") setStatus("initiated");
+    }, 2500);
+    document.addEventListener("visibilitychange", onBack);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onBack);
+    };
+  }, [status]);
+
+  const donate = () => {
+    if (status === "opening") return;
+    // Validate again immediately before constructing the payment intent.
+    const v = validateDonationAmount(
+      selection === "other" ? custom : String(selection ?? "")
+    );
+    if (!v.ok) {
+      setError(v.error);
+      return;
+    }
+    setError(null);
+    setStatus("opening");
+    window.location.href = buildUpiUri(v.amount);
+  };
+
+  const copyUpiId = async () => {
+    try {
+      await navigator.clipboard.writeText(DONATION_CONFIG.upiId);
+      toast.success("UPI ID copied");
+    } catch {
+      toast.error(`Couldn't copy — UPI ID: ${DONATION_CONFIG.upiId}`);
+    }
+  };
+
+  return (
+    <section className="py-12 px-6" aria-labelledby="donate-heading">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h2
+            id="donate-heading"
+            className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2"
+          >
+            Support Koino&rsquo;s Mission
+          </h2>
+          <p className="text-sm text-[#A09DB1]">
+            Choose an amount you&rsquo;re comfortable giving. Every contribution
+            is voluntary and appreciated.
+          </p>
+        </div>
+
+        <div className="relative rounded-3xl bg-gradient-to-b from-[#0B1120] to-[#111827] border border-[#F59E0B]/15 p-6 sm:p-8 shadow-[0_0_80px_-20px_rgba(245,158,11,0.12)]">
+          {/* Card header */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-11 w-11 shrink-0 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/25 flex items-center justify-center">
+              <HandHeart size={20} className="text-[#F59E0B]" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white">
+                Help Keep Koino Free
+              </p>
+              <p className="text-[11px] text-[#94A3B8]">
+                A community built on faith. Sustained by people who believe in
+                its mission.
+              </p>
+            </div>
+          </div>
+
+          {status !== "initiated" ? (
+            <>
+              {/* Amount selection */}
+              <fieldset className="mb-4" disabled={status === "opening"}>
+                <legend className="sr-only">
+                  Choose a donation amount (voluntary)
+                </legend>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {DONATION_CONFIG.presets.map((amt) => {
+                    const checked = selection === amt;
+                    return (
+                      <label
+                        key={amt}
+                        className={`relative flex items-center justify-center rounded-2xl border py-4 cursor-pointer transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#F59E0B]/50 ${
+                          checked
+                            ? "border-[#F59E0B] bg-[#F59E0B]/10"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/25"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="donation-amount"
+                          value={amt}
+                          className="sr-only"
+                          checked={checked}
+                          onChange={() => {
+                            setSelection(amt);
+                            setError(null);
+                          }}
+                        />
+                        {checked && (
+                          <Check
+                            size={13}
+                            className="absolute top-1.5 right-1.5 text-[#F59E0B]"
+                          />
+                        )}
+                        <span
+                          className={`text-lg font-black ${
+                            checked ? "text-white" : "text-[#C9C5DA]"
+                          }`}
+                        >
+                          ₹{amt}
+                        </span>
+                      </label>
+                    );
+                  })}
+                  <label
+                    className={`relative flex items-center justify-center rounded-2xl border py-4 cursor-pointer transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#F59E0B]/50 ${
+                      selection === "other"
+                        ? "border-[#F59E0B] bg-[#F59E0B]/10"
+                        : "border-white/10 bg-white/[0.03] hover:border-white/25"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="donation-amount"
+                      value="other"
+                      className="sr-only"
+                      checked={selection === "other"}
+                      onChange={() => {
+                        setSelection("other");
+                        setError(null);
+                      }}
+                    />
+                    {selection === "other" && (
+                      <Check
+                        size={13}
+                        className="absolute top-1.5 right-1.5 text-[#F59E0B]"
+                      />
+                    )}
+                    <span
+                      className={`text-lg font-black ${
+                        selection === "other" ? "text-white" : "text-[#C9C5DA]"
+                      }`}
+                    >
+                      Other
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              {/* Custom amount input */}
+              {selection === "other" && (
+                <div className="mb-4">
+                  <label
+                    htmlFor="custom-amount"
+                    className="block text-xs font-bold text-[#94A3B8] mb-1.5"
+                  >
+                    Enter your amount (₹)
+                  </label>
+                  <input
+                    id="custom-amount"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="e.g. 250"
+                    value={custom}
+                    autoFocus
+                    onChange={(e) => {
+                      setCustom(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") donate();
+                    }}
+                    aria-invalid={shownError ? true : undefined}
+                    aria-describedby={
+                      shownError ? "donation-amount-error" : undefined
+                    }
+                    className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F59E0B]/60 focus:ring-2 focus:ring-[#F59E0B]/20"
+                  />
+                </div>
+              )}
+
+              {/* Selected amount + payee (shown before payment) */}
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-4 flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-xs text-[#94A3B8]">
+                  {selectedAmount !== null ? (
+                    <>
+                      You&rsquo;re choosing to donate{" "}
+                      <span className="text-white font-black">
+                        {formatINR(selectedAmount)}
+                      </span>{" "}
+                      to
+                    </>
+                  ) : (
+                    "Choose an amount above to continue"
+                  )}
+                </p>
+                <p className="text-xs font-bold text-white">
+                  {DONATION_CONFIG.payeeName}{" "}
+                  <span className="text-[#726E88] font-normal">
+                    ({DONATION_CONFIG.upiId})
+                  </span>
+                </p>
+              </div>
+
+              {shownError && (
+                <p
+                  id="donation-amount-error"
+                  aria-live="polite"
+                  className="text-xs font-bold text-[#F87171] mb-3"
+                >
+                  {shownError}
+                </p>
+              )}
+
+              {/* Primary CTA */}
+              <button
+                type="button"
+                onClick={donate}
+                disabled={!hasValidAmount || status === "opening"}
+                className="w-full py-3.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+              >
+                {status === "opening" ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Opening your
+                    UPI app&hellip;
+                  </>
+                ) : (
+                  <>
+                    <Smartphone size={16} /> Donate with Google Pay / UPI
+                  </>
+                )}
+              </button>
+              <p className="text-[11px] text-[#726E88] text-center mt-2.5 leading-relaxed">
+                Securely continue to a compatible UPI payment app to make your
+                voluntary contribution. Works with Google Pay, PhonePe, Paytm
+                and any UPI app on Android. On a computer? Use the details
+                below.
+              </p>
+
+              {/* Manual / desktop fallback */}
+              <details className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                <summary className="cursor-pointer list-none px-4 py-3 text-xs font-bold text-[#94A3B8] hover:text-white transition-colors">
+                  Pay manually — UPI ID &amp; details
+                </summary>
+                <div className="px-4 pb-4 pt-1 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-[11px] text-[#726E88]">
+                      Open any UPI app and pay to
+                    </p>
+                    <p className="text-sm font-black text-white select-all">
+                      {DONATION_CONFIG.upiId}
+                    </p>
+                    <p className="text-[11px] text-[#726E88]">
+                      Payee: {DONATION_CONFIG.payeeName}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyUpiId}
+                    className="px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
+                  >
+                    <Copy size={13} /> Copy UPI ID
+                  </button>
+                </div>
+              </details>
+            </>
+          ) : (
+            /* Honest post-intent status — never a fake "payment successful" */
+            <div className="text-center py-2" role="status">
+              <div className="h-12 w-12 mx-auto rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 flex items-center justify-center mb-3">
+                <HandHeart size={20} className="text-[#F59E0B]" />
+              </div>
+              <p className="text-sm font-black text-white mb-1.5">
+                Thank you for choosing to support Koino.
+              </p>
+              <p className="text-xs text-[#94A3B8] leading-relaxed max-w-md mx-auto">
+                If your UPI app opened, please complete the contribution there.
+                Koino cannot verify UPI payments automatically, so we
+                won&rsquo;t show a payment confirmation — if something went
+                wrong, you can simply try again.
+              </p>
+              <div className="mt-4 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex items-center justify-between gap-3 flex-wrap text-left">
+                <div>
+                  <p className="text-[11px] text-[#726E88]">
+                    Didn&rsquo;t open? Pay manually to
+                  </p>
+                  <p className="text-sm font-black text-white select-all">
+                    {DONATION_CONFIG.upiId}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyUpiId}
+                  className="px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <Copy size={13} /> Copy UPI ID
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatus("idle")}
+                className="mt-4 text-xs font-bold text-[#F39B9B] hover:text-[#E27B7B] transition-colors"
+              >
+                Choose another amount
+              </button>
+            </div>
+          )}
+
+          {/* Voluntary-donation disclaimer */}
+          <p className="text-[10px] text-[#726E88] text-center leading-relaxed mt-5 pt-4 border-t border-white/[0.06] flex items-start justify-center gap-1.5">
+            <ShieldCheck
+              size={13}
+              className="shrink-0 mt-px text-[#4ade80]"
+              aria-hidden="true"
+            />
+            <span className="text-left sm:text-center">
+              Donations are completely voluntary. Koino is free for everyone,
+              whether you give or not. Your payment happens entirely inside
+              your own UPI app — Koino never sees or stores your UPI PIN,
+              passwords or banking credentials.
+            </span>
+          </p>
+
+          {/* Bible verse — subtle and elegant */}
+          <div className="mt-5 text-center">
+            <p className="text-sm italic text-[#E8D9A0]/90">
+              &ldquo;God loves a cheerful giver.&rdquo;
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F59E0B]/80 mt-1">
+              — 2 Corinthians 9:7
+            </p>
+          </div>
+
+          <p className="text-[11px] text-[#726E88] text-center mt-4">
+            Josh Govada · Founder of Koino.in
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
