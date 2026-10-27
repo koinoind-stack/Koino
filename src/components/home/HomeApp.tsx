@@ -48,6 +48,7 @@ import BusinessDirectoryView from "@/components/crosscrafted/BusinessDirectoryVi
 import AppHomeView from "@/components/crosscrafted/AppHomeView";
 import OnboardingView from "@/components/crosscrafted/OnboardingView";
 import EditProfileView from "@/components/crosscrafted/EditProfileView";
+import MatrimonyView from "@/components/matrimony/MatrimonyView";
 import FeedView from "@/components/social/FeedView";
 import GroupsView from "@/components/social/GroupsView";
 import GroupDetailView from "@/components/social/GroupDetailView";
@@ -96,6 +97,7 @@ type View =
   | "small-groups"
   | "blog" // Blog → /blog (public App Router page, opens in new tab/route)
   | "support" // Support Koino → /support (public App Router page, accessible while authenticated)
+  | "matrimony" // Task 74: private member-only matchmaking section (SPA view — never a public route)
   | "admin";
 
 // ─── SIDEBAR — three-column social layout ───
@@ -141,6 +143,16 @@ const SIDEBAR_CATEGORIES: {
     ],
   },
   {
+    // Task 74: Matrimony is a TOP-LEVEL section (user-confirmed decision).
+    // Member-only + 18+ enforced server-side; the view itself handles the
+    // friendly eligibility gates (DOB missing / under 18).
+    label: "Matrimony",
+    icon: Heart,
+    links: [
+      { id: "matrimony", icon: Heart, label: "Matrimony" },
+    ],
+  },
+  {
     label: "Discover",
     icon: Store,
     links: [
@@ -174,6 +186,7 @@ const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
   { id: "groups", icon: Users, label: "Groups" },
   { id: "memorials", icon: Flower2, label: "In Loving Memory" },
+  { id: "matrimony", icon: Heart, label: "Matrimony" },
   { id: "dashboard", icon: Sparkles, label: "App Home" },
   { id: "notifications", icon: Bell, label: "Notifications" },
   { id: "bible", icon: BookOpen, label: "Bible" },
@@ -528,6 +541,7 @@ export default function Home() {
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia", "watch",
       "prayer-wall", "apologetics", "shop", "business-directory",
+      "matrimony",
     ];
     if (!validViews.includes(deepView as View)) return;
 
@@ -942,6 +956,12 @@ export default function Home() {
                 <BusinessDirectoryView onListBusiness={() => goView("list-business")} />
               )}
               {view === "small-groups" && <ComingSoonView title="Small Groups" />}
+              {view === "matrimony" && (
+                <MatrimonyView
+                  onBack={() => goView("home")}
+                  onOpenAccountSettings={() => goView("edit-profile")}
+                />
+              )}
               {view === "admin" && isAdmin && <AdminView />}
               {view === "admin" && !isAdmin && (
                 <div className="text-center py-20">

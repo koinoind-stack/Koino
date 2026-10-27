@@ -154,6 +154,10 @@ model User {
   authoredBlogPosts   BlogPost[] @relation("BlogPostAuthor")
   reviewedBlogPosts   BlogPost[] @relation("BlogPostReviewer")
   publishedBlogPosts  BlogPost[] @relation("BlogPostPublisher")
+
+  // Matrimony (Task 74 Stage B) — one private profile per member
+  matrimonyProfile    MatrimonyProfile?
+  matrimonyAuditLogs  MatrimonyAuditLog[] @relation("MatrimonyAuditActor")
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -2033,4 +2037,101 @@ model Business {
   @@index([ownerId])
   @@index([verified])
   @@index([featured])
+}
+
+// ─── MATRIMONY (Task 74 Stage B) ───────────────────────────────────────────
+// Private, member-only matchmaking module. Profile data is SENSITIVE:
+//  - DOB is NEVER copied from User — age is computed server-side on demand.
+//  - Photos live in a dedicated PRIVATE Supabase bucket; bytes are served
+//    only through the authorized route /api/matrimony/photos/[id].
+//  - Nothing here is ever public or search-engine indexed.
+
+// Statuses: draft | active | paused | restricted | removed
+//  - draft:      created but not activated (invisible to everyone but owner)
+//  - active:     discoverable once discovery ships (Stage C)
+//  - paused:     hidden from discovery by owner choice (photos stay private)
+//  - restricted: set automatically (ineligible DOB change) or by admins
+//                (Stage E); never discoverable, uploads blocked
+//  - removed:    reserved for soft removal flows; owner delete is a hard
+//                delete (cascade) today.
+model MatrimonyProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status          String   @default("draft")
+
+  // ── Profile content ──
+  // DOB / gender / state / city intentionally live ONLY on User (single
+  // source of truth — see Stage B plan). languages is the member's own
+  // spoken/preferred languages (JSON string[]), distinct from
+  // User.preferredLanguage (a UI setting).
+  languages       String   @default("[]")
+  intention       String?  // "seeking_life_partner" | "exploring_intentionally"
+  timeline        String?  // "ready_now" | "within_6_months" | "within_1_year" | "1_2_years" | "gods_timing"
+  denomination    String?  // optional church tradition (self-described)
+  education       String?
+  profession      String?
+  aboutMe         String?
+  heightCm        Int?
+  // CONNECTIONS_ONLY (default) | ELIGIBLE_MEMBERS — enforced server-side on
+  // every photo request; Stage C supplies the real connection check.
+  photoVisibility String   @default("CONNECTIONS_ONLY")
+
+  // ── Moderation metadata ──
+  restrictedReason String?
+  activatedAt     DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  photos          MatrimonyPhoto[]
+
+  @@index([status])
+}
+
+// Photo METADATA only. Bytes live in the private `matrimony-photos` bucket
+// under non-guessable paths; storagePath is never exposed to any client.
+// Max 3 photos per profile — enforced server-side and backed by the
+// (profileId, position) unique constraint.
+model MatrimonyPhoto {
+  id          String           @id @default(cuid())
+  profileId   String
+  profile     MatrimonyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  storagePath String           @unique
+  status      String           @default("ready") // processing | ready | failed
+  position    Int              // 0..2 — 0 is the primary photo
+  width       Int?
+  height      Int?
+  sizeBytes   Int?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([profileId, position])
+  @@index([profileId])
+}
+
+// Audit trail for sensitive matrimony actions (DOB changes affecting
+// eligibility, activation, restriction, deletions; admin actions in later
+// stages). NEVER store full DOB, secrets, message contents, or evidence
+// here — metadata carries only non-sensitive facts (e.g. ages).
+// targetUserId has no FK on purpose: audit rows must survive user deletion.
+model MatrimonyAuditLog {
+  id            String   @id @default(cuid())
+  actorId       String?  // who performed the action (null = system)
+  actor         User?    @relation("MatrimonyAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorRole     String?  // "member" | "admin" | "system"
+  action        String   // dob_changed | dob_changed_ineligible | profile_activated | profile_paused | profile_resumed | profile_deleted_by_owner | photo_deleted_by_owner
+  targetUserId  String?
+  targetType    String?  // "user" | "matrimony_profile" | "matrimony_photo"
+  targetId      String?
+  outcome       String?  // "eligible" | "restricted" | "ok"
+  justification String?  // admin justification (Stage E)
+  metadata      String?  // JSON, non-sensitive only
+  createdAt     DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([targetUserId, createdAt])
 }
