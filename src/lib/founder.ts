@@ -85,14 +85,28 @@ export function formatINR(amount: number): string {
  * Build a standards-compatible UPI intent URI (NPCI format) from a VALIDATED
  * amount. All parameters are percent-encoded. This link only opens the
  * donor's own UPI app — it does not create, process or verify any payment.
+ *
+ * When `amount` is omitted (or not a positive finite number), the `am`
+ * parameter is left out entirely — the donor chooses the amount inside their
+ * UPI app. This powers the open-amount QR code on the donation card; the QR
+ * always encodes exactly this URI, from this single source of truth.
  */
-export function buildUpiUri(amount: number): string {
+export function buildUpiUri(amount?: number): string {
   const c = DONATION_CONFIG;
-  const am = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+  const normalized =
+    typeof amount === "number" && Number.isFinite(amount) && amount > 0
+      ? amount
+      : null;
+  const am =
+    normalized === null
+      ? null
+      : Number.isInteger(normalized)
+        ? String(normalized)
+        : normalized.toFixed(2);
   return (
     `upi://pay?pa=${encodeURIComponent(c.upiId)}` +
     `&pn=${encodeURIComponent(c.payeeName)}` +
-    `&am=${encodeURIComponent(am)}` +
+    (am !== null ? `&am=${encodeURIComponent(am)}` : "") +
     `&cu=${encodeURIComponent(c.currency)}` +
     `&tn=${encodeURIComponent(c.note)}`
   );
