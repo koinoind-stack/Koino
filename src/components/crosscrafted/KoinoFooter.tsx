@@ -29,6 +29,7 @@ const FOOTER_SECTIONS = [
     title: `${BRAND.name}`,
     links: [
       { label: `About ${BRAND.name}`, href: "/about" },
+      { label: "Meet the Founder", href: "/founder" },
       { label: "Blog", href: "/blog" },
       { label: `Partner With ${BRAND.name}`, href: "/partner" },
     ],
