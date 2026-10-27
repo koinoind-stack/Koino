@@ -226,3 +226,139 @@ export function matrimonyStatusAfterDobChange(input: {
   const eligible = isMatrimonyEligibleDOB(input.newDob, input.now ?? new Date());
   return { restrict: !eligible, eligible };
 }
+
+// ─── DISCOVERY / SEARCH (Task 74 Stage C) ───────────────────────────────────
+//
+// Scope: browse ACTIVE matrimony profiles. The same privacy rules as Stage B
+// apply, enforced server-side in /api/matrimony/discover:
+//   - Only status="active" profiles ever appear (draft/paused/restricted/
+//     removed are invisible; the owner's account must be active too).
+//   - Age is computed server-side from User.dateOfBirth. The full DOB is
+//     never sent to any client.
+//   - Photos are NOT included unless the owner chose ELIGIBLE_MEMBERS;
+//     CONNECTIONS_ONLY stays owner-only until the connection system (the
+//     Stage D integration point in canViewMatrimonyPhoto).
+//   - Blocked pairs (either direction, existing Block model) never appear.
+
+export const MATRIMONY_DISCOVERY_LIMITS = {
+  /** Results per page (default) — also the "Show more" page size. */
+  pageDefault: 12,
+  pageMin: 6,
+  pageMax: 24,
+  /** Search text cap — short substring search, not a query language. */
+  qMax: 60,
+  /** Filterable age bounds. Never below the platform minimum. */
+  filterAgeMin: MATRIMONY_MIN_AGE,
+  filterAgeMax: 70,
+  requestsPerMinute: 60,
+} as const;
+
+/** Gender values the discovery filter accepts (matches User.gender values). */
+export const MATRIMONY_DISCOVERY_GENDERS = ["male", "female"] as const;
+
+/**
+ * SERVER-SIDE zod schema for /api/matrimony/discover query params. Values
+ * arrive as strings (searchParams) — coerce handles the numeric fields.
+ * Anything unknown-shaped fails closed with 400.
+ */
+export const matrimonyDiscoveryQuerySchema = z.object({
+  q: z.string().trim().max(MATRIMONY_DISCOVERY_LIMITS.qMax).optional(),
+  gender: z.enum(MATRIMONY_DISCOVERY_GENDERS).optional(),
+  state: z.string().trim().max(100).optional(),
+  city: z.string().trim().max(100).optional(),
+  language: z.enum(MATRIMONY_LANGUAGES).optional(),
+  ageMin: z.coerce
+    .number()
+    .int()
+    .min(MATRIMONY_DISCOVERY_LIMITS.filterAgeMin)
+    .max(MATRIMONY_DISCOVERY_LIMITS.filterAgeMax)
+    .optional(),
+  ageMax: z.coerce
+    .number()
+    .int()
+    .min(MATRIMONY_DISCOVERY_LIMITS.filterAgeMin)
+    .max(MATRIMONY_DISCOVERY_LIMITS.filterAgeMax)
+    .optional(),
+  cursor: z.string().trim().max(120).optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(MATRIMONY_DISCOVERY_LIMITS.pageMin)
+    .max(MATRIMONY_DISCOVERY_LIMITS.pageMax)
+    .optional(),
+});
+
+export type MatrimonyDiscoveryQuery = z.infer<typeof matrimonyDiscoveryQuerySchema>;
+
+/**
+ * AGE FILTER → DOB RANGE (pure, deterministic, UTC-based).
+ *
+ * A member aged A "today" was born on/before (today − A years), so:
+ *   age >= ageMin  ⟺  dateOfBirth <= end of (today − ageMin years)
+ *   age <= ageMax  ⟺  dateOfBirth >= start of (today − ageMax − 1 years) + 1 day
+ *
+ * Caller passes the returned range straight into Prisma's
+ * `user.dateOfBirth` filter. If ageMin > ageMax the two bounds contradict
+ * (gte > lte) and the query naturally matches nothing — fail-closed.
+ * Only bounds actually requested are set.
+ */
+export type MatrimonyBirthRange = { gte?: Date; lte?: Date };
+
+export function birthDateRangeFromAges(
+  opts: { ageMin?: number; ageMax?: number; now?: Date } = {}
+): MatrimonyBirthRange {
+  const now = opts.now ?? new Date();
+  const range: MatrimonyBirthRange = {};
+
+  if (typeof opts.ageMin === "number" && Number.isFinite(opts.ageMin)) {
+    const years = Math.floor(opts.ageMin);
+    const d = new Date(
+      Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999)
+    );
+    if (!isNaN(d.getTime())) range.lte = d;
+  }
+
+  if (typeof opts.ageMax === "number" && Number.isFinite(opts.ageMax)) {
+    const years = Math.floor(opts.ageMax) + 1;
+    // Day overflow (e.g. the 32nd) is normalized by Date.UTC.
+    const d = new Date(
+      Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)
+    );
+    if (!isNaN(d.getTime())) range.gte = d;
+  }
+
+  return range;
+}
+
+// ─── Keyset pagination cursor (updatedAt + id compound) ─────────────────────
+//
+// updatedAt is not unique, so a date-only cursor could skip rows that share
+// the same timestamp. The cursor carries BOTH values and the query re-creates
+// a strict total order: (updatedAt DESC, id DESC). Opaque to the client —
+// tampering fails validation and returns 400.
+
+const DISCOVERY_CURSOR_SEP = "~";
+const DISCOVERY_ID_RE = /^[a-zA-Z0-9_-]{5,40}$/; // cuid-shaped ids only
+
+export function encodeDiscoveryCursor(input: {
+  updatedAt: Date | string;
+  id: string;
+}): string {
+  const iso =
+    typeof input.updatedAt === "string" ? input.updatedAt : input.updatedAt.toISOString();
+  return `${iso}${DISCOVERY_CURSOR_SEP}${input.id}`;
+}
+
+export function parseDiscoveryCursor(
+  raw: string | null | undefined
+): { updatedAt: Date; id: string } | null {
+  if (!raw) return null;
+  const sep = raw.lastIndexOf(DISCOVERY_CURSOR_SEP);
+  if (sep <= 0) return null;
+  const iso = raw.slice(0, sep);
+  const id = raw.slice(sep + 1);
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return null;
+  if (!DISCOVERY_ID_RE.test(id)) return null;
+  return { updatedAt: date, id };
+}

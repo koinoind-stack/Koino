@@ -228,7 +228,8 @@ type ProfileRow = {
   }[];
 };
 
-function parseLanguages(raw: string): string[] {
+/** JSON string[] → string[] (shared by profile + discovery serializers). */
+export function parseLanguages(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
