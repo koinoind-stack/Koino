@@ -144,6 +144,10 @@ model User {
   prayerRequests PrayerRequest[]
   prayerPrayers  PrayerPrayer[]
   prayerComments PrayerComment[]
+
+  // Marketplace & Business Directory (persistence upgrade)
+  marketplaceListings MarketplaceListing[]
+  businessesOwned     Business[]
 }
 
 // ─── NEXTAUTH TABLES ────────────────────────────────────────────────────────
@@ -298,6 +302,10 @@ model Gift {
   stock           Int      @default(0)
   productId       String?  // references Koino Shop Product.id (mock data array) — when set, product info comes from the Shop
   rewardType      String   @default("fp_reward") // "fp_reward" | "competition_prize" | "streak_milestone"
+  // Trivia Rewards admin additions (additive, safe defaults):
+  deliveryType    String   @default("physical") // "physical" | "merchandise" | "voucher"
+  eligibilityType String   @default("points")   // "points" | "competition_winner" | "leaderboard_top" — enforced server-side in claimGift
+  eligibilityValue Int?    // for "leaderboard_top": top-N rank; for "points": overrides pointsRequired when set
   // Variations & attributes (JSON-encoded strings).
   // variations: [{"name":"Size","options":["S","M","L","XL"]},{"name":"Color","options":["Black","White"]}]
   // attributes: [{"label":"Material","value":"100% Cotton"}]
@@ -323,6 +331,8 @@ model GiftRedemption {
   // JSON-encoded string of the user's chosen variations at the time of redemption.
   // e.g. [{"name":"Size","value":"L"},{"name":"Color","value":"Black"}]
   selectedVariations String @default("[]")
+  source        String   @default("user_claim") // "user_claim" | "admin_assigned"
+  adminNotes    String?
   createdAt    DateTime @default(now())
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1876,4 +1886,111 @@ model PrayerComment {
   @@index([prayerId, createdAt])
   @@index([userId])
   @@index([parentId])
+}
+
+// ─── MARKETPLACE, KOINO STORE & BUSINESS DIRECTORY (persistence upgrade) ────
+// Member product listings. UPPERCASE lifecycle mirrors the Church/Event
+// directory convention: PENDING → admin approval → APPROVED. Seller contact
+// details are NEVER included in list queries — only in the single-listing
+// detail endpoint, and only for APPROVED listings (privacy control).
+
+model MarketplaceListing {
+  id              String    @id @default(cuid())
+  title           String
+  description     String
+  price           Int                        // selling price in INR
+  mrp             Int?                       // optional MRP (strike-through)
+  category        String                     // MARKETPLACE_CATEGORIES value
+  images          String    @default("[]")   // JSON string[] — up to 5 (data:image/* canvas-compressed or https://)
+  state           String?
+  city            String?
+  sellerName      String                     // display name on the card
+  whatsappNumber  String?                    // seller contact — detail endpoint ONLY
+  phone           String?
+  inStock         Boolean   @default(true)
+  status          String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED" | "SOLD" | "ARCHIVED"
+  rejectionReason String?
+  featured        Boolean      @default(false)
+  coverGradient   Int       @default(0)      // 0-7 gradient fallback when no image
+  sellerType      String    @default("member")  // "member" | "koino_store" (reserved)
+  sellerId        String
+  seller          User      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  reviewedBy      String?                    // admin email snapshot
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([category])
+  @@index([state, city])
+  @@index([sellerId])
+  @@index([featured])
+}
+
+// Koino Store — official inventory managed by admins only. Kept in a separate
+// table with no seller relation so members can never gain permission to edit
+// store items. Public products surface under the "Koino Store" filter.
+model StoreProduct {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  price         Int                       // INR
+  mrp           Int?
+  category      String                    // MARKETPLACE_CATEGORIES value
+  images        String   @default("[]")   // JSON string[] — up to 5
+  stockQuantity Int      @default(0)
+  inStock       Boolean  @default(true)   // manual availability override
+  variations    String   @default("[]")   // JSON [{name, options[]}]
+  attributes    String   @default("[]")   // JSON [{label, value}]
+  featured      Boolean  @default(false)
+  active        Boolean  @default(true)   // false = archived (hidden publicly)
+  buyUrl        String?                   // optional external checkout (existing workflow)
+  contactWhatsapp String?                 // store contact for WhatsApp order CTA (optional)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([active, featured])
+  @@index([category])
+}
+
+// Business Directory — mirrors the Church model: submissions (member or
+// admin-created) start PENDING; admins approve, verify, feature and archive.
+// The verified badge is only ever set through the admin endpoint.
+model Business {
+  id              String    @id @default(cuid())
+  name            String
+  description     String
+  category        String                     // BUSINESS_CATEGORIES value
+  country         String    @default("India")
+  state           String?
+  city            String?
+  address         String?
+  images          String    @default("[]")   // JSON string[] — up to 5
+  whatsappNumber  String?
+  phone           String?
+  email           String?
+  website         String?
+  hours           String?
+  services        String    @default("[]")   // JSON string[]
+  languages       String    @default("[]")   // JSON string[]
+  ownerId         String?                    // member relationship (optional)
+  owner           User?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerName       String                     // submitter display snapshot
+  ownerEmail      String?
+  status          String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED" | "ARCHIVED"
+  rejectionReason String?
+  verified        Boolean   @default(false)
+  featured        Boolean   @default(false)
+  coverGradient   Int       @default(0)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([category])
+  @@index([state, city])
+  @@index([ownerId])
+  @@index([verified])
+  @@index([featured])
 }
