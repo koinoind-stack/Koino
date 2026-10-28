@@ -36,10 +36,26 @@ const nextConfig: NextConfig = {
     "/api/**": [
       "node_modules/@prisma/client/runtime/*wasm-base64*",
       "node_modules/.prisma/client/query_engine_bg.wasm",
+      // v2 additions (2026-10-28 audit): residual edge/wasm-only stubs still
+      // traced (~0.8MB per function). Unused on the Node.js library engine
+      // (verified: no @prisma/client/edge import, no queryCompiler/driver
+      // adapters/Accelerate anywhere in src). Library-engine files untouched.
+      "node_modules/.prisma/client/edge*",
+      "node_modules/.prisma/client/wasm*",
+      "node_modules/.prisma/client/index-browser*",
+      "node_modules/.prisma/client/query_engine_bg.*",
+      "node_modules/@prisma/client/runtime/query_compiler_bg.*",
+      "node_modules/@prisma/client/runtime/index-browser*",
     ],
     "/**": [
       "node_modules/@prisma/client/runtime/*wasm-base64*",
       "node_modules/.prisma/client/query_engine_bg.wasm",
+      "node_modules/.prisma/client/edge*",
+      "node_modules/.prisma/client/wasm*",
+      "node_modules/.prisma/client/index-browser*",
+      "node_modules/.prisma/client/query_engine_bg.*",
+      "node_modules/@prisma/client/runtime/query_compiler_bg.*",
+      "node_modules/@prisma/client/runtime/index-browser*",
     ],
   },
   typescript: {
