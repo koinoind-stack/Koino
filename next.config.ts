@@ -5,11 +5,73 @@ const nextConfig: NextConfig = {
   // Deploy-verification marker: lets us confirm a server-side-only change is
   // live with `curl -I https://www.koino.in` (server code is not visible in
   // public JS chunks). Bump the value on each server-side round.
+  //
+  // Phase 1 Fix 4 — production security headers on EVERY response:
+  //
+  //   Strict-Transport-Security   180 days + includeSubDomains. No `preload`
+  //                               directive on purpose: preload is close to
+  //                               irreversible and requires EVERY subdomain
+  //                               to be HTTPS-ready first.
+  //   X-Content-Type-Options      nosniff — browsers honor the declared MIME.
+  //   X-Frame-Options             SAMEORIGIN — clickjacking backstop for
+  //                               older browsers (modern ones use CSP
+  //                               frame-ancestors 'self', set below).
+  //   Referrer-Policy             strict-origin-when-cross-origin — default
+  //                               hardened value; preserves the query-less
+  //                               origin handoff OAuth flows rely on.
+  //   Permissions-Policy          camera/microphone/geolocation off — the
+  //                               app uses none of them.
+  //   Content-Security-Policy     enforced, but shaped so it CANNOT break the
+  //                               existing integrations (Google OAuth redirect
+  //                               flow, Supabase REST/realtime/storage,
+  //                               image/video uploads, Vercel):
+  //                                 * fetch-style directives carry `https:`
+  //                                   fallbacks (img/media/connect/frame), so
+  //                                   any current or future external host
+  //                                   keeps working;
+  //                                 * the directives that give real hardening
+  //                                   without integration risk are enforced
+  //                                   strictly: frame-ancestors 'self'
+  //                                   (framing), object-src 'none' (plugins),
+  //                                   base-uri 'self' (base hijack),
+  //                                   form-action 'self',
+  //                                   upgrade-insecure-requests;
+  //                                 * script-src keeps 'unsafe-inline' +
+  //                                   'unsafe-eval' for Next.js hydration and
+  //                                   library compatibility — tightening to
+  //                                   nonces is documented follow-up work and
+  //                                   must be rollout behind report-only
+  //                                   monitoring.
   async headers() {
+    const CSP = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https: wss:",
+      "frame-src 'self' https:",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      "upgrade-insecure-requests",
+    ].join("; ");
+
     return [
       {
         source: "/:path*",
-        headers: [{ key: "X-Koino-Round", value: "comics-back-nav" }],
+        headers: [
+          { key: "X-Koino-Round", value: "comics-back-nav" },
+          { key: "Strict-Transport-Security", value: "max-age=15552000; includeSubDomains" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Content-Security-Policy", value: CSP },
+        ],
       },
     ];
   },
