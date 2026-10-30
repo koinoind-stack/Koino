@@ -39,7 +39,9 @@ export async function GET(req: NextRequest) {
   if (userId) where.authorId = userId;
 
   if (viewerId) {
-    const blockFilter = await getBlockFilter(viewerId);
+    // Post's author field is `authorId` (explicit since Fix 3 — see
+    // getBlockFilter; PostComment uses `userId`).
+    const blockFilter = await getBlockFilter(viewerId, "authorId");
     if (blockFilter) where.AND = [blockFilter];
   }
 

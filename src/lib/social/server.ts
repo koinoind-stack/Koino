@@ -62,11 +62,30 @@ export async function getExcludedUserIds(viewerId: string): Promise<string[]> {
   return [...ids];
 }
 
-/** Convenience filter for post/comment queries: excludes blocked users' content. */
-export async function getBlockFilter(viewerId: string) {
+/**
+ * Convenience filter for content queries: excludes blocked users' content.
+ *
+ * Phase 1 Fix 3 — the author/comment-field mismatch that caused HTTP 500s:
+ * this used to ALWAYS return `{ authorId: { notIn: excluded } }`. That is
+ * valid on the Post model (Post.authorId) but NOT on PostComment, whose
+ * author field is `userId` (prisma/schema.prisma → model PostComment).
+ * Passing the filter into db.postComment.findMany made Prisma throw
+ * PrismaClientValidationError ("Unknown argument `authorId`") — so
+ * GET /api/social/posts/[id]/comments returned 500 for exactly and only
+ * those viewers who had blocked (or been blocked by) someone, because for
+ * everyone else `excluded` was empty and no filter was built.
+ *
+ * The author-field name is now a REQUIRED parameter, so every call site
+ * must declare which model it is filtering (authorId for Post,
+ * userId for PostComment) — the mismatch class is structurally prevented.
+ */
+export async function getBlockFilter(
+  viewerId: string,
+  authorField: "authorId" | "userId",
+) {
   const excluded = await getExcludedUserIds(viewerId);
   if (excluded.length === 0) return undefined;
-  return { authorId: { notIn: excluded } };
+  return { [authorField]: { notIn: excluded } };
 }
 
 /**
