@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+// Indic UI fonts — Devanagari (Hindi) and Telugu script renderers so the
+// translated interface uses proper, consistently-shaped glyphs on every
+// platform instead of falling back to whatever the OS happens to provide.
+import { Noto_Sans_Devanagari } from "next/font/google";
+import { Noto_Sans_Telugu } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -10,6 +15,18 @@ import { BRAND, SITE_TITLE, siteUrl } from "@/lib/brand";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+const notoDevanagari = Noto_Sans_Devanagari({
+  variable: "--font-devanagari",
+  subsets: ["devanagari"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const notoTelugu = Noto_Sans_Telugu({
+  variable: "--font-telugu",
+  subsets: ["telugu"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -56,7 +73,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className="geist_a71539c9-module__T19VSG__variable antialiased bg-[#12101A] text-white">
+      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} geist_a71539c9-module__T19VSG__variable antialiased bg-[#12101A] text-white`}>
         <Providers>
           {children}
           <Toaster />
