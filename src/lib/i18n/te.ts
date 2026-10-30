@@ -1044,7 +1044,7 @@ export const te: Record<string, string> = {
   "comics.completed": "పూర్తయింది",
   "comics.pctRead": "చదివినది {pct}%",
   "comics.new": "కొత్త",
-  "comics.panelMeta": "{n} ప్యానెల్(లు) · ~{n}�ిమిషాలు చదవడానికి",
+  "comics.panelMeta": "{panels} ప్యానెల్‌లు · ~{mins} నిమిషాల పఠనం",
   "comics.illustratedStory": "చిత్రాలతో కూడిన కథ",
   "comics.readAgain": "మళ్లీ చదవండి",
   "comics.startReading": "చదవడం ప్రారంభించండి",
