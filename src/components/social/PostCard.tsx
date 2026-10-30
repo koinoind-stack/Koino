@@ -24,6 +24,8 @@ import {
 import { toast } from "sonner";
 import type { Post } from "./types";
 import { api } from "./types";
+import { computePostPermissions } from "./post-permissions";
+import { useViewerId } from "./use-viewer-id";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { formatCount, timeAgo, tokenizeCaption } from "@/lib/social/format";
 import { shareLinks } from "@/lib/share/links";
@@ -65,6 +67,9 @@ export default function PostCard({
   const [editText, setEditText] = useState(post.content || "");
   const [busy, setBusy] = useState(false);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  // The VIEWER's own Prisma user id (same id space as post.author.id).
+  // Ownership checks need the viewer identity — see post-permissions.ts.
+  const viewerId = useViewerId();
   // Universal share sheet — Task 121.
   const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
 
@@ -202,9 +207,13 @@ export default function PostCard({
     });
   }
 
-  const isMine = shown.author.id === state.author.id && !!state.content || editing === false && (state.author.username === shown.author.username && shown.author.id === state.author.id);
-  const canEdit = state.repostedFrom === null && shown.author.id === state.author.id;
-  const canDelete = canEdit || canModerate;
+  // Phase 1 Fix 2: ownership is computed against the VIEWER's id, not a
+  // self-comparison of the post against itself. The old expression
+  // (shown.author.id === state.author.id) was always true for non-reposts,
+  // which showed Edit/Delete on OTHER users' posts and hid Block where it
+  // should be available. Menu visibility only — the server re-verifies every
+  // action (PATCH/DELETE are author-or-group-manager enforced server-side).
+  const { canEdit, canDelete, canBlock } = computePostPermissions(state, viewerId, canModerate);
 
   return (
     <article className={`bg-[#111827]/60 border border-white/[0.05] rounded-2xl overflow-hidden ${compact ? "" : "mb-4"}`}>
@@ -267,7 +276,7 @@ export default function PostCard({
                 >
                   <Flag size={15} /> Report
                 </button>
-                {!canEdit && (
+                {canBlock && (
                   <button
                     onClick={() => { setMenuOpen(false); blockAuthor(); }}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10"
