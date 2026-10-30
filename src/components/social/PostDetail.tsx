@@ -8,6 +8,7 @@ import type { Post, Comment } from "./types";
 import { api } from "./types";
 import PostCard from "./PostCard";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { timeAgo } from "@/lib/social/format";
 
 type Props = {
@@ -23,6 +24,7 @@ type Props = {
  * replies. Deletion allowed for comment author or post author.
  */
 export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, onChanged }: Props) {
+  const t = useTranslation();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -100,7 +102,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
   }
 
   async function deleteComment(commentId: string) {
-    if (!confirm("Delete this comment?")) return;
+    if (!confirm(t("postDetail.deleteCommentConfirm"))) return;
     try {
       await api(`/api/social/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
       setComments((prev) => prev.filter((c) => c.id !== commentId));
@@ -122,7 +124,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
       <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
         {/* header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-          <h2 className="font-extrabold text-white">Post</h2>
+          <h2 className="font-extrabold text-white">{t("postDetail.title")}</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5">
             <X size={18} className="text-[#94A3B8]" />
           </button>
@@ -158,7 +160,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
                         className="ml-12 mt-1 text-[11px] font-bold text-[#64748B] hover:text-white flex items-center gap-1"
                       >
                         <ChevronDown size={11} className={repliesFor === c.id ? "rotate-180" : ""} />
-                        {c.replyCount} {c.replyCount === 1 ? "reply" : "replies"}
+                        {t("postDetail.replyCount", { count: c.replyCount })}
                       </button>
                     )}
                     {repliesFor === c.id && replies[c.id] && (
@@ -175,12 +177,12 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
                     onClick={() => loadComments(nextCursor!)}
                     className="w-full py-3 text-xs font-bold text-[#7C3AED] hover:text-white"
                   >
-                    Load more comments
+                    {t("postDetail.loadMore")}
                   </button>
                 )}
                 {!loading && comments.length === 0 && (
                   <p className="text-center text-sm text-[#64748B] py-8">
-                    No comments yet — be the first to encourage them.
+                    {t("postDetail.emptyComments")}
                   </p>
                 )}
                 <div ref={bottomRef} />
@@ -196,7 +198,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
-            placeholder={repliesFor ? "Write a reply…" : "Write a comment…"}
+            placeholder={repliesFor ? t("postDetail.replyPlaceholder") : t("postDetail.commentPlaceholder")}
             maxLength={1000}
             className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
           />
@@ -231,6 +233,7 @@ function CommentRow({
   small?: boolean;
   isPostDetail?: boolean;
 }) {
+  const t = useTranslation();
   const [mine, setMine] = useState(false);
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
@@ -265,7 +268,7 @@ function CommentRow({
             onClick={() => onDelete(comment.id)}
             className="ml-3 mt-1 text-[10px] font-bold text-[#64748B] hover:text-red-400 flex items-center gap-1"
           >
-            <Trash2 size={10} /> Delete
+            <Trash2 size={10} /> {t("common.delete")}
           </button>
         )}
       </div>

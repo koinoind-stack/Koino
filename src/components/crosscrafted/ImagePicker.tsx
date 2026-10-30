@@ -4,12 +4,13 @@ import { useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Image as ImageIcon, X, Camera, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   images: string[];
   onChange: (images: string[]) => void;
   max?: number;
-  label?: string;
+  label?: string | null;
 };
 
 /**
@@ -17,7 +18,8 @@ type Props = {
  * (phone gallery, camera, or files). Converts to base64 data URLs — no
  * backend upload needed. Works offline once selected.
  */
-export default function ImagePicker({ images, onChange, max = 5, label = "Cover Images" }: Props) {
+export default function ImagePicker({ images, onChange, max = 5, label = null }: Props) {
+  const t = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -27,14 +29,14 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
       const fileArray = Array.from(files).filter((f) => f.type.startsWith("image/"));
 
       if (fileArray.length === 0) {
-        toast.error("Please select image files only");
+        toast.error(t("imagePicker.error.imagesOnly"));
         return;
       }
 
       const remaining = max - images.length;
       if (fileArray.length > remaining) {
-        toast(`Only ${remaining} more image${remaining === 1 ? "" : "s"} can be added`, {
-          description: `Maximum ${max} images total.`,
+        toast(t("imagePicker.error.tooMany", { count: remaining }), {
+          description: t("imagePicker.error.maxTotal", { max }),
         });
       }
 
@@ -77,9 +79,9 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
         .then((dataUrls) => {
           onChange([...images, ...dataUrls]);
         })
-        .catch(() => toast.error("Failed to load images"));
+        .catch(() => toast.error(t("imagePicker.error.loadFailed")));
     },
-    [images, max, onChange]
+    [images, max, onChange, t]
   );
 
   const handleRemove = (idx: number) => {
@@ -92,7 +94,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-          <ImageIcon size={10} className="inline mr-0.5" /> {label}{" "}
+          <ImageIcon size={10} className="inline mr-0.5" /> {label ?? t("imagePicker.label")}{" "}
           <span className="text-[#64748B] normal-case font-normal">
             ({images.length}/{max})
           </span>
@@ -103,7 +105,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
             onClick={() => inputRef.current?.click()}
             className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[10px] font-bold hover:bg-[#7C3AED]/25 transition-all"
           >
-            <Plus size={10} /> Add Image
+            <Plus size={10} /> {t("imagePicker.addImage")}
           </button>
         )}
       </div>
@@ -146,9 +148,9 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
             <Camera size={20} className="text-[#A78BFA]" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white">Tap to add photos</p>
+            <p className="text-sm font-bold text-white">{t("imagePicker.tapToAdd")}</p>
             <p className="text-[10px] text-[#94A3B8] mt-0.5">
-              Take a photo or pick from gallery · up to {max} images
+              {t("imagePicker.tapHint", { max })}
             </p>
           </div>
         </button>
@@ -170,7 +172,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
                 <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
                 {idx === 0 && (
                   <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-[#7C3AED] text-white text-[8px] font-bold uppercase tracking-wider">
-                    Cover
+                    {t("imagePicker.coverBadge")}
                   </span>
                 )}
                 <button
@@ -191,7 +193,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
               className="aspect-square rounded-xl border-2 border-dashed border-white/[0.12] bg-white/[0.02] hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/8 flex flex-col items-center justify-center gap-1 transition-all"
             >
               <Plus size={18} className="text-[#94A3B8]" />
-              <span className="text-[9px] font-bold text-[#94A3B8]">Add More</span>
+              <span className="text-[9px] font-bold text-[#94A3B8]">{t("imagePicker.addMore")}</span>
             </button>
           )}
         </div>
@@ -199,9 +201,9 @@ export default function ImagePicker({ images, onChange, max = 5, label = "Cover 
 
       {images.length > 0 && (
         <p className="text-[10px] text-[#64748B] mt-1.5">
-          First image is the cover. Drag-and-drop also supported on desktop.
+          {t("imagePicker.coverHint")}
           {images.length < 3 && (
-            <span className="text-[#F59E0B]"> · Tip: add at least 3 photos for best results.</span>
+            <span className="text-[#F59E0B]">{t("imagePicker.tip")}</span>
           )}
         </p>
       )}

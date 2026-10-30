@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Video, Images, Trash2, Clapperboard, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { api } from "./types";
 import { captureVideoPoster, probeVideo, aspectRatioLabel } from "@/lib/social/format";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
@@ -48,10 +49,12 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB — matches upload-url serve
 const MAX_REEL_SECONDS = 90; // short vertical reels
 const MAX_VIDEO_SECONDS = 900; // 15 min for longer video posts
 
-const MODES: { id: Mode; label: string; icon: typeof Images; hint: string }[] = [
-  { id: "photo", label: "Photo", icon: Images, hint: `Up to ${MAX_IMAGES} images · JPG, PNG, WEBP · ≤10 MB each` },
-  { id: "reel", label: "Reel", icon: Clapperboard, hint: `1 vertical video · ≤${MAX_REEL_SECONDS}s · ≤100 MB · MP4, WebM, MOV` },
-  { id: "video", label: "Video", icon: Video, hint: `1 video up to ${MAX_VIDEO_SECONDS / 60} min · ≤100 MB · MP4, WebM, MOV` },
+// Labels/hints are i18n keys — resolved with t() at render time so language
+// switches re-render (never call t() at module scope).
+const MODES: { id: Mode; labelKey: string; icon: typeof Images; hintKey: string }[] = [
+  { id: "photo", labelKey: "composer.mode.photo", icon: Images, hintKey: "composer.hint.photo" },
+  { id: "reel", labelKey: "composer.mode.reel", icon: Clapperboard, hintKey: "composer.hint.reel" },
+  { id: "video", labelKey: "composer.mode.video", icon: Video, hintKey: "composer.hint.video" },
 ];
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)$/i;
@@ -64,6 +67,7 @@ function fmtDuration(s: number): string {
 }
 
 export default function ComposerView({ onClose, onPosted }: Props) {
+  const t = useTranslation();
   const [mode, setMode] = useState<Mode>("photo");
   const [items, setItems] = useState<Item[]>([]);
   const [caption, setCaption] = useState("");
@@ -98,13 +102,13 @@ export default function ComposerView({ onClose, onPosted }: Props) {
   /** Read image intrinsic size for a true aspectRatio on the post. */
   function probeImage(preview: string) {
     const img = new Image();
-    const t = setTimeout(() => (img.src = ""), 6000);
+    const timer = setTimeout(() => (img.src = ""), 6000);
     img.onload = () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       if (img.naturalWidth && img.naturalHeight)
         patchItem(preview, { width: img.naturalWidth, height: img.naturalHeight });
     };
-    img.onerror = () => clearTimeout(t);
+    img.onerror = () => clearTimeout(timer);
     img.src = preview;
   }
 
@@ -120,13 +124,13 @@ export default function ComposerView({ onClose, onPosted }: Props) {
       });
       toast.error(
         activeMode === "reel"
-          ? `Reels must be ${MAX_REEL_SECONDS} seconds or shorter — this one is ${fmtDuration(meta.duration)}. Trim it, or switch to the Video option.`
-          : `Video posts can be up to ${MAX_VIDEO_SECONDS / 60} minutes — this one is ${fmtDuration(meta.duration)}.`,
+          ? t("composer.error.reelTooLong", { duration: fmtDuration(meta.duration) })
+          : t("composer.error.videoTooLong", { duration: fmtDuration(meta.duration) }),
       );
       return;
     }
     if (activeMode === "reel" && meta.width >= meta.height) {
-      toast("Heads up: this video is landscape — Reels look best vertical (9:16)");
+      toast(t("composer.warn.landscape"));
     }
     patchItem(item.preview, {
       duration: meta.duration,
@@ -143,16 +147,16 @@ export default function ComposerView({ onClose, onPosted }: Props) {
       const isVideo = f.type.startsWith("video/");
       if (isVideo) {
         if (f.size > MAX_VIDEO_SIZE) {
-          toast.error("Video must be smaller than 100 MB");
+          toast.error(t("composer.error.videoTooLarge"));
           continue;
         }
         if (!VIDEO_EXT.test(f.name) && !VIDEO_MIME.includes(f.type)) {
-          toast.error("Supported video formats: MP4, WebM, MOV");
+          toast.error(t("composer.error.videoFormat"));
           continue;
         }
         setItems((prev) => {
           const hadImages = prev.some((i) => !i.file.type.startsWith("video/"));
-          if (hadImages) toast("Photos removed — a post is either photos or one video");
+          if (hadImages) toast(t("composer.warn.photosRemovedMix"));
           const nextMode: Mode = mode === "photo" ? "video" : mode;
           setMode(nextMode);
           const item: Item = { file: f, preview: URL.createObjectURL(f), poster: null, progress: 0 };
@@ -161,20 +165,20 @@ export default function ComposerView({ onClose, onPosted }: Props) {
         });
       } else {
         if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
-          toast.error(`${f.name}: only JPG, PNG, WEBP are supported`);
+          toast.error(t("composer.error.imageFormat", { name: f.name }));
           continue;
         }
         if (f.size > MAX_IMAGE_SIZE) {
-          toast.error(`${f.name}: images must be smaller than 10 MB`);
+          toast.error(t("composer.error.imageTooLarge", { name: f.name }));
           continue;
         }
         setItems((prev) => {
           if (prev.length >= MAX_IMAGES) {
-            toast.error(`Up to ${MAX_IMAGES} images per post`);
+            toast.error(t("composer.error.tooManyImages"));
             return prev;
           }
           const hadVideo = prev.some((i) => i.file.type.startsWith("video/"));
-          if (hadVideo) toast("Video removed — a post is either photos or one video");
+          if (hadVideo) toast(t("composer.warn.videoRemovedMix"));
           if (mode !== "photo") setMode("photo");
           const preview = URL.createObjectURL(f);
           const item: Item = { file: f, preview, poster: null, progress: 0 };
@@ -192,12 +196,12 @@ export default function ComposerView({ onClose, onPosted }: Props) {
     setItems((prev) => {
       if (next === "photo") {
         const hadVideo = prev.some((i) => i.file.type.startsWith("video/"));
-        if (hadVideo) toast("Video removed");
+        if (hadVideo) toast(t("composer.warn.videoRemoved"));
         prev.forEach((i) => i.file.type.startsWith("video/") && URL.revokeObjectURL(i.preview));
         return prev.filter((i) => !i.file.type.startsWith("video/"));
       }
       const hadImages = prev.some((i) => !i.file.type.startsWith("video/"));
-      if (hadImages) toast("Photos removed");
+      if (hadImages) toast(t("composer.warn.photosRemoved"));
       prev.forEach((i) => !i.file.type.startsWith("video/") && URL.revokeObjectURL(i.preview));
       return prev.filter((i) => i.file.type.startsWith("video/"));
     });
@@ -223,15 +227,15 @@ export default function ComposerView({ onClose, onPosted }: Props) {
         done();
         xhr.status >= 200 && xhr.status < 300
           ? resolve()
-          : reject(new Error(`Upload failed (${xhr.status}) — nothing was published`));
+          : reject(new Error(t("composer.error.uploadFailedStatus", { status: xhr.status })));
       };
       xhr.onerror = () => {
         done();
-        reject(new Error("Upload failed — check your connection and try again"));
+        reject(new Error(t("composer.error.uploadFailed")));
       };
       xhr.onabort = () => {
         done();
-        reject(new Error("Upload cancelled — nothing was published"));
+        reject(new Error(t("composer.error.uploadCancelled")));
       };
       xhr.send(blob);
     });
@@ -245,11 +249,11 @@ export default function ComposerView({ onClose, onPosted }: Props) {
   async function submit() {
     if (posting) return;
     if (items.length === 0 && !caption.trim()) {
-      toast.error("Add a caption, photo, or video first");
+      toast.error(t("composer.error.empty"));
       return;
     }
     if (mode !== "photo" && !videoItem) {
-      toast.error(mode === "reel" ? "Add a short video to share a Reel" : "Add a video to share");
+      toast.error(mode === "reel" ? t("composer.error.reelNeedsVideo") : t("composer.error.videoNeedsVideo"));
       return;
     }
     setPosting(true);
@@ -302,10 +306,10 @@ export default function ComposerView({ onClose, onPosted }: Props) {
           isReel: hasVideo && mode === "reel",
         }),
       });
-      toast.success(hasVideo && mode === "reel" ? "Reel shared! Find it in Watch & Explore" : "Post shared!");
+      toast.success(hasVideo && mode === "reel" ? t("composer.success.reel") : t("composer.success.post"));
       onPosted();
     } catch (err) {
-      toast.error((err as Error).message || "Could not share — try again");
+      toast.error((err as Error).message || t("composer.error.shareFailed"));
       setPosting(false);
     }
   }
@@ -318,15 +322,15 @@ export default function ComposerView({ onClose, onPosted }: Props) {
   return (
     <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-extrabold text-white">Create post</h1>
-        <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5" aria-label="Close composer">
+        <h1 className="text-lg font-extrabold text-white">{t("composer.title")}</h1>
+        <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5" aria-label={t("composer.closeAria")}>
           <X size={18} className="text-[#94A3B8]" />
         </button>
       </div>
 
       {/* ─── post type picker ─── */}
       <div className="grid grid-cols-3 gap-2 mb-3">
-        {MODES.map(({ id, label, icon: Icon }) => (
+        {MODES.map(({ id, labelKey, icon: Icon }) => (
           <button
             key={id}
             onClick={() => switchMode(id)}
@@ -337,7 +341,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
                 : "bg-white/[0.03] border-white/[0.07] text-[#94A3B8] hover:text-white hover:border-[#7C3AED]/40"
             }`}
           >
-            <Icon size={16} /> {label}
+            <Icon size={16} /> {t(labelKey)}
           </button>
         ))}
       </div>
@@ -362,9 +366,9 @@ export default function ComposerView({ onClose, onPosted }: Props) {
           )}
         </div>
         <p className="text-sm font-bold text-white mt-2.5">
-          {mode === "photo" ? "Tap to choose photos or drag them here" : mode === "reel" ? "Tap to choose a short vertical video" : "Tap to choose a video or drag it here"}
+          {mode === "photo" ? t("composer.drop.photo") : mode === "reel" ? t("composer.drop.reel") : t("composer.drop.video")}
         </p>
-        <p className="text-[11px] text-[#64748B] mt-1">{activeMode.hint}</p>
+        <p className="text-[11px] text-[#64748B] mt-1">{t(activeMode.hintKey)}</p>
         <input
           ref={inputRef}
           type="file"
@@ -394,7 +398,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
             </span>
           )}
           <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#7C3AED]/80 text-[10px] font-extrabold uppercase tracking-wide text-white">
-            <Clapperboard size={10} /> {mode === "reel" ? "Reel" : "Video"}
+            <Clapperboard size={10} /> {mode === "reel" ? t("composer.mode.reel") : t("composer.mode.video")}
           </span>
           {videoItem.progress > 0 && videoItem.progress < 100 && (
             <>
@@ -410,7 +414,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
             onClick={() => removeItem(videoItem)}
             disabled={posting}
             className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500/70 transition-colors disabled:opacity-40"
-            aria-label="Remove video"
+            aria-label={t("composer.removeVideoAria")}
           >
             <Trash2 size={13} />
           </button>
@@ -432,7 +436,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
                 onClick={() => removeItem(item)}
                 disabled={posting}
                 className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500/70 transition-colors disabled:opacity-40"
-                aria-label="Remove photo"
+                aria-label={t("composer.removePhotoAria")}
               >
                 <Trash2 size={12} />
               </button>
@@ -448,7 +452,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
         onChange={(e) => setCaption(e.target.value)}
         rows={4}
         maxLength={2200}
-        placeholder="Write a caption… use #hashtags, @mentions, and Bible references like John 3:16"
+        placeholder={t("composer.captionPlaceholder")}
         className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-sm text-white resize-none focus:outline-none focus:border-[#7C3AED]"
       />
       <div className="flex items-center justify-between mt-1.5">
@@ -465,8 +469,8 @@ export default function ComposerView({ onClose, onPosted }: Props) {
           {mode === "reel" ? <Clapperboard size={18} className="text-[#C4B5FD] shrink-0" /> : <Video size={18} className="text-[#C4B5FD] shrink-0" />}
           <p className="text-xs text-[#94A3B8]">
             {mode === "reel"
-              ? "Will be shared as a Reel — it appears in the full-screen vertical player, the Watch tab and Explore → Reels."
-              : "Will be shared as a video post in the community feed with an inline player (up to 15 minutes)."}
+              ? t("composer.destination.reel")
+              : t("composer.destination.video")}
           </p>
         </div>
       )}
@@ -478,11 +482,11 @@ export default function ComposerView({ onClose, onPosted }: Props) {
       >
         {posting
           ? items.length > 0 && overallProgress < 100
-            ? `Uploading… ${overallProgress}%`
-            : "Sharing…"
+            ? t("composer.button.uploading", { percent: overallProgress })
+            : t("composer.button.sharing")
           : videoItem && mode === "reel"
-            ? "Share Reel"
-            : "Share"}
+            ? t("composer.button.shareReel")
+            : t("common.share")}
       </button>
     </div>
   );
