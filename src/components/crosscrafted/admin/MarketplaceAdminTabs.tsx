@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   Check, X, Star, Trash2, Pencil, Search, Archive, Package, Gift, Users, Send,
 } from "lucide-react";
@@ -72,6 +73,7 @@ type AdminListing = {
 };
 
 export function MarketplaceListingsTab() {
+  const t = useTranslation();
   const [items, setItems] = useState<AdminListing[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -164,7 +166,7 @@ export function MarketplaceListingsTab() {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-5">
-      <AdminHeader title="Member Listings" count={total} color="#9786E3" />
+      <AdminHeader title={t("admin.marketplace.title.memberListings")} count={total} color="#9786E3" />
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
@@ -237,7 +239,7 @@ export function MarketplaceListingsTab() {
                       </button>
                     )}
                     <button disabled={busyId === m.id} onClick={() => action(m, m.featured ? "unfeature" : "feature")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] flex items-center gap-1">
-                      <Star size={11} /> {m.featured ? "Unfeature" : "Feature"}
+                      <Star size={11} /> {m.featured ? t("common.action.unfeature") : t("common.action.feature")}
                     </button>
                     {m.status !== "ARCHIVED" && (
                       <button disabled={busyId === m.id} onClick={() => action(m, "archive")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.04] text-[#94A3B8] flex items-center gap-1">
@@ -292,6 +294,7 @@ const emptyStoreForm = {
 };
 
 export function StoreAdminTab() {
+  const t = useTranslation();
   const [rows, setRows] = useState<StoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -400,7 +403,7 @@ export function StoreAdminTab() {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-5">
-      <AdminHeader title="Koino Store Inventory" count={rows.length} color="#38BDF8" />
+      <AdminHeader title={t("admin.marketplace.title.store")} count={rows.length} color="#38BDF8" />
       <p className="text-[11px] text-[#64748B] mb-3">
         Official Koino inventory — members can never edit these. Active products appear under the Koino Store filter on the public Marketplace.
       </p>
@@ -441,7 +444,7 @@ export function StoreAdminTab() {
           <div className="flex gap-2">
             <button onClick={() => { setShowForm(false); setForm(emptyStoreForm); }} className="flex-1 py-2 rounded-xl text-xs font-semibold text-[#94A3B8] bg-white/[0.04]">Cancel</button>
             <button disabled={!!busyId} onClick={save} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-[#7C3AED] disabled:opacity-50">
-              {busyId ? "Saving..." : form.id ? "Save changes" : "Create product"}
+              {busyId ? t("common.saving") : form.id ? "Save changes" : "Create product"}
             </button>
           </div>
         </div>
@@ -472,7 +475,7 @@ export function StoreAdminTab() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {r.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B]">FEATURED</span>}
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${r.active ? "bg-emerald-500/15 text-emerald-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
-                        {r.active ? "Active" : "Archived"}
+                        {r.active ? "Active" : t("common.status.archived")}
                       </span>
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${r.stockQuantity > 0 && r.inStock ? "bg-sky-500/15 text-sky-300" : "bg-red-500/15 text-red-300"}`}>
                         {r.stockQuantity > 0 ? `Stock ${r.stockQuantity}` : "Out of stock"}
@@ -484,10 +487,10 @@ export function StoreAdminTab() {
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2.5">
                   <button disabled={!!busyId} onClick={() => quickUpdate(r, { featured: !r.featured })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] flex items-center gap-1">
-                    <Star size={11} /> {r.featured ? "Unfeature" : "Feature"}
+                    <Star size={11} /> {r.featured ? t("common.action.unfeature") : t("common.action.feature")}
                   </button>
                   <button disabled={!!busyId} onClick={() => quickUpdate(r, { active: !r.active })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.04] text-[#94A3B8] flex items-center gap-1">
-                    <Archive size={11} /> {r.active ? "Archive" : "Restore"}
+                    <Archive size={11} /> {r.active ? "Archive" : t("admin.memorials.action.restore")}
                   </button>
                   <button onClick={() => setPreview(r)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-sky-500/10 text-sky-300">Preview card</button>
                   <button onClick={() => openEdit(r)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.04] text-[#94A3B8] flex items-center gap-1">
@@ -549,6 +552,7 @@ type AdminBusiness = {
 };
 
 export function BusinessAdminTab() {
+  const t = useTranslation();
   const [items, setItems] = useState<AdminBusiness[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -619,7 +623,7 @@ export function BusinessAdminTab() {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-5">
-      <AdminHeader title="Business Directory" count={total} color="#A855F7" />
+      <AdminHeader title={t("admin.marketplace.title.business")} count={total} color="#A855F7" />
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
@@ -688,10 +692,10 @@ export function BusinessAdminTab() {
                       </button>
                     )}
                     <button disabled={busyId === b.id} onClick={() => action(b, b.verified ? "unverify" : "verify")} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 ${b.verified ? "bg-white/[0.04] text-[#94A3B8]" : "bg-emerald-500/10 text-emerald-300"}`}>
-                      <span className="text-[10px]">✓</span> {b.verified ? "Unverify" : "Verify"}
+                      <span className="text-[10px]">✓</span> {b.verified ? t("common.action.unverify") : t("common.action.verify")}
                     </button>
                     <button disabled={busyId === b.id} onClick={() => action(b, b.featured ? "unfeature" : "feature")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] flex items-center gap-1">
-                      <Star size={11} /> {b.featured ? "Unfeature" : "Feature"}
+                      <Star size={11} /> {b.featured ? t("common.action.unfeature") : t("common.action.feature")}
                     </button>
                     {b.status !== "ARCHIVED" && (
                       <button disabled={busyId === b.id} onClick={() => action(b, "archive")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.04] text-[#94A3B8] flex items-center gap-1">
@@ -736,6 +740,7 @@ const WINNER_STATUSES = [
 ];
 
 export function RewardsAdminTab() {
+  const t = useTranslation();
   const [section, setSection] = useState<"items" | "assign" | "winners">("items");
   const [gifts, setGifts] = useState<GiftRow[]>([]);
   const [winners, setWinners] = useState<WinnerRow[]>([]);
@@ -854,7 +859,7 @@ export function RewardsAdminTab() {
         <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" /></div>
       ) : section === "items" ? (
         <div className="space-y-3">
-          <AdminHeader title="Reward items (Bible Trivia gifts)" count={gifts.length} color="#F59E0B" />
+          <AdminHeader title={t("admin.marketplace.title.rewards")} count={gifts.length} color="#F59E0B" />
           <p className="text-[11px] text-[#64748B]">Manage rewards, stock, reward type and eligibility. Claims are fulfilled in the Redemptions tab.</p>
           {gifts.map((g) => (
             <div key={g.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3">

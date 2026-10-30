@@ -131,6 +131,7 @@ const TABS: { id: AdminTab; icon: typeof Shield; labelKey: string }[] = [
 // Q&A moderation interface (new). The article CMS is unchanged — this wrapper
 // just adds a toggle above it.
 function ApologeticsAdminWrapper() {
+  const t = useTranslation();
   const [subTab, setSubTab] = useState<"articles" | "qa">("articles");
   return (
     <div className="space-y-3">
@@ -143,7 +144,7 @@ function ApologeticsAdminWrapper() {
               : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <FileText size={12} /> Articles
+          <FileText size={12} /> {t("admin.apologetics.subtab.articles")}
         </button>
         <button
           onClick={() => setSubTab("qa")}
@@ -153,7 +154,7 @@ function ApologeticsAdminWrapper() {
               : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <HelpCircle size={12} /> Q&amp;A
+          <HelpCircle size={12} /> {t("admin.apologetics.subtab.qa")}
         </button>
       </div>
       {subTab === "articles" && <ApologeticsTab />}
@@ -190,7 +191,7 @@ export default function AdminView() {
               <Shield size={28} className="text-[#A78BFA]" />
             </div>
             <h1 className="text-2xl font-extrabold text-white">{t('admin.access.title')}</h1>
-            <p className="text-sm text-[#A09DB1] mt-1">Sign in with an admin account</p>
+            <p className="text-sm text-[#A09DB1] mt-1">{t('admin.access.subtitle')}</p>
           </div>
 
           <a
@@ -198,15 +199,13 @@ export default function AdminView() {
             className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
             style={{ background: "linear-gradient(135deg, #7C3AED, #EC4899)" }}
           >
-            <LogIn size={16} /> Sign In
+            <LogIn size={16} /> {t('admin.access.signIn')}
           </a>
 
           <div className="mt-6 p-3 rounded-xl bg-[#38BDF8]/8 border border-[#38BDF8]/20">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-1">Admin Access</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-1">{t('admin.access.badge')}</p>
             <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-              Admin authorization is verified server-side via your authenticated session role.
-              Only users with the <span className="font-bold text-white">admin</span> role in the database
-              can access this panel.
+              {t('admin.access.serverSideNote')}
             </p>
           </div>
         </motion.div>
@@ -228,12 +227,10 @@ export default function AdminView() {
           </div>
           <h1 className="text-2xl font-extrabold text-white mb-2">{t('admin.accessDenied.title')}</h1>
           <p className="text-sm text-[#A09DB1] mb-4">
-            You're signed in as <span className="font-bold text-white">{user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email}</span>,
-            but your account doesn't have admin privileges.
+            {t('admin.accessDenied.notAdmin', { name: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email })}
           </p>
           <p className="text-[11px] text-[#64748B]">
-            Admin access is granted by setting <code className="text-[#A78BFA]">role = "admin"</code> in the
-            database User table. Contact the site administrator if you believe this is an error.
+            {t('admin.accessDenied.howToFix')}
           </p>
         </motion.div>
       </div>
@@ -315,6 +312,7 @@ export default function AdminView() {
 // ─── DASHBOARD ────────────────────────────────────────────────────────────
 
 function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
+  const t = useTranslation();
   // Overview cards — each navigates to its admin section.
   // Phase 3A: all counts are fetched live from the DB-backed admin APIs.
   // Metrics that still need a backend (Products/Prayers/Announcements) are
@@ -389,18 +387,18 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
   // Quick Actions — each wired to navigate to the correct admin section.
   // These are REAL navigation actions (not dead buttons).
   const quickActions: { label: string; color: string; tab: AdminTab; icon: typeof Shield }[] = [
-    { label: "Review Churches", color: "#A855F7", tab: "churches", icon: Building2 },
-    { label: "Moderate Prayers", color: "#F59E0B", tab: "prayers", icon: HeartHandshake },
-    { label: "Answer Questions", color: "#38BDF8", tab: "apologetics", icon: HelpCircle },
-    { label: "Host Competition", color: "#22C55E", tab: "competitions", icon: Trophy },
-    { label: "Post Announcement", color: "#EC4899", tab: "announcements", icon: Megaphone },
-    { label: "View Analytics", color: "#9786E3", tab: "analytics", icon: BarChart3 },
+    { label: "admin.dashboard.quick.churches", color: "#A855F7", tab: "churches", icon: Building2 },
+    { label: "admin.dashboard.quick.prayers", color: "#F59E0B", tab: "prayers", icon: HeartHandshake },
+    { label: "admin.dashboard.quick.questions", color: "#38BDF8", tab: "apologetics", icon: HelpCircle },
+    { label: "admin.dashboard.quick.competitions", color: "#22C55E", tab: "competitions", icon: Trophy },
+    { label: "admin.dashboard.quick.announcements", color: "#EC4899", tab: "announcements", icon: Megaphone },
+    { label: "admin.dashboard.quick.analytics", color: "#9786E3", tab: "analytics", icon: BarChart3 },
   ];
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-bold text-white mb-3">Overview</h2>
+        <h2 className="text-base font-bold text-white mb-3">{t("admin.dashboard.overview")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {stats.map((s) => (
             <button
@@ -417,14 +415,14 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
                 </div>
                 {s.pending > 0 && (
                   <span className="px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold uppercase tracking-wider">
-                    {s.pending} pending
+                    {t("admin.dashboard.pendingBadge", { n: s.pending })}
                   </span>
                 )}
               </div>
               <p className="text-2xl font-extrabold text-white">{s.value}</p>
               <p className="text-[10px] text-[#94A3B8] uppercase tracking-wider mt-0.5">{s.label}</p>
               <p className="text-[9px] text-[#475569] mt-1 group-hover:text-[#64748B] transition-colors">
-                Open {s.label} admin →
+                {t("admin.dashboard.openAdmin", { label: s.label })}
               </p>
             </button>
           ))}
@@ -432,7 +430,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
       </div>
 
       <div>
-        <h2 className="text-base font-bold text-white mb-3">Quick Actions</h2>
+        <h2 className="text-base font-bold text-white mb-3">{t("admin.dashboard.quickActions")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {quickActions.map((a) => (
             <button
@@ -448,7 +446,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
                   <a.icon size={13} style={{ color: a.color }} />
                 </div>
               </div>
-              <p className="text-xs font-bold text-white">{a.label}</p>
+              <p className="text-xs font-bold text-white">{t(a.label)}</p>
             </button>
           ))}
         </div>
@@ -458,7 +456,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
       <div className="bg-[#1C1929] border border-[#F59E0B]/20 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <AlertCircle size={14} className="text-[#F59E0B]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Architecture Status</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">{t("admin.dashboard.architectureStatus")}</p>
         </div>
         <div className="space-y-1.5 text-[11px] text-[#A09DB1] leading-relaxed">
           <p>
@@ -506,6 +504,7 @@ const MODERATION_REASONS = [
 ];
 
 function MembersTab() {
+  const t = useTranslation();
   const [members, setMembers] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -632,9 +631,9 @@ function MembersTab() {
 
       {/* Search + Filters */}
       <div className="flex flex-wrap gap-2">
-        <input type="text" placeholder="Search username, email, name..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="neo-input text-xs flex-1 min-w-[150px]" />
+        <input type="text" placeholder={t("admin.members.searchPlaceholder")} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="neo-input text-xs flex-1 min-w-[150px]" />
         <select value={filterState} onChange={(e) => { setFilterState(e.target.value); setPage(0); }} className="neo-input text-xs w-32">
-          <option value="">All States</option>
+          <option value="">{t("common.allStates")}</option>
           {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }} className="neo-input text-xs w-36">
@@ -652,7 +651,7 @@ function MembersTab() {
       {loading ? (
         <div className="flex justify-center py-8"><Loader2 size={24} className="text-[#F39B9B] animate-spin" /></div>
       ) : members.length === 0 ? (
-        <EmptyState text="No members found." />
+        <EmptyState text={t("admin.members.empty")} />
       ) : (
         <div className="space-y-2">
           {members.map((m) => (
@@ -690,7 +689,7 @@ function MembersTab() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-end md:items-center justify-center z-[70] p-0 md:p-4" onClick={(e) => e.target === e.currentTarget && setSelectedMember(null)}>
             <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-[#1C1929] z-10 flex justify-between items-center p-5 pb-3 border-b border-white/[0.04]">
-                <h2 className="text-base font-bold text-white">Member Details</h2>
+                <h2 className="text-base font-bold text-white">{t("admin.members.detailTitle")}</h2>
                 <button onClick={() => setSelectedMember(null)} className="text-[#64748B] hover:text-white"><X size={18} /></button>
               </div>
 
@@ -732,7 +731,7 @@ function MembersTab() {
                       <div className="flex items-center gap-2">
                         <BadgeCheck size={16} className={memberDetail.verified ? "text-[#38BDF8]" : "text-[#475569]"} />
                         <div>
-                          <p className="text-xs font-bold text-white">Koino Verified</p>
+                          <p className="text-xs font-bold text-white">{t("admin.members.koinoVerified")}</p>
                           <p className="text-[9px] text-[#64748B]">{memberDetail.verified ? `Verified ${memberDetail.verifiedAt ? new Date(memberDetail.verifiedAt).toLocaleDateString() : ""}` : "Not verified"}</p>
                         </div>
                       </div>
@@ -741,7 +740,7 @@ function MembersTab() {
                         disabled={saving}
                         className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${memberDetail.verified ? "bg-[#EF4444]/15 text-[#EF4444]" : "bg-[#38BDF8]/15 text-[#38BDF8]"}`}
                       >
-                        {memberDetail.verified ? "Unverify" : "Verify"}
+                        {memberDetail.verified ? t("common.action.unverify") : t("common.action.verify")}
                       </button>
                     </div>
                   </div>
@@ -821,6 +820,7 @@ type AdminChurch = Omit<Church, "status"> & {
 };
 
 function ChurchesTab() {
+  const t = useTranslation();
   const [churches, setChurches] = useState<AdminChurch[]>([]);
   const [counts, setCounts] = useState<{ all: number; PENDING: number; PUBLISHED: number; REJECTED: number; CANCELLED: number }>({ all: 0, PENDING: 0, PUBLISHED: 0, REJECTED: 0, CANCELLED: 0 });
   const [statusFilter, setStatusFilter] = useState<"all" | "PENDING" | "PUBLISHED" | "REJECTED" | "CANCELLED">("all");
@@ -925,7 +925,7 @@ function ChurchesTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Permanently delete this church? This cannot be undone. For moderation, prefer Reject or Cancel.")) return;
+    if (!confirm(t("admin.churches.deleteConfirm"))) return;
     try {
       const res = await fetch(`/api/admin/churches/${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -954,11 +954,11 @@ function ChurchesTab() {
   }, [churches, searchQuery]);
 
   const statusChips: { id: typeof statusFilter; label: string; color: string; count: number }[] = [
-    { id: "all", label: "All", color: "#94A3B8", count: counts.all },
-    { id: "PENDING", label: "Pending", color: "#F59E0B", count: counts.PENDING },
-    { id: "PUBLISHED", label: "Published", color: "#22C55E", count: counts.PUBLISHED },
-    { id: "REJECTED", label: "Rejected", color: "#EF4444", count: counts.REJECTED },
-    { id: "CANCELLED", label: "Cancelled", color: "#64748B", count: counts.CANCELLED },
+    { id: "all", label: "common.all", color: "#94A3B8", count: counts.all },
+    { id: "PENDING", label: "common.status.pending", color: "#F59E0B", count: counts.PENDING },
+    { id: "PUBLISHED", label: "common.status.published", color: "#22C55E", count: counts.PUBLISHED },
+    { id: "REJECTED", label: "common.status.rejected", color: "#EF4444", count: counts.REJECTED },
+    { id: "CANCELLED", label: "common.status.cancelled", color: "#64748B", count: counts.CANCELLED },
   ];
 
   const statusBadge = (status: string) => {
@@ -988,7 +988,7 @@ function ChurchesTab() {
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            {chip.label}
+            {t(chip.label)}
             <span
               className="px-1.5 py-0.5 rounded-full text-[9px] font-bold"
               style={{ backgroundColor: `${chip.color}25`, color: chip.color }}
@@ -1004,7 +1004,7 @@ function ChurchesTab() {
         type="text"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search by name, city, denomination, submitter email…"
+        placeholder={t("admin.churches.searchPlaceholder")}
         className="neo-input text-sm"
       />
 
@@ -1038,14 +1038,14 @@ function ChurchesTab() {
             </div>
           )}
           <button onClick={() => loadChurches()} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold">
-            Try again
+            {t("common.retry")}
           </button>
         </div>
       )}
 
       {/* Empty */}
       {!loading && !error && filtered.length === 0 && (
-        <EmptyState text={statusFilter === "all" ? "No churches submitted yet." : `No ${statusFilter.toLowerCase()} churches.`} />
+        <EmptyState text={statusFilter === "all" ? t("admin.churches.empty") : `No ${statusFilter.toLowerCase()} churches.`} />
       )}
 
       {/* Churches list */}
@@ -1071,7 +1071,7 @@ function ChurchesTab() {
                   onClick={() => setEditing(c)}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[11px] font-bold transition-all"
                 >
-                  <Pencil size={12} /> Edit
+                  <Pencil size={12} /> {t("common.edit")}
                 </button>
                 {c.status === "PENDING" && (
                   <>
@@ -1079,13 +1079,13 @@ function ChurchesTab() {
                       onClick={() => handleAction(c.id, "approve")}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] hover:bg-[#22C55E]/25 text-[11px] font-bold transition-all"
                     >
-                      <Check size={12} /> Approve
+                      <Check size={12} /> {t("common.action.approve")}
                     </button>
                     <button
                       onClick={() => { setRejectingId(c.id); setRejectReason(""); }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/25 text-[11px] font-bold transition-all"
                     >
-                      <X size={12} /> Reject
+                      <X size={12} /> {t("common.action.reject")}
                     </button>
                   </>
                 )}
@@ -1096,21 +1096,21 @@ function ChurchesTab() {
                         onClick={() => handleAction(c.id, "unfeature")}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#A855F7] hover:bg-[#A855F7]/25 text-[11px] font-bold transition-all"
                       >
-                        <Star size={12} fill="currentColor" /> Unfeature
+                        <Star size={12} fill="currentColor" /> {t("common.action.unfeature")}
                       </button>
                     ) : (
                       <button
                         onClick={() => handleAction(c.id, "feature")}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-[#A855F7] text-[11px] font-bold transition-all"
                       >
-                        <Star size={12} /> Feature
+                        <Star size={12} /> {t("common.action.feature")}
                       </button>
                     )}
                     <button
                       onClick={() => handleAction(c.id, "cancel")}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#64748B]/15 border border-[#64748B]/30 text-[#94A3B8] hover:bg-[#64748B]/25 text-[11px] font-bold transition-all"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                     {c.verified ? (
                       <button
@@ -1118,7 +1118,7 @@ function ChurchesTab() {
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#3B82F6] hover:bg-[#3B82F6]/25 text-[11px] font-bold transition-all"
                         title="Remove the Koino Verified badge"
                       >
-                        <ShieldCheck size={12} /> Unverify
+                        <ShieldCheck size={12} /> {t("common.action.unverify")}
                       </button>
                     ) : (
                       <button
@@ -1130,7 +1130,7 @@ function ChurchesTab() {
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/25 text-[#60A5FA] hover:bg-[#3B82F6]/25 text-[11px] font-bold transition-all"
                         title="Grant the Koino Verified badge — only after checks"
                       >
-                        <ShieldCheck size={12} /> Verify
+                        <ShieldCheck size={12} /> {t("common.action.verify")}
                       </button>
                     )}
                   </>
@@ -1140,14 +1140,14 @@ function ChurchesTab() {
                     onClick={() => handleAction(c.id, "reopen")}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[#F59E0B] hover:bg-[#F59E0B]/25 text-[11px] font-bold transition-all"
                   >
-                    Reopen
+                    {t("common.action.reopen")}
                   </button>
                 )}
                 <button
                   onClick={() => handleDelete(c.id)}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/25 text-[11px] font-bold transition-all"
                 >
-                  <Trash2 size={12} /> Delete
+                  <Trash2 size={12} /> {t("common.delete")}
                 </button>
               </div>
             }
@@ -1171,14 +1171,14 @@ function ChurchesTab() {
               exit={{ scale: 0.95 }}
               className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-6 max-w-md w-full"
             >
-              <h3 className="text-base font-bold text-white mb-2">Reject Church</h3>
+              <h3 className="text-base font-bold text-white mb-2">{t("admin.churches.rejectTitle")}</h3>
               <p className="text-xs text-[#A09DB1] mb-3">
-                The church will be marked as REJECTED and will not appear publicly. The submitter will not be automatically notified.
+                {t("admin.churches.rejectBody")}
               </p>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Optional: rejection reason (internal note, not shown to submitter)"
+                placeholder={t("admin.reject.reasonPlaceholder")}
                 className="neo-input text-sm h-24 resize-none mb-4"
               />
               <div className="flex gap-2 justify-end">
@@ -1186,13 +1186,13 @@ function ChurchesTab() {
                   onClick={() => setRejectingId(null)}
                   className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   onClick={() => confirmReject(rejectingId)}
                   className="px-4 py-2 rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs font-bold"
                 >
-                  Reject Church
+                  {t("admin.churches.rejectTitle")}
                 </button>
               </div>
             </motion.div>
@@ -1224,7 +1224,7 @@ function ChurchesTab() {
                 </button>
               </div>
               <p className="text-[11px] text-[#A09DB1] mb-3">
-                Fix incorrect public information (flagged reports, wrong times, etc). Changes go live immediately.
+                {t("admin.churches.editHint")}
               </p>
               <ChurchEditForm
                 church={editing}
@@ -1249,6 +1249,7 @@ function ChurchEditForm({
   onSave: (patch: Record<string, unknown>) => void;
   onCancel: () => void;
 }) {
+  const t = useTranslation();
   const [form, setForm] = useState({
     name: church.name,
     description: church.description,
@@ -1365,7 +1366,7 @@ function ChurchEditForm({
           disabled={saving}
           className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold disabled:opacity-60"
         >
-          {saving ? "Saving..." : "Save changes"}
+          {saving ? t("common.saving") : "Save changes"}
         </button>
       </div>
     </div>
@@ -1392,6 +1393,7 @@ type AdminEvent = Omit<EventItem, "status"> & {
 };
 
 function EventsTab() {
+  const t = useTranslation();
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [counts, setCounts] = useState<{ all: number; PENDING: number; PUBLISHED: number; REJECTED: number; CANCELLED: number }>({ all: 0, PENDING: 0, PUBLISHED: 0, REJECTED: 0, CANCELLED: 0 });
   const [statusFilter, setStatusFilter] = useState<"all" | "PENDING" | "PUBLISHED" | "REJECTED" | "CANCELLED">("all");
@@ -1485,11 +1487,11 @@ function EventsTab() {
   }, [events, searchQuery]);
 
   const statusChips: { id: typeof statusFilter; label: string; color: string; count: number }[] = [
-    { id: "all", label: "All", color: "#94A3B8", count: counts.all },
-    { id: "PENDING", label: "Pending", color: "#F59E0B", count: counts.PENDING },
-    { id: "PUBLISHED", label: "Published", color: "#22C55E", count: counts.PUBLISHED },
-    { id: "REJECTED", label: "Rejected", color: "#EF4444", count: counts.REJECTED },
-    { id: "CANCELLED", label: "Cancelled", color: "#64748B", count: counts.CANCELLED },
+    { id: "all", label: "common.all", color: "#94A3B8", count: counts.all },
+    { id: "PENDING", label: "common.status.pending", color: "#F59E0B", count: counts.PENDING },
+    { id: "PUBLISHED", label: "common.status.published", color: "#22C55E", count: counts.PUBLISHED },
+    { id: "REJECTED", label: "common.status.rejected", color: "#EF4444", count: counts.REJECTED },
+    { id: "CANCELLED", label: "common.status.cancelled", color: "#64748B", count: counts.CANCELLED },
   ];
 
   const statusBadge = (status: string) => {
@@ -1519,7 +1521,7 @@ function EventsTab() {
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            {chip.label}
+            {t(chip.label)}
             <span
               className="px-1.5 py-0.5 rounded-full text-[9px] font-bold"
               style={{ backgroundColor: `${chip.color}25`, color: chip.color }}
@@ -1576,14 +1578,14 @@ npx prisma db push`}
             </div>
           )}
           <button onClick={() => loadEvents()} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold">
-            Try again
+            {t("common.retry")}
           </button>
         </div>
       )}
 
       {/* Empty */}
       {!loading && !error && filtered.length === 0 && (
-        <EmptyState text={statusFilter === "all" ? "No events submitted yet." : `No ${statusFilter.toLowerCase()} events.`} />
+        <EmptyState text={statusFilter === "all" ? t("admin.events.empty") : `No ${statusFilter.toLowerCase()} events.`} />
       )}
 
       {/* Events list */}
@@ -1607,13 +1609,13 @@ npx prisma db push`}
                       onClick={() => handleAction(e.id, "approve")}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] hover:bg-[#22C55E]/25 text-[11px] font-bold transition-all"
                     >
-                      <Check size={12} /> Approve
+                      <Check size={12} /> {t("common.action.approve")}
                     </button>
                     <button
                       onClick={() => { setRejectingId(e.id); setRejectReason(""); }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/25 text-[11px] font-bold transition-all"
                     >
-                      <X size={12} /> Reject
+                      <X size={12} /> {t("common.action.reject")}
                     </button>
                   </>
                 )}
@@ -1625,21 +1627,21 @@ npx prisma db push`}
                         onClick={() => handleAction(e.id, "unfeature")}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#A855F7] hover:bg-[#A855F7]/25 text-[11px] font-bold transition-all"
                       >
-                        <Star size={12} fill="currentColor" /> Unfeature
+                        <Star size={12} fill="currentColor" /> {t("common.action.unfeature")}
                       </button>
                     ) : (
                       <button
                         onClick={() => handleAction(e.id, "feature")}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-[#A855F7] text-[11px] font-bold transition-all"
                       >
-                        <Star size={12} /> Feature
+                        <Star size={12} /> {t("common.action.feature")}
                       </button>
                     )}
                     <button
                       onClick={() => handleAction(e.id, "cancel")}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#64748B]/15 border border-[#64748B]/30 text-[#94A3B8] hover:bg-[#64748B]/25 text-[11px] font-bold transition-all"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </>
                 )}
@@ -1649,7 +1651,7 @@ npx prisma db push`}
                     onClick={() => handleAction(e.id, "reopen")}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[#F59E0B] hover:bg-[#F59E0B]/25 text-[11px] font-bold transition-all"
                   >
-                    Reopen
+                    {t("common.action.reopen")}
                   </button>
                 )}
                 {/* Delete — always available (permanent) */}
@@ -1657,7 +1659,7 @@ npx prisma db push`}
                   onClick={() => handleDelete(e.id)}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/25 text-[11px] font-bold transition-all"
                 >
-                  <Trash2 size={12} /> Delete
+                  <Trash2 size={12} /> {t("common.delete")}
                 </button>
               </div>
             }
@@ -1681,7 +1683,7 @@ npx prisma db push`}
               exit={{ scale: 0.95 }}
               className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-6 max-w-md w-full"
             >
-              <h3 className="text-base font-bold text-white mb-2">Reject Event</h3>
+              <h3 className="text-base font-bold text-white mb-2">{t("admin.events.rejectTitle")}</h3>
               <p className="text-xs text-[#A09DB1] mb-3">
                 The event will be marked as REJECTED and will not appear publicly. The submitter will not be automatically notified.
               </p>
@@ -1696,13 +1698,13 @@ npx prisma db push`}
                   onClick={() => setRejectingId(null)}
                   className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   onClick={() => confirmReject(rejectingId)}
                   className="px-4 py-2 rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs font-bold"
                 >
-                  Reject Event
+                  {t("admin.events.rejectTitle")}
                 </button>
               </div>
             </motion.div>
@@ -1741,6 +1743,7 @@ type AdminPrayerReport = {
 };
 
 function PrayersTab() {
+  const t = useTranslation();
   const [prayers, setPrayers] = useState<AdminPrayer[]>([]);
   const [reports, setReports] = useState<AdminPrayerReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1808,7 +1811,7 @@ function PrayersTab() {
 
   return (
     <div className="space-y-3">
-      <AdminSectionHeader title="Prayer Requests" count={prayers.length} color="#F59E0B" />
+      <AdminSectionHeader title={t("admin.prayers.title")} count={prayers.length} color="#F59E0B" />
       <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-3 mb-3">
         <p className="text-[11px] text-[#A09DB1] leading-relaxed">
           Live moderation for the public Prayer Wall. Hidden/removed requests disappear from the wall
@@ -1820,7 +1823,7 @@ function PrayersTab() {
       {reports.length > 0 && (
         <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-xl p-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#EF4444] mb-2">
-            Pending reports ({reports.length})
+            {t("admin.prayers.pendingReports", { n: reports.length })}
           </p>
           <div className="space-y-2">
             {reports.map((r) => (
@@ -1860,7 +1863,7 @@ function PrayersTab() {
       )}
       {!loading && !error && shown.length === 0 && (
         <p className="text-xs text-[#64748B] py-4">
-          {statusFilter === "all" ? "No prayer requests yet." : `No ${statusFilter} requests.`}
+          {statusFilter === "all" ? t("admin.prayers.empty") : `No ${statusFilter} requests.`}
         </p>
       )}
 
@@ -1917,6 +1920,7 @@ function PrayersTab() {
 // ─── COMPETITIONS ────────────────────────────────────────────────────────
 
 function CompetitionsTab() {
+  const t = useTranslation();
   // Phase 3A: fully DB-backed. Lists come from /api/admin/trivia/competitions,
   // prizes from /api/admin/trivia/prizes, winners from /api/admin/trivia/winners.
   // Created competitions persist and appear to players via /api/trivia/competitions
@@ -2082,7 +2086,7 @@ function CompetitionsTab() {
           onClick={() => setShowCreate(!showCreate)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
         >
-          <Plus size={12} /> Host New
+          <Plus size={12} /> {t("admin.competitions.hostNew")}
         </button>
       </div>
 
@@ -2285,13 +2289,13 @@ function CompetitionsTab() {
                     onClick={() => moderate(c.id, "approve")}
                     className="flex-1 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-slate-950 text-xs font-bold transition-all"
                   >
-                    Approve & schedule
+                    {t("admin.competitions.approveSchedule")}
                   </button>
                   <button
                     onClick={() => moderate(c.id, "reject")}
                     className="flex-1 py-2 rounded-xl bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-xs font-bold transition-all"
                   >
-                    Decline
+                    {t("admin.competitions.decline")}
                   </button>
                 </div>
               )}
@@ -2413,6 +2417,7 @@ function CompetitionsTab() {
 // ─── GIFTS MANAGEMENT ────────────────────────────────────────────────────
 
 function GiftsManagement() {
+  const t = useTranslation();
   const [gifts, setGifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -2531,7 +2536,7 @@ function GiftsManagement() {
 
   const handleEdit = (gift: any) => {
     if (!gift.isAdmin) {
-      toast("Default gifts can't be edited", {
+      toast(t("admin.gifts.toast.defaultEdit"), {
         description: "Only gifts you've added from the admin panel can be modified.",
       });
       return;
@@ -2621,7 +2626,7 @@ function GiftsManagement() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <AdminSectionHeader title="Reward Gifts" count={gifts.length} color="#F59E0B" />
+        <AdminSectionHeader title={t("admin.gifts.title")} count={gifts.length} color="#F59E0B" />
         <button
           onClick={() => {
             if (showAddForm) {
@@ -2633,7 +2638,7 @@ function GiftsManagement() {
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F59E0B] hover:bg-[#E59E0B] text-slate-950 text-xs font-bold transition-all"
         >
           {showAddForm ? <X size={12} /> : <Plus size={12} />}
-          {showAddForm ? "Cancel" : "Add Gift"}
+          {showAddForm ? t("admin.gifts.cancel") : t("admin.gifts.addGift")}
         </button>
       </div>
 
@@ -2925,13 +2930,13 @@ function GiftsManagement() {
                 onClick={resetForm}
                 className="flex-1 py-2.5 rounded-xl bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06] text-sm font-semibold"
               >
-                Cancel
+                {t("admin.gifts.cancel")}
               </button>
               <button
                 type="submit"
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F59E0B] hover:bg-[#E59E0B] transition-all"
               >
-                {editingId ? "Update Gift" : "Add Gift"}
+                {editingId ? "Update Gift" : t("admin.gifts.addGift")}
               </button>
             </div>
           </motion.form>
@@ -3043,10 +3048,7 @@ function GiftsManagement() {
 
       <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-3">
         <p className="text-[10px] text-[#A09DB1] leading-relaxed">
-          <span className="font-bold text-[#F59E0B]">Tip:</span> Gifts you add appear instantly in the
-          Trivia → Rewards tab for players to redeem. Default gifts (without the "Admin" badge) are
-          seeded examples and can't be edited or removed — only gifts you add here can be modified.
-          When a player redeems a gift, contact them on WhatsApp to arrange delivery.
+          {t("admin.gifts.tip")}
         </p>
       </div>
     </div>
@@ -3056,6 +3058,7 @@ function GiftsManagement() {
 // ─── ANNOUNCEMENTS ───────────────────────────────────────────────────────
 
 function AnnouncementsTab() {
+  const t = useTranslation();
   const [announcements, setAnnouncements] = useState<{ id: string; text: string; type: string; date: string }[]>([
     { id: "a1", text: "Welcome to Koino! Explore churches, play trivia, and grow in faith.", type: "info", date: "2025-01-20" },
   ]);
@@ -3091,7 +3094,7 @@ function AnnouncementsTab() {
   return (
     <div className="space-y-4">
       <PreviewModeBanner section="Announcements" />
-      <AdminSectionHeader title="Site Announcements" count={announcements.length} color="#EC4899" />
+      <AdminSectionHeader title={t("admin.announcements.title")} count={announcements.length} color="#EC4899" />
       <form onSubmit={post} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 space-y-3">
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
@@ -3129,7 +3132,7 @@ function AnnouncementsTab() {
           className="w-full py-3 rounded-xl text-sm font-bold text-white"
           style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
         >
-          Post Announcement
+          {t("admin.announcements.post")}
         </button>
       </form>
 
@@ -3165,6 +3168,7 @@ function AnnouncementsTab() {
 // ─── ANALYTICS ────────────────────────────────────────────────────────────
 
 function AnalyticsTab() {
+  const t = useTranslation();
   // Phase 3A: real DB-backed stats. Metrics without a backend are shown as
   // explicit placeholders — no fake numbers.
   const [membersStats, setMembersStats] = useState<any>(null);
@@ -3226,7 +3230,7 @@ function AnalyticsTab() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-bold text-white mb-3">Platform Stats</h2>
+        <h2 className="text-base font-bold text-white mb-3">{t("admin.analytics.title")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {stats.map((s) => (
             <div key={s.label} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
@@ -3258,7 +3262,7 @@ function AnalyticsTab() {
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Users size={14} className="text-[#A78BFA]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Top Churches by Followers</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("admin.analytics.topChurches")}</p>
         </div>
         {(() => {
           const top = [...churchRows].sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0)).filter((c) => (c.followers_count ?? 0) > 0).slice(0, 5);
@@ -3285,7 +3289,7 @@ function AnalyticsTab() {
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Trophy size={14} className="text-[#F59E0B]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Top Trivia Players</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">{t("admin.analytics.topPlayers")}</p>
         </div>
         {loading ? (
           <p className="text-[11px] text-[#94A3B8]">Loading…</p>
@@ -3354,7 +3358,7 @@ function RedemptionsTab() {
         body: JSON.stringify({ redemptionId, status }),
       });
       if (!res.ok) throw new Error("Failed to update");
-      toast.success(`Marked as ${status}`);
+      toast.success(t("admin.redemptions.toast.markedAs", { status: t(`admin.redemptions.status.${status}`) }));
       load();
     } catch {
       toast.error("Failed to update status");
@@ -3375,11 +3379,11 @@ function RedemptionsTab() {
   };
 
   const stats = [
-    { label: "Total", value: counts.total, color: "#A855F7", icon: Package },
-    { label: "Pending", value: counts.pending, color: "#F59E0B", icon: Clock },
-    { label: "Contacted", value: counts.contacted, color: "#38BDF8", icon: Mail },
-    { label: "Shipped", value: counts.shipped, color: "#9786E3", icon: Truck },
-    { label: "Delivered", value: counts.delivered, color: "#22C55E", icon: CheckCircle },
+    { label: "admin.redemptions.stats.total", value: counts.total, color: "#A855F7", icon: Package },
+    { label: "admin.redemptions.stats.pending", value: counts.pending, color: "#F59E0B", icon: Clock },
+    { label: "admin.redemptions.stats.contacted", value: counts.contacted, color: "#38BDF8", icon: Mail },
+    { label: "admin.redemptions.stats.shipped", value: counts.shipped, color: "#9786E3", icon: Truck },
+    { label: "admin.redemptions.stats.delivered", value: counts.delivered, color: "#22C55E", icon: CheckCircle },
   ];
 
   if (loading) {
@@ -3403,7 +3407,7 @@ function RedemptionsTab() {
           >
             <s.icon size={12} className="mx-auto mb-1" style={{ color: s.color }} />
             <p className="text-base font-extrabold text-white">{s.value}</p>
-            <p className="text-[8px] text-[#94A3B8] uppercase tracking-wider">{s.label}</p>
+            <p className="text-[8px] text-[#94A3B8] uppercase tracking-wider">{t(s.label)}</p>
           </div>
         ))}
       </div>
@@ -3473,7 +3477,7 @@ function RedemptionsTab() {
                       className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0"
                       style={{ backgroundColor: `${statusInfo.color}25`, color: statusInfo.color }}
                     >
-                      <StatusIcon size={9} /> {statusInfo.label}
+                      <StatusIcon size={9} /> {t(`admin.redemptions.status.${statusInfo.id}`)}
                     </span>
                   </div>
 
@@ -3490,12 +3494,12 @@ function RedemptionsTab() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[9px] text-[#64748B] italic my-1">No variations selected</p>
+                    <p className="text-[9px] text-[#64748B] italic my-1">{t("admin.redemptions.noVariations")}</p>
                   )}
 
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[9px] text-[#64748B]">
-                      {formatTimeAgo(r.createdAt)} · {r.pointsSpent.toLocaleString()} FP spent
+                      {formatTimeAgo(r.createdAt)} · {t("admin.redemptions.fpSpent", { points: r.pointsSpent.toLocaleString() })}
                     </p>
 
                     {/* Status update buttons */}
@@ -3622,13 +3626,14 @@ function EmptyState({ text }: { text: string }) {
 // because it has real ComicChapter/ComicPanel Prisma models + 14 admin API routes.
 
 function PreviewModeBanner({ section }: { section: string }) {
+  const t = useTranslation();
   return (
     <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-3 mb-4">
       <div className="flex items-start gap-2">
         <AlertCircle size={14} className="text-[#F59E0B] mt-0.5 shrink-0" />
         <div className="flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B] mb-0.5">
-            Preview Mode — {section}
+            {t("admin.previewMode.title", { section })}
           </p>
           <p className="text-[10px] text-[#A09DB1] leading-relaxed">
             This section uses mock data. Approve/reject/edit/delete actions update local state only

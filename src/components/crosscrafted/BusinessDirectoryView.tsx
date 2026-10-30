@@ -99,7 +99,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
       }
       setNextCursor(data.nextCursor || null);
     } catch {
-      toast.error("Could not load the business directory");
+      toast.error(t("biz.error.load"));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -157,9 +157,9 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
       {/* ─── HEADER ─── */}
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Business Directory</h1>
+          <h1 className="text-xl font-bold text-white">{t("side.businessDirectory")}</h1>
           <p className="text-xs text-[#94A3B8] mt-0.5">
-            Discover Christian businesses, services and professionals.
+            {t("biz.headerSubtitle")}
           </p>
         </div>
         <button
@@ -173,7 +173,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold text-white transition-all hover:-translate-y-px"
           style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
         >
-          <Plus size={13} /> List Your Business
+          <Plus size={13} /> {t("biz.listYourBusiness")}
         </button>
       </div>
 
@@ -182,7 +182,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
         <input
           type="text"
-          placeholder="Search Christian businesses..."
+          placeholder={t("biz.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="neo-input text-sm pl-9"
@@ -196,7 +196,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
           onChange={(e) => setFilterCategory(e.target.value)}
           className="neo-input text-xs py-2 flex-1"
         >
-          <option value="">All Categories</option>
+          <option value="">{t("biz.filter.allCategories")}</option>
           {BUSINESS_CATEGORIES.map((cat) => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
@@ -206,9 +206,9 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
           onChange={(e) => setSortBy(e.target.value as SortOption)}
           className="neo-input text-xs py-2 w-32"
         >
-          <option value="recommended">Recommended</option>
-          <option value="newest">Newest</option>
-          <option value="name">Name A–Z</option>
+          <option value="recommended">{t("biz.sort.recommended")}</option>
+          <option value="newest">{t("common.sort.newest")}</option>
+          <option value="name">{t("common.sort.nameAZ")}</option>
         </select>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -249,7 +249,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
                   }}
                   className="neo-input text-sm"
                 >
-                  <option value="">All States</option>
+                  <option value="">{t("common.allStates")}</option>
                   {INDIAN_STATES.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -265,7 +265,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
                   disabled={!filterState}
                   className="neo-input text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">{filterState ? "All Cities" : "Select state first"}</option>
+                  <option value="">{filterState ? t("common.allCities") : t("common.selectStateFirst")}</option>
                   {filterState && getCitiesForState(filterState).map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -277,7 +277,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
                 onClick={clearFilters}
                 className="mt-3 text-xs text-[#94A3B8] hover:text-white transition-colors"
               >
-                Clear all filters
+                {t("common.clearFilters")}
               </button>
             )}
           </motion.div>
@@ -288,7 +288,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
       {featured.length > 0 && filterCategory === "" && filterState === "" && filterCity === "" && !searchQuery && (
         <div className="mb-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F39B9B] mb-2">
-            Featured Businesses
+            {t("biz.featuredHeading")}
           </p>
           <div className="space-y-3">
             {featured.map((b, i) => (
@@ -338,7 +338,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
             disabled={loadingMore}
             className="px-5 py-2.5 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white disabled:opacity-50"
           >
-            {loadingMore ? "Loading..." : "Show more businesses"}
+            {loadingMore ? t("common.loading") : t("biz.showMore")}
           </button>
         </div>
       )}
@@ -347,9 +347,9 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
       {!loading && filtered.length === 0 && (
         <div className="text-center py-16">
           <Building2 size={40} className="mx-auto text-[#475569] mb-3" />
-          <p className="text-sm text-[#475569] mb-1">No businesses found.</p>
+          <p className="text-sm text-[#475569] mb-1">{t("biz.empty")}</p>
           <p className="text-[11px] text-[#64748B] mb-4">
-            Try another category, city or state.
+            {t("biz.emptyHint")}
           </p>
           {activeFilters > 0 && (
             <button
@@ -357,7 +357,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
               style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
             >
-              Clear Filters
+              {t("biz.clearFilters")}
             </button>
           )}
         </div>
@@ -371,8 +371,8 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
             onClose={() => setOpenBusiness(null)}
             onShare={(b) =>
               setShareReq({
-                heading: `Share "${b.name}"`,
-                shareText: `${b.name}${b.category ? ` — ${b.category}` : ""}${b.city ? `, ${b.city}` : ""} · Christian Business Directory on Koino`,
+                heading: t("biz.shareHeading", { name: b.name }),
+                shareText: `${b.name}${b.category ? ` — ${b.category}` : ""}${b.city ? `, ${b.city}` : ""} · ${t("biz.shareTextSuffix")}`,
                 shareUrl: shareLinks.businessDirectory(),
                 cardUrl: `/api/share-card?type=business&id=${encodeURIComponent(b.id)}`,
                 formats: ["square"],
@@ -400,6 +400,7 @@ function BusinessCard({
   index: number;
   onClick: () => void;
 }) {
+  const t = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -433,7 +434,7 @@ function BusinessCard({
         >
           <Building2 size={28} className="text-white/60" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Koino</p>
-          <p className="text-[9px] text-white/40 leading-tight">Image unavailable</p>
+          <p className="text-[9px] text-white/40 leading-tight">{t("common.imageUnavailable")}</p>
         </div>
 
         {/* Top gradient for legibility */}
@@ -442,12 +443,12 @@ function BusinessCard({
         {/* Verified badge */}
         {business.verified && (
           <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#22C55E]/90 text-white text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-            <BadgeCheck size={10} /> Verified
+            <BadgeCheck size={10} /> {t("common.verifiedBadge")}
           </span>
         )}
         {business.featured && (
           <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#F59E0B]/90 text-slate-950 text-[9px] font-bold uppercase tracking-wider">
-            Featured
+            {t("common.featured")}
           </span>
         )}
 
@@ -487,22 +488,22 @@ function BusinessCard({
           <div className="flex items-center gap-1.5">
             {business.whatsapp_number && (
               <span className="flex items-center gap-0.5 text-[10px] text-[#25D366] font-bold">
-                <MessageCircle size={10} /> WhatsApp
+                <MessageCircle size={10} /> {t("common.whatsappLabel")}
               </span>
             )}
             {business.website && (
               <span className="flex items-center gap-0.5 text-[10px] text-[#38BDF8] font-bold">
-                <Globe size={10} /> Website
+                <Globe size={10} /> {t("biz.websiteLabel")}
               </span>
             )}
             {business.phone && (
               <span className="flex items-center gap-0.5 text-[10px] text-[#94A3B8] font-bold">
-                <Phone size={10} /> Call
+                <Phone size={10} /> {t("biz.call")}
               </span>
             )}
           </div>
           <span className="text-[10px] font-bold text-[#9786E3] uppercase tracking-wider">
-            View Business →
+            {t("home.biz.viewBusiness")} →
           </span>
         </div>
       </div>
@@ -521,6 +522,7 @@ function BusinessDetailModal({
   onClose: () => void;
   onShare?: (business: Business) => void;
 }) {
+  const t = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -561,7 +563,7 @@ function BusinessDetailModal({
           >
             <Building2 size={32} className="text-white/60" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Koino</p>
-            <p className="text-[9px] text-white/40 leading-tight">Image unavailable</p>
+            <p className="text-[9px] text-white/40 leading-tight">{t("common.imageUnavailable")}</p>
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent pointer-events-none" />
           <button
@@ -579,12 +581,12 @@ function BusinessDetailModal({
               </span>
               {business.verified && (
                 <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/90 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                  <BadgeCheck size={10} /> Verified
+                  <BadgeCheck size={10} /> {t("common.verifiedBadge")}
                 </span>
               )}
               {business.featured && (
                 <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/90 text-slate-950 text-[10px] font-bold uppercase tracking-wider">
-                  Featured
+                  {t("common.featured")}
                 </span>
               )}
             </div>
@@ -594,7 +596,7 @@ function BusinessDetailModal({
                 <Star size={12} className="text-[#F59E0B]" fill="currentColor" />
                 <span className="text-[11px] font-bold text-white">{business.rating.toFixed(1)}</span>
                 {business.reviews ? (
-                  <span className="text-[10px] text-[#94A3B8]">({business.reviews} reviews)</span>
+                  <span className="text-[10px] text-[#94A3B8]">{t("common.reviews", { count: business.reviews })}</span>
                 ) : null}
               </div>
             ) : null}
@@ -604,7 +606,7 @@ function BusinessDetailModal({
         <div className="p-5 space-y-4">
           {/* Location */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Location</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("common.location")}</p>
             <p className="text-xs text-white flex items-center gap-1">
               <MapPin size={11} /> {business.city}{business.city && business.state ? ", " : ""}{business.state}
             </p>
@@ -622,7 +624,7 @@ function BusinessDetailModal({
           {/* Services */}
           {business.services && business.services.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Services</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("biz.services")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {business.services.map((s) => (
                   <span
@@ -640,7 +642,7 @@ function BusinessDetailModal({
           {business.hours && (
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1 flex items-center gap-1">
-                <Clock size={10} /> Business Hours
+                <Clock size={10} /> {t("biz.hours")}
               </p>
               <p className="text-xs text-white">{business.hours}</p>
             </div>
@@ -665,27 +667,27 @@ function BusinessDetailModal({
 
           {/* Contact — only render buttons for info the business actually provided */}
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Contact</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("churches.contact")}</p>
 
             {onShare && (business.status ?? "approved") === "approved" && (
               <button
                 onClick={() => onShare(business)}
                 className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] hover:bg-[#7C3AED]/25 transition-all"
               >
-                <Share2 size={16} /> Share this business
+                <Share2 size={16} /> {t("biz.share")}
               </button>
             )}
 
             {business.whatsapp_number && (
               <a
                 href={`https://wa.me/${business.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                  `Hi, I found your business "${business.name}" on Koino and I'd like more information.`
+                  t("biz.whatsappPrefill", { name: business.name })
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FB855] text-white transition-all hover:-translate-y-px"
               >
-                <MessageCircle size={16} /> WhatsApp
+                <MessageCircle size={16} /> {t("common.whatsappLabel")}
               </a>
             )}
 
@@ -694,7 +696,7 @@ function BusinessDetailModal({
                 href={`tel:${business.phone.replace(/[^0-9+]/g, "")}`}
                 className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#9786E3]/15 border border-[#9786E3]/30 text-[#9786E3] hover:bg-[#9786E3]/25 transition-all"
               >
-                <Phone size={16} /> Call {business.phone}
+                <Phone size={16} /> {t("biz.callNumber", { phone: business.phone })}
               </a>
             )}
 
@@ -705,7 +707,7 @@ function BusinessDetailModal({
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/25 transition-all"
               >
-                <Globe size={16} /> Visit Website
+                <Globe size={16} /> {t("biz.visitWebsite")}
                 <ExternalLink size={12} className="opacity-80" />
               </a>
             )}
@@ -724,7 +726,7 @@ function BusinessDetailModal({
           {business.verified && (
             <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
               <BadgeCheck size={9} className="inline mr-0.5" />
-              "Verified" means Koino has reviewed this listing. It does not mean Koino guarantees the business's products or services.
+              {t("biz.verifiedDisclaimer")}
             </p>
           )}
         </div>

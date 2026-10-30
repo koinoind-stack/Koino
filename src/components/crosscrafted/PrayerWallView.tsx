@@ -63,6 +63,18 @@ const verseHref = (() => {
   return parsed ? bibleRefHref(parsed) : null;
 })();
 
+// i18n: prayer category id → translation key. The raw value is what the DB
+// stores and what filtering matches on — only the display label is translated.
+const PRAYER_CATEGORY_LABEL_KEYS: Record<string, string> = {
+  All: "prayer.category.all",
+  Healing: "prayer.category.healing",
+  Family: "prayer.category.family",
+  Guidance: "prayer.category.guidance",
+  Thanksgiving: "prayer.category.thanksgiving",
+  Salvation: "prayer.category.salvation",
+  Provision: "prayer.category.provision",
+};
+
 export default function PrayerWallView() {
   const t = useTranslation();
 
@@ -172,7 +184,7 @@ export default function PrayerWallView() {
         ps.map((p) => (p.id === prayer.id ? { ...p, myPrayed: data.prayed, prayCount: data.count } : p))
       );
       if (data.prayed && !wasPrayed) {
-        toast.success("Praying with you!", { description: "God hears every prayer." });
+        toast.success(t("prayer.toast.praying"), { description: t("prayer.toast.prayingDesc") });
       }
     } catch {
       // Roll back on failure.
@@ -183,7 +195,7 @@ export default function PrayerWallView() {
             : p
         )
       );
-      toast.error("Couldn't record that — please try again.");
+      toast.error(t("prayer.toast.prayError"));
     } finally {
       setBusyPrayer(null);
     }
@@ -203,7 +215,7 @@ export default function PrayerWallView() {
         const data = await res.json();
         setCommentLists((prev) => ({ ...prev, [id]: data.comments || [] }));
       } catch {
-        toast.error("Couldn't load comments.");
+        toast.error(t("prayer.toast.commentsError"));
       } finally {
         setLoadingComments((prev) => {
           const n = new Set(prev);
@@ -226,7 +238,7 @@ export default function PrayerWallView() {
         body: JSON.stringify({ body: text, parentId }),
       });
       if (res.status === 429) {
-        toast.error("You're commenting quickly — wait a moment.");
+        toast.error(t("prayer.toast.commentRateLimited"));
         setCommentInputs((prev) => ({ ...prev, [prayerId]: text }));
         return;
       }
@@ -237,10 +249,10 @@ export default function PrayerWallView() {
       setPrayers((ps) =>
         ps.map((p) => (p.id === prayerId ? { ...p, commentCount: p.commentCount + 1 } : p))
       );
-      toast.success("Comment added!");
+      toast.success(t("prayer.toast.commentAdded"));
     } catch {
       setCommentInputs((prev) => ({ ...prev, [prayerId]: text }));
-      toast.error("Couldn't post the comment.");
+      toast.error(t("prayer.toast.commentError"));
     }
   };
 
@@ -252,9 +264,9 @@ export default function PrayerWallView() {
         body: JSON.stringify({ targetType: "prayer_comment", targetId: c.id }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Reported — our team will review it.");
+      toast.success(t("prayer.toast.reported"));
     } catch {
-      toast.error("Couldn't submit the report.");
+      toast.error(t("prayer.toast.reportError"));
     }
   };
 
@@ -266,21 +278,21 @@ export default function PrayerWallView() {
         body: JSON.stringify({ targetType: "prayer" }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Reported — our team will review it.");
+      toast.success(t("prayer.toast.reported"));
     } catch {
-      toast.error("Couldn't submit the report.");
+      toast.error(t("prayer.toast.reportError"));
     }
   };
 
   const deletePrayer = async (p: PrayerItem) => {
-    if (!confirm("Delete this prayer request? This cannot be undone.")) return;
+    if (!confirm(t("prayer.confirm.delete"))) return;
     try {
       const res = await fetch(`/api/prayers/${p.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setPrayers((ps) => ps.filter((x) => x.id !== p.id));
-      toast.success("Request deleted.");
+      toast.success(t("prayer.toast.deleted"));
     } catch {
-      toast.error("Couldn't delete the request.");
+      toast.error(t("prayer.toast.deleteError"));
     }
   };
 
@@ -304,18 +316,18 @@ export default function PrayerWallView() {
             : x
         )
       );
-      toast.success("Praise God! Marked as answered.");
+      toast.success(t("prayer.toast.answered"));
       setTestimonyFor(null);
       setTestimonyText("");
     } catch {
-      toast.error("Couldn't update — please try again.");
+      toast.error(t("prayer.toast.updateError"));
     }
   };
 
   const handleCreatePrayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) {
-      toast.error("Please enter both a title and description");
+      toast.error(t("prayer.form.errorRequired"));
       return;
     }
     setSubmitting(true);
@@ -331,7 +343,7 @@ export default function PrayerWallView() {
         }),
       });
       if (res.status === 429) {
-        toast.error("You're sharing quickly — please wait a little.");
+        toast.error(t("prayer.toast.shareRateLimited"));
         return;
       }
       if (!res.ok) {
@@ -345,8 +357,8 @@ export default function PrayerWallView() {
       setNewCategory("Healing");
       setIsAnonymous(false);
       setShowCreateModal(false);
-      toast.success("Prayer request shared!", {
-        description: "The community can pray with you now.",
+      toast.success(t("prayer.toast.shared"), {
+        description: t("prayer.toast.sharedDesc"),
       });
       // Streak reflects GENUINE activity: only after the server persisted it.
       try {
@@ -358,9 +370,9 @@ export default function PrayerWallView() {
           const { recordStreak } = await import("@/lib/streaks");
           const info = recordStreak("prayer_share");
           if (info.currentStreak === 1) {
-            toast("🔥 Prayer streak started!", { description: "Share a prayer daily to keep it alive." });
+            toast(t("prayer.streak.start"), { description: t("prayer.streak.startDesc") });
           } else if ([3, 7, 14, 30, 60, 90].includes(info.currentStreak)) {
-            toast.success(`🔥 ${info.currentStreak}-day prayer streak!`);
+            toast.success(t("prayer.streak.milestone", { days: info.currentStreak }));
           }
         }
       } catch {
@@ -370,7 +382,7 @@ export default function PrayerWallView() {
       toast.error(
         err instanceof Error && err.message !== "Failed to fetch" && !err.message.startsWith("HTTP")
           ? err.message
-          : "Couldn't share the request — please try again."
+          : t("prayer.toast.shareError")
       );
     } finally {
       setSubmitting(false);
@@ -380,19 +392,19 @@ export default function PrayerWallView() {
   const formatAgo = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days < 0) return "today";
+    if (days < 0) return t("prayer.time.today");
     if (days === 0) {
       const hours = Math.floor(diff / (1000 * 60 * 60));
-      if (hours === 0) return `${Math.max(1, Math.floor(diff / (1000 * 60)))}m ago`;
-      return `${hours}h ago`;
+      if (hours === 0) return t("prayer.time.minutes", { n: Math.max(1, Math.floor(diff / (1000 * 60))) });
+      return t("prayer.time.hours", { n: hours });
     }
-    if (days === 1) return "1 day ago";
-    return `${days} days ago`;
+    if (days === 1) return t("prayer.time.day");
+    return t("prayer.time.days", { n: days });
   };
 
   const openPrayerShare = (prayer: PrayerItem) => {
     setShareReq({
-      heading: "Share your prayer",
+      heading: t("prayer.shareHeading"),
       shareText: `${prayer.title}\n\n${prayer.content}`,
       shareUrl: undefined,
       cardUrl: `/api/share-card?type=prayer&title=${encodeURIComponent(prayer.title.slice(0, 120))}&body=${encodeURIComponent(prayer.content.slice(0, 500))}&category=${encodeURIComponent(prayer.category.slice(0, 40))}`,
@@ -413,7 +425,7 @@ export default function PrayerWallView() {
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
           style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}
         >
-          <Plus size={14} /> Share
+          <Plus size={14} /> {t("common.share")}
         </button>
       </div>
 
@@ -429,7 +441,7 @@ export default function PrayerWallView() {
           <div className="w-7 h-7 rounded-lg bg-[#F59E0B]/15 border border-[#F59E0B]/30 flex items-center justify-center">
             <BookOpen size={14} className="text-[#F59E0B]" />
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Verse of the Day</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">{t("prayer.verseTitle")}</p>
         </div>
         <p className="text-sm text-white italic leading-relaxed mb-2">&quot;{verseOfToday.verse}&quot;</p>
         <p className="text-xs font-bold text-[#F59E0B] mb-2">— {verseOfToday.reference}</p>
@@ -439,7 +451,7 @@ export default function PrayerWallView() {
             href={verseHref}
             className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#F59E0B] hover:text-white transition-colors"
           >
-            <BookOpen size={12} /> Read in the Bible
+            <BookOpen size={12} /> {t("prayer.verseCta")}
           </a>
         )}
       </motion.div>
@@ -447,7 +459,7 @@ export default function PrayerWallView() {
       {/* Search */}
       <input
         type="text"
-        placeholder="Search prayer requests..."
+        placeholder={t("prayer.searchPlaceholder")}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="neo-input text-sm mb-3"
@@ -465,7 +477,7 @@ export default function PrayerWallView() {
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
-            {cat}
+            {t(PRAYER_CATEGORY_LABEL_KEYS[cat] || cat)}
           </button>
         ))}
         <button
@@ -476,7 +488,7 @@ export default function PrayerWallView() {
               : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
           }`}
         >
-          <CheckCircle2 size={12} /> Answered
+          <CheckCircle2 size={12} /> {t("prayer.answered")}
         </button>
       </div>
 
@@ -491,7 +503,7 @@ export default function PrayerWallView() {
               sort === s ? "bg-white/[0.08] text-white" : "text-[#64748B] hover:text-white"
             }`}
           >
-            {s === "recent" ? "Recent" : "Most Prayed For"}
+            {s === "recent" ? t("prayer.sort.recent") : t("prayer.sort.mostPrayed")}
           </button>
         ))}
       </div>
@@ -519,13 +531,13 @@ export default function PrayerWallView() {
       {!loading && loadError && (
         <div className="text-center py-16">
           <HeartHandshake size={40} className="mx-auto text-[#475569] mb-3" />
-          <p className="text-sm text-[#94A3B8] mb-3">Couldn&apos;t load the prayer wall.</p>
+          <p className="text-sm text-[#94A3B8] mb-3">{t("prayer.error.load")}</p>
           <button
             onClick={() => loadPrayers()}
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-2"
             style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}
           >
-            <RefreshCw size={14} /> Try again
+            <RefreshCw size={14} /> {t("common.retry")}
           </button>
         </div>
       )}
@@ -536,15 +548,15 @@ export default function PrayerWallView() {
           <HeartHandshake size={40} className="mx-auto text-[#475569] mb-3" />
           <p className="text-sm text-[#475569] mb-3">
             {answeredOnly
-              ? "No answered prayers here yet — breakthrough is coming."
-              : "No prayer requests in this category yet."}
+              ? t("prayer.empty.answered")
+              : t("prayer.empty.category")}
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
             style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}
           >
-            Share the First Request
+            {t("prayer.empty.cta")}
           </button>
         </div>
       )}
@@ -578,18 +590,18 @@ export default function PrayerWallView() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-white truncate">
-                      {prayer.isAnonymous ? "Anonymous" : prayer.author?.name || "Member"}
-                      {prayer.isMine && <span className="text-[#64748B] font-normal"> · you</span>}
+                      {prayer.isAnonymous ? t("prayer.anonymous") : prayer.author?.name || "Member"}
+                      {prayer.isMine && <span className="text-[#64748B] font-normal"> {t("prayer.youSuffix")}</span>}
                     </p>
                     <p className="text-[10px] text-[#94A3B8]">{formatAgo(prayer.createdAt)}</p>
                   </div>
                   {prayer.answered && (
                     <span className="px-2 py-0.5 rounded-full bg-[#34D399]/10 border border-[#34D399]/30 text-[#34D399] text-[10px] font-bold uppercase tracking-wider">
-                      Answered
+                      {t("prayer.answered")}
                     </span>
                   )}
                   <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[#F59E0B] text-[10px] font-bold uppercase tracking-wider">
-                    {prayer.category}
+                    {PRAYER_CATEGORY_LABEL_KEYS[prayer.category] ? t(PRAYER_CATEGORY_LABEL_KEYS[prayer.category]) : prayer.category}
                   </span>
                 </div>
 
@@ -598,7 +610,7 @@ export default function PrayerWallView() {
 
                 {prayer.answered && prayer.testimony && (
                   <div className="bg-[#34D399]/8 border border-[#34D399]/20 rounded-xl p-3 mb-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#34D399] mb-1">Praise Report</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#34D399] mb-1">{t("prayer.praiseReport")}</p>
                     <p className="text-[12px] text-[#A09DB1] leading-relaxed">{prayer.testimony}</p>
                   </div>
                 )}
@@ -614,7 +626,7 @@ export default function PrayerWallView() {
                     }`}
                   >
                     <Heart size={14} fill={hasPrayed ? "currentColor" : "none"} />
-                    {prayer.prayCount} Praying
+                    {t("prayer.prayingCount", { count: prayer.prayCount })}
                   </button>
                   <button
                     onClick={() => toggleComments(prayer.id)}
@@ -627,18 +639,18 @@ export default function PrayerWallView() {
                     <button
                       onClick={() => { setTestimonyFor(prayer); setTestimonyText(""); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#34D399]/10 text-[#34D399] hover:text-white border border-[#34D399]/25 transition-all"
-                      title="God answered — share the praise report"
+                      title={t("prayer.answeredTitle")}
                     >
-                      <CheckCircle2 size={14} /> Answered
+                      <CheckCircle2 size={14} /> {t("prayer.answered")}
                     </button>
                   )}
                   {prayer.isMine && (
                     <button
                       onClick={() => openPrayerShare(prayer)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F59E0B]/10 text-[#F59E0B] hover:text-white border border-[#F59E0B]/25 transition-all"
-                      title="Share your prayer (text + branded image — no public link)"
+                      title={t("prayer.shareTitle")}
                     >
-                      <Share2 size={14} /> Share
+                      <Share2 size={14} /> {t("common.share")}
                     </button>
                   )}
                   <div className="ml-auto flex items-center gap-1">
@@ -646,7 +658,7 @@ export default function PrayerWallView() {
                       <button
                         onClick={() => reportPrayer(prayer)}
                         className="p-1.5 rounded-lg text-[#475569] hover:text-[#EF4444] transition-colors"
-                        title="Report this request"
+                        title={t("prayer.reportTitle")}
                       >
                         <Flag size={13} />
                       </button>
@@ -655,7 +667,7 @@ export default function PrayerWallView() {
                       <button
                         onClick={() => deletePrayer(prayer)}
                         className="p-1.5 rounded-lg text-[#475569] hover:text-[#EF4444] transition-colors"
-                        title={prayer.isMine ? "Delete your request" : "Remove (moderator)"}
+                        title={prayer.isMine ? t("prayer.deleteTitle") : t("prayer.removeModTitle")}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -672,11 +684,11 @@ export default function PrayerWallView() {
                       className="mt-3 pt-3 border-t border-white/[0.06] space-y-2 overflow-hidden"
                     >
                       {loadingComments.has(prayer.id) && (
-                        <p className="text-[11px] text-[#64748B] py-2">Loading…</p>
+                        <p className="text-[11px] text-[#64748B] py-2">{t("common.loadingShort")}</p>
                       )}
                       {!loadingComments.has(prayer.id) && roots.length === 0 && (
                         <p className="text-[11px] text-[#64748B] py-2">
-                          No comments yet — be the first to pray with them.
+                          {t("prayer.commentsEmpty")}
                         </p>
                       )}
                       {roots.map((c) => (
@@ -688,7 +700,7 @@ export default function PrayerWallView() {
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-bold text-white">
                                 {c.author.name}
-                                {c.isMine && <span className="text-[#64748B] font-normal"> · you</span>}
+                                {c.isMine && <span className="text-[#64748B] font-normal"> {t("prayer.youSuffix")}</span>}
                                 <span className="text-[#64748B] font-normal"> · {formatAgo(c.createdAt)}</span>
                               </p>
                               <p className="text-[12px] text-[#A09DB1]">{c.body}</p>
@@ -697,12 +709,12 @@ export default function PrayerWallView() {
                                   onClick={() => setReplyTo((prev) => ({ ...prev, [prayer.id]: c.id }))}
                                   className="text-[10px] font-bold text-[#64748B] hover:text-[#F59E0B] flex items-center gap-1"
                                 >
-                                  <CornerDownRight size={10} /> Reply
+                                  <CornerDownRight size={10} /> {t("prayer.reply")}
                                 </button>
                                 {c.isMine && (
                                   <button
                                     onClick={async () => {
-                                      if (!confirm("Delete your comment?")) return;
+                                      if (!confirm(t("prayer.confirm.deleteComment"))) return;
                                       const res = await fetch(`/api/prayers/${prayer.id}/comments?commentId=${c.id}`, { method: "DELETE" });
                                       if (res.ok) {
                                         const removed = 1 + (repliesByParent[c.id]?.length || 0);
@@ -715,7 +727,7 @@ export default function PrayerWallView() {
                                     }}
                                     className="text-[10px] font-bold text-[#64748B] hover:text-[#EF4444]"
                                   >
-                                    Delete
+                                    {t("common.delete")}
                                   </button>
                                 )}
                                 {!c.isMine && (
@@ -723,7 +735,7 @@ export default function PrayerWallView() {
                                     onClick={() => reportComment(prayer.id, c)}
                                     className="text-[10px] font-bold text-[#64748B] hover:text-[#EF4444]"
                                   >
-                                    Report
+                                    {t("prayer.report")}
                                   </button>
                                 )}
                               </div>
@@ -737,7 +749,7 @@ export default function PrayerWallView() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-[10px] font-bold text-white">
                                   {r.author.name}
-                                  {r.isMine && <span className="text-[#64748B] font-normal"> · you</span>}
+                                  {r.isMine && <span className="text-[#64748B] font-normal"> {t("prayer.youSuffix")}</span>}
                                   <span className="text-[#64748B] font-normal"> · {formatAgo(r.createdAt)}</span>
                                 </p>
                                 <p className="text-[11px] text-[#A09DB1]">{r.body}</p>
@@ -751,14 +763,14 @@ export default function PrayerWallView() {
                           <button
                             onClick={() => setReplyTo((prev) => ({ ...prev, [prayer.id]: null }))}
                             className="px-2 rounded-xl bg-white/[0.04] text-[10px] font-bold text-[#94A3B8] hover:text-white"
-                            title="Cancel reply"
+                            title={t("prayer.cancelReplyTitle")}
                           >
                             <X size={12} />
                           </button>
                         )}
                         <input
                           type="text"
-                          placeholder={replyTo[prayer.id] ? "Write a reply..." : "Add a prayer or encouragement..."}
+                          placeholder={replyTo[prayer.id] ? t("prayer.replyPlaceholder") : t("prayer.commentPlaceholder")}
                           value={commentInputs[prayer.id] || ""}
                           onChange={(e) => setCommentInputs((prev) => ({ ...prev, [prayer.id]: e.target.value }))}
                           onKeyDown={(e) => { if (e.key === "Enter") submitComment(prayer.id); }}
@@ -768,7 +780,7 @@ export default function PrayerWallView() {
                           onClick={() => submitComment(prayer.id)}
                           className="px-3 rounded-xl bg-[#F59E0B] text-slate-950 text-xs font-bold hover:bg-[#E59E0B]"
                         >
-                          Send
+                          {t("prayer.send")}
                         </button>
                       </div>
                     </motion.div>
@@ -799,7 +811,7 @@ export default function PrayerWallView() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold bg-gradient-to-r from-[#F59E0B] to-[#EF4444] bg-clip-text text-transparent">
-                  Share a Prayer Request
+                  {t("prayer.form.title")}
                 </h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-[#64748B] hover:text-white p-1">
                   <X size={20} />
@@ -808,21 +820,21 @@ export default function PrayerWallView() {
               <form onSubmit={handleCreatePrayer} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Title
+                    {t("prayer.form.titleLabel")}
                   </label>
                   <input
                     type="text"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     className="neo-input text-sm"
-                    placeholder="Brief title for your request"
+                    placeholder={t("prayer.form.titlePlaceholder")}
                     maxLength={120}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Category
+                    {t("marketplace.listModal.category")}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {PRAYER_CATEGORIES.filter((c) => c !== "All").map((cat) => (
@@ -836,20 +848,20 @@ export default function PrayerWallView() {
                             : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                         }`}
                       >
-                        {cat}
+                        {t(PRAYER_CATEGORY_LABEL_KEYS[cat] || cat)}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Request Details
+                    {t("prayer.form.detailsLabel")}
                   </label>
                   <textarea
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
                     className="neo-input h-28 resize-none text-sm"
-                    placeholder="Share what's on your heart..."
+                    placeholder={t("prayer.form.detailsPlaceholder")}
                     maxLength={2000}
                     required
                   />
@@ -865,9 +877,9 @@ export default function PrayerWallView() {
                 >
                   <Globe size={16} className={isAnonymous ? "text-[#F59E0B]" : "text-[#94A3B8]"} />
                   <div className="text-left flex-1">
-                    <p className="text-xs font-bold text-white">Share anonymously</p>
+                    <p className="text-xs font-bold text-white">{t("prayer.form.anonymousToggle")}</p>
                     <p className="text-[10px] text-[#94A3B8]">
-                      Your name will be hidden from the post
+                      {t("prayer.form.anonymousHint")}
                     </p>
                   </div>
                   <div className={`w-9 h-5 rounded-full p-0.5 transition-all ${isAnonymous ? "bg-[#F59E0B]" : "bg-white/[0.08]"}`}>
@@ -880,14 +892,14 @@ export default function PrayerWallView() {
                     onClick={() => setShowCreateModal(false)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F59E0B] hover:bg-[#E59E0B] transition-all hover:-translate-y-px flex items-center justify-center gap-1.5 disabled:opacity-60"
                   >
-                    <Sparkles size={14} /> {submitting ? "Sharing..." : "Share"}
+                    <Sparkles size={14} /> {submitting ? "Sharing..." : t("common.share")}
                   </button>
                 </div>
               </form>
@@ -915,21 +927,20 @@ export default function PrayerWallView() {
             >
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-bold bg-gradient-to-r from-[#34D399] to-[#10B981] bg-clip-text text-transparent">
-                  Answered Prayer 🙏
+                  {t("prayer.testimony.title")}
                 </h2>
                 <button onClick={() => setTestimonyFor(null)} className="text-[#64748B] hover:text-white p-1">
                   <X size={20} />
                 </button>
               </div>
               <p className="text-xs text-[#A09DB1] leading-relaxed mb-3">
-                Praise God! Mark &quot;{testimonyFor.title}&quot; as answered. You can optionally share a
-                short testimony to encourage others — it will appear on your request.
+                {t("prayer.testimony.desc", { title: testimonyFor.title })}
               </p>
               <textarea
                 value={testimonyText}
                 onChange={(e) => setTestimonyText(e.target.value)}
                 className="neo-input h-24 resize-none text-sm mb-3"
-                placeholder="How did God answer? (optional)"
+                placeholder={t("prayer.testimony.placeholder")}
                 maxLength={1000}
               />
               <div className="flex gap-2">
@@ -937,13 +948,13 @@ export default function PrayerWallView() {
                   onClick={() => markAnswered(false)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                 >
-                  Mark answered
+                  {t("prayer.testimony.markAnswered")}
                 </button>
                 <button
                   onClick={() => markAnswered(true)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#34D399] hover:bg-[#2DD4A8]"
                 >
-                  Share testimony
+                  {t("prayer.testimony.share")}
                 </button>
               </div>
             </motion.div>

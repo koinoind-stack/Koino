@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import ReactMarkdown from "react-markdown";
 import ImageUploader from "@/components/crosscrafted/admin/ImageUploader";
 import InlineImagePopover from "@/components/crosscrafted/admin/InlineImagePopover";
@@ -219,6 +220,7 @@ export function readingMinutes(content: string): number {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export default function ApologeticsTab() {
+  const t = useTranslation();
   // PART 2: three internal surfaces — article CMS, comment moderation, reports.
   const [surface, setSurface] = useState<"articles" | "engagement">("articles");
   const [articles, setArticles] = useState<KoinoArticle[]>([]);
@@ -366,7 +368,7 @@ export default function ApologeticsTab() {
             className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
           >
             <FileUp size={12} />
-            <span className="hidden sm:inline">Import PDF</span>
+            <span className="hidden sm:inline">{t("admin.apologetics.importPdf")}</span>
             <span className="sm:hidden">PDF</span>
           </button>
           <button
@@ -374,7 +376,7 @@ export default function ApologeticsTab() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
           >
             <Plus size={12} />
-            <span className="hidden sm:inline">Write Article</span>
+            <span className="hidden sm:inline">{t("admin.apologetics.writeArticle")}</span>
             <span className="sm:hidden">New</span>
           </button>
         </div>
@@ -385,7 +387,7 @@ export default function ApologeticsTab() {
         <FilterChip
           active={filter === "all"}
           onClick={() => setFilter("all")}
-          label="All"
+          label={t("common.all")}
           count={counts.total}
         />
         <FilterChip
@@ -405,14 +407,14 @@ export default function ApologeticsTab() {
         <FilterChip
           active={filter === "published"}
           onClick={() => setFilter("published")}
-          label="Published"
+          label={t("common.status.published")}
           count={counts.published}
           color="#22C55E"
         />
         <FilterChip
           active={filter === "featured"}
           onClick={() => setFilter("featured")}
-          label="Featured"
+          label={t("common.featured")}
           count={counts.featured}
           color="#A855F7"
         />
@@ -554,7 +556,7 @@ export default function ApologeticsTab() {
                           : "bg-[#38BDF8]/10 text-[#38BDF8] hover:bg-[#38BDF8]/20"
                       }`}
                     >
-                      {reviewing === a.id ? "Close review" : "Review submission"}
+                      {reviewing === a.id ? t("common.close") : t("admin.apologetics.reviewSubmission")}
                     </button>
                   </div>
                 )}
@@ -967,6 +969,7 @@ function ApologeticsEditorModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const t = useTranslation();
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [loading, setLoading] = useState(articleId !== null);
   const [saving, setSaving] = useState(false);
@@ -1154,7 +1157,7 @@ function ApologeticsEditorModal({
     opts?: { successToast?: string; wasUnpublish?: boolean }
   ) => {
     if (!form.title.trim()) {
-      toast.error("Title is required");
+      toast.error(t("admin.blog.toast.titleRequired"));
       return;
     }
     if (!form.content.trim()) {
@@ -1276,7 +1279,7 @@ function ApologeticsEditorModal({
           <div className="flex items-center gap-2 min-w-0">
             <FileText size={14} className="text-[#A78BFA] shrink-0" />
             <h2 className="text-sm font-extrabold text-white truncate">
-              {activeArticleId ? "Edit Article" : "New Article"}
+              {activeArticleId ? t("admin.apologetics.editArticle") : t("admin.apologetics.newArticle")}
             </h2>
             {hasUnsavedChanges && (
               <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B]">
@@ -1287,7 +1290,7 @@ function ApologeticsEditorModal({
           <button
             onClick={requestClose}
             className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={14} />
           </button>
@@ -1634,7 +1637,7 @@ function ApologeticsEditorModal({
               <Toggle
                 checked={form.status === "published"}
                 onChange={(v) => set("status", v ? "published" : "draft")}
-                label="Published"
+                label={t("common.status.published")}
                 hint={form.status === "published" ? "Visible on /apologetics" : "Hidden (draft)"}
                 icon={form.status === "published" ? <Eye size={12} /> : <EyeOff size={12} />}
                 color="#22C55E"
@@ -1642,7 +1645,7 @@ function ApologeticsEditorModal({
               <Toggle
                 checked={form.featured}
                 onChange={(v) => set("featured", v)}
-                label="Featured"
+                label={t("common.featured")}
                 hint={form.featured ? "Hero card" : "Standard card"}
                 icon={<Star size={12} />}
                 color="#A855F7"
@@ -1761,7 +1764,7 @@ function ApologeticsEditorModal({
               ) : (
                 <>
                   <Save size={14} />{" "}
-                  {currentStatus === "published" ? "Update Published Article" : "Publish"}
+                  {currentStatus === "published" ? "Update Published Article" : t("common.action.publish")}
                 </>
               )}
             </button>

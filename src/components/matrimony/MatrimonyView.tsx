@@ -27,6 +27,8 @@ import {
   PlayCircle, Trash2, CheckCircle2, AlertTriangle, Search,
 } from "lucide-react";
 
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+
 import MatrimonyDiscover from "./MatrimonyDiscover";
 import MatrimonyProfileEditor, { type EditorProfile } from "./MatrimonyProfileEditor";
 import MatrimonyPhotos from "./MatrimonyPhotos";
@@ -38,28 +40,28 @@ type GateCode = "DOB_REQUIRED" | "AGE_NOT_ELIGIBLE" | "ACCOUNT_INACTIVE";
 type TabId = "discover" | "profile" | "photos" | "preview" | "privacy";
 
 const TABS: { id: TabId; label: string; icon: typeof Heart }[] = [
-  { id: "discover", label: "Discover", icon: Search },
-  { id: "profile", label: "My Profile", icon: Heart },
-  { id: "photos", label: "Photos", icon: Camera },
-  { id: "preview", label: "Preview", icon: Eye },
-  { id: "privacy", label: "Privacy", icon: ShieldCheck },
+  { id: "discover", label: "matrimony.tabs.discover", icon: Search },
+  { id: "profile", label: "matrimony.tabs.profile", icon: Heart },
+  { id: "photos", label: "matrimony.tabs.photos", icon: Camera },
+  { id: "preview", label: "matrimony.tabs.preview", icon: Eye },
+  { id: "privacy", label: "matrimony.tabs.privacy", icon: ShieldCheck },
 ];
 
 const STATUS_BANNERS: Record<string, { text: string; cls: string }> = {
   draft: {
-    text: "Draft — only you can see this profile. Activate it from the Privacy tab when you're ready.",
+    text: "matrimony.banner.draft",
     cls: "border-amber-400/20 bg-amber-400/[0.07] text-amber-300",
   },
   active: {
-    text: "Active — eligible members can discover your profile in Matrimony.",
+    text: "matrimony.banner.active",
     cls: "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300",
   },
   paused: {
-    text: "Paused — your profile is hidden from other members. Resume any time.",
+    text: "matrimony.banner.paused",
     cls: "border-slate-400/20 bg-slate-400/[0.07] text-slate-300",
   },
   restricted: {
-    text: "Restricted — this profile is under review. Please contact support for help.",
+    text: "matrimony.banner.restricted",
     cls: "border-red-400/20 bg-red-400/[0.07] text-red-300",
   },
 };
@@ -71,6 +73,7 @@ export default function MatrimonyView({
   onBack: () => void;
   onOpenAccountSettings: () => void;
 }) {
+  const t = useTranslation();
   const [loading, setLoading] = useState(true);
   const [gateCode, setGateCode] = useState<GateCode | null>(null);
   const [profile, setProfile] = useState<EditorProfile | null>(null);
@@ -98,7 +101,7 @@ export default function MatrimonyView({
       setProfile(j.profile);
       setAccount({ age: j.age ?? null, gender: j.gender ?? null, state: j.state ?? null, city: j.city ?? null });
     } catch {
-      toast.error("Could not load Matrimony. Check your connection and try again.");
+      toast.error(t("matrimony.error.load"));
     } finally {
       setLoading(false);
     }
@@ -120,14 +123,14 @@ export default function MatrimonyView({
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(j.error || "Could not update your profile status.");
+        toast.error(j.error || t("matrimony.error.status"));
         return;
       }
       setProfile(j.profile);
       toast.success(
-        action === "activate" ? "Profile activated." :
-        action === "pause" ? "Profile paused — hidden from other members." :
-        "Profile resumed."
+        action === "activate" ? t("matrimony.toast.activated") :
+        action === "pause" ? t("matrimony.toast.paused") :
+        t("matrimony.toast.resumed")
       );
       // Activation pays off immediately: land on Discover. Other status
       // changes keep the member on the Privacy tab where the controls live.
@@ -141,7 +144,7 @@ export default function MatrimonyView({
 
   const handleDelete = async () => {
     const sure = window.confirm(
-      "Delete your Matrimony profile?\n\nYour profile, photos and details will be removed. Your Koino account and everything else stay untouched. This cannot be undone."
+      t("matrimony.confirm.delete")
     );
     if (!sure) return;
     setBusy(true);
@@ -149,14 +152,14 @@ export default function MatrimonyView({
       const res = await fetch("/api/matrimony/profile", { method: "DELETE" });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error(j.error || "Could not delete your profile.");
+        toast.error(j.error || t("matrimony.error.delete"));
         return;
       }
       setProfile(null);
       setTab("profile");
-      toast.success("Your Matrimony profile was deleted.");
+      toast.success(t("matrimony.toast.deleted"));
     } catch {
-      toast.error("Network error. Please try again.");
+      toast.error(t("common.error.network"));
     } finally {
       setBusy(false);
     }
@@ -178,13 +181,13 @@ export default function MatrimonyView({
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(j.error || "Could not update visibility.");
+        toast.error(j.error || t("matrimony.error.visibility"));
         return;
       }
       setProfile(j.profile);
-      toast.success("Photo visibility updated.");
+      toast.success(t("matrimony.toast.visibilityUpdated"));
     } catch {
-      toast.error("Network error. Please try again.");
+      toast.error(t("common.error.network"));
     } finally {
       setBusy(false);
     }
@@ -220,16 +223,14 @@ export default function MatrimonyView({
           <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 flex items-center justify-center">
             <Heart size={26} className="text-[#F39B9B]" strokeWidth={1.8} />
           </div>
-          <h1 className="mt-4 text-2xl font-black text-white">Koino Matrimony</h1>
+          <h1 className="mt-4 text-2xl font-black text-white">{t("matrimony.title")}</h1>
           <p className="mt-2 text-sm text-[#94A3B8] leading-relaxed">
-            Find a life partner in a trusted Christian community. Your matrimony
-            profile is private — only eligible, signed-in Koino members can ever
-            see it, and photos are shared only on your terms.
+            {t("matrimony.intro.subtitle")}
           </p>
           <ul className="mt-5 space-y-2 text-left text-[13px] text-[#B7C0D0]">
-            <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" /> For members 18 and older — verified on every action, server-side</li>
-            <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" /> Photos are private by default — visible only after a mutual connection (coming soon)</li>
-            <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" /> Pause, hide or delete your profile any time — your Koino account is never affected</li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" /> {t("matrimony.intro.point1")}</li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" /> {t("matrimony.intro.point2")}</li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" /> {t("matrimony.intro.point3")}</li>
           </ul>
           <button
             onClick={() => setProfile({
@@ -240,14 +241,14 @@ export default function MatrimonyView({
             })}
             className="mt-6 w-full md:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#F39B9B] to-[#EC4899] text-white text-sm font-black hover:opacity-90 transition-opacity"
           >
-            Create my profile
+            {t("matrimony.cta.create")}
           </button>
           <p className="mt-3 text-[11px] text-[#64748B]">
-            It saves as a draft — nothing is visible to anyone until you activate it.
+            {t("matrimony.intro.draftNote")}
           </p>
         </div>
         <button onClick={onBack} className="mt-5 mx-auto flex items-center gap-1.5 text-xs text-[#64748B] hover:text-white transition-colors">
-          <ArrowLeft size={14} /> Back to app
+          <ArrowLeft size={14} /> {t("matrimony.backToApp")}
         </button>
       </div>
     );
@@ -264,8 +265,8 @@ export default function MatrimonyView({
           <Heart size={18} className="text-[#F39B9B]" strokeWidth={1.8} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-lg font-black text-white leading-tight">Koino Matrimony</h1>
-          <p className="text-[11px] text-[#64748B]">Private · Members only · 18+</p>
+          <h1 className="text-lg font-black text-white leading-tight">{t("matrimony.title")}</h1>
+          <p className="text-[11px] text-[#64748B]">{t("matrimony.header.badge")}</p>
         </div>
       </div>
 
@@ -273,7 +274,7 @@ export default function MatrimonyView({
       {banner && (
         <div className={`mt-4 flex items-start gap-2 rounded-xl border px-3.5 py-2.5 text-[12.5px] font-medium ${banner.cls}`}>
           <Info size={15} className="shrink-0 mt-0.5" />
-          <span>{banner.text}</span>
+          <span>{t(banner.text)}</span>
         </div>
       )}
 
@@ -289,7 +290,7 @@ export default function MatrimonyView({
                 : "text-[#94A3B8] hover:text-white bg-[#1C1929] border-white/[0.06]"
             }`}
           >
-            <Icon size={14} /> {label}
+            <Icon size={14} /> {t(label)}
           </button>
         ))}
       </div>
@@ -319,7 +320,7 @@ export default function MatrimonyView({
             {/* Photo visibility */}
             <section className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-4 md:p-5">
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <ShieldCheck size={15} className="text-[#7C3AED]" /> Photo visibility
+                <ShieldCheck size={15} className="text-[#7C3AED]" /> {t("matrimony.privacy.photoVisibility")}
               </h3>
               <div className="mt-3 space-y-2">
                 {MATRIMONY_PHOTO_VISIBILITY.map((v) => (
@@ -341,28 +342,26 @@ export default function MatrimonyView({
                     />
                     <span className="text-[13px]">
                       <span className="font-bold text-white block">
-                        {v === "CONNECTIONS_ONLY" ? "Connections only (recommended)" : "Eligible members"}
+                        {v === "CONNECTIONS_ONLY" ? t("matrimony.privacy.connectionsOnly") : t("matrimony.privacy.eligibleMembers")}
                       </span>
                       <span className="text-[#94A3B8]">
                         {v === "CONNECTIONS_ONLY"
-                          ? "Only you — and, once matching launches, members you mutually connect with — can see your photos."
-                          : "Any signed-in, 18+ Koino Matrimony member can see your photos."}
+                          ? t("matrimony.privacy.connectionsOnlyDesc")
+                          : t("matrimony.privacy.eligibleMembersDesc")}
                       </span>
                     </span>
                   </label>
                 ))}
               </div>
               <p className="mt-3 text-[11px] text-[#64748B] leading-relaxed">
-                Photos are stored privately and checked on the server for every
-                single view. Please note: no system can fully prevent someone
-                taking a screenshot — share thoughtfully.
+                {t("matrimony.privacy.photoNote")}
               </p>
             </section>
 
             {/* Status controls */}
             <section className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-4 md:p-5">
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <PauseCircle size={15} className="text-[#7C3AED]" /> Profile status
+                <PauseCircle size={15} className="text-[#7C3AED]" /> {t("matrimony.privacy.statusTitle")}
               </h3>
               <div className="mt-3 flex flex-col gap-2">
                 {profile.status === "draft" && (
@@ -371,7 +370,7 @@ export default function MatrimonyView({
                     disabled={busy}
                     className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F39B9B] to-[#EC4899] text-white text-sm font-black hover:opacity-90 disabled:opacity-50"
                   >
-                    Activate profile
+                    {t("matrimony.privacy.activate")}
                   </button>
                 )}
                 {profile.status === "active" && (
@@ -380,7 +379,7 @@ export default function MatrimonyView({
                     disabled={busy}
                     className="w-full py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/[0.09] disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <PauseCircle size={15} /> Pause profile (hide from everyone)
+                    <PauseCircle size={15} /> {t("matrimony.privacy.pause")}
                   </button>
                 )}
                 {profile.status === "paused" && (
@@ -389,20 +388,19 @@ export default function MatrimonyView({
                     disabled={busy}
                     className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F39B9B] to-[#EC4899] text-white text-sm font-black hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <PlayCircle size={15} /> Resume profile
+                    <PlayCircle size={15} /> {t("matrimony.privacy.resume")}
                   </button>
                 )}
                 {profile.status === "restricted" && (
                   <p className="text-[12.5px] text-[#94A3B8] flex items-start gap-2">
                     <AlertTriangle size={15} className="text-red-400 shrink-0 mt-0.5" />
-                    This profile is restricted. Contact support if you believe this is a mistake.
+                    {t("matrimony.privacy.restrictedNote")}
                   </p>
                 )}
               </div>
               {profile.status === "draft" && (
                 <p className="mt-2 text-[11px] text-[#64748B]">
-                  Activation needs your languages, intention, timeline and your
-                  account's state &amp; city — fill them in on the My Profile tab first.
+                  {t("matrimony.privacy.activationNeeds")}
                 </p>
               )}
             </section>
@@ -410,18 +408,17 @@ export default function MatrimonyView({
             {/* Danger zone */}
             <section className="rounded-2xl border border-red-400/15 bg-red-400/[0.03] p-4 md:p-5">
               <h3 className="text-sm font-black text-red-300 flex items-center gap-2">
-                <Trash2 size={15} /> Delete matrimony profile
+                <Trash2 size={15} /> {t("matrimony.danger.title")}
               </h3>
               <p className="mt-2 text-[12px] text-[#94A3B8] leading-relaxed">
-                Removes your matrimony profile and photos permanently. Your
-                Koino account, feed, and everything else are NOT affected.
+                {t("matrimony.danger.desc")}
               </p>
               <button
                 onClick={handleDelete}
                 disabled={busy}
                 className="mt-3 w-full py-2.5 rounded-xl border border-red-400/30 text-red-300 text-sm font-bold hover:bg-red-400/10 disabled:opacity-50"
               >
-                Delete my matrimony profile
+                {t("matrimony.danger.cta")}
               </button>
             </section>
           </div>
@@ -440,34 +437,34 @@ function GateCard({
   onOpenAccountSettings: () => void;
   onRetry: () => void;
 }) {
+  const t = useTranslation();
+
   if (code === "DOB_REQUIRED") {
     return (
       <div className="rounded-3xl border border-white/[0.06] bg-[#1C1929] p-6 md:p-8 text-center">
         <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-400/10 flex items-center justify-center">
           <Info size={26} className="text-amber-400" strokeWidth={1.8} />
         </div>
-        <h1 className="mt-4 text-xl font-black text-white">One thing first</h1>
+        <h1 className="mt-4 text-xl font-black text-white">{t("matrimony.gate.dob.title")}</h1>
         <p className="mt-2 text-sm text-[#94A3B8] leading-relaxed">
-          Matrimony is for members 18 and older. We need your date of birth to
-          confirm that — add it in your Koino profile settings, then come back.
-          Your date of birth stays private; others only ever see your age.
+          {t("matrimony.gate.dob.body")}
         </p>
         <div className="mt-5 flex flex-col sm:flex-row gap-2 justify-center">
           <button
             onClick={onOpenAccountSettings}
             className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F39B9B] to-[#EC4899] text-white text-sm font-black hover:opacity-90"
           >
-            Open profile settings
+            {t("matrimony.gate.dob.openSettings")}
           </button>
           <button
             onClick={onRetry}
             className="px-6 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/[0.09]"
           >
-            I've added it — check again
+            {t("matrimony.gate.dob.checkAgain")}
           </button>
         </div>
         <button onClick={onBack} className="mt-4 mx-auto flex items-center gap-1.5 text-xs text-[#64748B] hover:text-white transition-colors">
-          <ArrowLeft size={14} /> Back to app
+          <ArrowLeft size={14} /> {t("matrimony.backToApp")}
         </button>
       </div>
     );
@@ -479,18 +476,15 @@ function GateCard({
         <div className="w-14 h-14 mx-auto rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
           <ShieldCheck size={26} className="text-[#C4B5FD]" strokeWidth={1.8} />
         </div>
-        <h1 className="mt-4 text-xl font-black text-white">Matrimony is 18+</h1>
+        <h1 className="mt-4 text-xl font-black text-white">{t("matrimony.gate.age.title")}</h1>
         <p className="mt-2 text-sm text-[#94A3B8] leading-relaxed">
-          Thank you for your interest — Matrimony is reserved for adult members
-          (18 and older) because of the personal nature of the service. There's
-          still so much for you on Koino: the feed, Bible study, trivia,
-          groups, and more.
+          {t("matrimony.gate.age.body")}
         </p>
         <button
           onClick={onBack}
           className="mt-5 px-6 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/[0.09]"
         >
-          Back to Koino
+          {t("matrimony.gate.backToKoino")}
         </button>
       </div>
     );
@@ -499,15 +493,15 @@ function GateCard({
   // ACCOUNT_INACTIVE / auth issues
   return (
     <div className="rounded-3xl border border-white/[0.06] bg-[#1C1929] p-6 md:p-8 text-center">
-      <h1 className="text-xl font-black text-white">Sign in to continue</h1>
+      <h1 className="text-xl font-black text-white">{t("matrimony.gate.auth.title")}</h1>
       <p className="mt-2 text-sm text-[#94A3B8]">
-        Matrimony is available to signed-in Koino members.
+        {t("matrimony.gate.auth.body")}
       </p>
       <button
         onClick={onBack}
         className="mt-5 px-6 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/[0.09]"
       >
-        Back to app
+        {t("matrimony.backToApp")}
       </button>
     </div>
   );

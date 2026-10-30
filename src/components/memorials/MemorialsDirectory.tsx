@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Flower2, Search, MapPin, MessageCircle, ArrowLeft, Flame, Clock } from "lucide-react";
 import { INDIAN_STATES, INDIAN_CITIES_BY_STATE } from "@/lib/crosscrafted-data";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type MemorialCard = {
   id: string;
@@ -40,15 +41,19 @@ type MyMemorial = {
 
 const yr = (iso: string | null): string => (iso ? String(new Date(iso).getFullYear()) : "");
 
-function lifespan(m: MemorialCard): string {
+function lifespan(
+  m: MemorialCard,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
   const b = yr(m.dob);
   const d = yr(m.dod);
   if (b && d) return `${b} – ${d}`;
-  if (d) return `Remembered since ${d}`;
+  if (d) return t("memorials.directory.rememberedSince", { y: d });
   return "";
 }
 
 export default function MemorialsDirectory() {
+  const t = useTranslation();
   const { isAuthenticated } = useSupabaseUser();
   const [q, setQ] = useState("");
   const [state, setState] = useState("");
@@ -106,22 +111,22 @@ export default function MemorialsDirectory() {
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-4">
           <Flower2 size={26} className="text-[#C4B5FD]" />
         </div>
-        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">In Loving Memory</h1>
+        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{t("memorials.directory.title")}</h1>
         <p className="text-sm text-[#94A3B8] mt-2 max-w-md mx-auto leading-relaxed">
-          Remembering lives, celebrating faith, keeping their stories alive.
+          {t("memorials.directory.subtitle")}
         </p>
         <Link
           href="/memorials/new"
           className="inline-flex items-center gap-2 px-6 py-3 mt-5 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] shadow-lg shadow-[#7C3AED]/20"
         >
-          <Flower2 size={15} /> Create a Memorial
+          <Flower2 size={15} /> {t("memorials.directory.ctaCreate")}
         </Link>
       </div>
 
       {/* ─── your memorials (drafts / in review / rejected) ─── */}
       {isAuthenticated && mine.length > 0 && (
         <div className="mb-7">
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">Your memorials</h2>
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">{t("memorials.directory.yours")}</h2>
           <ul className="space-y-2">
             {mine.map((mm) => (
               <li key={mm.id}>
@@ -132,7 +137,7 @@ export default function MemorialsDirectory() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white truncate">{mm.fullName}</p>
                     <p className="text-[10px] text-[#64748B] mt-0.5 flex items-center gap-1">
-                      <Clock size={9} /> updated {new Date(mm.updatedAt).toLocaleDateString()}
+                      <Clock size={9} /> {t("memorials.directory.updated", { date: new Date(mm.updatedAt).toLocaleDateString() })}
                     </p>
                   </div>
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ${
@@ -142,7 +147,11 @@ export default function MemorialsDirectory() {
                     : mm.status === "draft" ? "bg-amber-500/15 text-amber-300"
                     : "bg-white/[0.06] text-[#94A3B8]"
                   }`}>
-                    {mm.status}
+                    {mm.status === "published" ? t("common.status.published")
+                      : mm.status === "pending" ? t("common.status.pending")
+                      : mm.status === "rejected" ? t("common.status.rejected")
+                      : mm.status === "draft" ? t("common.status.draft")
+                      : mm.status}
                   </span>
                 </Link>
               </li>
@@ -158,7 +167,7 @@ export default function MemorialsDirectory() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name…"
+            placeholder={t("memorials.directory.searchPlaceholder")}
             className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
           />
         </div>
@@ -168,7 +177,7 @@ export default function MemorialsDirectory() {
             onChange={(e) => { setState(e.target.value); setCity(""); }}
             className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]"
           >
-            <option value="">All states</option>
+            <option value="">{t("common.allStates")}</option>
             {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select
@@ -177,7 +186,7 @@ export default function MemorialsDirectory() {
             disabled={!state}
             className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 disabled:opacity-40 [&>option]:bg-[#1C1929]"
           >
-            <option value="">All cities</option>
+            <option value="">{t("common.allCities")}</option>
             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -185,7 +194,7 @@ export default function MemorialsDirectory() {
 
       {/* ─── results ─── */}
       <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">
-        {q ? "Search results" : state || city ? "Browsing by location" : "Recently added"}
+        {q ? t("memorials.directory.results.search") : state || city ? t("memorials.directory.results.location") : t("memorials.directory.results.recent")}
       </h2>
 
       {loading && items.length === 0 ? (
@@ -207,18 +216,18 @@ export default function MemorialsDirectory() {
         <div className="text-center py-16">
           <Flower2 size={30} className="mx-auto text-[#475569] mb-4" />
           <p className="text-[#94A3B8] text-sm mb-1 font-semibold">
-            {q || state || city ? "No memorials match your search." : "No memorials yet."}
+            {q || state || city ? t("memorials.directory.emptyFiltered") : t("memorials.directory.empty")}
           </p>
           <p className="text-[#64748B] text-xs mb-6 max-w-xs mx-auto leading-relaxed">
             {q || state || city
-              ? "Try a different name or location."
-              : "Their love remains. Their stories live on — when a loved one passes away, family and friends can create a memorial here to honour their life."}
+              ? t("memorials.directory.emptyFilteredHint")
+              : t("memorials.directory.emptyHint")}
           </p>
           <Link
             href="/memorials/new"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9]"
           >
-            <Flower2 size={15} /> Create a memorial
+            <Flower2 size={15} /> {t("memorials.directory.ctaCreateShort")}
           </Link>
         </div>
       ) : (
@@ -247,7 +256,7 @@ export default function MemorialsDirectory() {
                   )}
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm font-bold text-white truncate">{m.fullName}</h3>
-                    <p className="text-[11px] text-[#94A3B8]">{lifespan(m) || " "}</p>
+                    <p className="text-[11px] text-[#94A3B8]">{lifespan(m, t) || " "}</p>
                     {(m.city || m.state) && (
                       <p className="text-[11px] text-[#64748B] mt-0.5 inline-flex items-center gap-1">
                         <MapPin size={9} /> {[m.city, m.state].filter(Boolean).join(", ")}
@@ -259,7 +268,7 @@ export default function MemorialsDirectory() {
                   <p className="text-xs text-[#94A3B8] line-clamp-2 mt-3 leading-relaxed">{m.tribute}</p>
                 )}
                 <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.04]">
-                  <span className="text-[10px] text-[#64748B]">Remembered by {m.creatorName}</span>
+                  <span className="text-[10px] text-[#64748B]">{t("memorials.directory.rememberedBy", { name: m.creatorName })}</span>
                   <span className="text-[10px] font-bold text-[#64748B] inline-flex items-center gap-2.5">
                     <span className="inline-flex items-center gap-1" aria-label={`${m.candleCount} candles lit`}>
                       <Flame size={10} className={m.candleCount > 0 ? "text-amber-300/80" : ""} /> {m.candleCount}
@@ -279,13 +288,13 @@ export default function MemorialsDirectory() {
                 disabled={loading}
                 className="px-5 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.06] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
               >
-                {loading ? "Loading…" : "Show more"}
+                {loading ? t("common.loadingShort") : t("common.showMore")}
               </button>
             </div>
           )}
           <div className="text-center mt-8">
             <Link href="/memorials/new" className="text-xs font-bold text-[#C4B5FD] hover:text-white inline-flex items-center gap-1.5">
-              <Flower2 size={13} /> Create a memorial for a loved one
+              <Flower2 size={13} /> {t("memorials.directory.ctaCreateBottom")}
             </Link>
           </div>
         </>
@@ -294,7 +303,7 @@ export default function MemorialsDirectory() {
       {/* Back link for direct visitors */}
       <div className="text-center mt-10">
         <Link href="/" className="text-[11px] text-[#64748B] hover:text-white inline-flex items-center gap-1">
-          <ArrowLeft size={11} /> Back to Koino
+          <ArrowLeft size={11} /> {t("common.backToKoino")}
         </Link>
       </div>
     </div>

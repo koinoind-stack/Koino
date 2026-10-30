@@ -16,6 +16,7 @@ import { ArrowLeft, Lock, MapPin, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "./types";
 import GroupForm, { type GroupFormValue } from "./GroupForm";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Group = {
   id: string;
@@ -51,6 +52,18 @@ const CATEGORIES = [
   { id: "church", label: "Church" },
 ];
 
+// i18n: category id → translation key. The id is what the API filter uses —
+// only the display label is translated. Categories without a key fall back to
+// the raw data label at render time.
+const GROUP_CATEGORY_LABEL_KEYS: Record<string, string> = {
+  All: "common.all",
+  fellowship: "groupForm.cat.fellowship",
+  youth: "groupForm.cat.youth",
+  prayer: "groupForm.cat.prayer",
+  worship: "groupForm.cat.worship",
+  church: "groupForm.cat.church",
+};
+
 const GRADIENTS = [
   "from-purple-600 to-pink-500",
   "from-indigo-600 to-purple-500",
@@ -63,6 +76,7 @@ const GRADIENTS = [
 ];
 
 export default function GroupsView({ onOpenGroup, onBack }: Props) {
+  const t = useTranslation();
   const [groups, setGroups] = useState<Group[]>([]);
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [category, setCategory] = useState("All");
@@ -87,15 +101,15 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
       setGroups((all.groups || []).filter((g) => !mineAll.some((m) => m.id === g.id)));
       setMyGroups(mineAll.filter((g) => g.myMembership === "active" || g.myRole === "owner"));
     } catch (err) {
-      toast.error((err as Error).message || "Could not load groups");
+      toast.error((err as Error).message || t("groups.loadError"));
     } finally {
       setLoading(false);
     }
   }, [category, q]);
 
   useEffect(() => {
-    const t = setTimeout(load, q ? 350 : 0); // debounce search typing
-    return () => clearTimeout(t);
+    const timer = setTimeout(load, q ? 350 : 0); // debounce search typing
+    return () => clearTimeout(timer);
   }, [load, q]);
 
   async function createGroup(v: GroupFormValue) {
@@ -106,11 +120,11 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         method: "POST",
         body: JSON.stringify(v),
       });
-      toast.success("Group created — welcome your first members!");
+      toast.success(t("groups.created"));
       setShowForm(false);
       onOpenGroup(d.group.id);
     } catch (err) {
-      toast.error((err as Error).message || "Could not create the group");
+      toast.error((err as Error).message || t("groups.createError"));
     } finally {
       setCreating(false);
     }
@@ -148,7 +162,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         <div className="p-3">
           <h3 className="text-sm font-bold text-white truncate">{g.name}</h3>
           <p className="text-[11px] text-[#94A3B8] line-clamp-2 mt-0.5 min-h-[2em]">
-            {g.description || "No description yet."}
+            {g.description || t("groups.noDescription")}
           </p>
           {(g.city || g.state) && (
             <p className="text-[10px] text-[#64748B] inline-flex items-center gap-1 mt-1">
@@ -157,14 +171,14 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
           )}
           <div className="flex items-center justify-between mt-1.5">
             <span className="text-[10px] font-bold text-[#64748B] inline-flex items-center gap-1">
-              <Users size={10} /> {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
+              <Users size={10} /> {t("group.memberCount", { count: g.memberCount })}
             </span>
             {g.myMembership === "active" ? (
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${g.myRole === "owner" ? "bg-amber-500/15 text-amber-300" : g.myRole === "admin" ? "bg-[#7C3AED]/20 text-[#C4B5FD]" : g.myRole === "moderator" ? "bg-sky-500/15 text-sky-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
-                {g.myRole === "owner" ? "Owner" : g.myRole === "admin" ? "Admin" : g.myRole === "moderator" ? "Mod" : "Joined"}
+                {g.myRole === "owner" ? t("group.role.owner") : g.myRole === "admin" ? t("group.role.admin") : g.myRole === "moderator" ? t("groups.roleModShort") : t("groups.joined")}
               </span>
             ) : g.myMembership === "pending" ? (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8]">Requested</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8]">{t("group.requested")}</span>
             ) : (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8] capitalize">{g.category.replace("-", " ")}</span>
             )}
@@ -177,10 +191,10 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
   return (
     <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
       <div className="flex items-center gap-3 mb-4">
-        <button onClick={onBack} className="p-2 rounded-full bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white" aria-label="Back">
+        <button onClick={onBack} className="p-2 rounded-full bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white" aria-label={t("groups.backAria")}>
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-extrabold text-white">Groups &amp; Fellowship</h1>
+        <h1 className="text-lg font-extrabold text-white">{t("groups.title")}</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold hover:bg-[#6D28D9]"
@@ -205,7 +219,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search groups…"
+          placeholder={t("groups.searchPlaceholder")}
           className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
         />
       </div>
@@ -221,14 +235,14 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
                 : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8] hover:text-white"
             }`}
           >
-            {c.label}
+            {GROUP_CATEGORY_LABEL_KEYS[c.id] ? t(GROUP_CATEGORY_LABEL_KEYS[c.id]) : c.label}
           </button>
         ))}
       </div>
 
       {myGroups.length > 0 && category === "All" && !q && (
         <div className="mb-5">
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">Your groups</h2>
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">{t("groups.yours")}</h2>
           <div className="grid grid-cols-2 gap-3">
             {myGroups.map((g) => <GroupCard key={g.id} g={g} />)}
           </div>
@@ -236,7 +250,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
       )}
 
       <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
-        {q ? "Search results" : "Discover groups"}
+        {q ? t("groups.searchResults") : t("groups.discover")}
       </h2>
       {loading ? (
         <div className="grid grid-cols-2 gap-3">
@@ -255,12 +269,12 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         <div className="text-center py-14">
           <p className="text-[#94A3B8] text-sm mb-4">
             {q || category !== "All"
-              ? "No groups match — try another search."
-              : "No groups yet. Create the first fellowship community!"}
+              ? t("groups.emptySearch")
+              : t("groups.empty")}
           </p>
           {!q && category === "All" && (
             <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white text-sm font-bold">
-              <Plus size={16} /> Start a group
+              <Plus size={16} /> {t("groups.startCta")}
             </button>
           )}
         </div>

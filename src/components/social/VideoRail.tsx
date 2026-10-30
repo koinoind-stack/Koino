@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { Clapperboard, Play } from "lucide-react";
 import { formatDuration } from "@/lib/videos";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type FeedVideo = {
   id: string;
@@ -24,6 +25,7 @@ type FeedVideo = {
 };
 
 export default function VideoRail() {
+  const t = useTranslation();
   const [videos, setVideos] = useState<FeedVideo[]>([]);
 
   useEffect(() => {
@@ -46,10 +48,10 @@ export default function VideoRail() {
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="inline-flex items-center gap-1.5 text-sm font-extrabold text-white">
           <Clapperboard size={15} className="text-[#C4B5FD]" />
-          Bible Movies &amp; Videos
+          {t("videoRail.title")}
         </h3>
         <a href="/videos" className="text-[11px] font-bold text-[#A78BFA] hover:text-white">
-          Browse library →
+          {t("videoRail.browseLibrary")}
         </a>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
@@ -90,7 +92,7 @@ export default function VideoRail() {
               </p>
               {v.summary && <p className="text-[10px] text-[#94A3B8] mt-1 line-clamp-1">{v.summary}</p>}
               <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-extrabold text-[#C4B5FD]">
-                <Play size={9} fill="currentColor" /> Watch Now
+                <Play size={9} fill="currentColor" /> {t("videoRail.watchNow")}
               </span>
             </div>
           </a>

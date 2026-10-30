@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { INDIAN_STATES, LANGUAGES, BUSINESS_CATEGORIES, type ServiceTime } from "@/lib/crosscrafted-data";
 import ImagePicker from "@/components/crosscrafted/ImagePicker";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   variant: "church" | "business";
@@ -41,10 +42,12 @@ function SectionHeading({ icon, title, hint }: { icon: React.ReactNode; title: s
 }
 
 function RequiredMark() {
-  return <span className="text-[#F39B9B] ml-0.5" title="Required">*</span>;
+  const t = useTranslation();
+  return <span className="text-[#F39B9B] ml-0.5" title={t("common.requiredTitle")}>*</span>;
 }
 
 export default function ListYourEntity({ variant }: Props) {
+  const t = useTranslation();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState<{
@@ -117,16 +120,16 @@ export default function ListYourEntity({ variant }: Props) {
     // before it appears in the public Church Directory.
     if (variant === "church") {
       if (!formData.name || !formData.description || !formData.city || !formData.state || !formData.location) {
-        toast.error("Please fill in all required fields (marked with *).");
+        toast.error(t("list.error.required"));
         return;
       }
       if (!formData.languages.length) {
-        toast.error("Please select at least one service language.");
+        toast.error(t("list.error.languages"));
         return;
       }
       const withTime = formData.serviceRows.filter((s) => s.time.trim());
       if (!withTime.length) {
-        toast.error("Please add at least one service time.");
+        toast.error(t("list.error.serviceTimes"));
         return;
       }
       setSubmitting(true);
@@ -155,24 +158,24 @@ export default function ListYourEntity({ variant }: Props) {
         const data = await res.json().catch(() => ({}));
         if (res.status === 409) {
           // Duplicate submission — server detected the same listing recently
-          toast.error("Already submitted", { description: data.error || "You already submitted this church in the last 24 hours." });
+          toast.error(t("list.error.duplicateTitle"), { description: data.error || t("list.error.duplicateDesc") });
           return;
         }
         if (res.status === 429) {
-          toast.error("Slow down a little", { description: data.error || "Too many submissions — please wait a while." });
+          toast.error(t("list.error.rateTitle"), { description: data.error || t("list.error.rateDesc") });
           return;
         }
         if (!res.ok) {
-          throw new Error(data.error || "Failed to submit church");
+          throw new Error(data.error || t("list.error.church"));
         }
         // Success — church created with status=PENDING
         setSubmitted(true);
-        toast.success("Church submitted!", {
-          description: "Our team reviews every listing before it appears in the directory.",
+        toast.success(t("churches.submit.success"), {
+          description: t("churches.submit.successDesc"),
         });
       } catch (err: any) {
         console.error("[ListYourEntity church submit] Error:", err);
-        toast.error(err.message || "Failed to submit church. Please try again.");
+        toast.error(err.message || t("churches.submit.error"));
       } finally {
         setSubmitting(false);
       }
@@ -181,11 +184,11 @@ export default function ListYourEntity({ variant }: Props) {
 
     // ─── BUSINESS variant: real database pipeline (admin approval required) ───
     if (!formData.businessCategory) {
-      toast.error("Please choose a business category");
+      toast.error(t("list.error.category"));
       return;
     }
     if (!formData.whatsapp_number && !formData.contact_phone) {
-      toast.error("Please add a WhatsApp or phone number for the business");
+      toast.error(t("list.error.contact"));
       return;
     }
     setSubmitting(true);
@@ -208,10 +211,10 @@ export default function ListYourEntity({ variant }: Props) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to submit business. Please try again.");
+      if (!res.ok) throw new Error(data.error || t("list.error.business"));
       setSubmitted(true);
-      toast.success("Business listing submitted!", {
-        description: "Our team will review and approve it before it appears in the directory.",
+      toast.success(t("list.success.businessTitle"), {
+        description: t("list.success.businessDesc"),
       });
     } catch (err: unknown) {
       toast.error((err as Error).message);
@@ -229,11 +232,9 @@ export default function ListYourEntity({ variant }: Props) {
         >
           <Check size={36} className="text-[#22C55E]" />
         </motion.div>
-        <h2 className="text-2xl font-extrabold text-white mb-2">Submission Received!</h2>
+        <h2 className="text-2xl font-extrabold text-white mb-2">{t("list.success.receivedTitle")}</h2>
         <p className="text-sm text-[#A09DB1] mb-6 max-w-sm mx-auto">
-          Thanks for adding your {variant === "church" ? "church" : "business"} to Koino.
-          Our team reviews every listing before it appears in the directory — this usually takes
-          about 48 hours. You can keep using Koino while you wait.
+          {t("list.success.receivedDesc", { type: variant === "church" ? "church" : "business" })}
         </p>
         <button
           onClick={() => {
@@ -258,7 +259,7 @@ export default function ListYourEntity({ variant }: Props) {
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
         >
-          Submit Another
+          {t("list.success.submitAnother")}
         </button>
       </div>
     );
@@ -269,15 +270,15 @@ export default function ListYourEntity({ variant }: Props) {
       <div className="mb-5">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/25 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider mb-2">
           <Sparkles size={11} />
-          {variant === "church" ? "Church Directory" : "Marketplace"}
+          {variant === "church" ? t("list.badge.churchDirectory") : t("marketplace.title")}
         </div>
         <h1 className="text-xl font-bold text-white">
-          {variant === "church" ? "List Your Church" : "List Your Business"}
+          {variant === "church" ? t("churches.listYourChurch") : t("list.title.business")}
         </h1>
         <p className="text-xs text-[#94A3B8] mt-0.5">
           {variant === "church"
-            ? "Help believers find a community"
-            : "Reach Christian buyers across India"}
+            ? t("list.subtitle.church")
+            : t("list.subtitle.business")}
         </p>
       </div>
 
@@ -287,11 +288,11 @@ export default function ListYourEntity({ variant }: Props) {
             <ShieldCheck size={16} className="text-[#22C55E]" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white mb-0.5">Reviewed before publication</p>
+            <p className="text-sm font-bold text-white mb-0.5">{t("list.reviewBanner.title")}</p>
             <p className="text-[11px] text-[#A09DB1] leading-relaxed">
               {variant === "church"
-                ? "Every listing is checked by a Koino admin before it appears in the public directory — this keeps the directory trustworthy. You can submit once and check back later; duplicate submissions aren't needed."
-                : "Connect with Christian buyers across India. No payment gateway needed — buyers contact you directly via WhatsApp."}
+                ? t("list.reviewBanner.churchDesc")
+                : t("list.reviewBanner.businessDesc")}
             </p>
           </div>
         </div>
@@ -299,10 +300,10 @@ export default function ListYourEntity({ variant }: Props) {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* ─── SECTION 1: Church Information ─── */}
-        <SectionHeading icon={<Building2 size={12} />} title={variant === "church" ? "Church Information" : "Business Information"} />
+        <SectionHeading icon={<Building2 size={12} />} title={variant === "church" ? t("list.section.churchInfo") : t("list.section.businessInfo")} />
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            {variant === "church" ? "Church" : "Business"} Name<RequiredMark />
+            {variant === "church" ? t("churches.form.churchName") : t("list.form.businessName")}<RequiredMark />
           </label>
           <input
             type="text"
@@ -316,13 +317,13 @@ export default function ListYourEntity({ variant }: Props) {
 
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            Description<RequiredMark />
+            {t("marketplace.listModal.description")}<RequiredMark />
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="neo-input h-24 resize-none text-sm"
-            placeholder={variant === "church" ? "Tell people about your church, its vision and what a first visit looks like..." : "What does your business sell?"}
+            placeholder={variant === "church" ? t("list.form.churchDescPlaceholder") : t("list.form.businessDescPlaceholder")}
             required
             maxLength={5000}
           />
@@ -331,21 +332,21 @@ export default function ListYourEntity({ variant }: Props) {
         {variant === "church" && (
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              Denomination
+              {t("churches.denomination")}
             </label>
             <input
               type="text"
               value={formData.denomination}
               onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
               className="neo-input text-sm"
-              placeholder="e.g. Assemblies of God, Catholic, Baptist, Non-denominational"
+              placeholder={t("list.form.denominationPlaceholder")}
               maxLength={200}
             />
           </div>
         )}
 
         {/* ─── SECTION 2: Location ─── */}
-        <SectionHeading icon={<MapPin size={12} />} title="Location" hint="Shown on your public listing so people can find you." />
+        <SectionHeading icon={<MapPin size={12} />} title={t("common.location")} hint={t("list.hint.location")} />
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
@@ -357,7 +358,7 @@ export default function ListYourEntity({ variant }: Props) {
               className="neo-input text-sm"
               required
             >
-              <option value="">Select</option>
+              <option value="">{t("list.form.select")}</option>
               {INDIAN_STATES.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -380,37 +381,37 @@ export default function ListYourEntity({ variant }: Props) {
 
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            Address<RequiredMark />
+            {t("list.form.address")}<RequiredMark />
           </label>
           <input
             type="text"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             className="neo-input text-sm"
-            placeholder="Street / area / landmark"
+            placeholder={t("list.form.addressPlaceholder")}
             required
             maxLength={500}
           />
           <p className="text-[10px] text-[#64748B] mt-1">
-            Used for the map directions button on your listing.
+            {t("list.hint.address")}
           </p>
         </div>
 
         {variant === "church" && (
           <>
             {/* ─── SECTION 3: Services & Languages ─── */}
-            <SectionHeading icon={<Clock size={12} />} title="Services & Languages" hint="Add one row per service — e.g. English Sunday 8:00 AM, Hindi Sunday 11:00 AM." />
+            <SectionHeading icon={<Clock size={12} />} title={t("list.section.services")} hint={t("list.hint.services")} />
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                  Service Times<RequiredMark />
+                  {t("churches.serviceTimes")}<RequiredMark />
                 </label>
                 <button
                   type="button"
                   onClick={addServiceRow}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-bold hover:bg-[#22C55E]/25 transition-all"
                 >
-                  <Plus size={10} /> Add Service
+                  <Plus size={10} /> {t("churches.form.addService")}
                 </button>
               </div>
               <div className="space-y-2">
@@ -439,14 +440,14 @@ export default function ListYourEntity({ variant }: Props) {
                       value={svc.time}
                       onChange={(e) => updateServiceRow(idx, "time", e.target.value)}
                       className="neo-input text-xs flex-1 py-2"
-                      placeholder="8:00 AM - 11:00 AM"
+                      placeholder={t("churches.form.serviceTimePlaceholder")}
                     />
                     {formData.serviceRows.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeServiceRow(idx)}
                         className="p-2 text-[#94A3B8] hover:text-[#EF4444] transition-colors"
-                        aria-label="Remove this service time"
+                        aria-label={t("list.form.removeServiceAria")}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -458,7 +459,7 @@ export default function ListYourEntity({ variant }: Props) {
 
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                Languages<RequiredMark />
+                {t("churches.languages")}<RequiredMark />
               </label>
               <div className="flex flex-wrap gap-1.5 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
                 {LANGUAGES.map((lang) => {
@@ -480,33 +481,33 @@ export default function ListYourEntity({ variant }: Props) {
                 })}
               </div>
               {formData.languages.length === 0 && (
-                <p className="text-[10px] text-[#F59E0B] mt-1.5">Select at least one language — visitors filter by it.</p>
+                <p className="text-[10px] text-[#F59E0B] mt-1.5">{t("list.hint.languages")}</p>
               )}
             </div>
 
             {/* ─── SECTION 4: Photos ─── */}
-            <SectionHeading icon={<Sparkles size={12} />} title="Photos" hint="Up to 5 photos. The first one becomes the cover image on your listing." />
+            <SectionHeading icon={<Sparkles size={12} />} title={t("list.section.photos")} hint={t("list.hint.photos")} />
             <ImagePicker
               images={formData.images}
               onChange={(images) => setFormData({ ...formData, images })}
               max={5}
-              label="Church Photos"
+              label={t("churches.form.photos")}
             />
 
             {/* WhatsApp */}
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                <Phone size={10} className="inline mr-0.5" /> WhatsApp Number
+                <Phone size={10} className="inline mr-0.5" /> {t("common.whatsappNumber")}
               </label>
               <input
                 type="tel"
                 value={formData.whatsapp_number}
                 onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
                 className="neo-input text-sm"
-                placeholder="+91 98765 43210"
+                placeholder={t("common.whatsappPlaceholder")}
               />
               <p className="text-[10px] text-[#64748B] mt-1">
-                Shown as a &quot;Contact on WhatsApp&quot; button on your public listing.
+                {t("list.hint.whatsapp")}
               </p>
             </div>
           </>
@@ -518,11 +519,11 @@ export default function ListYourEntity({ variant }: Props) {
               images={formData.images}
               onChange={(images) => setFormData({ ...formData, images })}
               max={5}
-              label="Business Photos"
+              label={t("list.form.businessPhotos")}
             />
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                Business Category *
+                {t("list.form.businessCategory")}
               </label>
               <select
                 value={formData.businessCategory || ""}
@@ -530,7 +531,7 @@ export default function ListYourEntity({ variant }: Props) {
                 className="neo-input text-sm"
                 required
               >
-                <option value="">Select a category</option>
+                <option value="">{t("list.form.selectCategory")}</option>
                 {BUSINESS_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
@@ -538,14 +539,14 @@ export default function ListYourEntity({ variant }: Props) {
             </div>
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                <Phone size={10} className="inline mr-0.5" /> WhatsApp Number *
+                <Phone size={10} className="inline mr-0.5" /> {t("list.form.whatsappRequired")}
               </label>
               <input
                 type="tel"
                 value={formData.whatsapp_number}
                 onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
                 className="neo-input text-sm"
-                placeholder="+91 98765 43210"
+                placeholder={t("common.whatsappPlaceholder")}
                 required
               />
             </div>
@@ -553,44 +554,44 @@ export default function ListYourEntity({ variant }: Props) {
         )}
 
         {/* ─── SECTION 5: Contact Details ─── */}
-        <SectionHeading icon={<User size={12} />} title="Contact Details" hint="For our review team to reach you. Only the contact NAME appears on your public listing — email and phone are never shown publicly." />
+        <SectionHeading icon={<User size={12} />} title={t("list.section.contact")} hint={t("list.hint.contact")} />
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-            <User size={10} className="inline mr-0.5" /> Contact Name
+            <User size={10} className="inline mr-0.5" /> {t("list.form.contactName")}
           </label>
           <input
             type="text"
             value={formData.contact_name}
             onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
             className="neo-input text-sm"
-            placeholder="Who should visitors ask for?"
+            placeholder={t("list.form.contactNamePlaceholder")}
             maxLength={200}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              <Mail size={10} className="inline mr-0.5" /> Email
+              <Mail size={10} className="inline mr-0.5" /> {t("list.form.email")}
             </label>
             <input
               type="email"
               value={formData.contact_email}
               onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
               className="neo-input text-sm"
-              placeholder="For the review team only"
+              placeholder={t("list.form.reviewOnlyPlaceholder")}
               maxLength={200}
             />
           </div>
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              <Phone size={10} className="inline mr-0.5" /> Phone
+              <Phone size={10} className="inline mr-0.5" /> {t("list.form.phone")}
             </label>
             <input
               type="tel"
               value={formData.contact_phone}
               onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
               className="neo-input text-sm"
-              placeholder="For the review team only"
+              placeholder={t("list.form.reviewOnlyPlaceholder")}
               maxLength={30}
             />
           </div>
@@ -599,9 +600,7 @@ export default function ListYourEntity({ variant }: Props) {
         <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-3 flex items-start gap-2.5">
           <ShieldCheck size={14} className="text-[#F59E0B] shrink-0 mt-0.5" />
           <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-            <span className="font-bold text-white">Admin review required.</span> Your listing will appear
-            in the public directory only after a Koino admin approves it. Fields marked{" "}
-            <span className="text-[#F39B9B] font-bold">*</span> are required.
+            <span className="font-bold text-white">{t("list.notice.title")}</span> {t("list.notice.desc")}
           </p>
         </div>
 
@@ -615,8 +614,8 @@ export default function ListYourEntity({ variant }: Props) {
           }}
         >
           {submitting
-            ? <><Loader2 size={14} className="animate-spin" /> Submitting…</>
-            : <><Send size={14} /> Submit for Review</>
+            ? <><Loader2 size={14} className="animate-spin" /> {t("common.submitting")}</>
+            : <><Send size={14} /> {t("list.submit")}</>
           }
         </button>
       </form>

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import MemorialForm, { EMPTY_MEMORIAL_FORM, type MemorialFormData } from "./MemorialForm";
 import { timeAgo } from "@/lib/social/format";
 import { extractYouTubeId, youtubeThumbUrl, youtubeWatchUrl, MEMORIAL_VIDEO_CATEGORIES } from "@/lib/youtube";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type MemorialVideoRow = {
   id: string;
@@ -48,6 +49,7 @@ type Manager = { userId: string; name: string; username: string | null; role: st
 type Props = { memorialId: string };
 
 export default function MemorialManage({ memorialId }: Props) {
+  const t = useTranslation();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState<string | null>(null);
@@ -69,21 +71,21 @@ export default function MemorialManage({ memorialId }: Props) {
       const res = await fetch(`/api/memorials/${memorialId}`, { cache: "no-store" });
       const body = await res.json();
       if (!res.ok) {
-        setDenied(body.error || "This memorial is not available.");
+        setDenied(body.error || t("memorials.manage.unavailable"));
         setDetail(null);
       } else {
         setDetail(body);
         if (!body.viewer.role) {
-          setDenied("Only the memorial managers can open this page.");
+          setDenied(t("memorials.manage.denied"));
           setDetail(null);
         }
       }
     } catch {
-      setDenied("Could not load the memorial.");
+      setDenied(t("memorials.manage.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [memorialId]);
+  }, [memorialId, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -252,7 +254,7 @@ export default function MemorialManage({ memorialId }: Props) {
         <h1 className="text-lg font-bold text-white mb-2">Cannot open the manage panel</h1>
         <p className="text-sm text-[#94A3B8] mb-6">{denied}</p>
         <Link href={`/memorials/${memorialId}`} className="text-xs font-bold text-[#C4B5FD] hover:text-white">
-          ← Back to the memorial
+          {t("memorials.manage.backToMemorial")}
         </Link>
       </div>
     );
@@ -293,7 +295,7 @@ export default function MemorialManage({ memorialId }: Props) {
           <Flower2 size={18} className="text-[#C4B5FD]" />
         </div>
         <div>
-          <h1 className="text-lg font-black text-white">Manage memorial</h1>
+          <h1 className="text-lg font-black text-white">{t("memorials.manage.title")}</h1>
           <p className="text-[11px] text-[#64748B]">{m.fullName} · {m.status}</p>
         </div>
       </div>
@@ -303,25 +305,25 @@ export default function MemorialManage({ memorialId }: Props) {
           onClick={() => setTab("edit")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "edit" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Pencil size={12} /> Details
+          <Pencil size={12} /> {t("memorials.manage.tab.details")}
         </button>
         <button
           onClick={() => setTab("videos")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "videos" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Film size={12} /> Videos
+          <Film size={12} /> {t("memorials.manage.tab.videos")}
         </button>
         <button
           onClick={() => setTab("settings")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "settings" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Settings2 size={12} /> Display
+          <Settings2 size={12} /> {t("memorials.manage.tab.display")}
         </button>
         <button
           onClick={() => setTab("managers")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "managers" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Users size={12} /> Managers
+          <Users size={12} /> {t("memorials.manage.tab.managers")}
         </button>
       </div>
 
@@ -336,7 +338,7 @@ export default function MemorialManage({ memorialId }: Props) {
           {/* lifecycle actions below the form */}
           <div className="max-w-[680px] mx-auto px-4 pb-24 -mt-16">
             <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4 space-y-3">
-              <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B]">Memorial status</h2>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B]">{t("memorials.manage.statusTitle")}</h2>
               <p className="text-[11px] text-[#94A3B8] leading-relaxed">
                 This memorial is currently <b className="text-white">{m.status}</b> ({m.visibility}).
                 {m.status === "draft" && " Submit it for review from the memorial page when you are ready."}
@@ -347,12 +349,12 @@ export default function MemorialManage({ memorialId }: Props) {
               <div className="flex flex-wrap gap-2">
                 {m.status === "published" && (
                   <button onClick={unpublish} disabled={unpublishing} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40">
-                    {unpublishing ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />} Unpublish
+                    {unpublishing ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />} {t("memorials.manage.unpublish")}
                   </button>
                 )}
                 {isOwner && (
                   <button onClick={requestDeletion} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-300 hover:bg-red-500/15">
-                    <Trash2 size={12} /> Delete memorial
+                    <Trash2 size={12} /> {t("memorials.manage.delete")}
                   </button>
                 )}
               </div>
@@ -388,7 +390,7 @@ export default function MemorialManage({ memorialId }: Props) {
           </div>
 
           {videos.length === 0 ? (
-            <p className="text-sm text-[#64748B] italic text-center py-8">No videos yet.</p>
+            <p className="text-sm text-[#64748B] italic text-center py-8">{t("memorials.manage.noVideos")}</p>
           ) : (
             <ul className="space-y-2.5">
               {videos.map((v) => (
@@ -461,7 +463,7 @@ export default function MemorialManage({ memorialId }: Props) {
       {tab === "managers" && (
         <div className="space-y-4">
           <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
-            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">Invite a family member or friend</h2>
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.inviteTitle")}</h2>
             <p className="text-[11px] text-[#94A3B8] mb-3 leading-relaxed">
               Co-managers can edit the memorial, moderate condolences, and invite others — but only the
               owner can delete the memorial. Invite by their Koino username.
@@ -478,7 +480,7 @@ export default function MemorialManage({ memorialId }: Props) {
                 disabled={inviting || !invite.trim()}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
               >
-                {inviting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add
+                {inviting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} {t("memorials.manage.add")}
               </button>
             </div>
           </div>
@@ -494,7 +496,7 @@ export default function MemorialManage({ memorialId }: Props) {
                     {mm.name} {mm.username && <span className="text-[#64748B] font-normal">@{mm.username}</span>}
                   </p>
                   <p className="text-[10px] text-[#64748B]">
-                    {mm.role === "owner" ? "Owner" : "Manager"} · since {timeAgo(mm.since)}
+                    {mm.role === "owner" ? t("memorials.manage.owner") : t("memorials.manage.manager")} · since {timeAgo(mm.since)}
                   </p>
                 </div>
                 {isOwner && mm.role !== "owner" && (

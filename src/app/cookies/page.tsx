@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
@@ -19,14 +20,13 @@ export default function CookiesPage() {
     <PublicPageLayout>
       <div className="max-w-3xl mx-auto px-6 py-12">
         {/* Heading */}
-        <h1 className="text-3xl font-black text-white mb-2">Cookie Policy</h1>
-        <p className="text-sm text-[#A09DB1] mb-6">Last updated: October 7, 2026</p>
+        <h1 className="text-3xl font-black text-white mb-2"><T k="legal.cookies.title" /></h1>
+        <p className="text-sm text-[#A09DB1] mb-6"><T k="legal.cookies.lastUpdated" /></p>
 
         {/* Legal disclaimer */}
         <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-2xl p-4 mb-8">
           <p className="text-xs text-[#A09DB1] leading-relaxed">
-            This document is provided for informational purposes and does not constitute legal advice.
-            Have it reviewed by qualified legal counsel before relying on it.
+            <T k="legal.disclaimer" />
           </p>
         </div>
 

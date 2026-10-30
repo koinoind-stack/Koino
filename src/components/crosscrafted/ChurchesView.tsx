@@ -141,10 +141,10 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     try {
       const res = await fetch("/api/churches", { cache: "no-store" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load churches");
+      if (!res.ok) throw new Error(data.error || t("churches.error.load"));
       setChurches(data.churches || []);
     } catch (e: any) {
-      setChurchesError(e.message || "Failed to load churches");
+      setChurchesError(e.message || t("churches.error.load"));
       setChurches([]); // graceful fallback — empty state, not a crash
     } finally {
       setChurchesLoading(false);
@@ -185,7 +185,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
           300
         );
       } else {
-        toast("Church not available", { description: "It may no longer be published." });
+        toast(t("churches.deeplink.unavailable"), { description: t("churches.deeplink.unavailableDesc") });
       }
       if (!initialOpenChurchId) {
         window.history.replaceState({}, "", window.location.pathname + window.location.hash);
@@ -274,8 +274,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   // ─── REAL follow toggle — server-persisted, optimistic with rollback ───
   const toggleFollow = async (id: string) => {
     if (!isAuthenticated) {
-      toast("Sign in required", {
-        description: "Please sign in to follow churches and see them in My Churches.",
+      toast(t("common.signInRequired"), {
+        description: t("churches.follow.signInDesc"),
       });
       return;
     }
@@ -309,7 +309,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       });
       setChurches((cs) => cs.map((c) => (c.id === id ? { ...c, followers_count: data.followers } : c)));
       if (data.following && !wasFollowing) {
-        toast.success("Following church!", { description: "Find it anytime in My Churches." });
+        toast.success(t("churches.follow.success"), { description: t("churches.follow.successDesc") });
       }
     } catch {
       // Roll back on failure
@@ -324,7 +324,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
           c.id === id ? { ...c, followers_count: Math.max(0, c.followers_count + (wasFollowing ? 1 : -1)) } : c
         )
       );
-      toast.error("Couldn't update — please try again.");
+      toast.error(t("churches.follow.error"));
     } finally {
       setFollowBusy(null);
     }
@@ -333,8 +333,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   const openChurchShare = (c: Church) => {
     const url = `${window.location.origin}/?view=churches&church=${c.id}`;
     setShareReq({
-      heading: "Share this church",
-      shareText: `${c.name}${c.denomination ? ` — ${c.denomination}` : ""}\n${[c.city, c.state].filter(Boolean).join(", ")}\n\nFind them on Koino:`,
+      heading: t("churches.shareHeading"),
+      shareText: `${c.name}${c.denomination ? ` — ${c.denomination}` : ""}\n${[c.city, c.state].filter(Boolean).join(", ")}\n\n${t("churches.shareTextSuffix")}`,
       shareUrl: url,
       cardUrl: `/api/share-card?type=church&id=${c.id}`,
       formats: ["square", "story"],
@@ -354,27 +354,27 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         }),
       });
       if (res.status === 401) {
-        toast("Sign in required", { description: "Please sign in to report a listing." });
+        toast(t("common.signInRequired"), { description: t("churches.report.signInDesc") });
         return;
       }
       if (!res.ok) throw new Error();
-      toast.success("Thank you — our team will review this listing.");
+      toast.success(t("churches.report.success"));
       setFlagFor(null);
       setFlagReason("");
       setFlagDetails("");
     } catch {
-      toast.error("Couldn't submit the report.");
+      toast.error(t("churches.report.error"));
     }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.description) {
-      toast.error("Please fill in the required fields");
+      toast.error(t("churches.form.errorRequired"));
       return;
     }
     if (!formData.state || !formData.city) {
-      toast.error("Please select a state and enter a city");
+      toast.error(t("churches.form.errorLocation"));
       return;
     }
     setSubmitting(true);
@@ -399,7 +399,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `Failed to submit (HTTP ${res.status})`);
+      if (!res.ok) throw new Error(data.error || t("churches.form.errorHttp", { status: res.status }));
       setShowCreateModal(false);
       setFormData({
         name: "",
@@ -413,11 +413,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         whatsapp_number: "",
         service_times: [{ language: "English", day: "Sunday", time: "" }],
       });
-      toast.success("Church submitted!", {
-        description: "Our team reviews every listing before it appears in the directory.",
+      toast.success(t("churches.submit.success"), {
+        description: t("churches.submit.successDesc"),
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to submit church. Please try again.");
+      toast.error(err instanceof Error ? err.message : t("churches.submit.error"));
     } finally {
       setSubmitting(false);
     }
@@ -462,7 +462,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
             style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
           >
-            <Plus size={14} /> List Your Church
+            <Plus size={14} /> {t("churches.listYourChurch")}
           </button>
         </div>
       </div>
@@ -478,7 +478,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <Search size={13} /> Discover
+            <Search size={13} /> {t("feed.tab.discover")}
           </button>
           <button
             onClick={() => setDiscoverTab("my-churches")}
@@ -488,7 +488,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <Heart size={13} /> My Churches
+            <Heart size={13} /> {t("churches.tab.myChurches")}
           </button>
         </div>
       </div>
@@ -508,13 +508,13 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  <Search size={10} className="inline mr-0.5" /> Search
+                  <Search size={10} className="inline mr-0.5" /> {t("common.search")}
                 </label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Name, city, denomination..."
+                  placeholder={t("churches.filter.searchPlaceholder")}
                   className="neo-input text-sm"
                 />
               </div>
@@ -527,7 +527,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   onChange={(e) => setFilterState(e.target.value)}
                   className="neo-input text-sm"
                 >
-                  <option value="">All States</option>
+                  <option value="">{t("common.allStates")}</option>
                   {INDIAN_STATES.map((s) => (
                     <option key={s} value={s}>
                       {s}
@@ -543,20 +543,20 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   type="text"
                   value={filterCity}
                   onChange={(e) => setFilterCity(e.target.value)}
-                  placeholder="e.g. Bengaluru"
+                  placeholder={t("churches.filter.cityPlaceholder")}
                   className="neo-input text-sm"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  <Building2 size={10} className="inline mr-0.5" /> Denomination
+                  <Building2 size={10} className="inline mr-0.5" /> {t("churches.denomination")}
                 </label>
                 <select
                   value={filterDenomination}
                   onChange={(e) => setFilterDenomination(e.target.value)}
                   className="neo-input text-sm"
                 >
-                  <option value="">All Denominations</option>
+                  <option value="">{t("churches.filter.allDenominations")}</option>
                   {denominations.map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -566,14 +566,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  <Globe size={10} className="inline mr-0.5" /> Language
+                  <Globe size={10} className="inline mr-0.5" /> {t("common.language")}
                 </label>
                 <select
                   value={filterLanguage}
                   onChange={(e) => setFilterLanguage(e.target.value)}
                   className="neo-input text-sm"
                 >
-                  <option value="">All Languages</option>
+                  <option value="">{t("common.allLanguages")}</option>
                   {LANGUAGES.map((l) => (
                     <option key={l} value={l}>
                       {l}
@@ -583,14 +583,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  <Clock size={10} className="inline mr-0.5" /> Service Day
+                  <Clock size={10} className="inline mr-0.5" /> {t("churches.filter.serviceDay")}
                 </label>
                 <select
                   value={filterServiceDay}
                   onChange={(e) => setFilterServiceDay(e.target.value)}
                   className="neo-input text-sm"
                 >
-                  <option value="">Any Day</option>
+                  <option value="">{t("churches.filter.anyDay")}</option>
                   {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -611,7 +611,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 }}
                 className="mt-3 text-xs text-[#94A3B8] hover:text-white transition-colors"
               >
-                Clear all filters
+                {t("common.clearFilters")}
               </button>
             )}
           </motion.div>
@@ -622,9 +622,9 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       <div className="flex items-center gap-2 mb-3">
         <ArrowUpDown size={12} className="text-[#64748B]" />
         {([
-          ["featured", "Featured"],
-          ["name", "Name A-Z"],
-          ["newest", "Newest"],
+          ["featured", t("common.featured")],
+          ["name", t("common.sort.nameAZ")],
+          ["newest", t("common.sort.newest")],
         ] as const).map(([key, label]) => (
           <button
             key={key}
@@ -644,20 +644,20 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         {churchesLoading && (
           <div className="text-center py-12">
             <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
-            <p className="text-xs text-[#94A3B8]">Loading churches…</p>
+            <p className="text-xs text-[#94A3B8]">{t("churches.loading")}</p>
           </div>
         )}
 
         {/* Error state — graceful, no crash */}
         {!churchesLoading && churchesError && (
           <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-2xl p-5 text-center">
-            <p className="text-sm font-bold text-[#EF4444] mb-1">Failed to load churches</p>
+            <p className="text-sm font-bold text-[#EF4444] mb-1">{t("churches.error.load")}</p>
             <p className="text-xs text-[#A09DB1] mb-3">{churchesError}</p>
             <button
               onClick={loadChurches}
               className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
             >
-              Try again
+              {t("common.retry")}
             </button>
           </div>
         )}
@@ -668,23 +668,23 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
               <Building2 size={24} className="text-[#A78BFA]" />
             </div>
-            <p className="text-sm font-bold text-white mb-1">No churches listed yet</p>
+            <p className="text-sm font-bold text-white mb-1">{t("churches.empty.title")}</p>
             <p className="text-xs text-[#A09DB1] mb-4 max-w-sm mx-auto">
-              Be the first to add your church to the Koino directory. Every listing is reviewed by an admin before it appears here.
+              {t("churches.empty.desc")}
             </p>
             {isAuthenticated ? (
               <button
                 onClick={() => (onListChurch ? onListChurch() : setShowCreateModal(true))}
                 className="px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
               >
-                List Your Church
+                {t("churches.listYourChurch")}
               </button>
             ) : (
               <a
                 href="/api/auth/signin"
                 className="inline-block px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
               >
-                Sign in to list your church
+                {t("churches.empty.signInCta")}
               </a>
             )}
           </div>
@@ -693,8 +693,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         {/* Filtered empty state — churches exist but none match the filters */}
         {!churchesLoading && !churchesError && churches.length > 0 && filtered.length === 0 && (
           <div className="text-center py-10">
-            <p className="text-sm text-[#94A3B8] mb-1">No churches match your filters.</p>
-            <p className="text-xs text-[#64748B] mb-4">Try clearing a filter or widening your search.</p>
+            <p className="text-sm text-[#94A3B8] mb-1">{t("churches.emptyFiltered.title")}</p>
+            <p className="text-xs text-[#64748B] mb-4">{t("churches.emptyFiltered.desc")}</p>
             <button
               onClick={() => {
                 setFilterState("");
@@ -706,7 +706,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               }}
               className="px-5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
             >
-              Clear all filters
+              {t("common.clearFilters")}
             </button>
           </div>
         )}
@@ -742,7 +742,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/30 to-transparent" />
                 {church.featured && (
                   <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#F59E0B]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider">
-                    Featured
+                    {t("common.featured")}
                   </span>
                 )}
                 <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/[0.1]">
@@ -760,7 +760,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                         strokeWidth={2.5}
                         className="shrink-0 drop-shadow-lg"
                         style={{ color: "white", fill: "#3B82F6" }}
-                        aria-label="Verified church"
+                        aria-label={t("churches.verifiedAria")}
                       />
                     )}
                   </div>
@@ -826,11 +826,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   >
                     {isFollowing ? (
                       <>
-                        <UserMinus size={13} /> Following
+                        <UserMinus size={13} /> {t("churches.following")}
                       </>
                     ) : (
                       <>
-                        <UserPlus size={13} /> Follow
+                        <UserPlus size={13} /> {t("churches.follow")}
                       </>
                     )}
                   </button>
@@ -842,7 +842,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     }}
                     className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.08] text-[#C4B5FD] hover:text-white transition-all"
                   >
-                    View Church
+                    {t("churches.viewChurch")}
                   </button>
                 </div>
               </div>
@@ -931,11 +931,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                         size={20}
                         strokeWidth={2.5}
                         style={{ color: "white", fill: "#3B82F6" }}
-                        aria-label="Verified church"
+                        aria-label={t("churches.verifiedAria")}
                       />
                     )}
                   </div>
-                  <p className="text-xs text-white/70">{openChurch.denomination || "Church"}</p>
+                  <p className="text-xs text-white/70">{openChurch.denomination || t("churches.fallbackDenomination")}</p>
                 </div>
               </div>
 
@@ -961,7 +961,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               <div className="p-5 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Location</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("common.location")}</p>
                     <p className="text-xs text-white flex items-center gap-1">
                       <MapPin size={11} /> {openChurch.city}{openChurch.state ? `, ${openChurch.state}` : ""}
                     </p>
@@ -970,7 +970,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     )}
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Followers</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("churches.detail.followers")}</p>
                     <p className="text-xs text-white flex items-center gap-1">
                       <Users size={11} /> {openChurch.followers_count.toLocaleString()}
                     </p>
@@ -981,8 +981,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-3 flex items-start gap-2.5">
                     <ShieldCheck size={15} className="text-[#3B82F6] shrink-0 mt-0.5" style={{ fill: "rgba(59,130,246,0.15)" }} />
                     <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-                      <span className="font-bold text-white">Koino Verified</span> — our team confirmed this
-                      is a real, operating congregation.
+                      <span className="font-bold text-white">{t("churches.verifiedBadge")}</span>{" "}
+                      {t("churches.verifiedDesc")}
                     </p>
                   </div>
                 )}
@@ -996,7 +996,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     <div className="space-y-1.5">
                       {openChurch.service_times.map((s, idx) => (
                         <div key={idx} className="flex items-center justify-between text-xs">
-                          <span className="text-white font-bold">{s.language} Service</span>
+                          <span className="text-white font-bold">{t("churches.serviceLabel", { language: s.language })}</span>
                           <span className="text-[#94A3B8]">{s.day} · {s.time}</span>
                         </div>
                       ))}
@@ -1009,14 +1009,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   <p className="text-sm text-[#A09DB1] leading-relaxed">{openChurch.description}</p>
                   {openChurch.contactName && (
                     <p className="text-[11px] text-[#94A3B8] mt-2">
-                      Contact: <span className="font-bold text-white">{openChurch.contactName}</span>
+                      {t("churches.contact")}: <span className="font-bold text-white">{openChurch.contactName}</span>
                     </p>
                   )}
                 </div>
 
                 {openChurch.languages.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Languages</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("churches.languages")}</p>
                     <div className="flex flex-wrap gap-2">
                       {openChurch.languages.map((lang) => (
                         <span
@@ -1035,7 +1035,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     the official badge is the admin-controlled churchVerified
                     flag, and linking never grants church permissions. */}
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Groups</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("churches.groupsTitle")}</p>
                   {churchGroupsLoading ? (
                     <div className="space-y-2">
                       {[...Array(2)].map((_, i) => (
@@ -1045,9 +1045,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   ) : churchGroups.length === 0 ? (
                     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
                       <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                        No public groups from this church yet. Church members can create
-                        one from <span className="font-bold text-[#C4B5FD]">Groups &amp; Fellowship</span> in
-                        the app and link it to {openChurch.name}.
+                        {t("churches.groupsEmpty", { name: openChurch.name })}
                       </p>
                     </div>
                   ) : (
@@ -1092,7 +1090,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 {(churchEventsLoading || churchEvents.length > 0) && (
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 flex items-center gap-1.5">
-                      <CalendarDays size={11} /> Upcoming Events
+                      <CalendarDays size={11} /> {t("churches.upcomingEvents")}
                     </p>
                     {churchEventsLoading ? (
                       <div className="space-y-2">
@@ -1127,7 +1125,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 {openChurch.whatsapp_number && (
                   <a
                     href={`https://wa.me/${openChurch.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                      `Hello ${openChurch.name}! I found you on Koino and would like to know more about your services.`
+                      t("churches.whatsappPrefill", { name: openChurch.name })
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1136,7 +1134,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                     </svg>
-                    Contact on WhatsApp
+                    {t("churches.contactWhatsApp")}
                   </a>
                 )}
 
@@ -1161,11 +1159,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   >
                     {followed.has(openChurch.id) ? (
                       <span className="flex items-center justify-center gap-2">
-                        <UserMinus size={14} /> Following
+                        <UserMinus size={14} /> {t("churches.following")}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
-                        <UserPlus size={14} /> Follow Church
+                        <UserPlus size={14} /> {t("churches.followChurch")}
                       </span>
                     )}
                   </button>
@@ -1173,7 +1171,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     onClick={() => openChurchShare(openChurch)}
                     className="py-3 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#C4B5FD] hover:text-white transition-all flex items-center justify-center gap-2"
                   >
-                    <Share2 size={14} /> Share Church
+                    <Share2 size={14} /> {t("churches.shareChurch")}
                   </button>
                 </div>
 
@@ -1190,7 +1188,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     rel="noopener noreferrer"
                     className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-all"
                   >
-                    <Navigation size={14} /> Get Directions
+                    <Navigation size={14} /> {t("churches.getDirections")}
                   </a>
                 )}
 
@@ -1201,7 +1199,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     rel="noopener noreferrer"
                     className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-[#94A3B8] hover:text-white transition-colors"
                   >
-                    <ExternalLink size={12} /> Visit website
+                    <ExternalLink size={12} /> {t("churches.visitWebsite")}
                   </a>
                 )}
 
@@ -1209,7 +1207,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   onClick={() => setFlagFor(openChurch)}
                   className="w-full text-center text-[10px] text-[#475569] hover:text-[#EF4444] transition-colors flex items-center justify-center gap-1.5 py-1"
                 >
-                  <Flag size={10} /> Something wrong? Report this listing
+                  <Flag size={10} /> {t("churches.reportLink")}
                 </button>
               </div>
             </motion.div>
@@ -1236,7 +1234,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold gradient-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3] bg-clip-text text-transparent">
-                  List Your Church
+                  {t("churches.listYourChurch")}
                 </h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -1248,7 +1246,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               <form onSubmit={handleCreate} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Church Name
+                    {t("churches.form.churchName")}
                   </label>
                   <input
                     type="text"
@@ -1268,7 +1266,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                       className="neo-input text-sm"
                     >
-                      <option value="">Select state</option>
+                      <option value="">{t("common.selectState")}</option>
                       {INDIAN_STATES.map((s) => (
                         <option key={s} value={s}>
                           {s}
@@ -1291,7 +1289,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Location Address
+                    {t("churches.form.locationAddress")}
                   </label>
                   <input
                     type="text"
@@ -1304,26 +1302,26 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      Denomination
+                      {t("churches.denomination")}
                     </label>
                     <input
                       type="text"
                       value={formData.denomination}
                       onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
                       className="neo-input text-sm"
-                      placeholder="Non-denominational"
+                      placeholder={t("churches.form.denominationPlaceholder")}
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      <Phone size={10} className="inline mr-0.5" /> WhatsApp Number
+                      <Phone size={10} className="inline mr-0.5" /> {t("common.whatsappNumber")}
                     </label>
                     <input
                       type="tel"
                       value={formData.whatsapp_number}
                       onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
                       className="neo-input text-sm"
-                      placeholder="+91 98765 43210"
+                      placeholder={t("common.whatsappPlaceholder")}
                     />
                   </div>
                 </div>
@@ -1332,21 +1330,21 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   images={formData.images}
                   onChange={(images) => setFormData({ ...formData, images })}
                   max={5}
-                  label="Church Photos"
+                  label={t("churches.form.photos")}
                 />
 
                 {/* Multi-row service times */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                      <Clock size={10} className="inline mr-0.5" /> Service Times
+                      <Clock size={10} className="inline mr-0.5" /> {t("churches.serviceTimes")}
                     </label>
                     <button
                       type="button"
                       onClick={addServiceTime}
                       className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#A78BFA] text-[10px] font-bold hover:bg-[#A855F7]/25 transition-all"
                     >
-                      <Plus size={10} /> Add Service
+                      <Plus size={10} /> {t("churches.form.addService")}
                     </button>
                   </div>
                   <div className="space-y-2">
@@ -1375,7 +1373,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                           value={svc.time}
                           onChange={(e) => updateServiceTime(idx, "time", e.target.value)}
                           className="neo-input text-xs flex-1 py-2"
-                          placeholder="8:00 AM - 11:00 AM"
+                          placeholder={t("churches.form.serviceTimePlaceholder")}
                         />
                         {formData.service_times.length > 1 && (
                           <button
@@ -1390,12 +1388,12 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     ))}
                   </div>
                   <p className="text-[10px] text-[#64748B] mt-1.5">
-                    Add one row per service (e.g. English 8-11am, Hindi 11:30-2pm).
+                    {t("churches.form.serviceHint")}
                   </p>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Languages (multi-select)
+                    {t("churches.form.languagesMulti")}
                   </label>
                   <div className="flex flex-wrap gap-2 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
                     {LANGUAGES.map((lang) => {
@@ -1441,17 +1439,17 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     onClick={() => setShowCreateModal(false)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F39B9B] hover:bg-[#E27B7B] transition-all hover:-translate-y-px disabled:opacity-60"
                   >
-                    {submitting ? "Submitting..." : "Submit for review"}
+                    {submitting ? t("common.submitting") : t("churches.form.submit")}
                   </button>
                   <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
-                    Listings are reviewed by an admin before they appear in the public directory.
+                    {t("churches.form.reviewNote")}
                   </p>
                 </div>
               </form>
@@ -1478,31 +1476,30 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-md p-5"
             >
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-base font-bold text-white">Report this listing</h3>
+                <h3 className="text-base font-bold text-white">{t("churches.report.title")}</h3>
                 <button onClick={() => setFlagFor(null)} className="text-[#64748B] hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
               <p className="text-xs text-[#A09DB1] mb-3">
-                Tell us what is wrong with <span className="font-bold text-white">{flagFor.name}</span> — for
-                example wrong address, closed, or incorrect service times. Our team will review it.
+                {t("churches.report.desc", { name: flagFor.name })}
               </p>
               <select
                 value={flagReason}
                 onChange={(e) => setFlagReason(e.target.value)}
                 className="neo-input text-sm mb-2"
               >
-                <option value="">What is incorrect?</option>
-                <option value="wrong_address">Wrong address or location</option>
-                <option value="wrong_times">Wrong service times</option>
-                <option value="closed">Church has closed / no longer meets</option>
-                <option value="duplicate">Duplicate listing</option>
-                <option value="other">Something else</option>
+                <option value="">{t("churches.report.optionPlaceholder")}</option>
+                <option value="wrong_address">{t("churches.report.wrongAddress")}</option>
+                <option value="wrong_times">{t("churches.report.wrongTimes")}</option>
+                <option value="closed">{t("churches.report.closed")}</option>
+                <option value="duplicate">{t("churches.report.duplicate")}</option>
+                <option value="other">{t("churches.report.other")}</option>
               </select>
               <textarea
                 value={flagDetails}
                 onChange={(e) => setFlagDetails(e.target.value)}
-                placeholder="Details (optional) — helps us fix it faster"
+                placeholder={t("churches.report.detailsPlaceholder")}
                 className="neo-input h-20 resize-none text-sm mb-3"
                 maxLength={1000}
               />
@@ -1511,13 +1508,13 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   onClick={() => setFlagFor(null)}
                   className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   onClick={submitFlag}
                   className="px-4 py-2 rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs font-bold"
                 >
-                  Submit report
+                  {t("churches.report.submit")}
                 </button>
               </div>
             </motion.div>
@@ -1552,6 +1549,7 @@ function MyChurchesView({
   onListChurch?: () => void;
   setShowCreateModal: (v: boolean) => void;
 }) {
+  const t = useTranslation();
   const myChurches = churches.filter((c) => followedIds.has(c.id));
 
   // Auth gate — unauthenticated users can't have follows yet
@@ -1559,14 +1557,14 @@ function MyChurchesView({
     return (
       <div className="text-center py-16">
         <Heart size={32} className="mx-auto text-[#475569] mb-3" />
-        <p className="text-sm text-[#94A3B8] mb-1">Sign in to see the churches you follow.</p>
-        <p className="text-[11px] text-[#64748B] mb-4">Your follows will appear here.</p>
+        <p className="text-sm text-[#94A3B8] mb-1">{t("churches.my.signInPrompt")}</p>
+        <p className="text-[11px] text-[#64748B] mb-4">{t("churches.my.signInHint")}</p>
         <a
           href="/api/auth/signin"
           className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
         >
-          Sign in
+          {t("signin.submit.signin")}
         </a>
       </div>
     );
@@ -1576,14 +1574,14 @@ function MyChurchesView({
     return (
       <div className="text-center py-16">
         <Heart size={32} className="mx-auto text-[#475569] mb-3" />
-        <p className="text-sm text-[#94A3B8] mb-1">You're not following any churches yet.</p>
-        <p className="text-[11px] text-[#64748B] mb-4">Find a community and tap Follow.</p>
+        <p className="text-sm text-[#94A3B8] mb-1">{t("churches.my.empty")}</p>
+        <p className="text-[11px] text-[#64748B] mb-4">{t("churches.my.emptyHint")}</p>
         <button
           onClick={() => onListChurch ? onListChurch() : setShowCreateModal(true)}
           className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
         >
-          List Your Church
+          {t("churches.listYourChurch")}
         </button>
       </div>
     );
@@ -1592,7 +1590,7 @@ function MyChurchesView({
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-[#94A3B8]">
-        {myChurches.length} church{myChurches.length === 1 ? "" : "es"} you follow
+        {t("churches.my.count", { count: myChurches.length })}
       </p>
       {myChurches.map((church) => (
         <motion.div
@@ -1627,7 +1625,7 @@ function MyChurchesView({
               </p>
               <div className="flex items-center gap-1 mt-1.5">
                 <Users size={11} className="text-[#94A3B8]" />
-                <span className="text-[10px] text-[#94A3B8]">{church.followers_count.toLocaleString()} followers</span>
+                <span className="text-[10px] text-[#94A3B8]">{t("churches.followers", { count: church.followers_count.toLocaleString() })}</span>
               </div>
             </div>
             {/* Following badge */}
@@ -1640,7 +1638,7 @@ function MyChurchesView({
                 className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-white/[0.06] text-[#94A3B8] border border-white/[0.06] hover:bg-white/[0.1] transition-all"
               >
                 <span className="flex items-center gap-1">
-                  <UserMinus size={11} /> Following
+                  <UserMinus size={11} /> {t("churches.following")}
                 </span>
               </button>
             </div>
