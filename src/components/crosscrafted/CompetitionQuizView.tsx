@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   X,
   ChevronRight,
@@ -43,6 +44,7 @@ type CompetitionResult = {
 };
 
 export default function CompetitionQuizView({ competitionId, competitionTitle, onClose, onComplete }: Props) {
+  const t = useTranslation();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -60,18 +62,18 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
           method: "POST",
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to start");
+        if (!res.ok) throw new Error(data.error || t("competition.errors.startFailed"));
         setAttemptId(data.attemptId);
         setQuestions(data.questions);
         setStartTime(data.startedAt);
       } catch (e: any) {
-        setError(e.message || "Failed to start quiz");
-        toast.error(e.message || "Failed to start quiz");
+        setError(e.message || t("competition.errors.startFailedQuiz"));
+        toast.error(e.message || t("competition.errors.startFailedQuiz"));
       } finally {
         setLoading(false);
       }
     })();
-  }, [competitionId]);
+  }, [competitionId, t]);
 
   const submit = useCallback(async () => {
     if (!attemptId) return;
@@ -87,7 +89,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
         body: JSON.stringify({ attemptId, answers: answerArray, startTime }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to submit");
+      if (!res.ok) throw new Error(data.error || t("competition.errors.submitFailed"));
       onComplete({
         score: data.score,
         correctCount: data.correctCount,
@@ -97,10 +99,10 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
         fpAwarded: data.fpAwarded,
       });
     } catch (e: any) {
-      toast.error(e.message || "Failed to submit");
+      toast.error(e.message || t("competition.errors.submitFailed"));
       setSubmitting(false);
     }
-  }, [attemptId, answers, competitionId, startTime, onComplete]);
+  }, [attemptId, answers, competitionId, startTime, onComplete, t]);
 
   if (loading) {
     return (
@@ -117,7 +119,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
           <X size={32} className="mx-auto text-[#EF4444] mb-3" />
           <p className="text-sm text-[#94A3B8] mb-4">{error}</p>
           <button onClick={onClose} className="px-4 py-2 rounded-xl bg-[#F39B9B] text-slate-950 text-xs font-bold">
-            Back to Compete
+            {t("competition.backToCompete")}
           </button>
         </div>
       </div>
@@ -139,7 +141,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
               {competitionTitle}
             </p>
             <p className="text-[10px] text-[#64748B] mt-0.5">
-              Question {currentIdx + 1} of {questions.length}
+              {t("triviaView.playing.question", { current: currentIdx + 1, total: questions.length })}
             </p>
           </div>
           <button onClick={onClose} className="text-[#64748B] hover:text-white">
@@ -228,7 +230,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
               disabled={answers[current.questionId] === undefined}
               className="flex-1 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Next <ChevronRight size={16} />
+              {t("common.next")} <ChevronRight size={16} />
             </button>
           ) : (
             <button
@@ -236,14 +238,14 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
               disabled={!allAnswered || submitting}
               className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] text-white font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {submitting ? <Loader2 size={16} className="animate-spin" /> : <>Submit Quiz <Check size={16} /></>}
+              {submitting ? <Loader2 size={16} className="animate-spin" /> : <>{t("competition.submitQuiz")} <Check size={16} /></>}
             </button>
           )}
         </div>
 
         {/* Answered indicator */}
         <p className="text-[10px] text-[#64748B] text-center">
-          {Object.keys(answers).length} / {questions.length} answered
+          {t("competition.answeredCount", { n: Object.keys(answers).length, total: questions.length })}
         </p>
       </div>
     </div>
@@ -263,6 +265,7 @@ export function CompetitionResultView({
   onBackToCompete: () => void;
   onViewLeaderboard: () => void;
 }) {
+  const t = useTranslation();
   const accuracyPct = Math.round(result.accuracy * 100);
 
   return (
@@ -282,12 +285,12 @@ export function CompetitionResultView({
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B] mb-1">
             {competitionTitle}
           </p>
-          <h1 className="text-2xl font-black text-white mb-1">Challenge Complete! 🎉</h1>
-          <p className="text-xs text-[#94A3B8] mb-6">Here's how you did</p>
+          <h1 className="text-2xl font-black text-white mb-1">{t("competition.resultTitle")}</h1>
+          <p className="text-xs text-[#94A3B8] mb-6">{t("competition.resultSubtitle")}</p>
 
           {/* Score */}
           <div className="bg-[#1C1929] border border-white/[0.08] rounded-2xl p-5 mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Your Competition Score</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("competition.scoreLabel")}</p>
             <p className="text-4xl font-black text-white">{result.score}</p>
           </div>
 
@@ -296,29 +299,29 @@ export function CompetitionResultView({
             <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
               <Check size={14} className="mx-auto text-[#22C55E] mb-1" />
               <p className="text-lg font-black text-white">{result.correctCount}/{result.totalQuestions}</p>
-              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">Correct</p>
+              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.correctLabel")}</p>
             </div>
             <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
               <Target size={14} className="mx-auto text-[#38BDF8] mb-1" />
               <p className="text-lg font-black text-white">{accuracyPct}%</p>
-              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">Accuracy</p>
+              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.accuracyLabel")}</p>
             </div>
             <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
               <TrendingUp size={14} className="mx-auto text-[#A78BFA] mb-1" />
               <p className="text-lg font-black text-white">#{result.rank}</p>
-              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">Rank</p>
+              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.rankLabel")}</p>
             </div>
             <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
               <Award size={14} className="mx-auto text-[#F59E0B] mb-1" />
               <p className="text-lg font-black text-white">+{result.fpAwarded}</p>
-              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">FP Earned</p>
+              <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.fpEarnedLabel")}</p>
             </div>
           </div>
 
           {result.fpAwarded > 0 && (
             <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-xl p-3 mb-4">
               <p className="text-[11px] text-[#F59E0B] font-bold">
-                ✨ +{result.fpAwarded} Faith Points added to your lifetime balance
+                {t("competition.fpAdded", { n: result.fpAwarded })}
               </p>
             </div>
           )}
@@ -329,18 +332,18 @@ export function CompetitionResultView({
               onClick={onViewLeaderboard}
               className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2"
             >
-              <TrendingUp size={16} /> View Leaderboard
+              <TrendingUp size={16} /> {t("competition.viewLeaderboard")}
             </button>
             <button
               onClick={onBackToCompete}
               className="w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white font-bold text-xs transition-all"
             >
-              Back to Compete
+              {t("competition.backToCompete")}
             </button>
           </div>
 
           <p className="text-[10px] text-[#64748B] mt-4">
-            Competition Score is separate from your lifetime Faith Points. Winners are determined server-side when the competition ends.
+            {t("competition.resultNote")}
           </p>
         </motion.div>
       </div>

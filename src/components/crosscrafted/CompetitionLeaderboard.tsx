@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Trophy, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   competitionId: string;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function CompetitionLeaderboard({ competitionId, onClose }: Props) {
+  const t = useTranslation();
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [myRank, setMyRank] = useState<any>(null);
   const [totalParticipants, setTotalParticipants] = useState(0);
@@ -49,8 +51,8 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
         <div className="flex items-center gap-2">
           <Trophy size={16} className="text-[#F59E0B]" />
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Competition Leaderboard</p>
-            <p className="text-[9px] text-[#64748B]">{totalParticipants} participants</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">{t("competition.leaderboard.title")}</p>
+            <p className="text-[9px] text-[#64748B]">{t("competition.leaderboard.participants", { n: totalParticipants })}</p>
           </div>
         </div>
         <button onClick={onClose} className="text-[#64748B] hover:text-white">
@@ -63,12 +65,12 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
         <div className="bg-gradient-to-r from-[#7C3AED]/15 to-[#F39B9B]/15 border border-[#7C3AED]/30 rounded-xl p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]">Your Rank</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("competition.leaderboard.yourRank")}</p>
               <p className="text-lg font-black text-white">#{myRank.rank}</p>
             </div>
             <div className="text-right">
               <p className="text-sm font-bold text-white">{myRank.score} pts</p>
-              <p className="text-[10px] text-[#94A3B8]">{myRank.correctCount} correct · {Math.round(myRank.accuracy * 100)}%</p>
+              <p className="text-[10px] text-[#94A3B8]">{t("competition.leaderboard.correctPct", { n: myRank.correctCount, pct: Math.round(myRank.accuracy * 100) })}</p>
             </div>
           </div>
         </div>
@@ -79,8 +81,8 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
         {leaderboard.length === 0 ? (
           <div className="text-center py-8">
             <Trophy size={28} className="mx-auto text-[#475569] mb-2" />
-            <p className="text-xs text-[#94A3B8]">No participants yet.</p>
-            <p className="text-[10px] text-[#64748B] mt-1">Be the first to play!</p>
+            <p className="text-xs text-[#94A3B8]">{t("competition.leaderboard.empty")}</p>
+            <p className="text-[10px] text-[#64748B] mt-1">{t("competition.leaderboard.emptyCta")}</p>
           </div>
         ) : (
           leaderboard.map((entry, i) => (
@@ -116,10 +118,10 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
               {/* Name + score */}
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-bold truncate ${entry.isCurrentUser ? "text-[#A78BFA]" : "text-white"}`}>
-                  {entry.isCurrentUser ? "You" : entry.username}
+                  {entry.isCurrentUser ? t("competition.leaderboard.you") : entry.username}
                 </p>
                 <p className="text-[10px] text-[#94A3B8]">
-                  {entry.correctCount}/{entry.totalQuestions} correct · {Math.round(entry.accuracy * 100)}%
+                  {t("competition.leaderboard.correctPct", { n: entry.correctCount, pct: Math.round(entry.accuracy * 100) })}
                 </p>
               </div>
 
@@ -135,8 +137,7 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
 
       {/* Footer note */}
       <p className="text-[10px] text-[#64748B] text-center pt-2">
-        Leaderboard ranks by competition score (not lifetime Faith Points).
-        Tie-break: score → correct → accuracy → time.
+        {t("competition.leaderboard.note")}
       </p>
     </div>
   );

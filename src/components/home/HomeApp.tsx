@@ -65,6 +65,7 @@ import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
 import { type Translation } from "@/lib/bible-data";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type View =
   | "landing"
@@ -104,106 +105,109 @@ type View =
 // Six primary destinations stay permanently visible; every secondary feature
 // lives in an organised, collapsible category below (nothing was removed).
 // "App Home" (the feature dashboard) is intentionally NOT a duplicate sidebar
-// link anymore — it opens via the "Explore All Features" button.
+// link anymore — it opens via the "Explore All" button (side.exploreAll).
 // Bible Comics is RESTORED here alongside the other Bible-related features.
 // Bible Movies & Videos intentionally has NO separate sidebar entry: the
 // Watch hub (primary link above) carries it as its "Bible Movies & Stories"
 // category, with the full searchable library linked from Watch. One video
 // destination, no duplicate navigation.
-const PRIMARY_LINKS: { id: View; icon: typeof Search; label: string }[] = [
-  { id: "home", icon: HomeIcon, label: "Home" },
-  { id: "explore", icon: Search, label: "Explore" },
-  { id: "watch", icon: MonitorPlay, label: "Watch" },
-  { id: "groups", icon: Users, label: "Groups" },
-  { id: "bible", icon: BookOpen, label: "Bible" },
-  { id: "events", icon: Calendar, label: "Events" },
+// Labels are i18n keys (labelKey) resolved via t() at render — never
+// translated at module scope.
+const PRIMARY_LINKS: { id: View; icon: typeof Search; labelKey: string }[] = [
+  { id: "home", icon: HomeIcon, labelKey: "side.home" },
+  { id: "explore", icon: Search, labelKey: "side.explore" },
+  { id: "watch", icon: MonitorPlay, labelKey: "side.watch" },
+  { id: "groups", icon: Users, labelKey: "side.groups" },
+  { id: "bible", icon: BookOpen, labelKey: "side.bible" },
+  { id: "events", icon: Calendar, labelKey: "side.events" },
 ];
 
 const SIDEBAR_CATEGORIES: {
-  label: string;
+  labelKey: string;
   icon: typeof Search;
-  links: { id: View; icon: typeof Search; label: string }[];
+  links: { id: View; icon: typeof Search; labelKey: string }[];
 }[] = [
   {
-    label: "Grow in Faith",
+    labelKey: "side.cat.grow",
     icon: Sparkles,
     links: [
-      { id: "comic", icon: Sparkles, label: "Bible Comics" },
-      { id: "trivia", icon: Award, label: "Bible Trivia" },
-      { id: "apologetics", icon: ListChecks, label: "Apologetics" },
-      { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
+      { id: "comic", icon: Sparkles, labelKey: "side.comics" },
+      { id: "trivia", icon: Award, labelKey: "side.trivia" },
+      { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
+      { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
     ],
   },
   {
-    label: "Community",
+    labelKey: "side.cat.community",
     icon: Church,
     links: [
-      { id: "churches", icon: Church, label: "Churches" },
-      { id: "memorials", icon: Flower2, label: "In Loving Memory" },
+      { id: "churches", icon: Church, labelKey: "side.churches" },
+      { id: "memorials", icon: Flower2, labelKey: "side.memorials" },
     ],
   },
   {
     // Task 74: Matrimony is a TOP-LEVEL section (user-confirmed decision).
     // Member-only + 18+ enforced server-side; the view itself handles the
     // friendly eligibility gates (DOB missing / under 18).
-    label: "Matrimony",
+    labelKey: "side.matrimony",
     icon: Heart,
     links: [
-      { id: "matrimony", icon: Heart, label: "Matrimony" },
+      { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
     ],
   },
   {
-    label: "Discover",
+    labelKey: "side.cat.discover",
     icon: Store,
     links: [
-      { id: "shop", icon: Store, label: "Marketplace" },
-      { id: "business-directory", icon: Building2, label: "Business Directory" },
+      { id: "shop", icon: Store, labelKey: "side.marketplace" },
+      { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
     ],
   },
   {
-    label: "More",
+    labelKey: "side.cat.more",
     icon: Grid,
     links: [
-      { id: "blog", icon: FileText, label: "Blog" },
-      { id: "support", icon: HandHeart, label: "Support Koino" },
-      { id: "admin", icon: Shield, label: "Admin" },
+      { id: "blog", icon: FileText, labelKey: "side.blog" },
+      { id: "support", icon: HandHeart, labelKey: "side.support" },
+      { id: "admin", icon: Shield, labelKey: "nav.admin" },
     ],
   },
 ];
 
 // Mobile bottom nav — Instagram-style 5 quick slots per the social spec.
-const MOBILE_NAV: { id: View; icon: typeof Search; label: string }[] = [
-  { id: "home", icon: HomeIcon, label: "Home" },
-  { id: "explore", icon: Search, label: "Explore" },
-  { id: "watch", icon: MonitorPlay, label: "Watch" },
-  { id: "create", icon: PlusSquare, label: "Create" },
-  { id: "profile", icon: CircleUser, label: "Profile" },
+const MOBILE_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
+  { id: "home", icon: HomeIcon, labelKey: "side.home" },
+  { id: "explore", icon: Search, labelKey: "side.explore" },
+  { id: "watch", icon: MonitorPlay, labelKey: "side.watch" },
+  { id: "create", icon: PlusSquare, labelKey: "side.create" },
+  { id: "profile", icon: CircleUser, labelKey: "side.profile" },
 ];
 
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
 // Bible Movies & Videos is reached through Watch (bottom-nav quick slot) —
 // no duplicate entry here.
-const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; label: string }[] = [
-  { id: "groups", icon: Users, label: "Groups" },
-  { id: "memorials", icon: Flower2, label: "In Loving Memory" },
-  { id: "matrimony", icon: Heart, label: "Matrimony" },
-  { id: "dashboard", icon: Sparkles, label: "App Home" },
-  { id: "notifications", icon: Bell, label: "Notifications" },
-  { id: "bible", icon: BookOpen, label: "Bible" },
-  { id: "comic", icon: Sparkles, label: "Bible Comics" },
-  { id: "churches", icon: Search, label: "Churches" },
-  { id: "events", icon: Calendar, label: "Events" },
-  { id: "trivia", icon: Award, label: "Trivia" },
-  { id: "prayer-wall", icon: HeartHandshake, label: "Prayer Wall" },
-  { id: "apologetics", icon: ListChecks, label: "Apologetics" },
-  { id: "shop", icon: Store, label: "Marketplace" },
-  { id: "business-directory", icon: Building2, label: "Business Directory" },
-  { id: "blog", icon: FileText, label: "Blog" },
-  { id: "support", icon: HandHeart, label: "Support Koino" },
-  { id: "admin", icon: Shield, label: "Admin" },
+const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] = [
+  { id: "groups", icon: Users, labelKey: "side.groups" },
+  { id: "memorials", icon: Flower2, labelKey: "side.memorials" },
+  { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
+  { id: "dashboard", icon: Sparkles, labelKey: "side.appHome" },
+  { id: "notifications", icon: Bell, labelKey: "side.notifications" },
+  { id: "bible", icon: BookOpen, labelKey: "side.bible" },
+  { id: "comic", icon: Sparkles, labelKey: "side.comics" },
+  { id: "churches", icon: Search, labelKey: "side.churches" },
+  { id: "events", icon: Calendar, labelKey: "side.events" },
+  { id: "trivia", icon: Award, labelKey: "nav.trivia" },
+  { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
+  { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
+  { id: "shop", icon: Store, labelKey: "side.marketplace" },
+  { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
+  { id: "blog", icon: FileText, labelKey: "side.blog" },
+  { id: "support", icon: HandHeart, labelKey: "side.support" },
+  { id: "admin", icon: Shield, labelKey: "nav.admin" },
 ];
 
 export default function Home() {
+  const t = useTranslation();
   const [view, setView] = useState<View>("landing");
   const { isAuthenticated, profileCompleted, isAdmin, username, loading: authLoading } = useSupabaseUser();
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -323,7 +327,7 @@ export default function Home() {
   };
   useEffect(() => {
     const cat = SIDEBAR_CATEGORIES.find((c) => c.links.some((l) => l.id === view));
-    if (cat) setOpenCategories((prev) => (prev[cat.label] ? prev : { ...prev, [cat.label]: true }));
+    if (cat) setOpenCategories((prev) => (prev[cat.labelKey] ? prev : { ...prev, [cat.labelKey]: true }));
   }, [view]);
 
   // ─── NOTIFICATIONS UNREAD BADGE ─── lightweight refresh on view change
@@ -661,8 +665,8 @@ export default function Home() {
             <button
               onClick={() => goView("notifications")}
               className="relative p-2 rounded-xl hover:bg-white/5 transition-colors"
-              title="Notifications"
-              aria-label="Notifications"
+              title={t("side.notifications")}
+              aria-label={t("side.notifications")}
             >
               <Bell
                 size={18}
@@ -683,7 +687,7 @@ export default function Home() {
             <button
               onClick={() => goView("notifications")}
               className="relative w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06]"
-              aria-label="Notifications"
+              aria-label={t("side.notifications")}
             >
               <Bell size={15} className="text-[#94A3B8]" />
               {unreadCount > 0 && (
@@ -702,7 +706,7 @@ export default function Home() {
         <aside className="hidden md:flex flex-col w-56 border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] bg-[#0B1120] px-3 pt-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Primary navigation — always visible */}
           <nav className="space-y-1">
-            {PRIMARY_LINKS.map(({ id, icon: Icon, label }) => {
+            {PRIMARY_LINKS.map(({ id, icon: Icon, labelKey }) => {
               const active = view === id;
               return (
                 <button
@@ -721,7 +725,7 @@ export default function Home() {
                       className={active ? "text-[#7C3AED]" : ""}
                     />
                   </div>
-                  {label}
+                  {t(labelKey)}
                   {active && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]" />
                   )}
@@ -740,7 +744,7 @@ export default function Home() {
             }`}
           >
             <Sparkles size={16} strokeWidth={1.8} />
-            Explore All Features
+            {t("side.exploreAll")}
           </button>
 
           {/* Secondary features — organised collapsible categories */}
@@ -748,17 +752,17 @@ export default function Home() {
             {SIDEBAR_CATEGORIES.map((cat) => {
               const links = cat.links.filter(({ id }) => id !== "admin" || isAdmin);
               if (links.length === 0) return null;
-              const open = !!openCategories[cat.label];
+              const open = !!openCategories[cat.labelKey];
               const containsActive = links.some(({ id }) => id === view);
               return (
-                <div key={cat.label}>
+                <div key={cat.labelKey}>
                   <button
-                    onClick={() => toggleCategory(cat.label)}
+                    onClick={() => toggleCategory(cat.labelKey)}
                     aria-expanded={open}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-[#64748B] hover:text-white hover:bg-white/[0.03] transition-all"
                   >
                     <cat.icon size={13} strokeWidth={2} />
-                    <span className="flex-1 text-left">{cat.label}</span>
+                    <span className="flex-1 text-left">{t(cat.labelKey)}</span>
                     {containsActive && !open && (
                       <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]" />
                     )}
@@ -769,7 +773,7 @@ export default function Home() {
                   </button>
                   {open && (
                     <div className="mt-0.5 mb-1.5 space-y-0.5">
-                      {links.map(({ id, icon: Icon, label }) => {
+                      {links.map(({ id, icon: Icon, labelKey }) => {
                         const active = view === id;
                         return (
                           <button
@@ -786,7 +790,7 @@ export default function Home() {
                               strokeWidth={active ? 2.4 : 1.8}
                               className={active ? "text-[#7C3AED]" : ""}
                             />
-                            {label}
+                            {t(labelKey)}
                           </button>
                         );
                       })}
@@ -935,7 +939,7 @@ export default function Home() {
                     goView("prayer-wall");
                   }}
                   onDiscuss={(topic) => {
-                    toast("Discussion coming soon", { description: topic });
+                    toast(t("bible.discussSoonToast"), { description: topic });
                   }}
                 />
               )}
@@ -955,7 +959,7 @@ export default function Home() {
               {view === "business-directory" && (
                 <BusinessDirectoryView onListBusiness={() => goView("list-business")} />
               )}
-              {view === "small-groups" && <ComingSoonView title="Small Groups" />}
+              {view === "small-groups" && <ComingSoonView title={t("side.smallGroups")} />}
               {view === "matrimony" && (
                 <MatrimonyView
                   onBack={() => goView("home")}
@@ -966,7 +970,7 @@ export default function Home() {
               {view === "admin" && !isAdmin && (
                 <div className="text-center py-20">
                   <Shield size={32} className="mx-auto text-[#EF4444] mb-3" />
-                  <p className="text-sm text-[#94A3B8]">You don't have permission to access the Admin Panel.</p>
+                  <p className="text-sm text-[#94A3B8]">{t("side.adminDenied")}</p>
                 </div>
               )}
             </motion.div>
@@ -1021,7 +1025,7 @@ export default function Home() {
       {/* Mobile Bottom Nav — 4 quick slots + "More" button */}
       <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50 rounded-[20px] bg-[#111827]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
         <div className="flex items-center justify-around h-14 px-1">
-          {MOBILE_NAV.map(({ id, icon: Icon, label }) => {
+          {MOBILE_NAV.map(({ id, icon: Icon, labelKey }) => {
             const active = view === id;
             return (
               <button
@@ -1053,7 +1057,7 @@ export default function Home() {
                     active ? "text-white font-extrabold" : "text-[#94A3B8]"
                   }`}
                 >
-                  {label}
+                  {t(labelKey)}
                 </span>
               </button>
             );
@@ -1086,7 +1090,7 @@ export default function Home() {
                   : "text-[#94A3B8]"
               }`}
             >
-              More
+              {t("side.more")}
             </span>
           </button>
         </div>
@@ -1111,8 +1115,8 @@ export default function Home() {
             >
               <div className="sticky top-0 bg-[#1C1929] flex items-center justify-between p-5 pb-3 border-b border-white/[0.04]">
                 <div>
-                  <h2 className="text-lg font-extrabold text-white">All Sections</h2>
-                  <p className="text-[11px] text-[#94A3B8] mt-0.5">Tap any to navigate</p>
+                  <h2 className="text-lg font-extrabold text-white">{t("side.allSections")}</h2>
+                  <p className="text-[11px] text-[#94A3B8] mt-0.5">{t("side.tapToNavigate")}</p>
                 </div>
                 <button
                   onClick={() => setShowMoreSheet(false)}
@@ -1124,7 +1128,7 @@ export default function Home() {
 
               <div className="p-5 grid grid-cols-3 gap-3">
                 {/* Show the 4 quick-access views too, so users have everything in one place */}
-                {[...MOBILE_NAV, ...MOBILE_MORE_VIEWS].filter(({ id }) => id !== "admin" || isAdmin).map(({ id, icon: Icon, label }) => {
+                {[...MOBILE_NAV, ...MOBILE_MORE_VIEWS].filter(({ id }) => id !== "admin" || isAdmin).map(({ id, icon: Icon, labelKey }) => {
                   const active = view === id;
                   return (
                     <button
@@ -1152,7 +1156,7 @@ export default function Home() {
                           active ? "text-white" : "text-[#94A3B8]"
                         }`}
                       >
-                        {label}
+                        {t(labelKey)}
                       </span>
                     </button>
                   );
@@ -1165,7 +1169,7 @@ export default function Home() {
                   onClick={() => navigate("landing")}
                   className="w-full py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
                 >
-                  <HomeIcon size={14} /> Back to Home Page
+                  <HomeIcon size={14} /> {t("side.backToHome")}
                 </button>
               </div>
             </motion.div>
@@ -1181,11 +1185,11 @@ export default function Home() {
       {view !== "admin" && (
         <footer className="border-t border-white/[0.04] mt-8 pb-28 md:pb-4">
           <div className="max-w-[680px] mx-auto px-4 py-4 flex items-center justify-center gap-4">
-            <a href="/privacy" className="text-[10px] text-[#475569] hover:text-white transition-colors">Privacy</a>
+            <a href="/privacy" className="text-[10px] text-[#475569] hover:text-white transition-colors">{t("footer.privacyShort")}</a>
             <span className="text-[#1C1929]">·</span>
-            <a href="/terms" className="text-[10px] text-[#475569] hover:text-white transition-colors">Terms</a>
+            <a href="/terms" className="text-[10px] text-[#475569] hover:text-white transition-colors">{t("footer.termsShort")}</a>
             <span className="text-[#1C1929]">·</span>
-            <a href="/help" className="text-[10px] text-[#475569] hover:text-white transition-colors">Help</a>
+            <a href="/help" className="text-[10px] text-[#475569] hover:text-white transition-colors">{t("publicNav.help")}</a>
           </div>
         </footer>
       )}
@@ -1194,6 +1198,7 @@ export default function Home() {
 }
 
 function ComingSoonView({ title }: { title: string }) {
+  const t = useTranslation();
   return (
     <div className="max-w-[680px] mx-auto px-4 py-16 text-center">
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#7C3AED]/15 to-[#EC4899]/15 border border-[#7C3AED]/25 mb-4">
@@ -1201,9 +1206,7 @@ function ComingSoonView({ title }: { title: string }) {
       </div>
       <h2 className="text-xl font-extrabold text-white mb-2">{title}</h2>
       <p className="text-sm text-[#A09DB1] max-w-sm mx-auto">
-        This section is coming soon. We're building {title.toLowerCase()} with the same care and
-        prayer as everything else on Koino. Check back shortly — or explore Churches, Trivia,
-        Apologetics, and more in the meantime!
+        {t("comingSoon.body", { title: title.toLowerCase() })}
       </p>
     </div>
   );

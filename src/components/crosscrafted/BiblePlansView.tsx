@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   READING_PLANS,
   getBook,
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export default function BiblePlansView({ translation, onOpenChapter }: Props) {
+  const t = useTranslation();
   const [openPlanId, setOpenPlanId] = useState<string | null>(null);
   const [progressMap, setProgressMap] = useState<Record<string, PlanProgress>>({});
   const [activeDay, setActiveDay] = useState<{ planId: string; day: number } | null>(null);
@@ -50,8 +52,8 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
   const handleStartPlan = (plan: ReadingPlan) => {
     startPlan(plan.id);
     refreshProgress();
-    toast.success(`Started "${plan.title}"!`, {
-      description: `Day 1 of ${plan.duration} — let's begin.`,
+    toast.success(t("bible.plans.startedToast", { title: plan.title }), {
+      description: t("bible.plans.startedDesc", { n: plan.duration }),
     });
     setOpenPlanId(plan.id);
     setActiveDay({ planId: plan.id, day: 1 });
@@ -64,9 +66,9 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
     const progress = progressMap[planId];
     const wasComplete = progress?.completedDays.includes(day);
     toast(
-      wasComplete ? "Marked as not done" : "Day completed!",
+      wasComplete ? t("bible.plans.markedUndone") : t("bible.plans.dayCompleted"),
       {
-        description: wasComplete ? undefined : "Keep up the rhythm — God honors your faithfulness.",
+        description: wasComplete ? undefined : t("bible.plans.keepGoing"),
       }
     );
   };
@@ -81,7 +83,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
             const text = data.verses.map((v) => `${v.verse} ${v.text.trim()}`).join(" ");
             return { ...r, text };
           } catch {
-            return { ...r, text: "Failed to load." };
+            return { ...r, text: t("bible.plans.loadFailed") };
           }
         })
       );
@@ -108,7 +110,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
           onClick={() => setActiveDay(null)}
           className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-white transition-colors mb-3"
         >
-          <ChevronLeft size={14} /> Back to {openPlan.title}
+          <ChevronLeft size={14} /> {t("bible.plans.backToPlan", { title: openPlan.title })}
         </button>
 
         <div
@@ -120,7 +122,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: openPlan.color }}>
-              Day {activeDay.day} of {openPlan.duration}
+              {t("bible.plans.dayOf", { d: activeDay.day, n: openPlan.duration })}
             </span>
             <button
               onClick={() => handleToggleDay(openPlan.id, activeDay.day)}
@@ -131,11 +133,11 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
               }`}
             >
               <Check size={12} />
-              {isComplete ? "Completed" : "Mark as Done"}
+              {isComplete ? t("bible.plans.completed") : t("bible.plans.markAsDone")}
             </button>
           </div>
           <h2 className="text-lg font-extrabold text-white mb-1">
-            {day ? `${day.readings.length} chapter${day.readings.length > 1 ? "s" : ""} to read` : "No readings"}
+            {day ? t("bible.plans.chaptersToRead", { n: day.readings.length }) : t("bible.plans.noReadings")}
           </h2>
           <p className="text-xs text-[#94A3B8]">{openPlan.title}</p>
         </div>
@@ -143,7 +145,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
         {loadingDay && (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
             <Loader2 size={28} className="animate-spin text-[#7C3AED]" />
-            <p className="text-xs text-[#94A3B8]">Loading today's readings...</p>
+            <p className="text-xs text-[#94A3B8]">{t("bible.plans.loadingReadings")}</p>
           </div>
         )}
 
@@ -160,14 +162,14 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
                         {book?.name} {r.chapter}
                       </p>
                       <p className="text-[10px] text-[#94A3B8]">
-                        {book?.testament === "OT" ? "Old Testament" : "New Testament"} · {book?.category}
+                        {book?.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {book?.category}
                       </p>
                     </div>
                     <button
                       onClick={() => handleOpenReading(r.bookId, r.chapter)}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/25 transition-all"
                     >
-                      Open <ArrowRight size={12} />
+                      {t("bible.plans.open")} <ArrowRight size={12} />
                     </button>
                   </div>
                   <div className="p-3 max-h-48 overflow-y-auto">
@@ -192,7 +194,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
             disabled={activeDay.day <= 1}
             className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all disabled:opacity-40"
           >
-            <ChevronLeft size={14} /> Prev Day
+            <ChevronLeft size={14} /> {t("bible.plans.prevDay")}
           </button>
           <span className="text-xs font-bold text-white">
             {activeDay.day} / {openPlan.duration}
@@ -208,7 +210,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
             disabled={activeDay.day >= openPlan.duration}
             className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all disabled:opacity-40"
           >
-            Next Day <ChevronRight size={14} />
+            {t("bible.plans.nextDay")} <ChevronRight size={14} />
           </button>
         </div>
       </div>
@@ -227,7 +229,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
           onClick={() => setOpenPlanId(null)}
           className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-white transition-colors mb-3"
         >
-          <ChevronLeft size={14} /> All Plans
+          <ChevronLeft size={14} /> {t("bible.plans.allPlans")}
         </button>
 
         <div
@@ -244,10 +246,10 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
           <p className="text-sm text-[#A09DB1] mt-2 leading-relaxed">{openPlan.description}</p>
           <div className="flex items-center gap-3 mt-3">
             <span className="flex items-center gap-1 text-xs text-[#94A3B8]">
-              <Clock size={12} /> {openPlan.duration} days
+              <Clock size={12} /> {t("bible.plans.durationDays", { n: openPlan.duration })}
             </span>
             <span className="flex items-center gap-1 text-xs text-[#94A3B8]">
-              <Calendar size={12} /> {openPlan.days.length} readings
+              <Calendar size={12} /> {t("bible.plans.readingsCount", { n: openPlan.days.length })}
             </span>
           </div>
         </div>
@@ -256,10 +258,10 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
         <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-bold text-white">
-              Your Progress
+              {t("bible.plans.yourProgress")}
             </p>
             <p className="text-xs text-[#94A3B8]">
-              {completed} / {openPlan.duration} days ({pct}%)
+              {t("bible.plans.progressCount", { done: completed, n: openPlan.duration, pct })}
             </p>
           </div>
           <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
@@ -272,13 +274,13 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
           {pct === 100 && (
             <div className="mt-3 flex items-center gap-2 text-[#F59E0B]">
               <Trophy size={14} />
-              <p className="text-xs font-bold">Plan complete! Praise God. 🙌</p>
+              <p className="text-xs font-bold">{t("bible.plans.planComplete")}</p>
             </div>
           )}
         </div>
 
         {/* Day list */}
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Daily Readings</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("bible.plans.dailyReadings")}</p>
         <div className="space-y-2">
           {openPlan.days.map((day) => {
             const isComplete = progress?.completedDays.includes(day.day) || false;
@@ -314,9 +316,9 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
                   {isComplete ? <Check size={16} /> : day.day}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white">Day {day.day}</p>
+                  <p className="text-sm font-bold text-white">{t("bible.plans.dayN", { n: day.day })}</p>
                   <p className="text-[11px] text-[#94A3B8] truncate">
-                    {readingLabels || "No readings assigned"}
+                    {readingLabels || t("bible.plans.noReadingsAssigned")}
                   </p>
                 </div>
                 <ChevronRight size={14} className="text-[#94A3B8] shrink-0" />
@@ -332,14 +334,14 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
   return (
     <div className="max-w-[680px] mx-auto px-4 py-5">
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-white">Bible Reading Plans</h1>
-        <p className="text-xs text-[#94A3B8] mt-0.5">Build a daily rhythm in God's Word</p>
+        <h1 className="text-xl font-bold text-white">{t("bible.plans.title")}</h1>
+        <p className="text-xs text-[#94A3B8] mt-0.5">{t("bible.plans.subtitle")}</p>
       </div>
 
       <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles size={14} className="text-[#A78BFA]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Why Read Daily?</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("bible.plans.whyDaily")}</p>
         </div>
         <p className="text-sm text-white italic leading-relaxed mb-2">
           "Your word is a lamp to my feet and a light to my path."
@@ -385,7 +387,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
                     </span>
                     {started && (
                       <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#22C55E]/15 text-[#22C55E]">
-                        {pct === 100 ? "Done" : "In Progress"}
+                        {pct === 100 ? t("bible.plans.done") : t("bible.plans.inProgress")}
                       </span>
                     )}
                   </div>
@@ -412,13 +414,13 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
 
               <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.04]">
                 <span className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
-                  <Clock size={10} /> {plan.duration} days
+                  <Clock size={10} /> {t("bible.plans.durationDays", { n: plan.duration })}
                 </span>
                 <span className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
-                  <Calendar size={10} /> {plan.days.length} readings
+                  <Calendar size={10} /> {t("bible.plans.readingsCount", { n: plan.days.length })}
                 </span>
                 <span className="text-[10px] font-bold ml-auto" style={{ color: plan.color }}>
-                  {started ? "Continue →" : "Start →"}
+                  {started ? t("bible.plans.continue") : t("bible.plans.start")}
                 </span>
               </div>
             </motion.button>

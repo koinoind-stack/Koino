@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Tier = {
   minPoints: number;
@@ -20,6 +21,17 @@ const TIERS: Tier[] = [
   { minPoints: 5000, title: "Word Warrior", icon: "⚔️" },
   { minPoints: 10000, title: "Bible Master", icon: "👑" },
 ];
+
+// i18n: tier titles above are English source data — resolved to keys at render.
+const TIER_KEYS: Record<number, string> = {
+  0: "levelup.tier.faithSeeker",
+  100: "levelup.tier.bibleStudent",
+  500: "levelup.tier.spiritualDisciple",
+  1500: "levelup.tier.bibleTeacher",
+  3000: "levelup.tier.theologyScholar",
+  5000: "levelup.tier.wordWarrior",
+  10000: "levelup.tier.bibleMaster",
+};
 
 function getTier(points: number): Tier {
   let current = TIERS[0];
@@ -42,6 +54,8 @@ function getTierIndex(points: number): number {
  * Detects tier changes by comparing previous and current points.
  */
 export default function LevelUpAnimation({ totalPoints }: { totalPoints: number }) {
+  const t = useTranslation();
+  const tierTitle = (tier: Tier) => t(TIER_KEYS[tier.minPoints] ?? tier.title);
   const [showCelebration, setShowCelebration] = useState(false);
   const [newTier, setNewTier] = useState<Tier | null>(null);
   const prevTierIdx = useRef<number>(-1);
@@ -69,22 +83,22 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
       }, 5000);
 
       // Show toast
-      toast.success(`${tier.icon} Level Up! You're now a ${tier.title}!`, {
+      toast.success(t("levelup.toast", { icon: tier.icon, title: tierTitle(tier) }), {
         duration: 5000,
       });
     }
 
     prevTierIdx.current = currentTierIdx;
-  }, [totalPoints]);
+  }, [totalPoints, t]);
 
   const shareLevelUp = () => {
     if (!newTier) return;
-    const text = `🎉 I just reached ${newTier.title} ${newTier.icon} on Koino! Play Bible Trivia and level up too!`;
+    const text = t("levelup.shareText", { title: tierTitle(newTier), icon: newTier.icon });
     if (navigator.share) {
-      navigator.share({ title: "Koino Level Up!", text });
+      navigator.share({ title: t("levelup.shareTitle"), text });
     } else {
       navigator.clipboard.writeText(text);
-      toast.success("Copied! Share with friends!");
+      toast.success(t("levelup.copied"));
     }
   };
 
@@ -163,31 +177,31 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
               <div className="flex items-center justify-center gap-1.5 mb-1">
                 <Sparkles size={14} className="text-[#A78BFA]" />
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
-                  Level Up!
+                  {t("levelup.title")}
                 </p>
               </div>
               <h2 className="text-2xl font-extrabold text-white mb-1">
-                {newTier.title}
+                {tierTitle(newTier)}
               </h2>
               <p className="text-xs text-[#A09DB1] mb-4">
-                You've reached {totalPoints.toLocaleString()} Faith Points!
+                {t("levelup.reached", { n: totalPoints.toLocaleString() })}
               </p>
 
               <div className="bg-white/[0.04] rounded-xl p-3 mb-4">
                 <p className="text-[11px] text-[#94A3B8]">
                   {newTier.minPoints >= 10000
-                    ? "🏆 You've mastered the Bible! Incredible!"
+                    ? t("levelup.msg.master")
                     : newTier.minPoints >= 5000
-                    ? "⚔️ You're a Word Warrior! Keep going!"
+                    ? t("levelup.msg.warrior")
                     : newTier.minPoints >= 3000
-                    ? "🏆 Theology Scholar! You're on fire!"
+                    ? t("levelup.msg.scholar")
                     : newTier.minPoints >= 1500
-                    ? "🎓 Bible Teacher! Impressive!"
+                    ? t("levelup.msg.teacher")
                     : newTier.minPoints >= 500
-                    ? "✝️ Spiritual Disciple! Growing strong!"
+                    ? t("levelup.msg.disciple")
                     : newTier.minPoints >= 100
-                    ? "📖 Bible Student! Keep studying!"
-                    : "🌱 Welcome to Koino!"}
+                    ? t("levelup.msg.student")
+                    : t("levelup.msg.welcome")}
                 </p>
               </div>
 
@@ -195,7 +209,7 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
                 onClick={shareLevelUp}
                 className="w-full py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
               >
-                <Share2 size={14} /> Share Achievement
+                <Share2 size={14} /> {t("levelup.shareCta")}
               </button>
             </motion.div>
           </motion.div>

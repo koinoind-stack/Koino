@@ -36,6 +36,7 @@ import {
   getAllComicProgress,
   type ComicProgress,
 } from "@/lib/bible-data";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type ComicChapterSummary = {
   id: string;
@@ -63,6 +64,7 @@ export default function ComicLibraryView({
 }: {
   onOpenComic: (bookId: string, chapter: number) => void;
 }) {
+  const t = useTranslation();
   const [chapters, setChapters] = useState<ComicChapterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +129,7 @@ export default function ComicLibraryView({
       try {
         const res = await fetch("/api/comic/list");
         const text = await res.text();
-        if (!text) throw new Error("Empty response from server");
+        if (!text) throw new Error(t("comics.error.emptyResponse"));
         const data = JSON.parse(text);
         if (!res.ok) throw new Error(data.error || "Failed to load comics");
         const list: ComicChapterSummary[] = (data.chapters || []).slice();
@@ -245,9 +247,9 @@ export default function ComicLibraryView({
     return (
       <div className="text-center py-16">
         <Sparkles size={28} className="mx-auto text-[#475569] mb-3" />
-        <p className="text-sm font-bold text-white">No comics published yet.</p>
+        <p className="text-sm font-bold text-white">{t("comics.empty.title")}</p>
         <p className="text-xs text-[#64748B] mt-1">
-          Illustrated Bible stories are being prepared — check back soon.
+          {t("comics.empty.desc")}
         </p>
       </div>
     );
@@ -263,10 +265,10 @@ export default function ComicLibraryView({
           <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#F39B9B] flex items-center justify-center shadow-lg shadow-[#7C3AED]/20">
             <Sparkles size={15} className="text-white" />
           </span>
-          <h2 className="text-xl font-black text-white tracking-tight">Bible Comics</h2>
+          <h2 className="text-xl font-black text-white tracking-tight">{t("feature.comics.title")}</h2>
         </div>
         <p className="text-xs text-[#A09DB1] mt-1.5 ml-10">
-          Experience the Bible through illustrated stories.
+          {t("comics.subtitle")}
         </p>
       </div>
 
@@ -288,14 +290,14 @@ export default function ComicLibraryView({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by book, chapter or story title…"
-          aria-label="Search Bible Comics"
+          placeholder={t("comics.searchPlaceholder")}
+          aria-label={t("comics.searchAria")}
           className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]/50 focus:bg-white/[0.06] transition-all"
         />
         {query && (
           <button
             onClick={() => setQuery("")}
-            aria-label="Clear search"
+            aria-label={t("comics.clearSearchAria")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-white transition-colors"
           >
             <X size={14} />
@@ -307,9 +309,9 @@ export default function ComicLibraryView({
       <div className="flex p-1 bg-white/[0.04] border border-white/[0.06] rounded-xl mb-3">
         {(
           [
-            { id: "all", label: "All", count: chapters.length },
-            { id: "OT", label: "Old Testament", count: otCount },
-            { id: "NT", label: "New Testament", count: ntCount },
+            { id: "all", label: t("common.all"), count: chapters.length },
+            { id: "OT", label: t("bible.ot"), count: otCount },
+            { id: "NT", label: t("bible.nt"), count: ntCount },
           ] as { id: TestamentFilter; label: string; count: number }[]
         ).map((opt) => (
           <button
@@ -350,11 +352,10 @@ export default function ComicLibraryView({
               <BookOpen size={20} className="text-[#475569]" />
             </span>
             <p className="text-sm font-bold text-white">
-              {selectedBook ? `${selectedBook.name} comics are coming soon.` : "No chapters here yet."}
+              {selectedBook ? t("comics.bookComingSoon", { book: selectedBook.name }) : t("comics.noChapters")}
             </p>
             <p className="text-xs text-[#94A3B8] mt-1 max-w-xs mx-auto leading-relaxed">
-              New illustrated chapters are being prepared. In the meantime, explore the stories
-              already published.
+              {t("comics.noChaptersDesc")}
             </p>
             <button
               onClick={() => {
@@ -364,7 +365,7 @@ export default function ComicLibraryView({
               }}
               className="mt-4 px-4 py-2 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold hover:bg-[#7C3AED]/25 transition-all"
             >
-              Browse all comics
+              {t("comics.browseAll")}
             </button>
           </div>
         ) : (
@@ -372,11 +373,10 @@ export default function ComicLibraryView({
           <div className="text-center py-14 px-4">
             <Search size={22} className="mx-auto text-[#475569] mb-3" />
             <p className="text-sm font-bold text-white">
-              No results for &ldquo;{query.trim()}&rdquo;
+              {t("comics.noResults", { q: query.trim() })}
             </p>
             <p className="text-xs text-[#94A3B8] mt-1">
-              Try a book name (e.g. &ldquo;Genesis&rdquo;), a reference (e.g. &ldquo;Matthew 1&rdquo;)
-              or a story title.
+              {t("comics.noResultsDesc")}
             </p>
             <button
               onClick={() => {
@@ -386,7 +386,7 @@ export default function ComicLibraryView({
               }}
               className="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] text-xs font-bold hover:text-white transition-all"
             >
-              Clear search &amp; filters
+              {t("comics.clearFilters")}
             </button>
           </div>
         )
@@ -394,7 +394,7 @@ export default function ComicLibraryView({
         <>
           {filtersActive && (
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-2">
-              {filtered.length} chapter{filtered.length === 1 ? "" : "s"}
+              {t("comics.chapterCount", { n: filtered.length })}
               {selectedBook ? ` · ${selectedBook.name}` : ""}
             </p>
           )}
@@ -433,6 +433,7 @@ function ContinueReadingStrip({
   prog: ComicProgress;
   onContinue: () => void;
 }) {
+  const t = useTranslation();
   const book = getBook(chapter.bookId);
   const bookName = book?.name || chapter.bookId;
   const total = prog.totalPanels || chapter.panelCount || 0;
@@ -445,7 +446,7 @@ function ContinueReadingStrip({
       animate={{ opacity: 1, y: 0 }}
       onClick={onContinue}
       className="w-full group text-left mb-4 rounded-2xl p-[1px] bg-gradient-to-r from-[#7C3AED]/60 via-[#F39B9B]/50 to-[#7C3AED]/60 hover:from-[#7C3AED] hover:to-[#F39B9B] transition-all"
-      aria-label={`Continue reading ${chapter.title} at panel ${nextPanel} of ${total}`}
+      aria-label={t("comics.continueAria", { title: chapter.title, n: nextPanel, total })}
     >
       <div className="rounded-2xl bg-[#1C1929] p-3 flex items-center gap-3">
         {/* Cover thumbnail */}
@@ -469,11 +470,11 @@ function ContinueReadingStrip({
         {/* Text + progress */}
         <div className="flex-1 min-w-0">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F39B9B]">
-            Continue Reading
+            {t("comics.continueReading")}
           </p>
           <p className="text-xs font-extrabold text-white truncate mt-0.5">{chapter.title}</p>
           <p className="text-[10px] text-[#94A3B8] font-bold">
-            {bookName} {chapter.chapter} · Panel {nextPanel} of {total || "?"} · {pct}%
+            {t("comics.panelProgress", { book: bookName, ch: chapter.chapter, n: nextPanel, total: total || "?", pct })}
           </p>
           {/* Progress bar */}
           <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
@@ -506,9 +507,10 @@ function BookPicker({
   countByBook: Map<string, number>;
   onSelect: (bookId: string | null) => void;
 }) {
+  const t = useTranslation();
   const groups: { label: string; books: typeof BIBLE_BOOKS }[] = [];
-  if (testament !== "NT") groups.push({ label: "Old Testament", books: BIBLE_BOOKS.filter((b) => b.testament === "OT") });
-  if (testament !== "OT") groups.push({ label: "New Testament", books: BIBLE_BOOKS.filter((b) => b.testament === "NT") });
+  if (testament !== "NT") groups.push({ label: t("bible.ot"), books: BIBLE_BOOKS.filter((b) => b.testament === "OT") });
+  if (testament !== "OT") groups.push({ label: t("bible.nt"), books: BIBLE_BOOKS.filter((b) => b.testament === "NT") });
 
   return (
     <div className="mb-4 space-y-2.5">
@@ -521,7 +523,7 @@ function BookPicker({
             : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white hover:border-white/[0.2]"
         }`}
       >
-        All Books
+        {t("comics.allBooks")}
       </button>
 
       {groups.map((group) => (
@@ -539,8 +541,8 @@ function BookPicker({
                   onClick={() => onSelect(book.id)}
                   title={
                     count > 0
-                      ? `${book.name} — ${count} chapter${count === 1 ? "" : "s"}`
-                      : `${book.name} — coming soon`
+                      ? t("comics.bookChaptersTitle", { name: book.name, n: count })
+                      : t("comics.bookComingSoonTitle", { name: book.name })
                   }
                   className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 ${
                     selected
@@ -587,6 +589,7 @@ function ComicChapterCard({
   prog: ComicProgress | null;
   onOpen: () => void;
 }) {
+  const t = useTranslation();
   const total = chapter.panelCount;
   const pct = prog && total > 0 ? Math.min(100, Math.round((prog.lastPanel / total) * 100)) : 0;
 
@@ -597,7 +600,7 @@ function ComicChapterCard({
       transition={{ delay: Math.min(index * 0.04, 0.3) }}
       onClick={onOpen}
       className="group bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col"
-      aria-label={`${chapter.title} — ${bookName} ${chapter.chapter}`}
+      aria-label={t("comics.cardAria", { title: chapter.title, book: bookName, ch: chapter.chapter })}
     >
       {/* Cover */}
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
@@ -605,7 +608,7 @@ function ComicChapterCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={chapter.coverArtUrl}
-            alt={`${chapter.title} — ${bookName} ${chapter.chapter} cover artwork`}
+            alt={t("comics.coverAlt", { title: chapter.title, book: bookName, ch: chapter.chapter })}
             className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
             loading="lazy"
             decoding="async"
@@ -625,15 +628,15 @@ function ComicChapterCard({
         <div className="absolute top-2 left-2">
           {status === "done" ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#22C55E] text-slate-950 text-[9px] font-black">
-              <CheckCircle2 size={10} /> Completed
+              <CheckCircle2 size={10} /> {t("comics.completed")}
             </span>
           ) : status === "progress" ? (
             <span className="px-2 py-0.5 rounded-full bg-[#F39B9B] text-slate-950 text-[9px] font-black">
-              {pct}% read
+              {t("comics.pctRead", { pct })}
             </span>
           ) : (
             <span className="px-2 py-0.5 rounded-full bg-[#7C3AED] text-white text-[9px] font-black">
-              New
+              {t("comics.new")}
             </span>
           )}
         </div>
@@ -668,10 +671,10 @@ function ComicChapterCard({
           <Clock3 size={9} />
           {total > 0 ? (
             <>
-              {total} panel{total === 1 ? "" : "s"} · ~{estimateReadMinutes(total)} min read
+              {t("comics.panelMeta", { panels: total, mins: estimateReadMinutes(total) })}
             </>
           ) : (
-            <>Illustrated story</>
+            <>{t("comics.illustratedStory")}</>
           )}
         </p>
       </div>
@@ -680,15 +683,15 @@ function ComicChapterCard({
       <div className="flex items-center justify-between px-3 py-2 border-t border-white/[0.04]">
         {status === "progress" ? (
           <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-[#A78BFA] to-[#F39B9B] bg-clip-text text-transparent">
-            Continue Reading
+            {t("comics.continueReading")}
           </span>
         ) : status === "done" ? (
           <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">
-            Read Again
+            {t("comics.readAgain")}
           </span>
         ) : (
           <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">
-            Start Reading
+            {t("comics.startReading")}
           </span>
         )}
         <ArrowRight
