@@ -24,7 +24,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const cursor = searchParams.get("cursor");
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20", 10), 1), 50);
 
-  const blockFilter = viewerId ? await getBlockFilter(viewerId) : undefined;
+  // Phase 1 Fix 3: PostComment's author field is `userId` (NOT authorId —
+  // that is the Post model). The old filter { authorId: { notIn } } made
+  // Prisma throw PrismaClientValidationError → HTTP 500 for any viewer who
+  // had blocked (or been blocked by) someone.
+  const blockFilter = viewerId ? await getBlockFilter(viewerId, "userId") : undefined;
   const where: Record<string, unknown> = {
     postId: id,
     parentId: null,

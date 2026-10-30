@@ -6,7 +6,12 @@
  */
 
 import { db } from "../src/lib/db";
+import { assertNotProductionDb } from "../scripts/lib/db-guard";
 import triviaData from "./trivia-questions.json";
+
+// Phase 1 Fix 5: refuse to run against the production database (see
+// scripts/lib/db-guard.ts — this is how E2E test data leaked to prod).
+assertNotProductionDb("seed-trivia");
 
 type QuestionData = {
   questionId: string;

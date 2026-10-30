@@ -1,6 +1,11 @@
 // Rebrand existing DB rows from "CrossCrafted" → "Believ"
 // Run against the Supabase Postgres database.
 import { PrismaClient } from "@prisma/client";
+import { assertNotProductionDb } from "./lib/db-guard";
+
+// Phase 1 Fix 5: refuse to run against the production database (see
+// scripts/lib/db-guard.ts — this is how E2E test data leaked to prod).
+assertNotProductionDb("rebrand-db");
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
