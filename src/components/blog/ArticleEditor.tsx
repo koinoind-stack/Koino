@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { BLOG_CATEGORIES, estimateReadingMinutes, BLOG_LIMITS } from "@/lib/blog";
 import MarkdownRenderer from "@/components/crosscrafted/MarkdownRenderer";
 import { insertAtCursor } from "@/components/social/EmojiPicker";
@@ -57,6 +58,19 @@ type Props = {
 
 const DRAFT_KEY = (id?: string) => `koino-blog-draft-${id || "new"}`;
 
+/** Display-name keys for the (English, DB-stored) category values. */
+const CATEGORY_KEY: Record<string, string> = {
+  "Bible Study": "blog.category.bibleStudy",
+  Devotionals: "blog.category.devotionals",
+  Testimonies: "blog.category.testimonies",
+  "Christian Living": "blog.category.christianLiving",
+  Apologetics: "blog.category.apologetics",
+  "Church & Ministry": "blog.category.churchMinistry",
+  "Christian News & Community": "blog.category.newsCommunity",
+  "Prayer & Encouragement": "blog.category.prayerEncouragement",
+};
+const categoryKey = (c: string) => CATEGORY_KEY[c] ?? "";
+
 export default function ArticleEditor({
   initial,
   isAdmin = false,
@@ -65,6 +79,7 @@ export default function ArticleEditor({
   onCancel,
 }: Props) {
   const router = useRouter();
+  const t = useTranslation();
   const [id, setId] = useState<string | undefined>(initial?.id);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
@@ -101,7 +116,7 @@ export default function ArticleEditor({
               setCategory(d.category ?? "");
               setTags((d.tags ?? []).join(", "));
               setCover(d.coverImageUrl ?? "");
-              toast.info("Restored your unsaved draft from this device.");
+              toast.info(t("blog.editor.restoreDraft"));
             }
           }
         } catch {
@@ -164,15 +179,15 @@ export default function ArticleEditor({
       fd.append("file", file);
       const res = await fetch("/api/blog/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (!res.ok) throw new Error(data.error || t("blog.editor.error.uploadFailed"));
       const el = contentRef.current;
       if (el) {
         const alt = file.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 60);
         insertAtCursor(el, `\n![${alt}](${data.url})\n`, setContent);
       }
-      toast.success("Image inserted");
+      toast.success(t("blog.editor.imageInserted"));
     } catch (e: any) {
-      toast.error(e?.message || "Couldn't upload the image.");
+      toast.error(e?.message || t("blog.editor.error.imageUpload"));
     } finally {
       setBusy("");
     }
@@ -180,14 +195,14 @@ export default function ArticleEditor({
 
   // ── Validation + persistence ──
   const validate = (): string | null => {
-    if (title.trim().length < BLOG_LIMITS.titleMin) return `Title must be at least ${BLOG_LIMITS.titleMin} characters.`;
-    if (title.trim().length > BLOG_LIMITS.titleMax) return "Title must be under 200 characters.";
-    if (!category) return "Choose a category.";
-    if (!content.trim()) return "Write some content first.";
-    if (content.length > BLOG_LIMITS.contentMax) return "Article content is too long.";
-    if ((excerpt || "").length > BLOG_LIMITS.excerptMax) return "Excerpt must be under 500 characters.";
+    if (title.trim().length < BLOG_LIMITS.titleMin) return t("blog.editor.error.titleMin", { n: BLOG_LIMITS.titleMin });
+    if (title.trim().length > BLOG_LIMITS.titleMax) return t("blog.editor.error.titleMax");
+    if (!category) return t("blog.editor.error.category");
+    if (!content.trim()) return t("blog.editor.error.content");
+    if (content.length > BLOG_LIMITS.contentMax) return t("blog.editor.error.contentTooLong");
+    if ((excerpt || "").length > BLOG_LIMITS.excerptMax) return t("blog.editor.error.excerptMax");
     const tagList = parseTags(tags);
-    if (tagList.length > BLOG_LIMITS.tagMax) return `Up to ${BLOG_LIMITS.tagMax} tags.`;
+    if (tagList.length > BLOG_LIMITS.tagMax) return t("blog.editor.error.tagMax", { n: BLOG_LIMITS.tagMax });
     return null;
   };
 
@@ -223,14 +238,14 @@ export default function ArticleEditor({
             body: JSON.stringify(publishNow ? { ...payload(), publishNow: true } : payload()),
           });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Couldn't save the article.");
+      if (!res.ok) throw new Error(data.error || t("blog.editor.error.save"));
       let article = data.article;
 
       if (thenSubmit && !publishNow) {
         // Submit for review (works for brand-new and resubmitted articles).
         const sres = await fetch(`/api/blog/articles/${article.id}/submit`, { method: "POST" });
         const sdata = await sres.json();
-        if (!sres.ok) throw new Error(sdata.error || "Couldn't submit for review.");
+        if (!sres.ok) throw new Error(sdata.error || t("blog.editor.error.submit"));
         article = sdata.article;
       }
 
@@ -238,16 +253,16 @@ export default function ArticleEditor({
       setId(article.id);
       toast.success(
         publishNow
-          ? "Article published."
+          ? t("blog.editor.published")
           : thenSubmit
-            ? "Submitted for review — an admin will take a look."
-            : "Draft saved."
+            ? t("blog.editor.submittedForReview")
+            : t("blog.editor.draftSaved")
       );
       if (thenSubmit) onSubmitted?.(article);
       else onSaved?.(article);
       router.refresh();
     } catch (e: any) {
-      const msg = e?.message || "Something went wrong. Your draft is safe on this device.";
+      const msg = e?.message || t("blog.editor.error.generic");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -262,11 +277,11 @@ export default function ArticleEditor({
       fd.append("file", file);
       const res = await fetch("/api/blog/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (!res.ok) throw new Error(data.error || t("blog.editor.error.uploadFailed"));
       setCover(data.url);
-      toast.success("Cover image uploaded");
+      toast.success(t("blog.editor.coverUploaded"));
     } catch (e: any) {
-      toast.error(e?.message || "Couldn't upload the cover image.");
+      toast.error(e?.message || t("blog.editor.error.coverUpload"));
     } finally {
       setBusy("");
     }
@@ -280,7 +295,7 @@ export default function ArticleEditor({
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Article title"
+        placeholder={t("blog.editor.titlePlaceholder")}
         maxLength={BLOG_LIMITS.titleMax}
         className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-lg font-black text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60 focus:ring-2 focus:ring-[#F39B9B]/20"
       />
@@ -289,7 +304,7 @@ export default function ArticleEditor({
       <textarea
         value={excerpt}
         onChange={(e) => setExcerpt(e.target.value)}
-        placeholder="Optional excerpt / subtitle — shown on cards and the feed (max 500 chars)"
+        placeholder={t("blog.editor.excerptPlaceholder")}
         rows={2}
         maxLength={BLOG_LIMITS.excerptMax}
         className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60 resize-y"
@@ -302,15 +317,15 @@ export default function ArticleEditor({
           onChange={(e) => setCategory(e.target.value)}
           className="w-full rounded-xl bg-[#1C1929] border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F39B9B]/60"
         >
-          <option value="">Choose a category…</option>
+          <option value="">{t("blog.editor.chooseCategory")}</option>
           {BLOG_CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>{categoryKey(c) ? t(categoryKey(c)) : c}</option>
           ))}
         </select>
         <input
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-          placeholder="Tags (comma separated, up to 8)"
+          placeholder={t("blog.editor.tagsPlaceholder")}
           className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60"
         />
       </div>
@@ -320,23 +335,23 @@ export default function ArticleEditor({
         {cover ? (
           <div className="relative w-40 h-24 rounded-xl overflow-hidden border border-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cover} alt="Cover preview" className="w-full h-full object-cover" loading="lazy" />
+            <img src={cover} alt={t("blog.editor.coverPreviewAlt")} className="w-full h-full object-cover" loading="lazy" />
             <button
               type="button"
               onClick={() => setCover("")}
               className="absolute top-1 right-1 rounded-md bg-black/70 p-1 text-white hover:bg-black"
-              aria-label="Remove cover image"
+              aria-label={t("blog.editor.removeCover")}
             >
               <X size={12} />
             </button>
           </div>
         ) : (
           <button type="button" onClick={() => coverInputRef.current?.click()} disabled={busy === "cover"} className={btn}>
-            <ImagePlus size={13} /> {busy === "cover" ? "Uploading…" : "Add cover image"}
+            <ImagePlus size={13} /> {busy === "cover" ? t("blog.editor.uploading") : t("blog.editor.addCover")}
           </button>
         )}
         <p className="text-[11px] text-[#726E88]">
-          Reading time: <span className="font-bold text-[#A09DB1]">{readingMinutes} min</span> · JPG/PNG/WEBP, max 10 MB
+          {t("blog.editor.readingTimeMeta", { n: readingMinutes })}
         </p>
         <input
           ref={coverInputRef}
@@ -354,28 +369,28 @@ export default function ArticleEditor({
       {/* Toolbar */}
       {!preview && (
         <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
-          <button type="button" className={btn} onClick={() => prefixLine("## ")} title="Heading"><Heading2 size={13} /> Heading</button>
-          <button type="button" className={btn} onClick={() => wrap("**")} title="Bold"><Bold size={13} /></button>
-          <button type="button" className={btn} onClick={() => wrap("*")} title="Italic"><Italic size={13} /></button>
-          <button type="button" className={btn} onClick={() => prefixLine("- ")} title="Bullet list"><List size={13} /></button>
-          <button type="button" className={btn} onClick={() => prefixLine("1. ")} title="Numbered list"><ListOrdered size={13} /></button>
-          <button type="button" className={btn} onClick={() => prefixLine("> ")} title="Quote"><Quote size={13} /></button>
+          <button type="button" className={btn} onClick={() => prefixLine("## ")} title={t("blog.editor.tool.heading")}><Heading2 size={13} /> {t("blog.editor.tool.heading")}</button>
+          <button type="button" className={btn} onClick={() => wrap("**")} title={t("blog.editor.tool.bold")}><Bold size={13} /></button>
+          <button type="button" className={btn} onClick={() => wrap("*")} title={t("blog.editor.tool.italic")}><Italic size={13} /></button>
+          <button type="button" className={btn} onClick={() => prefixLine("- ")} title={t("blog.editor.tool.bulletList")}><List size={13} /></button>
+          <button type="button" className={btn} onClick={() => prefixLine("1. ")} title={t("blog.editor.tool.numberedList")}><ListOrdered size={13} /></button>
+          <button type="button" className={btn} onClick={() => prefixLine("> ")} title={t("blog.editor.tool.quote")}><Quote size={13} /></button>
           <button
             type="button"
             className={btn}
             onClick={() => {
               const el = contentRef.current;
-              const url = window.prompt("Link URL (https://…)");
+              const url = window.prompt(t("blog.editor.linkPrompt"));
               if (!url) return;
               if (el) insertAtCursor(el, `[link text](${url})`, setContent);
               else setContent(`${content}[link text](${url})`);
             }}
-            title="Link"
+            title={t("blog.editor.tool.link")}
           >
             <Link2 size={13} />
           </button>
           <label className={`${btn} cursor-pointer`}>
-            <ImagePlus size={13} /> Image
+            <ImagePlus size={13} /> {t("blog.editor.tool.image")}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -396,7 +411,7 @@ export default function ArticleEditor({
           {content.trim() ? (
             <MarkdownRenderer content={content} />
           ) : (
-            <p className="text-sm text-[#726E88]">Nothing to preview yet.</p>
+            <p className="text-sm text-[#726E88]">{t("blog.editor.nothingToPreview")}</p>
           )}
         </div>
       ) : (
@@ -404,7 +419,7 @@ export default function ArticleEditor({
           ref={contentRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={"Write your article… (Markdown supported: ## headings, **bold**, *italic*, lists, > quotes, [links](url))"}
+          placeholder={t("blog.editor.contentPlaceholder")}
           rows={16}
           className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60 resize-y font-mono leading-relaxed"
         />
@@ -422,7 +437,7 @@ export default function ArticleEditor({
           className={btn}
           disabled={busy !== ""}
         >
-          <Eye size={13} /> {preview ? "Edit" : "Preview"}
+          <Eye size={13} /> {preview ? t("blog.editor.edit") : t("blog.editor.preview")}
         </button>
         <button
           type="button"
@@ -430,7 +445,7 @@ export default function ArticleEditor({
           disabled={busy !== ""}
           className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 px-4 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors disabled:opacity-40"
         >
-          <Save size={13} /> {busy === "save" ? "Saving…" : "Save Draft"}
+          <Save size={13} /> {busy === "save" ? t("blog.editor.saving") : t("blog.editor.saveDraft")}
         </button>
         <button
           type="button"
@@ -438,7 +453,7 @@ export default function ArticleEditor({
           disabled={busy !== ""}
           className="inline-flex items-center gap-1.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] px-4 py-2.5 text-xs font-extrabold text-slate-950 uppercase tracking-wider transition-colors disabled:opacity-40"
         >
-          <Send size={13} /> {busy === "submit" ? "Submitting…" : "Submit for Review"}
+          <Send size={13} /> {busy === "submit" ? t("blog.editor.submitting") : t("blog.editor.submitForReview")}
         </button>
         {isAdmin && (
           <button
@@ -447,20 +462,18 @@ export default function ArticleEditor({
             disabled={busy !== ""}
             className="inline-flex items-center gap-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors disabled:opacity-40"
           >
-            <Send size={13} /> {busy === "publish" ? "Publishing…" : "Publish Immediately"}
+            <Send size={13} /> {busy === "publish" ? t("blog.editor.publishing") : t("blog.editor.publishNow")}
           </button>
         )}
         {onCancel && (
           <button type="button" onClick={onCancel} className="ml-auto text-xs font-bold text-[#A09DB1] hover:text-white transition-colors">
-            Cancel
+            {t("common.cancel")}
           </button>
         )}
       </div>
 
       <p className="text-[11px] text-[#726E88] leading-relaxed">
-        Members submit articles for admin review before they appear publicly. Drafts are
-        also kept on this device so you never lose unsaved work. Koino may edit articles
-        for clarity before publishing.
+        {t("blog.editor.footerNote")}
       </p>
     </div>
   );
