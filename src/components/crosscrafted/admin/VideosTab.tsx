@@ -14,6 +14,7 @@ import {
   ExternalLink, Loader2, RefreshCw, X, BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { VIDEO_CATEGORIES, VIDEO_LANGUAGES, parseDurationInput, formatDuration, formatBibleRef } from "@/lib/videos";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
 
@@ -96,6 +97,7 @@ function refPreview(r: BibleRefRow): { text: string; tip: string | null } | null
 }
 
 export default function VideosTab() {
+  const t = useTranslation();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [items, setItems] = useState<AdminVideo[]>([]);
@@ -212,7 +214,7 @@ export default function VideosTab() {
       // Prefill only fields the admin hasn't typed into yet.
       if (!form.title.trim() && body.title) setForm((f) => ({ ...f, title: body.title }));
       if (!form.sourceName.trim() && body.author) setForm((f) => ({ ...f, sourceName: `YouTube — ${body.author}` }));
-      toast.success("Metadata fetched from YouTube");
+      toast.success(t("admin.videos.toast.metadata"));
     } catch (err) {
       setResolved(null);
       toast.error((err as Error).message);
@@ -336,7 +338,7 @@ export default function VideosTab() {
       const res = await fetch(`/api/admin/videos/${v.id}`, { method: "DELETE" });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Delete failed");
-      toast.success("Video deleted");
+      toast.success(t("admin.videos.toast.deleted"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -365,7 +367,7 @@ export default function VideosTab() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search videos by title…"
+            placeholder={t("admin.videos.searchPlaceholder")}
             className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
           />
         </div>
@@ -375,15 +377,15 @@ export default function VideosTab() {
           className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#1C1929]"
         >
           <option value="">All statuses</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
+          <option value="published">{t("common.status.published")}</option>
+          <option value="draft">{t("common.status.draft")}</option>
           <option value="unpublished">Unpublished</option>
         </select>
         <button
           onClick={openCreate}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold shrink-0"
         >
-          <Plus size={15} /> Add Video
+          <Plus size={15} /> {t("admin.videos.add")}
         </button>
       </div>
 
@@ -395,7 +397,7 @@ export default function VideosTab() {
       ) : items.length === 0 ? (
         <div className="text-center py-16">
           <Clapperboard size={26} className="mx-auto text-[#475569] mb-3" />
-          <p className="text-sm text-[#94A3B8]">No videos yet. Click "Add Video" to curate the first one.</p>
+          <p className="text-sm text-[#94A3B8]">{t("admin.videos.empty")}</p>
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -451,7 +453,7 @@ export default function VideosTab() {
                     {` · ${v.viewCount} views`}
                   </p>
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg bg-white/[0.05] text-[#94A3B8] hover:text-white" title="Edit">
+                    <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg bg-white/[0.05] text-[#94A3B8] hover:text-white" title={t("common.edit")}>
                       <Pencil size={13} />
                     </button>
                     {v.status === "published" ? (
@@ -466,7 +468,7 @@ export default function VideosTab() {
                       <button
                         onClick={() => patch(v.id, { status: "published" })}
                         className="p-1.5 rounded-lg bg-[#22C55E]/15 text-[#4ADE80] hover:bg-[#22C55E]/25"
-                        title="Publish"
+                        title={t("common.action.publish")}
                       >
                         <ExternalLink size={13} />
                       </button>
@@ -492,7 +494,7 @@ export default function VideosTab() {
                         <Link2 size={13} />
                       </a>
                     )}
-                    <button onClick={() => remove(v)} className="p-1.5 rounded-lg bg-[#EF4444]/10 text-[#FCA5A5] hover:bg-[#EF4444]/20" title="Delete">
+                    <button onClick={() => remove(v)} className="p-1.5 rounded-lg bg-[#EF4444]/10 text-[#FCA5A5] hover:bg-[#EF4444]/20" title={t("common.delete")}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -509,7 +511,7 @@ export default function VideosTab() {
           <div className="bg-[#151220] border border-white/[0.08] rounded-3xl w-full max-w-2xl my-auto">
             <div className="sticky top-0 bg-[#151220] rounded-t-3xl border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
               <h3 className="text-base font-extrabold text-white">
-                {form.id ? "Edit Video" : "Add Video"}
+                {form.id ? t("admin.videos.edit") : t("admin.videos.add")}
               </h3>
               <button onClick={() => setShowForm(false)} className="p-2 rounded-full bg-white/[0.05] text-[#94A3B8] hover:text-white">
                 <X size={16} />

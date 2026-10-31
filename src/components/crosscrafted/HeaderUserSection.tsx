@@ -72,7 +72,7 @@ export default function HeaderUserSection({
       <button
         onClick={onOpenProfile}
         disabled={!onOpenProfile}
-        title="My profile"
+        title={t("header.myProfile")}
         className="flex items-center gap-1.5 min-w-0 disabled:cursor-default"
       >
         {avatarUrl ? (
@@ -88,10 +88,10 @@ export default function HeaderUserSection({
               <span className="text-xs font-bold text-white truncate max-w-[70px]">{name}</span>
               {isAdmin && (
                 <span
-                  title="Administrator"
+                  title={t("header.administrator")}
                   className="shrink-0 px-1 py-px rounded bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
                 >
-                  Admin
+                  {t("header.adminBadge")}
                 </span>
               )}
             </span>

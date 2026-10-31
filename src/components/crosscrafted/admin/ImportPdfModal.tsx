@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { FileUp, FileText, X, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
  * Uses the existing Koino dark theme + neo-input styling.
  */
 export default function ImportPdfModal({ onClose, onImported }: Props) {
+  const t = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +206,7 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
             onClick={onClose}
             disabled={uploading}
             className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white disabled:opacity-50"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={14} />
           </button>
@@ -328,7 +330,7 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
             disabled={uploading}
             className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white text-sm font-bold border border-white/[0.08] transition-colors disabled:opacity-50"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"

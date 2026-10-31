@@ -9,6 +9,7 @@
 import { BookOpen } from "lucide-react";
 import { categoryLabel, formatDuration, languageLabel, formatBibleRef, type BibleRefLike } from "@/lib/videos";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const cardBookName = (bookId: string) =>
   BIBLE_BOOKS.find((b) => b.id === bookId)?.name || bookId;
@@ -33,6 +34,7 @@ export type VideoCardData = {
 };
 
 export default function VideoCard({ video, href }: { video: VideoCardData; href?: string }) {
+  const t = useTranslation();
   const thumb =
     video.thumbnailUrl ||
     (video.youtubeId ? `https://i.ytimg.com/vi/${video.youtubeId}/hqdefault.jpg` : null);
@@ -78,7 +80,7 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
         )}
         {video.featured && (
           <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-[#7C3AED] text-[9px] font-extrabold uppercase tracking-wide text-white">
-            Featured
+            {t("videos.card.featured")}
           </span>
         )}
         {/* continue-watching progress bar */}
@@ -89,7 +91,7 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
         )}
         {video.completed && (
           <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#22C55E]/90 text-[9px] font-extrabold uppercase tracking-wide text-white">
-            Watched
+            {t("videos.card.watched")}
           </span>
         )}
       </div>

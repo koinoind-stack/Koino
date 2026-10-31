@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { BRAND } from "@/lib/brand";
@@ -18,6 +19,22 @@ const CATEGORIES = [
   "Marketplace", "Business Directory", `${BRAND.name} Merch`, "Prizes", `Support ${BRAND.name}`, "Privacy & Security",
 ];
 
+// DB category value → i18n key (English values in help.category.* match the DB).
+const CATEGORY_KEYS: Record<string, string> = {
+  "Account": "help.category.account",
+  "Bible": "help.category.bible",
+  "Bible Trivia": "help.category.trivia",
+  "Churches": "help.category.churches",
+  "Events": "help.category.events",
+  "Prayer Wall": "help.category.prayer",
+  "Marketplace": "help.category.marketplace",
+  "Business Directory": "help.category.business",
+  [`${BRAND.name} Merch`]: "help.category.merch",
+  "Prizes": "help.category.prizes",
+  [`Support ${BRAND.name}`]: "help.category.support",
+  "Privacy & Security": "help.category.privacy",
+};
+
 export default async function HelpPage() {
   const articles = await db.helpArticle.findMany({
     where: { published: true },
@@ -34,14 +51,14 @@ export default async function HelpPage() {
     <PublicPageLayout>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-black text-white mb-2">{BRAND.name} Help Center</h1>
-          <p className="text-sm text-[#A09DB1]">Find answers to common questions about Koino.</p>
+          <h1 className="text-2xl font-black text-white mb-2"><T k="help.title" /></h1>
+          <p className="text-sm text-[#A09DB1]"><T k="help.subtitle" /></p>
         </div>
 
         {articles.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-[#94A3B8] mb-2">No help articles published yet.</p>
-            <p className="text-xs text-[#64748B]">Help articles are being prepared. Please check back soon.</p>
+            <p className="text-sm text-[#94A3B8] mb-2"><T k="help.empty" /></p>
+            <p className="text-xs text-[#64748B]"><T k="help.emptyNote" /></p>
             <Link href="/contact" className="inline-block mt-4 px-4 py-2 rounded-xl bg-[#F39B9B] text-slate-950 text-xs font-bold">
               Contact Us
             </Link>
@@ -50,7 +67,7 @@ export default async function HelpPage() {
           <div className="space-y-6">
             {byCategory.map((group) => (
               <div key={group.category}>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#F39B9B] mb-3">{group.category}</h2>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#F39B9B] mb-3"><T k={CATEGORY_KEYS[group.category] ?? group.category} /></h2>
                 <div className="space-y-2">
                   {group.articles.map((article) => (
                     <Link

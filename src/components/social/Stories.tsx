@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { StoryGroup } from "./types";
 import { api } from "./types";
 import { timeAgo } from "@/lib/social/format";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type BarProps = {
@@ -18,6 +19,7 @@ type BarProps = {
 
 /** Horizontal story rings: "Your story" + everyone else (unseen first). */
 export function StoryBar({ groups, onOpen, onCreate, onOpenProfile }: BarProps) {
+  const t = useTranslation();
   const mine = groups.find((g) => g.isMine);
   const others = groups.filter((g) => !g.isMine);
   return (
@@ -48,7 +50,7 @@ export function StoryBar({ groups, onOpen, onCreate, onOpenProfile }: BarProps) 
           </button>
         )}
         <button onClick={mine ? () => onCreate() : onCreate} className="text-[10px] font-bold text-[#94A3B8] hover:text-white">
-          Your story
+          {t("stories.yourStory")}
         </button>
       </div>
       {/* others */}
@@ -89,6 +91,7 @@ type ViewerProps = {
 
 /** Full-screen story viewer: progress bars, tap zones, reply box. */
 export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: ViewerProps) {
+  const t = useTranslation();
   const startIdx = Math.max(groups.findIndex((g) => g.user.username === startUsername), 0);
   const [groupIdx, setGroupIdx] = useState(startIdx);
   const [itemIdx, setItemIdx] = useState(0);
@@ -143,7 +146,7 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
     if (!reply.trim() || !item) return;
     try {
       await api(`/api/social/stories/${item.id}`, { method: "POST", body: JSON.stringify({ reply: reply.trim() }) });
-      toast.success("Reply sent");
+      toast.success(t("stories.replySent"));
       setReply("");
     } catch (err) {
       toast.error((err as Error).message);
@@ -190,8 +193,8 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
         ) : (
           <Image src={item.mediaUrl} alt="" fill sizes="100vw" className="object-contain" unoptimized />
         )}
-        <button onClick={prev} className="absolute left-0 top-0 bottom-10 w-1/3" aria-label="previous" />
-        <button onClick={next} className="absolute right-0 top-0 bottom-10 w-1/3" aria-label="next" />
+        <button onClick={prev} className="absolute left-0 top-0 bottom-10 w-1/3" aria-label={t("stories.prevAria")} />
+        <button onClick={next} className="absolute right-0 top-0 bottom-10 w-1/3" aria-label={t("stories.nextAria")} />
         {item.caption && (
           <p className="absolute bottom-28 left-4 right-4 text-white text-center text-sm drop-shadow-lg">{item.caption}</p>
         )}
@@ -205,7 +208,7 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
             onChange={(e) => setReply(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendReply()}
             onFocus={() => setPaused(true)}
-            placeholder="Reply to story…"
+            placeholder={t("stories.replyPlaceholder")}
             className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2.5 text-sm text-white focus:outline-none"
           />
           <EmojiPickerButton
@@ -228,6 +231,7 @@ type CreatorProps = { onClose: () => void; onPosted: () => void };
 
 /** Story creator: pick image/video → optional caption → upload with progress. */
 export function StoryCreator({ onClose, onPosted }: CreatorProps) {
+  const t = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
@@ -256,8 +260,8 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", urlRes.uploadUrl);
         xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
-        xhr.onerror = () => reject(new Error("Upload failed"));
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(t("stories.uploadFailedStatus", { status: xhr.status }))));
+        xhr.onerror = () => reject(new Error(t("stories.uploadFailed")));
         xhr.send(file);
       });
       await api("/api/social/stories", {
@@ -268,7 +272,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
           caption: caption.trim() || null,
         }),
       });
-      toast.success("Story shared");
+      toast.success(t("stories.shared"));
       onPosted();
     } catch (err) {
       toast.error((err as Error).message);
@@ -280,7 +284,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
   return (
     <div className="fixed inset-0 z-[75] bg-black/90 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
-        <h2 className="text-white font-extrabold">New story</h2>
+        <h2 className="text-white font-extrabold">{t("stories.newTitle")}</h2>
         <button onClick={onClose} className="p-2 text-white/80"><X size={22} /></button>
       </div>
       <div className="flex-1 flex items-center justify-center px-6">
@@ -297,7 +301,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
             className="w-64 h-64 rounded-3xl border-2 border-dashed border-white/25 flex flex-col items-center justify-center gap-3 text-white/60 hover:border-[#7C3AED]"
           >
             <Plus size={36} />
-            <span className="text-sm font-bold">Choose a photo or video</span>
+            <span className="text-sm font-bold">{t("stories.chooseMedia")}</span>
           </button>
         )}
         <input
@@ -314,7 +318,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
             ref={captionRef}
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            placeholder="Add a caption (optional)"
+            placeholder={t("stories.captionPlaceholder")}
             maxLength={200}
             className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
           />
@@ -332,7 +336,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
           disabled={!file || uploading}
           className="w-full py-3.5 rounded-2xl bg-[#7C3AED] text-white font-extrabold disabled:opacity-40"
         >
-          {uploading ? `Uploading… ${progress}%` : "Share to story"}
+          {uploading ? t("stories.uploading", { percent: progress }) : t("stories.shareCta")}
         </button>
       </div>
     </div>

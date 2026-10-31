@@ -24,6 +24,7 @@ import {
 import { BIBLE_BOOKS } from "@/lib/bible-data";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type BibleRef = BibleRefLike & { id: string };
 
@@ -73,6 +74,7 @@ function parseJsonArray(s: string | null | undefined): string[] {
 }
 
 export default function VideoWatch({ slug }: { slug: string }) {
+  const t = useTranslation();
   const [data, setData] = useState<DetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
     fetch(`/api/videos/${slug}`, { cache: "no-store" })
       .then(async (r) => {
         const b = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(b.error || "Could not load the video");
+        if (!r.ok) throw new Error(b.error || t("videos.watch.error.load"));
         return b as DetailResponse;
       })
       .then((b) => {
@@ -166,7 +168,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
 
   async function toggleSave(list: "watch_later" | "favorite") {
     if (!signedIn) {
-      toast.error("Sign in to save videos to your list");
+      toast.error(t("videos.watch.toast.signInList"));
       return;
     }
     if (!data) return;
@@ -178,7 +180,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
         body: JSON.stringify({ videoId: data.video.id, list, on }),
       });
       const b = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(b.error || "Could not update your list");
+      if (!res.ok) throw new Error(b.error || t("videos.watch.error.list"));
       setSavedIn((s) => ({
         watchLater: list === "watch_later" ? on : s.watchLater,
         favorite: list === "favorite" ? on : s.favorite,
@@ -186,11 +188,11 @@ export default function VideoWatch({ slug }: { slug: string }) {
       toast.success(
         on
           ? list === "watch_later"
-            ? "Saved to Watch Later"
-            : "Added to Favorites"
+            ? t("videos.watch.toast.watchLater")
+            : t("videos.watch.toast.favorite")
           : list === "watch_later"
-            ? "Removed from Watch Later"
-            : "Removed from Favorites",
+            ? t("videos.watch.toast.removedWatchLater")
+            : t("videos.watch.toast.removedFavorite"),
       );
     } catch (err) {
       toast.error((err as Error).message);
@@ -202,7 +204,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
     // thumbnail under Koino branding), caption + canonical /videos/<slug> link
     // whose OG metadata gives platforms a real thumbnail preview.
     setShareReq({
-      heading: "Share this video",
+      heading: t("videos.watch.shareHeading"),
       shareText: data?.video.title || undefined,
       shareUrl: shareLinks.video(slug),
       cardUrl: `/api/share-card?type=video&slug=${encodeURIComponent(slug)}`,
@@ -213,12 +215,12 @@ export default function VideoWatch({ slug }: { slug: string }) {
 
   async function shareToFeed() {
     if (!signedIn) {
-      toast.error("Sign in to share videos in the feed");
+      toast.error(t("videos.watch.toast.signInShare"));
       return;
     }
     if (sharing || !data) return;
     const caption = prompt(
-      "Share this video in the Koino feed? You can add a short message (optional):",
+      t("videos.watch.sharePrompt"),
       "",
     );
     if (caption === null) return; // cancelled
@@ -230,8 +232,8 @@ export default function VideoWatch({ slug }: { slug: string }) {
         body: JSON.stringify({ caption }),
       });
       const b = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(b.error || "Could not share the video");
-      toast.success("Shared to the feed");
+      if (!res.ok) throw new Error(b.error || t("videos.watch.error.share"));
+      toast.success(t("videos.watch.toast.shared"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -241,7 +243,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
 
   async function report() {
     const reason = prompt(
-      "Why are you reporting this video?\n\n- broken or unavailable link\n- inappropriate content\n- copyright concern\n\nDescribe briefly:",
+      t("videos.watch.reportPrompt"),
     );
     if (!reason?.trim()) return;
     try {
@@ -257,9 +259,9 @@ export default function VideoWatch({ slug }: { slug: string }) {
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
-        throw new Error(b.error || "Could not report");
+        throw new Error(b.error || t("videos.watch.error.report"));
       }
-      toast.success("Report submitted for admin review. Thank you.");
+      toast.success(t("videos.watch.toast.reported"));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -271,7 +273,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
       <div className="max-w-[900px] mx-auto px-4 pt-10 pb-24">
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-[#94A3B8]">Loading video…</p>
+          <p className="text-xs text-[#94A3B8]">{t("videos.watch.loading")}</p>
         </div>
       </div>
     );
@@ -280,9 +282,9 @@ export default function VideoWatch({ slug }: { slug: string }) {
     return (
       <div className="max-w-[900px] mx-auto px-4 pt-10 pb-24 text-center py-24">
         <TriangleAlert size={32} className="mx-auto text-[#F59E0B] mb-3" />
-        <p className="text-sm text-[#94A3B8] max-w-xs mx-auto">{error || "Video not found"}</p>
+        <p className="text-sm text-[#94A3B8] max-w-xs mx-auto">{error || t("videos.watch.error.notFound")}</p>
         <a href="/videos" className="inline-flex items-center gap-1 mt-5 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">
-          <ChevronLeft size={14} /> Back to the library
+          <ChevronLeft size={14} /> {t("videos.watch.backLink")}
         </a>
       </div>
     );
@@ -299,7 +301,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
     <div className="max-w-[900px] mx-auto px-4 pt-6 pb-24">
       {/* ─── back ─── */}
       <a href="/videos" className="inline-flex items-center gap-1 text-xs font-bold text-[#94A3B8] hover:text-white mb-4">
-        <ChevronLeft size={14} /> Bible Movies &amp; Videos
+        <ChevronLeft size={14} /> {t("videos.watch.backToLibrary")}
       </a>
 
       {/* ─── player ─── */}
@@ -325,7 +327,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
                 <Play size={24} fill="white" className="text-white ml-1" />
               </div>
               <span className="px-4 py-2 rounded-full bg-black/70 text-white text-xs font-extrabold tracking-wide">
-                {embedStart > 5 ? `Continue from ${formatDuration(embedStart)}` : "Watch Now"}
+                {embedStart > 5 ? t("videos.watch.continueFrom", { d: formatDuration(embedStart) }) : t("videos.watch.watchNow")}
               </span>
             </div>
           </button>
@@ -341,7 +343,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
           className="mt-3 flex items-center gap-2.5 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/25 px-4 py-3 text-xs text-[#FCD34D] hover:bg-[#F59E0B]/15 transition-colors"
         >
           <Youtube size={16} className="shrink-0" />
-          This video cannot be embedded here (embedding disabled or unavailable) — watch it directly on YouTube.
+          {t("videos.watch.cannotEmbed")}
         </a>
       )}
 
@@ -355,7 +357,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
             {duration && (
               <span className="inline-flex items-center gap-1"><Clock size={11} /> {duration}</span>
             )}
-            <span className="inline-flex items-center gap-1"><Eye size={11} /> {v.viewCount.toLocaleString()} views</span>
+            <span className="inline-flex items-center gap-1"><Eye size={11} /> {t("videos.watch.views", { n: v.viewCount.toLocaleString() })}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -364,12 +366,12 @@ export default function VideoWatch({ slug }: { slug: string }) {
               onClick={watchNow}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold"
             >
-              <Play size={13} fill="currentColor" /> Watch Now
+              <Play size={13} fill="currentColor" /> {t("videos.watch.watchNow")}
             </button>
           )}
           <button
             onClick={() => toggleSave("watch_later")}
-            title="Watch Later"
+            title={t("videos.watch.title.watchLater")}
             className={`p-2.5 rounded-xl border transition-all ${
               savedIn.watchLater
                 ? "bg-[#7C3AED]/20 border-[#7C3AED]/50 text-[#C4B5FD]"
@@ -380,7 +382,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
           </button>
           <button
             onClick={() => toggleSave("favorite")}
-            title="Favorite"
+            title={t("videos.watch.title.favorite")}
             className={`p-2.5 rounded-xl border transition-all ${
               savedIn.favorite
                 ? "bg-[#EF4444]/15 border-[#EF4444]/40 text-[#FCA5A5]"
@@ -391,7 +393,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
           </button>
           <button
             onClick={shareLink}
-            title="Share"
+            title={t("videos.watch.title.share")}
             className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-all"
           >
             <Share2 size={15} />
@@ -414,7 +416,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
       {v.bibleRefs.length > 0 && (
         <div className="mt-5">
           <h2 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#94A3B8] mb-2">
-            <BookOpen size={13} className="text-[#7C3AED]" /> Related Bible Passages
+            <BookOpen size={13} className="text-[#7C3AED]" /> {t("videos.watch.relatedPassages")}
           </h2>
           <div className="flex flex-wrap gap-2">
             {v.bibleRefs.map((r) => (
@@ -425,7 +427,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
               >
                 <BookOpen size={12} />
                 {formatBibleRef(r, bookName)}
-                <span className="text-[#94A3B8] font-normal">· Read</span>
+                <span className="text-[#94A3B8] font-normal">{t("videos.watch.read")}</span>
               </a>
             ))}
           </div>
@@ -448,24 +450,24 @@ export default function VideoWatch({ slug }: { slug: string }) {
             onClick={() => setDescOpen((o) => !o)}
             className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#A78BFA] hover:text-white"
           >
-            {descOpen ? "Show less" : "Show more"} <ChevronDown size={11} className={descOpen ? "rotate-180" : ""} />
+            {descOpen ? t("common.showLess") : t("common.showMore")} <ChevronDown size={11} className={descOpen ? "rotate-180" : ""} />
           </button>
         )}
         <div className="mt-3 pt-3 border-t border-white/[0.05] flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-[#64748B]">
-          {v.sourceName && <span><span className="text-[#94A3B8] font-bold">Source:</span> {v.sourceName}</span>}
-          <span><span className="text-[#94A3B8] font-bold">Audio:</span> {languageLabel(v.language)}</span>
+          {v.sourceName && <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.source")}</span> {v.sourceName}</span>}
+          <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.audio")}</span> {languageLabel(v.language)}</span>
           {subtitles.length > 0 && (
-            <span><span className="text-[#94A3B8] font-bold">Subtitles:</span> {subtitles.map(languageLabel).join(", ")}</span>
+            <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.subtitles")}</span> {subtitles.map(languageLabel).join(", ")}</span>
           )}
           {dubs.length > 0 && (
-            <span><span className="text-[#94A3B8] font-bold">Dubbed:</span> {dubs.map(languageLabel).join(", ")}</span>
+            <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.dubbed")}</span> {dubs.map(languageLabel).join(", ")}</span>
           )}
           {v.originalLanguage && (
-            <span><span className="text-[#94A3B8] font-bold">Original:</span> {languageLabel(v.originalLanguage)}</span>
+            <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.original")}</span> {languageLabel(v.originalLanguage)}</span>
           )}
-          {v.rightsNote && <span><span className="text-[#94A3B8] font-bold">Rights:</span> {v.rightsNote}</span>}
+          {v.rightsNote && <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.rights")}</span> {v.rightsNote}</span>}
           <a href={watchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#A78BFA] hover:text-white">
-            <Youtube size={12} /> Watch on YouTube
+            <Youtube size={12} /> {t("videos.watch.watchOnYoutube")}
           </a>
         </div>
       </div>
@@ -477,20 +479,20 @@ export default function VideoWatch({ slug }: { slug: string }) {
           disabled={sharing}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-[#C4C2D0] hover:text-white disabled:opacity-50"
         >
-          <Share2 size={13} /> {sharing ? "Sharing…" : "Share to Feed"}
+          <Share2 size={13} /> {sharing ? t("videos.watch.sharing") : t("videos.watch.shareToFeed")}
         </button>
         <button
           onClick={report}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-[#64748B] hover:text-white"
         >
-          <Flag size={13} /> Report
+          <Flag size={13} /> {t("videos.watch.report")}
         </button>
       </div>
 
       {/* ─── related videos ─── */}
       {data.related.length > 0 && (
         <section className="mt-9">
-          <h2 className="text-base font-extrabold text-white tracking-tight mb-3">More Videos for You</h2>
+          <h2 className="text-base font-extrabold text-white tracking-tight mb-3">{t("videos.watch.moreVideos")}</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {data.related.map((rv) => (
               <VideoCard key={rv.id} video={rv} />

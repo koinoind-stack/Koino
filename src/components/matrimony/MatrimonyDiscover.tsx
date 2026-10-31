@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { INDIAN_STATES, INDIAN_CITIES_BY_STATE } from "@/lib/crosscrafted-data";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   MATRIMONY_DISCOVERY_LIMITS,
   MATRIMONY_INTENTIONS,
@@ -58,6 +59,7 @@ const selectCls =
   "bg-white/[0.04] border border-white/[0.06] rounded-xl px-2.5 py-2 text-[12.5px] text-white outline-none focus:border-[#7C3AED]/50 disabled:opacity-40 [&>option]:bg-[#1C1929] min-w-0";
 
 export default function MatrimonyDiscover() {
+  const t = useTranslation();
   const [q, setQ] = useState("");
   const [gender, setGender] = useState("");
   const [state, setState] = useState("");
@@ -145,7 +147,7 @@ export default function MatrimonyDiscover() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           maxLength={MATRIMONY_DISCOVERY_LIMITS.qMax}
-          placeholder="Search city, profession, denomination…"
+          placeholder={t("matrimony.discover.searchPlaceholder")}
           className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
         />
       </div>
@@ -153,16 +155,16 @@ export default function MatrimonyDiscover() {
       {/* ─── filters ─── */}
       <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2">
         <select value={gender} onChange={(e) => setGender(e.target.value)} className={selectCls}>
-          <option value="">All members</option>
-          <option value="male">Men</option>
-          <option value="female">Women</option>
+          <option value="">{t("matrimony.discover.allMembers")}</option>
+          <option value="male">{t("matrimony.discover.men")}</option>
+          <option value="female">{t("matrimony.discover.women")}</option>
         </select>
         <select value={ageMin} onChange={(e) => setAgeMin(e.target.value)} className={selectCls}>
-          <option value="">Min age</option>
+          <option value="">{t("matrimony.discover.minAge")}</option>
           {AGE_CHOICES.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
         <select value={ageMax} onChange={(e) => setAgeMax(e.target.value)} className={selectCls}>
-          <option value="">Max age</option>
+          <option value="">{t("matrimony.discover.maxAge")}</option>
           {AGE_CHOICES.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
         <select
@@ -170,7 +172,7 @@ export default function MatrimonyDiscover() {
           onChange={(e) => { setState(e.target.value); setCity(""); }}
           className={selectCls}
         >
-          <option value="">All states</option>
+          <option value="">{t("common.allStates")}</option>
           {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <select
@@ -179,11 +181,11 @@ export default function MatrimonyDiscover() {
           disabled={!state}
           className={selectCls}
         >
-          <option value="">All cities</option>
+          <option value="">{t("common.allCities")}</option>
           {cities.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={language} onChange={(e) => setLanguage(e.target.value)} className={selectCls}>
-          <option value="">All languages</option>
+          <option value="">{t("common.allLanguages")}</option>
           {MATRIMONY_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
         </select>
       </div>
@@ -193,7 +195,7 @@ export default function MatrimonyDiscover() {
           onClick={resetFilters}
           className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#94A3B8] hover:text-white transition-colors"
         >
-          <RotateCcw size={11} /> Clear filters
+          <RotateCcw size={11} /> {t("common.clearFilters")}
         </button>
       )}
 
@@ -216,32 +218,32 @@ export default function MatrimonyDiscover() {
         ) : error ? (
           <div className="text-center py-14">
             <SearchX size={28} className="mx-auto text-[#475569] mb-3" />
-            <p className="text-sm text-[#94A3B8] font-semibold">Could not load profiles.</p>
-            <p className="text-xs text-[#64748B] mt-1">Check your connection and try again.</p>
+            <p className="text-sm text-[#94A3B8] font-semibold">{t("matrimony.discover.errorTitle")}</p>
+            <p className="text-xs text-[#64748B] mt-1">{t("common.error.checkConnection")}</p>
             <button
               onClick={() => load()}
               className="mt-4 px-5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/[0.09]"
             >
-              Retry
+              {t("common.retry")}
             </button>
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-14">
             <Heart size={28} className="mx-auto text-[#475569] mb-3" />
             <p className="text-sm text-[#94A3B8] font-semibold">
-              {hasFilters ? "No profiles match your search yet." : "No active profiles yet."}
+              {hasFilters ? t("matrimony.discover.emptyFiltered") : t("matrimony.discover.empty")}
             </p>
             <p className="text-xs text-[#64748B] mt-1 max-w-xs mx-auto leading-relaxed">
               {hasFilters
-                ? "Try widening the age range or clearing a filter."
-                : "As members activate their profiles, they will appear here."}
+                ? t("matrimony.discover.emptyFilteredHint")
+                : t("matrimony.discover.emptyHint")}
             </p>
             {hasFilters && (
               <button
                 onClick={resetFilters}
                 className="mt-4 px-5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-sm font-bold hover:bg-white/[0.09]"
               >
-                Clear filters
+                {t("common.clearFilters")}
               </button>
             )}
           </div>
@@ -257,7 +259,7 @@ export default function MatrimonyDiscover() {
                   disabled={loadingMore}
                   className="px-5 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.06] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
                 >
-                  {loadingMore ? "Loading…" : "Show more"}
+                  {loadingMore ? t("common.loadingShort") : t("common.showMore")}
                 </button>
               </div>
             )}
@@ -266,10 +268,7 @@ export default function MatrimonyDiscover() {
       </div>
 
       <p className="mt-6 text-[11px] text-[#64748B] text-center leading-relaxed">
-        Browsing is view-only for now — expressing interest and messaging arrive
-        in the next update. Everyone here is a signed-in member 18 or older,
-        checked server-side on every request. Dates of birth, contact details
-        and account info are never shown.
+        {t("matrimony.discover.footerNote")}
       </p>
     </div>
   );
@@ -278,6 +277,7 @@ export default function MatrimonyDiscover() {
 // ─── Card (mirrors the owner preview — nothing more is shared) ──────────────
 
 function DiscoverCardView({ card }: { card: DiscoverCard }) {
+  const t = useTranslation();
   const intention = MATRIMONY_INTENTIONS.find((i) => i.value === card.intention);
   const timeline = MATRIMONY_TIMELINES.find((t) => t.value === card.timeline);
   const connectionsOnly = card.photoVisibility === "CONNECTIONS_ONLY";
@@ -289,7 +289,7 @@ function DiscoverCardView({ card }: { card: DiscoverCard }) {
         {card.photo ? (
           <img
             src={card.photo.url}
-            alt="Member profile photo"
+            alt={t("matrimony.discover.photoAlt")}
             loading="lazy"
             className="w-full h-full object-cover"
           />
@@ -298,7 +298,7 @@ function DiscoverCardView({ card }: { card: DiscoverCard }) {
             <Heart size={34} className="text-white/10" strokeWidth={1.4} />
             {connectionsOnly && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#64748B]">
-                <Lock size={10} /> Photo visible after connecting
+                <Lock size={10} /> {t("matrimony.discover.photoLocked")}
               </span>
             )}
           </div>
@@ -310,7 +310,7 @@ function DiscoverCardView({ card }: { card: DiscoverCard }) {
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="text-lg font-black text-white">{card.age}</span>
           <span className="text-[13px] text-[#94A3B8]">
-            {card.gender === "male" ? "Man" : card.gender === "female" ? "Woman" : "Member"}
+            {card.gender === "male" ? t("matrimony.gender.man") : card.gender === "female" ? t("matrimony.gender.woman") : t("matrimony.gender.member")}
           </span>
         </div>
 

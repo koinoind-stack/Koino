@@ -2,6 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { BRAND } from "@/lib/brand";
+// Eager English seed — the base dictionary is loaded synchronously so the
+// server render (and first client paint) shows real English copy instead of
+// raw translation keys ("landing.badge"). Non-en users see a brief flash of
+// English while their dictionary lazy-loads, which is far better than a
+// flash of raw keys. Both SSR and the first client render agree on English,
+// so hydration stays consistent.
+import enDictionary from "./en";
 
 export type LanguageCode =
   | "en"  // English (default)
@@ -68,8 +75,10 @@ const translationLoaders: Record<LanguageCode, () => Promise<Record<string, stri
 };
 
 // Cache loaded translations in memory so we don't re-fetch on every render.
+// English is seeded eagerly (imported above) so t() never returns raw keys
+// on the server render or the first client paint.
 const translationCache: Partial<Record<LanguageCode, Record<string, string>>> = {
-  en: undefined, // loaded eagerly on first use
+  en: enDictionary,
 };
 
 /** Detect the user's preferred language from cookie or browser. */
@@ -93,13 +102,23 @@ function detectLanguage(): LanguageCode {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<LanguageCode>(DEFAULT_LANG);
-  const [dict, setDict] = useState<Record<string, string>>({});
+  // Seed with the eager English dictionary so SSR/first paint shows real copy.
+  const [dict, setDict] = useState<Record<string, string>>(enDictionary);
 
   // Initial load — detect language + load its translation file
   useEffect(() => {
     const detected = detectLanguage();
     setLangState(detected);
   }, []);
+
+  // Keep <html lang> and <html dir> in sync with the selected language.
+  // Urdu is the only RTL language — Hindi, Telugu and every other supported
+  // language are LTR. Runs after hydration, so it never causes a mismatch.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ur" ? "rtl" : "ltr";
+  }, [lang]);
 
   // Load translation file whenever lang changes
   useEffect(() => {

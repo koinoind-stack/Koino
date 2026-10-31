@@ -23,7 +23,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useLanguage, useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { getBook, getComicProgress, saveComicProgress } from "@/lib/bible-data";
 import { shareLinks } from "@/lib/share/links";
@@ -76,6 +76,7 @@ type Props = {
 
 export default function ComicView({ bookId, chapter, onNavigateChapter, onReadChapter, onPray, onDiscuss, onBackToLibrary }: Props) {
   const { lang } = useLanguage();
+  const t = useTranslation();
   const { isAuthenticated } = useSupabaseUser();
 
   const [loading, setLoading] = useState(true);
@@ -106,17 +107,17 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
       const res = await fetch(`/api/comic/${bookId}/${chapter}?lang=${lang}`);
       const text = await res.text();
       if (!text) {
-        throw new Error("Empty response from server");
+        throw new Error(t("comics.error.emptyResponse"));
       }
       const data = JSON.parse(text);
-      if (!res.ok) throw new Error(data.error || "Failed to load comic");
+      if (!res.ok) throw new Error(data.error || t("comics.error.loadFailed"));
       setChapterData(data.chapter);
     } catch (e: any) {
-      setError(e.message || "Failed to load comic");
+      setError(e.message || t("comics.error.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [bookId, chapter, lang]);
+  }, [bookId, chapter, lang, t]);
 
   useEffect(() => {
     loadComic();
@@ -192,7 +193,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
 
     // Combine all panel narrations into one speech
     const fullNarration = chapterData.panels
-      .map((p, i) => `Panel ${i + 1}. ${p.title}. ${p.narration || ""}`)
+      .map((p, i) => `${t("comics.ttsPanelTemplate", { i: i + 1, title: p.title || "" })} ${p.narration || ""}`)
       .join(" ");
 
     const utterance = new SpeechSynthesisUtterance(fullNarration);
@@ -201,8 +202,8 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
     setIsSpeaking(true);
-    toast("Audio narration", {
-      description: "Using browser voice synthesis. Professional audio coming soon.",
+    toast(t("comics.audioNarration"), {
+      description: t("comics.audioNarrationDesc"),
     });
   };
 
@@ -211,8 +212,8 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   const openChapterShare = () => {
     if (!chapterData) return;
     setShareReq({
-      heading: `Share ${chapterData.title}`,
-      shareText: `${chapterData.title} — Koino Bible Comics\n\nRead the story. See the bigger picture. Grow in your faith.`,
+      heading: t("comics.shareChapterHeading", { title: chapterData.title }),
+      shareText: t("comics.shareText", { title: chapterData.title }),
       shareUrl: shareLinks.comic(chapterData.bookId, chapterData.chapter),
       cardUrl: `/api/share-card?type=comic-chapter&book=${encodeURIComponent(chapterData.bookId)}&chapter=${chapterData.chapter}&lang=${lang}`,
       formats: ["portrait", "square"],
@@ -222,13 +223,13 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
 
   const openPanelShare = (panel: ComicPanel, verseRef: string) => {
     setShareReq({
-      heading: `Share panel — ${panel.title || verseRef}`,
-      shareText: `"${panel.title || verseRef}" (${verseRef}) — Koino Bible Comics`,
+      heading: t("comics.sharePanelHeading", { title: panel.title || verseRef }),
+      shareText: t("comics.sharePanelText", { title: panel.title || verseRef, ref: verseRef }),
       shareUrl: shareLinks.comic(bookId, chapter),
       cardUrl: `/api/share-card?type=comic-panel&panel=${encodeURIComponent(panel.panelId)}&lang=${lang}`,
       formats: ["square", "story"],
       imageUrl: panel.artworkUrl || undefined,
-      imageLabel: "Original Illustration",
+      imageLabel: t("comics.originalIllustration"),
       fileName: `koino-comic-panel-${panel.panelId}.png`,
     });
   };
@@ -238,7 +239,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   const startQuiz = async () => {
     if (!chapterData) return;
     if (!isAuthenticated) {
-      toast.error("Sign in required to take quizzes");
+      toast.error(t("comics.quizSignInRequired"));
       return;
     }
     setShowQuiz(true);
@@ -251,7 +252,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
       if (!res.ok) throw new Error(data.error);
       setQuizQuestions(data.questions || []);
     } catch (e: any) {
-      toast.error("Failed to load quiz", { description: e.message });
+      toast.error(t("comics.quizLoadFailed"), { description: e.message });
     } finally {
       setQuizLoading(false);
     }
@@ -271,9 +272,9 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     return (
       <div className="text-center py-20">
         <AlertCircle size={32} className="mx-auto text-[#EF4444] mb-3" />
-        <p className="text-sm text-[#94A3B8]">{error || "Comic not found"}</p>
+        <p className="text-sm text-[#94A3B8]">{error || t("comics.error.notFound")}</p>
         <button onClick={loadComic} className="mt-4 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">
-          Retry
+          {t("comics.retry")}
         </button>
       </div>
     );
@@ -289,7 +290,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
 
   // Get prayer prompt from first panel's captions
   const prayerPrompt = panels[0]?.captions?.[0] ||
-    `Lord, thank You for the story of ${chapterData.title}. Help me grow in faith through Your Word.`;
+    t("comics.prayerFallback", { title: chapterData.title });
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-5 pb-28 md:pb-5">
@@ -298,14 +299,14 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
         {onBackToLibrary && (
           <button
             onClick={onBackToLibrary}
-            aria-label="Back to Bible Comics library"
+            aria-label={t("comics.backToLibraryAria")}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] border border-white/[0.14] text-white/90 hover:bg-white/[0.14] hover:text-white active:scale-[0.97] text-xs font-bold transition-all mb-4 min-h-[40px]"
           >
-            <ArrowLeft size={15} /> Back to Bible Comics
+            <ArrowLeft size={15} /> {t("comics.backToLibrary")}
           </button>
         )}
         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B] mb-2">
-          BIBLE COMICS
+          {t("comics.eyebrow")}
         </p>
         <h1 className="text-3xl font-black text-white mb-1">
           {bookName} {chapter}
@@ -316,14 +317,14 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
         {onBackToLibrary && (
           <button
             onClick={onBackToLibrary}
-            aria-label="All Comics library"
+            aria-label={t("comics.allComicsAria")}
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B87A3] hover:text-white transition-colors mb-2"
           >
-            <ArrowLeft size={11} /> All Comics
+            <ArrowLeft size={11} /> {t("comics.allComics")}
           </button>
         )}
         <p className="text-xs text-[#64748B]">
-          Read the story • See the bigger picture • Grow in your faith
+          {t("comics.tagline")}
         </p>
 
         {/* ─── Reading progress (panels actually seen) ─── */}
@@ -331,14 +332,14 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
           <div className="max-w-md mx-auto mt-4">
             {chapterCompleted && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-black mb-2">
-                <CheckCircle2 size={11} /> Chapter Completed
+                <CheckCircle2 size={11} /> {t("comics.chapterCompleted")}
               </span>
             )}
             <div className="flex items-center justify-between text-[9px] font-bold text-[#64748B] mb-1">
               <span>
                 {chapterCompleted
-                  ? "All panels read"
-                  : `Panel ${Math.min(seenPanel + 1, totalPanels)} of ${totalPanels}`}
+                  ? t("comics.allPanelsRead")
+                  : t("comics.panelOf", { n: Math.min(seenPanel + 1, totalPanels), total: totalPanels })}
               </span>
               <span>{progressPct}%</span>
             </div>
@@ -378,16 +379,16 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
       {/* ─── BOTTOM ACTION BAR ─── */}
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-          <ActionButton icon={BookOpen} label="Read" sublabel="The full comic story" onClick={() => onReadChapter(bookId, chapter)} />
-          <ActionButton icon={isSpeaking ? X : Headphones} label={isSpeaking ? "Stop" : "Listen"} sublabel="Audio narration" onClick={handleListen} />
+          <ActionButton icon={BookOpen} label={t("bible.read")} sublabel={t("comics.readSub")} onClick={() => onReadChapter(bookId, chapter)} />
+          <ActionButton icon={isSpeaking ? X : Headphones} label={isSpeaking ? t("bible.stop") : t("bible.listen")} sublabel={t("comics.audioNarration")} onClick={handleListen} />
           {/* P5: real comic→video link — published library videos for THIS
               passage (VideoBibleRef). Renders nothing when none exist, so the
               action bar only ever offers what is actually available. */}
           <ChapterVideoAction bookId={bookId} chapter={chapter} />
-          <ActionButton icon={Brain} label="Quiz" sublabel="Test your knowledge" onClick={startQuiz} />
-          <ActionButton icon={Zap} label="Earn FP" sublabel="Get Faith Points" onClick={() => toast("Take the quiz to earn FP!")} dimmed />
-          <ActionButton icon={Heart} label="Pray" sublabel="Daily prayer" onClick={() => onPray(prayerPrompt)} />
-          <ActionButton icon={MessageCircle} label="Discuss" sublabel="Join the community" onClick={() => onDiscuss(`What stands out to you in ${bookName} ${chapter}?`)} dimmed />
+          <ActionButton icon={Brain} label={t("bible.quiz")} sublabel={t("comics.quizSub")} onClick={startQuiz} />
+          <ActionButton icon={Zap} label={t("bible.earnFp")} sublabel={t("comics.earnFpSub")} onClick={() => toast(t("comics.earnFpToast"))} dimmed />
+          <ActionButton icon={Heart} label={t("bible.pray")} sublabel={t("comics.praySub")} onClick={() => onPray(prayerPrompt)} />
+          <ActionButton icon={MessageCircle} label={t("bible.discuss")} sublabel={t("comics.discussSub")} onClick={() => onDiscuss(t("comics.discussPrompt", { book: bookName, chapter }))} dimmed />
         </div>
       </div>
 
@@ -400,7 +401,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
           onClick={openChapterShare}
           className="flex-1 py-2.5 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#7C3AED]/25 transition-all"
         >
-          <Share2 size={14} /> Share Chapter
+          <Share2 size={14} /> {t("comics.shareChapter")}
         </button>
       </div>
 
@@ -447,6 +448,7 @@ function ComicPanelCard({
   chapter: number;
   onShare?: (panel: ComicPanel, verseRef: string) => void;
 }) {
+  const t = useTranslation();
   const narration = (panel.narration || "").trim();
 
   // Inline expand/collapse for long narration. State lives inside this card,
@@ -504,7 +506,7 @@ function ComicPanelCard({
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
         <img
           src={panel.artworkUrl}
-          alt={panel.altText || panel.title || `Panel ${index} — ${bookName} ${chapterNum}`}
+          alt={panel.altText || panel.title || t("comics.panelAlt", { n: index, book: bookName, ch: chapterNum })}
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
@@ -521,7 +523,7 @@ function ComicPanelCard({
         <div className="absolute top-3 left-3 right-12 flex items-start gap-2">
           <span
             className="shrink-0 w-7 h-7 rounded-full bg-[#F39B9B] text-slate-950 text-xs font-black flex items-center justify-center shadow-lg"
-            aria-label={`Panel ${index}`}
+            aria-label={t("comics.panelAria", { n: index })}
           >
             {index}
           </span>
@@ -540,8 +542,8 @@ function ComicPanelCard({
           <button
             type="button"
             onClick={() => onShare(panel, verseRef)}
-            aria-label={`Share panel ${index}`}
-            title="Share this panel"
+            aria-label={t("comics.sharePanelAria", { n: index })}
+            title={t("comics.sharePanelTitle")}
             className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white/85 hover:text-white hover:bg-black/80 border border-white/10 transition-all"
           >
             <Share2 size={13} />
@@ -575,7 +577,7 @@ function ComicPanelCard({
             aria-controls={`narration-${panel.panelId}`}
             className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/25 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/25 hover:text-white transition-all"
           >
-            {expanded ? "Show Less" : "Read Full Story"}
+            {expanded ? t("comics.showLess") : t("comics.readFullStory")}
             {expanded ? (
               <ChevronUp size={12} aria-hidden="true" />
             ) : (
@@ -628,6 +630,7 @@ function ActionButton({
 // the bar never offers a dead or fake action.
 
 function ChapterVideoAction({ bookId, chapter }: { bookId: string; chapter: number }) {
+  const t = useTranslation();
   const [videos, setVideos] = useState<Array<{ id: string; slug: string; title: string }>>([]);
 
   useEffect(() => {
@@ -664,8 +667,8 @@ function ChapterVideoAction({ bookId, chapter }: { bookId: string; chapter: numb
   return (
     <ActionButton
       icon={Video}
-      label="Watch"
-      sublabel={videos.length === 1 ? "Watch the video" : "Related videos"}
+      label={t("bible.watch")}
+      sublabel={videos.length === 1 ? t("comics.watchOne") : t("comics.watchMany")}
       onClick={open}
     />
   );
@@ -682,6 +685,7 @@ function ChapterNavigation({
   chapter: number;
   onNavigate: (bookId: string, chapter: number) => void;
 }) {
+  const t = useTranslation();
   const [availableChapters, setAvailableChapters] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -758,8 +762,8 @@ function ChapterNavigation({
             if (hasPrevComic) {
               onNavigate(prevChapter.bookId, prevChapter.chapter);
             } else {
-              toast("Coming Soon", {
-                description: `${formatLabel(prevChapter.bookId, prevChapter.chapter)} comic is being prepared.`,
+              toast(t("comics.comingSoonToast"), {
+                description: t("comics.comingSoonDesc", { ref: formatLabel(prevChapter.bookId, prevChapter.chapter) }),
               });
             }
           }}
@@ -771,8 +775,8 @@ function ChapterNavigation({
         >
           <ChevronLeft size={14} />
           <span className="hidden sm:inline">{formatLabel(prevChapter.bookId, prevChapter.chapter)}</span>
-          <span className="sm:hidden">Prev</span>
-          {!hasPrevComic && <span className="text-[8px] text-[#F59E0B] ml-1">Soon</span>}
+          <span className="sm:hidden">{t("bible.prev")}</span>
+          {!hasPrevComic && <span className="text-[8px] text-[#F59E0B] ml-1">{t("comics.soonBadge")}</span>}
         </button>
       ) : (
         <div />
@@ -784,8 +788,8 @@ function ChapterNavigation({
             if (hasNextComic) {
               onNavigate(nextChapter.bookId, nextChapter.chapter);
             } else {
-              toast("Coming Soon", {
-                description: `${formatLabel(nextChapter.bookId, nextChapter.chapter)} comic is being prepared.`,
+              toast(t("comics.comingSoonToast"), {
+                description: t("comics.comingSoonDesc", { ref: formatLabel(nextChapter.bookId, nextChapter.chapter) }),
               });
             }
           }}
@@ -795,9 +799,9 @@ function ChapterNavigation({
               : "bg-white/[0.02] border border-white/[0.04] text-[#475569] cursor-not-allowed"
           }`}
         >
-          {!hasNextComic && <span className="text-[8px] text-[#F59E0B] mr-1">Soon</span>}
+          {!hasNextComic && <span className="text-[8px] text-[#F59E0B] mr-1">{t("comics.soonBadge")}</span>}
           <span className="hidden sm:inline">{formatLabel(nextChapter.bookId, nextChapter.chapter)}</span>
-          <span className="sm:hidden">Next</span>
+          <span className="sm:hidden">{t("common.next")}</span>
           <ChevronRight size={14} />
         </button>
       ) : (
@@ -823,6 +827,7 @@ function ComicQuizModal({
   onClose: () => void;
 }) {
   const { isAuthenticated } = useSupabaseUser();
+  const t = useTranslation();
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -848,7 +853,7 @@ function ComicQuizModal({
       if (!res.ok) throw new Error(data.error);
       setResults(data);
     } catch (e: any) {
-      toast.error("Failed to submit quiz", { description: e.message });
+      toast.error(t("comics.quizSubmitFailed"), { description: e.message });
     } finally {
       setSubmitting(false);
     }
@@ -879,9 +884,9 @@ function ComicQuizModal({
       >
         <div className="bg-[#1C1929] border border-white/[0.08] rounded-2xl p-6 max-w-sm text-center">
           <Brain size={28} className="mx-auto text-[#475569] mb-2" />
-          <p className="text-sm text-[#94A3B8]">No quiz questions available for this chapter yet.</p>
+          <p className="text-sm text-[#94A3B8]">{t("comics.quizEmpty")}</p>
           <button onClick={onClose} className="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] text-xs font-bold text-[#94A3B8]">
-            Close
+            {t("common.close")}
           </button>
         </div>
       </motion.div>
@@ -907,10 +912,10 @@ function ComicQuizModal({
           exit={{ y: 50, opacity: 0 }}
           className="bg-[#1C1929] border border-[#F59E0B]/20 rounded-2xl p-6 max-w-md w-full"
         >
-          <h2 className="text-xl font-extrabold text-white mb-2">Quiz Complete!</h2>
+          <h2 className="text-xl font-extrabold text-white mb-2">{t("triviaView.results.title")}</h2>
           <p className="text-sm text-[#A09DB1] mb-4">
-            Correct: {correctCount}/{totalQ}
-            {pointsEarned > 0 && <span className="text-[#F59E0B] font-bold"> · {pointsEarned} FP earned!</span>}
+            {t("triviaView.results.correct", { count: correctCount, total: totalQ })}
+            {pointsEarned > 0 && <span className="text-[#F59E0B] font-bold"> {t("comics.fpEarnedSuffix", { n: pointsEarned })}</span>}
           </p>
           <div className="space-y-2 max-h-[50vh] overflow-y-auto">
             {results.questionResults?.map((qr: any, i: number) => (
@@ -921,12 +926,12 @@ function ComicQuizModal({
                 }`}
               >
                 <p className="font-bold text-white">{qr.questionId}</p>
-                <p className="text-[#94A3B8]">{qr.correct ? "✓ Correct" : "✗ Incorrect"}</p>
+                <p className="text-[#94A3B8]">{qr.correct ? t("comics.answerCorrect") : t("comics.answerIncorrect")}</p>
               </div>
             ))}
           </div>
           <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl bg-[#F59E0B] text-slate-950 text-sm font-bold">
-            Done
+            {t("common.done")}
           </button>
         </motion.div>
       </motion.div>
@@ -953,7 +958,7 @@ function ComicQuizModal({
       >
         <div className="flex justify-between items-center mb-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">
-            Comic Quiz · {currentQ + 1}/{questions.length}
+            {t("comics.quizProgress", { n: currentQ + 1, t: questions.length })}
           </p>
           <button onClick={onClose}>
             <X size={18} className="text-[#64748B]" />
@@ -983,7 +988,7 @@ function ComicQuizModal({
               onClick={() => setCurrentQ(currentQ - 1)}
               className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-bold text-[#94A3B8]"
             >
-              Back
+              {t("common.back")}
             </button>
           )}
           {currentQ < questions.length - 1 ? (
@@ -992,7 +997,7 @@ function ComicQuizModal({
               disabled={!isAnswered}
               className="flex-1 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold disabled:opacity-30"
             >
-              Next
+              {t("common.next")}
             </button>
           ) : (
             <button
@@ -1000,7 +1005,7 @@ function ComicQuizModal({
               disabled={submitting || Object.keys(answers).length < questions.length}
               className="flex-1 py-2.5 rounded-xl bg-[#F59E0B] text-slate-950 text-sm font-bold disabled:opacity-30"
             >
-              {submitting ? "Submitting..." : "Submit Quiz"}
+              {submitting ? t("comics.submitting") : t("comics.submitQuiz")}
             </button>
           )}
         </div>

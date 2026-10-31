@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import MemorialForm, { EMPTY_MEMORIAL_FORM, type MemorialFormData } from "./MemorialForm";
 import { timeAgo } from "@/lib/social/format";
 import { extractYouTubeId, youtubeThumbUrl, youtubeWatchUrl, MEMORIAL_VIDEO_CATEGORIES } from "@/lib/youtube";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type MemorialVideoRow = {
   id: string;
@@ -48,6 +49,7 @@ type Manager = { userId: string; name: string; username: string | null; role: st
 type Props = { memorialId: string };
 
 export default function MemorialManage({ memorialId }: Props) {
+  const t = useTranslation();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState<string | null>(null);
@@ -69,21 +71,21 @@ export default function MemorialManage({ memorialId }: Props) {
       const res = await fetch(`/api/memorials/${memorialId}`, { cache: "no-store" });
       const body = await res.json();
       if (!res.ok) {
-        setDenied(body.error || "This memorial is not available.");
+        setDenied(body.error || t("memorials.manage.unavailable"));
         setDetail(null);
       } else {
         setDetail(body);
         if (!body.viewer.role) {
-          setDenied("Only the memorial managers can open this page.");
+          setDenied(t("memorials.manage.denied"));
           setDetail(null);
         }
       }
     } catch {
-      setDenied("Could not load the memorial.");
+      setDenied(t("memorials.manage.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [memorialId]);
+  }, [memorialId, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -115,8 +117,8 @@ export default function MemorialManage({ memorialId }: Props) {
         body: JSON.stringify({ username }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not send the invite");
-      toast.success(`@${username} can now help manage this memorial`);
+      if (!res.ok) throw new Error(body.error || t("memorials.manage.err.invite"));
+      toast.success(t("memorials.manage.invited", { username }));
       setInvite("");
       await loadManagers();
     } catch (err) {
@@ -127,12 +129,12 @@ export default function MemorialManage({ memorialId }: Props) {
   }
 
   async function removeManager(userId: string, name: string) {
-    if (!confirm(`Remove ${name} as a manager? They will no longer be able to edit this memorial.`)) return;
+    if (!confirm(t("memorials.manage.confirmRemoveManager", { name }))) return;
     try {
       const res = await fetch(`/api/memorials/${memorialId}/managers?userId=${encodeURIComponent(userId)}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not remove the manager");
-      toast.success("Manager removed");
+      if (!res.ok) throw new Error(body.error || t("memorials.manage.err.removeManager"));
+      toast.success(t("memorials.manage.managerRemoved"));
       await loadManagers();
     } catch (err) {
       toast.error((err as Error).message);
@@ -140,7 +142,7 @@ export default function MemorialManage({ memorialId }: Props) {
   }
 
   async function unpublish() {
-    if (!confirm("Unpublish this memorial? It will be hidden from everyone except the managers and Koino admins. You can publish it again at any time.")) return;
+    if (!confirm(t("memorials.manage.confirmUnpublish"))) return;
     setUnpublishing(true);
     try {
       const res = await fetch(`/api/memorials/${memorialId}`, {
@@ -149,8 +151,8 @@ export default function MemorialManage({ memorialId }: Props) {
         body: JSON.stringify({ status: "unpublished" }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not unpublish");
-      toast.success("Memorial unpublished");
+      if (!res.ok) throw new Error(body.error || t("memorials.manage.err.unpublish"));
+      toast.success(t("memorials.manage.unpublished"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -160,12 +162,12 @@ export default function MemorialManage({ memorialId }: Props) {
   }
 
   async function requestDeletion() {
-    if (!confirm("Delete this memorial permanently? All stories, photographs, candles and condolences will be removed. Only the memorial owner can do this. Consider unpublishing instead.")) return;
+    if (!confirm(t("memorials.manage.confirmDelete"))) return;
     try {
       const res = await fetch(`/api/memorials/${memorialId}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not delete");
-      toast.success("Memorial deleted");
+      if (!res.ok) throw new Error(body.error || t("memorials.manage.err.delete"));
+      toast.success(t("memorials.manage.deleted"));
       window.location.href = "/memorials";
     } catch (err) {
       toast.error((err as Error).message);
@@ -176,11 +178,11 @@ export default function MemorialManage({ memorialId }: Props) {
     if (addingVideo) return;
     const videoId = extractYouTubeId(vUrl.trim());
     if (!videoId) {
-      toast.error("That is not a valid YouTube link. Use youtube.com/watch, youtu.be, or a Shorts link.");
+      toast.error(t("memorials.form.err.badYoutube"));
       return;
     }
     if (vTitle.trim().length < 2) {
-      toast.error("Please give the video a title");
+      toast.error(t("memorials.form.err.videoTitle"));
       return;
     }
     setAddingVideo(true);
@@ -191,8 +193,8 @@ export default function MemorialManage({ memorialId }: Props) {
         body: JSON.stringify({ url: vUrl.trim(), title: vTitle.trim(), description: vDesc.trim(), category: vCat }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not add the video");
-      toast.success("Video added — it will appear once a Koino admin approves it");
+      if (!res.ok) throw new Error(body.error || t("memorials.manage.err.addVideo"));
+      toast.success(t("memorials.manage.videoAddedAdmin"));
       setVUrl(""); setVTitle(""); setVDesc(""); setVCat("life_story");
       const fresh = await fetch(`/api/memorials/${memorialId}/videos`, { cache: "no-store" });
       if (fresh.ok) setVideos((await fresh.json()).videos || []);
@@ -204,12 +206,12 @@ export default function MemorialManage({ memorialId }: Props) {
   }
 
   async function removeVideo(vid: string) {
-    if (!confirm("Remove this video from the memorial?")) return;
+    if (!confirm(t("memorials.manage.confirmRemoveVideo"))) return;
     try {
       const res = await fetch(`/api/memorials/${memorialId}/videos/${vid}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not remove");
-      toast.success("Video removed");
+      if (!res.ok) throw new Error(body.error || t("memorials.manage.err.removeVideo"));
+      toast.success(t("memorials.manage.videoRemoved"));
       setVideos((prev) => prev.filter((v) => v.id !== vid));
     } catch (err) {
       toast.error((err as Error).message);
@@ -228,9 +230,9 @@ export default function MemorialManage({ memorialId }: Props) {
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
-        throw new Error(b.error || "Could not save");
+        throw new Error(b.error || t("memorials.manage.err.save"));
       }
-      toast.success("Display setting saved");
+      toast.success(t("memorials.manage.displaySaved"));
     } catch (err) {
       toast.error((err as Error).message);
       setDetail(detail); // revert
@@ -249,10 +251,10 @@ export default function MemorialManage({ memorialId }: Props) {
     return (
       <div className="max-w-md mx-auto text-center py-24 px-4">
         <Flower2 size={30} className="mx-auto text-[#475569] mb-4" />
-        <h1 className="text-lg font-bold text-white mb-2">Cannot open the manage panel</h1>
+        <h1 className="text-lg font-bold text-white mb-2">{t("memorials.manage.openFailed")}</h1>
         <p className="text-sm text-[#94A3B8] mb-6">{denied}</p>
         <Link href={`/memorials/${memorialId}`} className="text-xs font-bold text-[#C4B5FD] hover:text-white">
-          ← Back to the memorial
+          {t("memorials.manage.backToMemorial")}
         </Link>
       </div>
     );
@@ -285,7 +287,7 @@ export default function MemorialManage({ memorialId }: Props) {
   return (
     <div className="max-w-[680px] mx-auto px-4 pt-8 pb-24">
       <Link href={`/memorials/${memorialId}`} className="text-[11px] text-[#64748B] hover:text-white inline-flex items-center gap-1 mb-4">
-        <ArrowLeft size={11} /> Back to {m.fullName}
+        <ArrowLeft size={11} /> {t("memorials.manage.backTo", { name: m.fullName })}
       </Link>
 
       <div className="flex items-center gap-3 mb-5">
@@ -293,7 +295,7 @@ export default function MemorialManage({ memorialId }: Props) {
           <Flower2 size={18} className="text-[#C4B5FD]" />
         </div>
         <div>
-          <h1 className="text-lg font-black text-white">Manage memorial</h1>
+          <h1 className="text-lg font-black text-white">{t("memorials.manage.title")}</h1>
           <p className="text-[11px] text-[#64748B]">{m.fullName} · {m.status}</p>
         </div>
       </div>
@@ -303,25 +305,25 @@ export default function MemorialManage({ memorialId }: Props) {
           onClick={() => setTab("edit")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "edit" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Pencil size={12} /> Details
+          <Pencil size={12} /> {t("memorials.manage.tab.details")}
         </button>
         <button
           onClick={() => setTab("videos")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "videos" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Film size={12} /> Videos
+          <Film size={12} /> {t("memorials.manage.tab.videos")}
         </button>
         <button
           onClick={() => setTab("settings")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "settings" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Settings2 size={12} /> Display
+          <Settings2 size={12} /> {t("memorials.manage.tab.display")}
         </button>
         <button
           onClick={() => setTab("managers")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "managers" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
-          <Users size={12} /> Managers
+          <Users size={12} /> {t("memorials.manage.tab.managers")}
         </button>
       </div>
 
@@ -336,28 +338,28 @@ export default function MemorialManage({ memorialId }: Props) {
           {/* lifecycle actions below the form */}
           <div className="max-w-[680px] mx-auto px-4 pb-24 -mt-16">
             <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4 space-y-3">
-              <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B]">Memorial status</h2>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B]">{t("memorials.manage.statusTitle")}</h2>
               <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                This memorial is currently <b className="text-white">{m.status}</b> ({m.visibility}).
-                {m.status === "draft" && " Submit it for review from the memorial page when you are ready."}
-                {m.status === "pending" && " A Koino admin will review it before it appears publicly — you can keep editing meanwhile."}
-                {m.status === "rejected" && (m.rejectionReason ? ` Reason: ${m.rejectionReason} — edit and submit again.` : " Edit and submit it again.")}
-                {m.status === "unpublished" && " Submit it for review again from the memorial page when you are ready."}
+                {t("memorials.manage.statusCurrently")} <b className="text-white">{m.status}</b> ({m.visibility}).
+                {m.status === "draft" && t("memorials.manage.statusDraftHint")}
+                {m.status === "pending" && t("memorials.manage.statusPendingHint")}
+                {m.status === "rejected" && (m.rejectionReason ? t("memorials.manage.statusRejectedReason", { reason: m.rejectionReason }) : t("memorials.manage.statusRejectedHint"))}
+                {m.status === "unpublished" && t("memorials.manage.statusUnpublishedHint")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {m.status === "published" && (
                   <button onClick={unpublish} disabled={unpublishing} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40">
-                    {unpublishing ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />} Unpublish
+                    {unpublishing ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />} {t("memorials.manage.unpublish")}
                   </button>
                 )}
                 {isOwner && (
                   <button onClick={requestDeletion} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-300 hover:bg-red-500/15">
-                    <Trash2 size={12} /> Delete memorial
+                    <Trash2 size={12} /> {t("memorials.manage.delete")}
                   </button>
                 )}
               </div>
               <p className="text-[10px] text-[#475569]">
-                Every memorial is reviewed by a Koino administrator before it becomes public. Admins can also hide or correct a memorial after a report — the family is always able to unpublish it themselves.
+                {t("memorials.manage.reviewNote")}
               </p>
             </div>
           </div>
@@ -367,28 +369,27 @@ export default function MemorialManage({ memorialId }: Props) {
       {tab === "videos" && (
         <div className="space-y-4">
           <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
-            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">Add a YouTube video</h2>
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.addVideoTitle")}</h2>
             <p className="text-[11px] text-[#94A3B8] mb-3 leading-relaxed">
-              Life story, personal testimony, funeral or memorial service, family memories, worship…
-              Videos stay pending until a Koino admin approves them. Koino embeds YouTube videos — it never uploads or owns them.
+              {t("memorials.manage.addVideoNote")}
             </p>
             <div className="space-y-2.5">
-              <input value={vUrl} onChange={(e) => setVUrl(e.target.value)} placeholder="YouTube link — youtube.com/watch?v=… , youtu.be/… , or Shorts" className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
+              <input value={vUrl} onChange={(e) => setVUrl(e.target.value)} placeholder={t("memorials.form.videoUrlPh")} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
               <div className="grid grid-cols-[1fr_150px] gap-2.5">
-                <input value={vTitle} onChange={(e) => setVTitle(e.target.value)} placeholder="Video title *" maxLength={150} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
-                <select value={vCat} onChange={(e) => setVCat(e.target.value)} aria-label="Video category" className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]">
-                  {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                <input value={vTitle} onChange={(e) => setVTitle(e.target.value)} placeholder={t("memorials.form.videoTitlePh")} maxLength={150} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
+                <select value={vCat} onChange={(e) => setVCat(e.target.value)} aria-label={t("memorials.form.videoCatAria")} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]">
+                  {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(`memorials.videoCat.${c.id}`)}</option>)}
                 </select>
               </div>
-              <input value={vDesc} onChange={(e) => setVDesc(e.target.value)} placeholder="Short description (optional)" maxLength={1000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
+              <input value={vDesc} onChange={(e) => setVDesc(e.target.value)} placeholder={t("memorials.form.videoDescPh")} maxLength={1000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
               <button onClick={addVideo} disabled={addingVideo || !vUrl.trim() || vTitle.trim().length < 2} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40">
-                {addingVideo ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add video
+                {addingVideo ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} {t("memorials.manage.addVideoBtn")}
               </button>
             </div>
           </div>
 
           {videos.length === 0 ? (
-            <p className="text-sm text-[#64748B] italic text-center py-8">No videos yet.</p>
+            <p className="text-sm text-[#64748B] italic text-center py-8">{t("memorials.manage.noVideos")}</p>
           ) : (
             <ul className="space-y-2.5">
               {videos.map((v) => (
@@ -398,7 +399,7 @@ export default function MemorialManage({ memorialId }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white truncate">{v.title}</p>
                     <p className="text-[10px] text-[#64748B] truncate">
-                      {MEMORIAL_VIDEO_CATEGORIES.find((c) => c.id === v.category)?.label || "Other"} · by {v.addedByName}
+                      {v.category && MEMORIAL_VIDEO_CATEGORIES.some((c) => c.id === v.category) ? t(`memorials.videoCat.${v.category}`) : t("memorials.videoCat.other")} · {t("memorials.manage.by", { name: v.addedByName })}
                     </p>
                     {v.status !== "approved" && (
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full inline-block mt-1 ${v.status === "pending" ? "bg-amber-500/15 text-amber-300" : "bg-red-500/15 text-red-300"}`}>
@@ -406,10 +407,10 @@ export default function MemorialManage({ memorialId }: Props) {
                       </span>
                     )}
                   </div>
-                  <a href={youtubeWatchUrl(v.videoId)} target="_blank" rel="noreferrer" className="p-1.5 text-[#64748B] hover:text-white shrink-0" aria-label={`Open ${v.title} on YouTube`}>
+                  <a href={youtubeWatchUrl(v.videoId)} target="_blank" rel="noreferrer" className="p-1.5 text-[#64748B] hover:text-white shrink-0" aria-label={t("memorials.manage.openOnYouTubeAria", { title: v.title })}>
                     <ExternalLink size={13} />
                   </a>
-                  <button onClick={() => removeVideo(v.id)} className="p-1.5 rounded-full text-[#64748B] hover:text-red-300 shrink-0" aria-label={`Remove ${v.title}`}>
+                  <button onClick={() => removeVideo(v.id)} className="p-1.5 rounded-full text-[#64748B] hover:text-red-300 shrink-0" aria-label={t("memorials.manage.removeAria", { title: v.title })}>
                     <Trash2 size={13} />
                   </button>
                 </li>
@@ -421,18 +422,18 @@ export default function MemorialManage({ memorialId }: Props) {
 
       {tab === "settings" && (
         <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">What appears on the memorial page</h2>
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.sectionOnPage")}</h2>
           <p className="text-[11px] text-[#94A3B8] mb-4 leading-relaxed">
-            Choose which sections visitors see. Nothing is required — many families keep only the story and tributes.
+            {t("memorials.manage.settingsNote")}
           </p>
           <ul className="space-y-2">
             {([
-              { key: "photos", label: "Photographs", desc: "The photo gallery" },
-              { key: "videos", label: "Videos & memories", desc: "YouTube videos approved for this memorial" },
-              { key: "tributes", label: "Tributes", desc: "Condolences and memories from visitors" },
-              { key: "verse", label: "Verse & faith", desc: "Favourite Bible verse and testimony" },
-              { key: "family", label: "Family", desc: "Family background and qualities" },
-              { key: "candles", label: "Candles", desc: "Let visitors light a candle in remembrance" },
+              { key: "photos", label: t("memorials.manage.row.photos.label"), desc: t("memorials.manage.row.photos.desc") },
+              { key: "videos", label: t("memorials.manage.row.videos.label"), desc: t("memorials.manage.row.videos.desc") },
+              { key: "tributes", label: t("memorials.manage.row.tributes.label"), desc: t("memorials.manage.row.tributes.desc") },
+              { key: "verse", label: t("memorials.manage.row.verse.label"), desc: t("memorials.manage.row.verse.desc") },
+              { key: "family", label: t("memorials.manage.row.family.label"), desc: t("memorials.manage.row.family.desc") },
+              { key: "candles", label: t("memorials.manage.row.candles.label"), desc: t("memorials.manage.row.candles.desc") },
             ] as const).map((row) => (
               <li key={row.key} className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3">
                 <div className="min-w-0 flex-1">
@@ -443,7 +444,7 @@ export default function MemorialManage({ memorialId }: Props) {
                   onClick={() => setDisplay(row.key, !m.display[row.key as keyof typeof m.display])}
                   role="switch"
                   aria-checked={m.display[row.key as keyof typeof m.display]}
-                  aria-label={`${m.display[row.key as keyof typeof m.display] ? "Hide" : "Show"} ${row.label}`}
+                  aria-label={m.display[row.key as keyof typeof m.display] ? t("memorials.manage.switchHideAria", { label: row.label }) : t("memorials.manage.switchShowAria", { label: row.label })}
                   className={`relative w-10 h-5.5 rounded-full transition-colors shrink-0 ${m.display[row.key as keyof typeof m.display] ? "bg-[#7C3AED]" : "bg-white/[0.08]"}`}
                   style={{ height: 22 }}
                 >
@@ -461,16 +462,15 @@ export default function MemorialManage({ memorialId }: Props) {
       {tab === "managers" && (
         <div className="space-y-4">
           <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
-            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">Invite a family member or friend</h2>
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.inviteTitle")}</h2>
             <p className="text-[11px] text-[#94A3B8] mb-3 leading-relaxed">
-              Co-managers can edit the memorial, moderate condolences, and invite others — but only the
-              owner can delete the memorial. Invite by their Koino username.
+              {t("memorials.manage.inviteNote")}
             </p>
             <div className="flex gap-2">
               <input
                 value={invite}
                 onChange={(e) => setInvite(e.target.value)}
-                placeholder="e.g. annamma1990"
+                placeholder={t("memorials.manage.usernamePh")}
                 className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
               />
               <button
@@ -478,7 +478,7 @@ export default function MemorialManage({ memorialId }: Props) {
                 disabled={inviting || !invite.trim()}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
               >
-                {inviting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add
+                {inviting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} {t("memorials.manage.add")}
               </button>
             </div>
           </div>
@@ -494,11 +494,11 @@ export default function MemorialManage({ memorialId }: Props) {
                     {mm.name} {mm.username && <span className="text-[#64748B] font-normal">@{mm.username}</span>}
                   </p>
                   <p className="text-[10px] text-[#64748B]">
-                    {mm.role === "owner" ? "Owner" : "Manager"} · since {timeAgo(mm.since)}
+                    {mm.role === "owner" ? t("memorials.manage.owner") : t("memorials.manage.manager")} · {t("memorials.manage.since", { when: timeAgo(mm.since) })}
                   </p>
                 </div>
                 {isOwner && mm.role !== "owner" && (
-                  <button onClick={() => removeManager(mm.userId, mm.name)} className="p-1.5 rounded-full text-[#64748B] hover:text-red-300" aria-label={`Remove ${mm.name}`}>
+                  <button onClick={() => removeManager(mm.userId, mm.name)} className="p-1.5 rounded-full text-[#64748B] hover:text-red-300" aria-label={t("memorials.manage.removeAria", { title: mm.name })}>
                     <Trash2 size={13} />
                   </button>
                 )}

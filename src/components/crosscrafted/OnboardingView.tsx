@@ -20,6 +20,7 @@ import {
 import { useSupabaseUser, notifyProfileUpdated } from "@/lib/supabase/use-user";
 import { INDIAN_STATES, getCitiesForState, LANGUAGES } from "@/lib/crosscrafted-data";
 import { COMMUNITY_ROLES, COMMUNITY_ROLE_OTHER, COMMUNITY_ROLE_OTHER_MAX } from "@/lib/community-roles";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Step = 0 | 1 | 2 | 3; // 0=welcome, 1=profile, 2=faith, 3=whatsapp
 
@@ -28,6 +29,7 @@ type Props = {
 };
 
 export default function OnboardingView({ onComplete }: Props) {
+  const t = useTranslation();
   const { user } = useSupabaseUser();
   const [step, setStep] = useState<Step>(0);
   const [loading, setLoading] = useState(false);
@@ -138,19 +140,19 @@ export default function OnboardingView({ onComplete }: Props) {
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
   const validateUsername = (val: string): string | null => {
-    if (!val || val.trim().length === 0) return "Please choose a username.";
-    if (val.trim().length < 3) return "Username must be at least 3 characters.";
-    if (!/^[a-zA-Z0-9_.]+$/.test(val)) return "Only letters, numbers, underscores, and periods.";
-    if (usernameAvailable === false) return "This username is already taken.";
+    if (!val || val.trim().length === 0) return t("onboarding.username.required");
+    if (val.trim().length < 3) return t("onboarding.username.short");
+    if (!/^[a-zA-Z0-9_.]+$/.test(val)) return t("onboarding.username.chars");
+    if (usernameAvailable === false) return t("onboarding.username.taken");
     return null;
   };
 
   const validateProfile = (): string | null => {
     const uErr = validateUsername(username);
     if (uErr) return uErr;
-    if (!mobileNumber) return "Mobile number is required.";
-    if (!state) return "State is required.";
-    if (!city) return "City is required.";
+    if (!mobileNumber) return t("onboarding.error.mobile");
+    if (!state) return t("onboarding.error.state");
+    if (!city) return t("onboarding.error.city");
     return null;
   };
 
@@ -163,12 +165,12 @@ export default function OnboardingView({ onComplete }: Props) {
     }
     setUsernameError(null);
     if (!mobileNumber || !state || !city) {
-      toast.error("Please fill in all required fields.");
+      toast.error(t("common.fillRequired"));
       return;
     }
     // Don't proceed if username availability check is still loading
     if (usernameAvailable !== true) {
-      toast.error("Please wait for username availability check.");
+      toast.error(t("onboarding.error.usernamePending"));
       return;
     }
     setLoading(true);
@@ -198,11 +200,11 @@ export default function OnboardingView({ onComplete }: Props) {
         if (data.field === "username") {
           setUsernameError(data.error);
         }
-        throw new Error(data.error || "Failed to save profile");
+        throw new Error(data.error || t("onboarding.error.saveProfile"));
       }
       setStep(2);
     } catch (e: any) {
-      toast.error(e.message || "Failed to save profile");
+      toast.error(e.message || t("onboarding.error.saveProfile"));
     } finally {
       setLoading(false);
     }
@@ -221,10 +223,10 @@ export default function OnboardingView({ onComplete }: Props) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save faith info");
+      if (!res.ok) throw new Error(data.error || t("onboarding.error.saveFaith"));
       setStep(3);
     } catch (e: any) {
-      toast.error(e.message || "Failed to save");
+      toast.error(e.message || t("onboarding.error.save"));
     } finally {
       setLoading(false);
     }
@@ -245,24 +247,24 @@ export default function OnboardingView({ onComplete }: Props) {
       if (!res.ok) {
         // If the server says a step is incomplete, go back to that step
         if (data.step === "profile") {
-          toast.error("Please complete your profile first.");
+          toast.error(t("onboarding.error.profileFirst"));
           setStep(1);
         } else if (data.step === "faith") {
-          toast.error("Please answer the faith questions first.");
+          toast.error(t("onboarding.error.faithFirst"));
           setStep(2);
         } else {
-          throw new Error(data.error || "Failed to complete onboarding");
+          throw new Error(data.error || t("onboarding.error.complete"));
         }
         return;
       }
-      toast.success("Welcome to Koino! 🎉");
+      toast.success(t("onboarding.toast.welcome"));
       // Refresh profileCompleted in every useSupabaseUser consumer BEFORE
       // onComplete navigates — otherwise the hook's stale profileCompleted
       // sends completed users straight back into onboarding.
       notifyProfileUpdated();
       onComplete();
     } catch (e: any) {
-      toast.error(e.message || "Failed to complete");
+      toast.error(e.message || t("onboarding.error.completeGeneric"));
     } finally {
       setLoading(false);
     }
@@ -302,15 +304,15 @@ export default function OnboardingView({ onComplete }: Props) {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F39B9B] to-[#7C3AED] flex items-center justify-center">
                 <Sparkles size={28} className="text-white" />
               </div>
-              <h1 className="text-xl font-black text-white mb-2">Welcome to Koino 👋</h1>
+              <h1 className="text-xl font-black text-white mb-2">{t("onboarding.welcome.title")}</h1>
               <p className="text-sm text-[#A09DB1] leading-relaxed mb-5">
-                Let's set up your profile so we can connect you with churches, events and people near you.
+                {t("onboarding.welcome.desc")}
               </p>
               <button
                 onClick={() => setStep(1)}
                 className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2"
               >
-                Get Started <ArrowRight size={16} />
+                {t("onboarding.cta.getStarted")} <ArrowRight size={16} />
               </button>
             </motion.div>
           )}
@@ -324,8 +326,8 @@ export default function OnboardingView({ onComplete }: Props) {
               exit={{ opacity: 0, x: -20 }}
               className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-5"
             >
-              <h2 className="text-base font-bold text-white mb-1">Basic Profile</h2>
-              <p className="text-[11px] text-[#94A3B8] mb-4">Required fields are marked with *</p>
+              <h2 className="text-base font-bold text-white mb-1">{t("onboarding.profile.title")}</h2>
+              <p className="text-[11px] text-[#94A3B8] mb-4">{t("onboarding.profile.requiredNote")}</p>
 
               <div className="space-y-3">
                 {/* Profile Photo */}
@@ -337,9 +339,9 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* Username */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Username *
+                    {t("onboarding.profile.username")}
                   </label>
-                  <p className="text-[9px] text-[#64748B] mb-1">This is how people will know you on Koino.</p>
+                  <p className="text-[9px] text-[#64748B] mb-1">{t("onboarding.profile.usernameHint")}</p>
                   <input
                     type="text"
                     value={username}
@@ -350,7 +352,7 @@ export default function OnboardingView({ onComplete }: Props) {
                       if (usernameError) setUsernameError(null);
                     }}
                     className={`neo-input text-sm ${usernameError ? "border-[#EF4444]/40" : ""}`}
-                    placeholder="Choose your username"
+                    placeholder={t("onboarding.profile.usernamePlaceholder")}
                   />
                   {/* Inline username validation error */}
                   {usernameError && (
@@ -359,7 +361,7 @@ export default function OnboardingView({ onComplete }: Props) {
                   {/* Username availability (only show if no error) */}
                   {!usernameError && usernameAvailable === false && (
                     <div className="mt-1">
-                      <p className="text-[10px] text-[#EF4444] font-bold">⚠ This username is already taken.</p>
+                      <p className="text-[10px] text-[#EF4444] font-bold">⚠ {t("onboarding.username.taken")}</p>
                       {usernameSuggestions.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {usernameSuggestions.map((s) => (
@@ -380,7 +382,7 @@ export default function OnboardingView({ onComplete }: Props) {
                   )}
                   {!usernameError && usernameAvailable === true && (
                     <p className="text-[10px] text-[#22C55E] font-bold mt-1 flex items-center gap-0.5">
-                      <Check size={10} /> Available
+                      <Check size={10} /> {t("onboarding.username.available")}
                     </p>
                   )}
                 </div>
@@ -388,7 +390,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* Date of Birth */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Date of Birth <span className="text-[#64748B] normal-case font-normal">(optional)</span>
+                    {t("onboarding.profile.dob")} <span className="text-[#64748B] normal-case font-normal">{t("common.optional")}</span>
                   </label>
                   <input
                     type="date"
@@ -401,13 +403,13 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* Gender (optional) */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Gender <span className="text-[#64748B] normal-case font-normal">(optional)</span>
+                    {t("onboarding.profile.gender")} <span className="text-[#64748B] normal-case font-normal">{t("common.optional")}</span>
                   </label>
                   <div className="flex gap-1.5">
                     {[
-                      { v: "male", l: "Male" },
-                      { v: "female", l: "Female" },
-                      { v: "prefer_not_to_say", l: "Prefer not to say" },
+                      { v: "male", l: t("onboarding.gender.male") },
+                      { v: "female", l: t("onboarding.gender.female") },
+                      { v: "prefer_not_to_say", l: t("onboarding.gender.preferNot") },
                     ].map((g) => (
                       <button
                         key={g.v}
@@ -427,15 +429,15 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* Community role (optional, self-reported) */}
                 <div>
                   <label className="block text-[11px] font-bold tracking-wider text-[#94A3B8] mb-1">
-                    What best describes your role in the Christian community?{" "}
-                    <span className="text-[#64748B] font-normal">(optional)</span>
+                    {t("onboarding.role.question")}{" "}
+                    <span className="text-[#64748B] font-normal">{t("common.optional")}</span>
                   </label>
                   <select
                     value={communityRole}
                     onChange={(e) => setCommunityRole(e.target.value)}
                     className="neo-input text-sm"
                   >
-                    <option value="">Select your role (optional)</option>
+                    <option value="">{t("onboarding.role.selectPlaceholder")}</option>
                     {COMMUNITY_ROLES.map((r) => (
                       <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
@@ -446,7 +448,7 @@ export default function OnboardingView({ onComplete }: Props) {
                       value={communityRoleOther}
                       onChange={(e) => setCommunityRoleOther(e.target.value)}
                       maxLength={COMMUNITY_ROLE_OTHER_MAX}
-                      placeholder="Tell us your role (e.g. Children's Ministry)"
+                      placeholder={t("onboarding.role.otherPlaceholder")}
                       className="neo-input text-sm mt-2"
                     />
                   )}
@@ -458,7 +460,7 @@ export default function OnboardingView({ onComplete }: Props) {
                       className="w-3.5 h-3.5 accent-[#7C3AED]"
                     />
                     <span className="text-[10px] text-[#94A3B8] font-semibold">
-                      Show my role on my public profile
+                      {t("onboarding.role.visibleLabel")}
                     </span>
                   </label>
                 </div>
@@ -466,14 +468,14 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* State */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    State *
+                    {t("onboarding.profile.state")}
                   </label>
                   <select
                     value={state}
                     onChange={(e) => { setState(e.target.value); setCity(""); }}
                     className="neo-input text-sm"
                   >
-                    <option value="">Select state</option>
+                    <option value="">{t("common.selectState")}</option>
                     {INDIAN_STATES.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
@@ -483,7 +485,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* City */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    City *
+                    {t("onboarding.profile.city")}
                   </label>
                   <select
                     value={city}
@@ -491,7 +493,7 @@ export default function OnboardingView({ onComplete }: Props) {
                     disabled={!state}
                     className="neo-input text-sm disabled:opacity-50"
                   >
-                    <option value="">{state ? "Select city" : "Select state first"}</option>
+                    <option value="">{state ? t("common.selectCity") : t("common.selectStateFirst")}</option>
                     {state && getCitiesForState(state).map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -501,17 +503,17 @@ export default function OnboardingView({ onComplete }: Props) {
                 {/* Mobile Number (required) */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Mobile Number *
+                    {t("onboarding.profile.mobile")}
                   </label>
                   <input
                     type="tel"
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
                     className="neo-input text-sm"
-                    placeholder="+91 98765 43210"
+                    placeholder={t("common.whatsappPlaceholder")}
                   />
                   <p className="text-[9px] text-[#64748B] mt-1">
-                    Used for event and WhatsApp communication and prize claims.
+                    {t("onboarding.profile.mobileHint")}
                   </p>
                 </div>
               </div>
@@ -521,7 +523,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 disabled={loading || !username || usernameAvailable !== true || !mobileNumber || !state || !city}
                 className="w-full mt-4 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <>Continue <ArrowRight size={16} /></>}
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <>{t("onboarding.cta.continue")} <ArrowRight size={16} /></>}
               </button>
             </motion.div>
           )}
@@ -537,21 +539,21 @@ export default function OnboardingView({ onComplete }: Props) {
             >
               <div className="flex items-center gap-2 mb-1">
                 <Heart size={14} className="text-[#F39B9B]" />
-                <h2 className="text-base font-bold text-white">Your Faith Journey</h2>
+                <h2 className="text-base font-bold text-white">{t("onboarding.faith.title")}</h2>
               </div>
               <p className="text-[11px] text-[#94A3B8] mb-4">
-                Everyone is welcome here — whether you've followed Jesus for years or are just curious.
+                {t("onboarding.faith.desc")}
               </p>
 
               {/* Question 1 */}
               <div className="mb-4">
-                <p className="text-[11px] font-bold text-[#A09DB1] mb-2">Do you believe in Jesus Christ?</p>
+                <p className="text-[11px] font-bold text-[#A09DB1] mb-2">{t("onboarding.faith.q1")}</p>
                 <div className="space-y-1.5">
                   {[
-                    { v: "follows_jesus", l: "YES — I follow Jesus" },
-                    { v: "exploring", l: "I'm exploring faith" },
-                    { v: "new_to_christianity", l: "I'm new to Christianity" },
-                    { v: "prefer_not_to_say", l: "Prefer not to say" },
+                    { v: "follows_jesus", l: t("onboarding.faithStatus.followsJesus") },
+                    { v: "exploring", l: t("onboarding.faithStatus.exploring") },
+                    { v: "new_to_christianity", l: t("onboarding.faithStatus.newToChristianity") },
+                    { v: "prefer_not_to_say", l: t("onboarding.gender.preferNot") },
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -570,14 +572,14 @@ export default function OnboardingView({ onComplete }: Props) {
 
               {/* Question 2 */}
               <div className="mb-4">
-                <p className="text-[11px] font-bold text-[#A09DB1] mb-2">Where are you on your faith journey?</p>
+                <p className="text-[11px] font-bold text-[#A09DB1] mb-2">{t("onboarding.faith.q2")}</p>
                 <div className="space-y-1.5">
                   {[
-                    { v: "growing", l: "Growing in my faith" },
-                    { v: "new_to_jesus", l: "New to following Jesus" },
-                    { v: "exploring_christianity", l: "Exploring Christianity" },
-                    { v: "looking_for_church", l: "Looking for a church/community" },
-                    { v: "learn_and_connect", l: "I'm here to learn and connect" },
+                    { v: "growing", l: t("onboarding.faithJourney.growing") },
+                    { v: "new_to_jesus", l: t("onboarding.faithJourney.newToJesus") },
+                    { v: "exploring_christianity", l: t("onboarding.faithJourney.exploring") },
+                    { v: "looking_for_church", l: t("onboarding.faithJourney.lookingForChurch") },
+                    { v: "learn_and_connect", l: t("onboarding.faithJourney.learnAndConnect") },
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -595,7 +597,7 @@ export default function OnboardingView({ onComplete }: Props) {
               </div>
 
               <p className="text-[9px] text-[#64748B] mb-4">
-                🔒 Your faith answers are private. Only authorized admins can see them — they are not shown in your public profile.
+                {t("onboarding.faith.privacyNote")}
               </p>
 
               <div className="flex gap-2">
@@ -610,7 +612,7 @@ export default function OnboardingView({ onComplete }: Props) {
                   disabled={loading || !faithStatus || !faithJourney}
                   className="flex-1 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : <>Continue <ArrowRight size={16} /></>}
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <>{t("onboarding.cta.continue")} <ArrowRight size={16} /></>}
                 </button>
               </div>
             </motion.div>
@@ -628,9 +630,9 @@ export default function OnboardingView({ onComplete }: Props) {
               <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-[#25D366]/15 flex items-center justify-center">
                 <MessageCircle size={24} className="text-[#25D366]" />
               </div>
-              <h2 className="text-base font-bold text-white mb-1">Stay connected with Koino 💜</h2>
+              <h2 className="text-base font-bold text-white mb-1">{t("onboarding.connect.title")}</h2>
               <p className="text-[11px] text-[#A09DB1] leading-relaxed mb-5">
-                Follow our official WhatsApp Channel for Christian events, Bible challenges, announcements and community updates.
+                {t("onboarding.connect.desc")}
               </p>
 
               <a
@@ -645,7 +647,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 }}
                 className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1FB855] text-white font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2 mb-2"
               >
-                <MessageCircle size={16} /> Follow Koino on WhatsApp
+                <MessageCircle size={16} /> {t("onboarding.connect.whatsappCta")}
                 <ExternalLink size={12} className="opacity-80" />
               </a>
 
@@ -654,7 +656,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 disabled={loading}
                 className="w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white font-bold text-xs transition-all"
               >
-                Skip for now
+                {t("onboarding.connect.skip")}
               </button>
 
               <button
@@ -662,7 +664,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 disabled={loading}
                 className="w-full mt-2 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2 disabled:opacity-30"
               >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <>Enter Koino <ArrowRight size={16} /></>}
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <>{t("landing.cta.enterKoino")} <ArrowRight size={16} /></>}
               </button>
             </motion.div>
           )}
@@ -687,6 +689,7 @@ function ProfilePhotoUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslation();
 
   const handleFile = async (file: File) => {
     setError(null);
@@ -694,11 +697,11 @@ function ProfilePhotoUpload({
     // Client-side validation
     const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
     if (!allowed.includes(file.type)) {
-      setError("Please upload a JPG, PNG or WEBP image.");
+      setError(t("common.image.typeError"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("Please choose an image smaller than 5 MB.");
+      setError(t("common.image.sizeError"));
       return;
     }
 
@@ -712,11 +715,11 @@ function ProfilePhotoUpload({
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (!res.ok) throw new Error(data.error || t("common.uploadFailed"));
 
       onChange(data.url);
     } catch (e: any) {
-      setError(e.message || "Unable to upload your photo. Please try again.");
+      setError(e.message || t("onboarding.photo.error"));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -728,7 +731,7 @@ function ProfilePhotoUpload({
       {/* Avatar preview */}
       <div className="w-16 h-16 rounded-full overflow-hidden bg-[#0f0f1a] border border-white/[0.08] flex items-center justify-center shrink-0">
         {photoUrl ? (
-          <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+          <img src={photoUrl} alt={t("onboarding.photo.alt")} className="w-full h-full object-cover" />
         ) : (
           <User size={20} className="text-[#475569]" />
         )}
@@ -736,7 +739,7 @@ function ProfilePhotoUpload({
 
       <div className="flex-1">
         <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-          Profile Photo <span className="text-[#64748B] normal-case font-normal">(optional)</span>
+          {t("onboarding.photo.label")} <span className="text-[#64748B] normal-case font-normal">{t("common.optional")}</span>
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -745,7 +748,7 @@ function ProfilePhotoUpload({
             disabled={uploading}
             className="px-3 py-1.5 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[10px] font-bold hover:bg-[#7C3AED]/25 transition-all disabled:opacity-50"
           >
-            {uploading ? <Loader2 size={11} className="animate-spin" /> : photoUrl ? "Change Photo" : "Upload Photo"}
+            {uploading ? <Loader2 size={11} className="animate-spin" /> : photoUrl ? t("onboarding.photo.change") : t("onboarding.photo.upload")}
           </button>
           {photoUrl && !uploading && (
             <button
@@ -753,7 +756,7 @@ function ProfilePhotoUpload({
               onClick={() => onChange("")}
               className="px-2 py-1.5 rounded-lg text-[10px] font-bold text-[#EF4444] hover:bg-[#EF4444]/10 transition-all"
             >
-              Remove
+              {t("common.remove")}
             </button>
           )}
         </div>

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { HeartHandshake } from "lucide-react";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import DonationCard from "@/components/founder/DonationCard";
 import WhatsAppIcon from "@/components/founder/WhatsAppIcon";
 import { FOUNDER, FOUNDER_WHATSAPP } from "@/lib/founder";
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
-const TAGLINES = ["Faith", "Fellowship", "Belong"];
+const TAGLINES = ["about.pillar.faith.title", "about.pillar.fellowship.title", "about.pillar.belong.title"];
 
 export default function FounderPage() {
   return (
@@ -48,7 +49,7 @@ export default function FounderPage() {
               Meet the Founder
             </h1>
             <p className="text-sm text-[#A09DB1]">
-              The heart and vision behind {BRAND.name}
+              <T k="founderPage.sub" />
             </p>
           </div>
 
@@ -87,7 +88,7 @@ export default function FounderPage() {
                     key={t}
                     className="px-3 py-1 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[#F59E0B] text-[11px] font-bold"
                   >
-                    {t}
+                    <T k={t} />
                   </span>
                 ))}
               </div>
@@ -134,16 +135,16 @@ export default function FounderPage() {
                   Koino is more than a platform. It is a vision for a connected
                   community built on faith, fellowship, and belonging.
                 </p>
-                <p className="text-white font-bold">Welcome to Koino.</p>
+                <p className="text-white font-bold"><T k="founderPage.welcome" /></p>
                 <p className="text-[#F59E0B] font-bold">
                   Faith. Fellowship. Belong.
                 </p>
               </div>
 
               <div className="mt-6 pt-5 border-t border-white/[0.08]">
-                <p className="text-sm font-black text-white">— Josh Govada</p>
+                <p className="text-sm font-black text-white"><T k="founderPage.signature" /></p>
                 <p className="text-xs text-[#A09DB1] mt-0.5">
-                  Founder, Koino.in
+                  <T k="founderPage.role" />
                 </p>
               </div>
             </div>
@@ -158,10 +159,10 @@ export default function FounderPage() {
             id="connect-heading"
             className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-3"
           >
-            Let&rsquo;s Connect
+            <T k="founderPage.connect.title" />
           </h2>
           <p className="text-sm font-bold text-[#C9C5DA] mb-2">
-            Have a question, suggestion, idea, or partnership opportunity?
+            <T k="founderPage.connect.q" />
           </p>
           <p className="text-sm text-[#94A3B8] leading-relaxed max-w-xl mx-auto mb-7">
             I&rsquo;d love to hear from you. Whether you have feedback about
@@ -176,7 +177,7 @@ export default function FounderPage() {
             className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1FB855] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px"
           >
             <WhatsAppIcon className="h-5 w-5" />
-            Contact Josh on WhatsApp
+            <T k="founderPage.connect.whatsapp" />
           </a>
           <p className="text-[11px] text-[#726E88] mt-3.5 leading-relaxed">
             Opens WhatsApp with a pre-filled message — the app on mobile, or
@@ -189,7 +190,7 @@ export default function FounderPage() {
       <section className="py-12 sm:py-16 px-6" aria-labelledby="donation-heading">
         <div className="max-w-3xl mx-auto text-center mb-4">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[#F59E0B] text-xs font-bold uppercase tracking-wider mb-5">
-            <HeartHandshake size={12} /> Our Mission
+            <HeartHandshake size={12} /> <T k="founderPage.missionBadge" />
           </div>
           <h2
             id="donation-heading"

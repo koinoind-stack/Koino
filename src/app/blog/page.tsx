@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen, Clock, PenLine, Search, Sparkles } from "lucide-react";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import { BRAND, siteUrl } from "@/lib/brand";
 import { db } from "@/lib/db";
 import { displayArticleAuthor } from "@/lib/blog-server";
@@ -88,10 +89,12 @@ export default async function BlogPage({
     return { author, tags };
   };
 
+  // Returns null when there is no date yet — callers then render the
+  // translated "Recently" via <T k="blog.page.recently" />.
   const fmtDate = (d: Date | null) =>
     d
       ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-      : "Recently";
+      : null;
 
   const buildPageHref = (n: number) => {
     const sp = new URLSearchParams();
@@ -109,7 +112,7 @@ export default async function BlogPage({
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-5">
           <BookOpen size={12} /> {BRAND.name} Blog
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-white mb-3">Articles &amp; Reflections</h1>
+        <h1 className="text-3xl sm:text-4xl font-black text-white mb-3"><T k="blog.page.title" /></h1>
         <p className="text-sm text-[#A09DB1] leading-relaxed max-w-xl mx-auto mb-6">
           Bible studies, devotionals, testimonies and encouragement from the {BRAND.name} community —
           written by members, reviewed by the {BRAND.name} team.
@@ -119,7 +122,7 @@ export default async function BlogPage({
             href="/blog/write"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-all hover:-translate-y-px"
           >
-            <PenLine size={14} /> Write an Article
+            <PenLine size={14} /> <T k="blog.page.write" />
           </Link>
           {/* Search — a plain GET form: works with and without JavaScript */}
           <form action="/blog" method="get" className="relative">
@@ -154,7 +157,7 @@ export default async function BlogPage({
                 : "border-white/10 bg-white/[0.03] text-[#A09DB1] hover:text-white hover:border-white/25"
             }`}
           >
-            All
+              <T k="common.all" />
           </Link>
           {BLOG_CATEGORIES.map((c) => {
             const sp = new URLSearchParams();
@@ -199,13 +202,14 @@ export default async function BlogPage({
                 </div>
               )}
               <span className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-black/70 backdrop-blur px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#F39B9B] border border-[#F39B9B]/30">
-                <Sparkles size={10} /> Featured
+                <Sparkles size={10} /> <T k="common.featured" />
               </span>
             </div>
             <div className="p-5 sm:p-6">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#F39B9B] mb-1.5">
                 {featured.category}
-                {featured.readingMinutes ? ` · ${featured.readingMinutes} min read` : ""}
+                {featured.readingMinutes ? ` · ` : ""}
+                {featured.readingMinutes ? <T k="blog.page.minRead" vars={{ n: featured.readingMinutes }} /> : ""}
               </p>
               <h2 className="text-xl sm:text-2xl font-black text-white mb-2 group-hover:text-[#F39B9B] transition-colors">
                 {featured.title}
@@ -214,7 +218,7 @@ export default async function BlogPage({
                 <p className="text-sm text-[#A09DB1] line-clamp-2 mb-3">{featured.excerpt}</p>
               )}
               <p className="text-xs text-[#726E88]">
-                {displayArticleAuthor(featured).name} · {fmtDate(featured.publishedAt)}
+                {displayArticleAuthor(featured).name} · {fmtDate(featured.publishedAt) ?? <T k="blog.page.recently" />}
               </p>
             </div>
           </Link>
@@ -228,12 +232,12 @@ export default async function BlogPage({
           <div className="rounded-3xl border border-white/[0.06] bg-[#1C1929] p-10 text-center">
             <BookOpen size={36} className="mx-auto mb-4 text-[#F39B9B]/50" />
             <h2 className="text-lg font-black text-white mb-2">
-              {filtersActive ? "No articles match your search" : "No articles published yet"}
+              {filtersActive ? <T k="blog.page.empty.search" /> : <T k="blog.page.empty.none" />}
             </h2>
             <p className="text-sm text-[#A09DB1] leading-relaxed max-w-md mx-auto mb-6">
               {filtersActive
-                ? "Try a different search term or category — new articles are added as the community writes."
-                : `Articles are being prepared. In the meantime, explore everything else ${BRAND.name} has to offer.`}
+                ? <T k="blog.page.empty.searchHint" />
+                : <T k="blog.page.empty.noneHint" />}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {filtersActive && (
@@ -241,14 +245,14 @@ export default async function BlogPage({
                   href="/blog"
                   className="rounded-xl border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-5 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors"
                 >
-                  Clear filters
+                  <T k="blog.page.empty.clearFilters" />
                 </Link>
               )}
               <Link
                 href="/"
                 className="rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] px-5 py-2.5 text-xs font-extrabold text-slate-950 uppercase tracking-wider transition-colors"
               >
-                Explore {BRAND.name}
+                <T k="blog.page.empty.explore" />
               </Link>
             </div>
           </div>
@@ -297,7 +301,7 @@ export default async function BlogPage({
                         </p>
                       )}
                       <p className="mt-auto text-[11px] text-[#726E88]">
-                        {author.name} · {fmtDate(p.publishedAt)}
+                        {author.name} · {fmtDate(p.publishedAt) ?? <T k="blog.page.recently" />}
                       </p>
                     </div>
                   </Link>
@@ -313,18 +317,18 @@ export default async function BlogPage({
                     href={buildPageHref(page - 1)}
                     className="rounded-xl border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-5 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors"
                   >
-                    Newer
+                    <T k="blog.page.newer" />
                   </Link>
                 )}
                 <span className="text-xs text-[#726E88]">
-                  Page {page} of {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                  <T k="blog.page.pageOf" vars={{ n: page, m: Math.max(1, Math.ceil(total / PAGE_SIZE)) }} />
                 </span>
                 {hasNextPage && (
                   <Link
                     href={buildPageHref(page + 1)}
                     className="rounded-xl border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-5 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors"
                   >
-                    Load More
+                    <T k="blog.page.loadMore" />
                   </Link>
                 )}
               </div>

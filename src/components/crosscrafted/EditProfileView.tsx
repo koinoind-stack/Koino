@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { api, type SocialUser } from "@/components/social/types";
 import { notifyProfileUpdated } from "@/lib/supabase/use-user";
 import { COMMUNITY_ROLES, COMMUNITY_ROLE_OTHER, COMMUNITY_ROLE_OTHER_MAX } from "@/lib/community-roles";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import EmojiPickerButton, { insertAtCursor } from "@/components/social/EmojiPicker";
 
 type ProfileData = {
@@ -61,6 +62,7 @@ const COOLDOWN_DAYS = 30;
  * gender, DOB. Server-authoritative — the API is the only writer.
  */
 export default function EditProfileView({ onDone }: { onDone: () => void }) {
+  const t = useTranslation();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -158,11 +160,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
 
   function pickAvatar(file: File) {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast.error("Only JPG, PNG, WEBP images are supported");
+      toast.error(t("profile.image.typeError"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be smaller than 5 MB");
+      toast.error(t("profile.image.sizeError"));
       return;
     }
     setAvatarFile(file);
@@ -171,7 +173,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
   }
 
   async function removeAvatar() {
-    if (!confirm("Remove your profile photo?")) return;
+    if (!confirm(t("profile.confirm.removePhoto"))) return;
     try {
       if (profile?.image) {
         // Only hit the server when there is an existing photo to remove.
@@ -180,7 +182,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
       setAvatarFile(null);
       setAvatarPreview(null);
       setAvatarRemoved(true);
-      toast.success("Photo removed");
+      toast.success(t("profile.toast.photoRemoved"));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -192,18 +194,18 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
     form.append("file", avatarFile);
     const res = await fetch("/api/profile/upload-avatar", { method: "POST", body: form });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Photo upload failed");
+    if (!res.ok) throw new Error(data.error || t("profile.error.photoUpload"));
     return data.url;
   }
 
   async function save() {
     if (saving) return;
     if (availState === "taken") {
-      toast.error("That username is already taken");
+      toast.error(t("profile.error.usernameTaken"));
       return;
     }
     if (availState === "invalid") {
-      toast.error("Username must be 3-20 characters: lowercase letters, numbers, underscores");
+      toast.error(t("profile.error.usernameInvalid"));
       return;
     }
     setSaving(true);
@@ -244,7 +246,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
       // 3. Notify every consumer (header identity, onboarding gates, etc.)
       // so edits are visible app-wide instantly.
       notifyProfileUpdated();
-      toast.success("Profile updated");
+      toast.success(t("profile.toast.updated"));
       onDone();
     } catch (err) {
       toast.error((err as Error).message);
@@ -273,7 +275,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         <button onClick={onDone} className="p-2 rounded-full hover:bg-white/5">
           <ArrowLeft size={18} className="text-[#94A3B8]" />
         </button>
-        <h1 className="text-lg font-extrabold text-white">Edit profile</h1>
+        <h1 className="text-lg font-extrabold text-white">{t("profile.title")}</h1>
       </div>
 
       {/* avatar */}
@@ -302,11 +304,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         </div>
         <div className="flex items-center gap-4 text-xs font-bold">
           <button onClick={() => fileRef.current?.click()} className="text-[#7C3AED] hover:text-white">
-            Change photo
+            {t("profile.changePhoto")}
           </button>
           {avatarShown && (
             <button onClick={removeAvatar} className="text-[#EF4444]/80 hover:text-[#EF4444] flex items-center gap-1">
-              <Trash2 size={12} /> Remove
+              <Trash2 size={12} /> {t("common.remove")}
             </button>
           )}
         </div>
@@ -314,24 +316,24 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
 
       {/* fields */}
       <div className="space-y-5">
-        <Field label="Display name">
+        <Field label={t("profile.displayName")}>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
-            placeholder="Your name"
+            placeholder={t("profile.namePlaceholder")}
             className={inputCls}
           />
         </Field>
 
-        <Field label="Username">
+        <Field label={t("profile.username")}>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] text-sm font-bold">@</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
               maxLength={20}
-              placeholder="your_handle"
+              placeholder={t("profile.usernamePlaceholder")}
               className={`${inputCls} pl-8`}
             />
             {availState === "checking" && (
@@ -345,26 +347,26 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
             )}
           </div>
           <p className={`text-[11px] mt-1.5 ${availState === "available" ? "text-green-400" : availState === "taken" || availState === "invalid" ? "text-red-400" : "text-[#64748B]"}`}>
-            {availState === "available" && `${"@" + username} is available`}
-            {availState === "taken" && "That username is already taken"}
-            {availState === "invalid" && "3-20 characters: lowercase letters, numbers, underscores"}
-            {availState === "idle" && "You can change your username once every 30 days"}
+            {availState === "available" && t("profile.usernameAvailable", { username })}
+            {availState === "taken" && t("profile.error.usernameTaken")}
+            {availState === "invalid" && t("profile.usernameRules")}
+            {availState === "idle" && t("profile.usernameCooldownHint")}
           </p>
           {cooldownActive && cooldownUntil && (
             <p className="text-[11px] mt-1 text-amber-400">
-              Next change allowed after {new Date(cooldownUntil).toLocaleDateString()}
+              {t("profile.usernameNextChange", { date: new Date(cooldownUntil).toLocaleDateString() })}
             </p>
           )}
         </Field>
 
-        <Field label={`Bio (${bio.length}/500)`}>
+        <Field label={`${t("profile.bio")} (${bio.length}/500)`}>
           <textarea
             ref={bioRef}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             maxLength={500}
             rows={3}
-            placeholder="A little about you and your faith journey…"
+            placeholder={t("profile.bioPlaceholder")}
             className={`${inputCls} resize-none`}
           />
           <div className="flex items-center mt-1.5">
@@ -375,23 +377,23 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
           </div>
         </Field>
 
-        <Field label="Social links">
+        <Field label={t("profile.social")}>
           <div className="space-y-2.5">
-            <LinkInput icon={Globe} label="Website" value={website} onChange={setWebsite} placeholder="yourwebsite.com" />
-            <LinkInput icon={Instagram} label="Instagram" value={instagram} onChange={setInstagram} placeholder="@yourhandle" />
-            <LinkInput icon={Youtube} label="YouTube" value={youtube} onChange={setYoutube} placeholder="@yourchannel" />
-            <LinkInput icon={Facebook} label="Facebook" value={facebook} onChange={setFacebook} placeholder="facebook.com/yourpage" />
-            <LinkInput icon={Twitter} label="X (Twitter)" value={twitter} onChange={setTwitter} placeholder="@yourhandle" />
+            <LinkInput icon={Globe} label={t("profile.link.website")} value={website} onChange={setWebsite} placeholder={t("profile.placeholder.website")} />
+            <LinkInput icon={Instagram} label="Instagram" value={instagram} onChange={setInstagram} placeholder={t("profile.placeholder.handle")} />
+            <LinkInput icon={Youtube} label="YouTube" value={youtube} onChange={setYoutube} placeholder={t("profile.placeholder.channel")} />
+            <LinkInput icon={Facebook} label="Facebook" value={facebook} onChange={setFacebook} placeholder={t("profile.placeholder.facebook")} />
+            <LinkInput icon={Twitter} label={t("profile.link.twitter")} value={twitter} onChange={setTwitter} placeholder={t("profile.placeholder.handle")} />
           </div>
           <p className="text-[11px] mt-1.5 text-[#64748B]">
-            Paste a link or type your @handle — leave blank to hide. Links show on your public profile.
+            {t("profile.socialHint")}
           </p>
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="State">
             <select value={state_} onChange={(e) => { setState(e.target.value); setCity(""); }} className={inputCls}>
-              <option value="">Select state</option>
+              <option value="">{t("common.selectState")}</option>
               {INDIAN_STATES.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -411,10 +413,10 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Gender">
             <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
-              <option value="">Prefer not to say</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="prefer_not_to_say">Prefer not to say</option>
+              <option value="">{t("onboarding.gender.preferNot")}</option>
+              <option value="male">{t("onboarding.gender.male")}</option>
+              <option value="female">{t("onboarding.gender.female")}</option>
+              <option value="prefer_not_to_say">{t("onboarding.gender.preferNot")}</option>
             </select>
           </Field>
           <Field label="Date of birth">
@@ -428,13 +430,13 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
           </Field>
         </div>
 
-        <Field label="Community role">
+        <Field label={t("profile.communityRole")}>
           <select
             value={communityRole}
             onChange={(e) => setCommunityRole(e.target.value)}
             className={inputCls}
           >
-            <option value="">Select your role (optional)</option>
+            <option value="">{t("onboarding.role.selectPlaceholder")}</option>
             {COMMUNITY_ROLES.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>
             ))}
@@ -444,7 +446,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
               value={communityRoleOther}
               onChange={(e) => setCommunityRoleOther(e.target.value)}
               maxLength={COMMUNITY_ROLE_OTHER_MAX}
-              placeholder="Tell us your role (e.g. Children's Ministry)"
+              placeholder={t("onboarding.role.otherPlaceholder")}
               className={`${inputCls} mt-2`}
             />
           )}
@@ -456,11 +458,11 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
               className="w-3.5 h-3.5 accent-[#7C3AED]"
             />
             <span className="text-[11px] text-[#64748B] font-semibold">
-              Show my role on my public profile
+              {t("onboarding.role.visibleLabel")}
             </span>
           </label>
           <p className="text-[11px] mt-1.5 text-[#64748B]">
-            Optional and self-reported — this is not a verified ministry title.
+            {t("profile.roleDisclaimer")}
           </p>
         </Field>
       </div>
@@ -470,7 +472,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         disabled={saving || availState === "taken" || availState === "invalid"}
         className="w-full mt-8 py-3.5 rounded-2xl bg-[#7C3AED] text-white font-extrabold disabled:opacity-40 shadow-[0_0_30px_rgba(124,58,237,0.3)]"
       >
-        {saving ? "Saving…" : "Save changes"}
+        {saving ? t("profile.saving") : t("profile.save")}
       </button>
     </div>
   );

@@ -20,6 +20,7 @@ import { useRef, useState } from "react";
 import { CalendarDays, ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "./types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   groupId: string;
@@ -33,6 +34,7 @@ const inputCls =
 const labelCls = "text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5 block";
 
 export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onCancel }: Props) {
+  const t = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState("");
@@ -60,11 +62,11 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
       fd.append("file", file);
       const res = await fetch("/api/events/upload-image", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (!res.ok) throw new Error(data.error || t("groupEvent.uploadFailed"));
       setCoverImage(data.url);
-      toast.success("Poster ready");
+      toast.success(t("groupEvent.posterReady"));
     } catch (err) {
-      toast.error((err as Error).message || "Upload failed — use a JPG/PNG/WEBP under 5 MB");
+      toast.error((err as Error).message || t("groupEvent.uploadFailed"));
     } finally {
       setPosterBusy(false);
     }
@@ -75,11 +77,11 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
     e.target.value = "";
     if (!file) return;
     if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
-      toast.error("Use a JPG, PNG or WEBP image");
+      toast.error(t("groupEvent.badType"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Poster must be under 5 MB");
+      toast.error(t("groupEvent.posterTooLarge"));
       return;
     }
     uploadPoster(file);
@@ -88,11 +90,11 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
   async function submit() {
     if (!title.trim() || !startDate || submitting) return;
     if (eventType !== "online" && (!city.trim() || !state)) {
-      toast.error("City and State are required for in-person events");
+      toast.error(t("groupEvent.cityStateRequired"));
       return;
     }
     if (eventType !== "in-person" && !onlineUrl.trim()) {
-      toast.error("An online meeting link is required for online/hybrid events");
+      toast.error(t("groupEvent.onlineLinkRequired"));
       return;
     }
     setSubmitting(true);
@@ -123,12 +125,12 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
       });
       toast.success(
         visibility === "public" && !isPrivateGroup
-          ? "Event submitted — it appears here now and in the main Events section once approved"
-          : "Event submitted — it will appear in the group's Events tab"
+          ? t("groupEvent.submittedPublic")
+          : t("groupEvent.submittedMembers")
       );
       onCreated();
     } catch (err) {
-      toast.error((err as Error).message || "Could not create the event");
+      toast.error((err as Error).message || t("groupEvent.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -139,30 +141,30 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
   return (
     <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-extrabold text-white">Create a group event</h3>
-        <button onClick={onCancel} className="p-1.5 rounded-lg bg-white/[0.04] text-[#94A3B8] hover:text-white" aria-label="Close form">
+        <h3 className="text-sm font-extrabold text-white">{t("groupEvent.title")}</h3>
+        <button onClick={onCancel} className="p-1.5 rounded-lg bg-white/[0.04] text-[#94A3B8] hover:text-white" aria-label={t("groupEvent.closeAria")}>
           <X size={15} />
         </button>
       </div>
 
       <div>
-        <label className={labelCls}>Event title</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="e.g. Friday Night Worship & Prayer" className={inputCls} />
+        <label className={labelCls}>{t("groupEvent.title")}</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder={t("groupEvent.titlePlaceholder")} className={inputCls} />
       </div>
 
       <div>
-        <label className={labelCls}>Description</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={3} placeholder="What's happening? Who should come?" className={`${inputCls} resize-none`} />
+        <label className={labelCls}>{t("groupEvent.description")}</label>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={3} placeholder={t("groupEvent.descPlaceholder")} className={`${inputCls} resize-none`} />
       </div>
 
       {/* poster */}
       <div>
-        <label className={labelCls}>Poster (optional)</label>
+        <label className={labelCls}>{t("groupEvent.posterOptional")}</label>
         {coverImage ? (
           <div className="relative w-32 h-40 rounded-xl overflow-hidden border border-white/[0.06]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverImage} alt="Event poster" className="w-full h-full object-cover" />
-            <button onClick={() => setCoverImage("")} className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-black/60 text-white" aria-label="Remove poster">
+            <img src={coverImage} alt={t("groupEvent.posterAlt")} className="w-full h-full object-cover" />
+            <button onClick={() => setCoverImage("")} className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-black/60 text-white" aria-label={t("groupEvent.removePosterAria")}>
               <X size={12} />
             </button>
           </div>
@@ -173,7 +175,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
             className="w-32 h-40 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#7C3AED]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
           >
             {posterBusy ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
-            {posterBusy ? "Uploading…" : "Upload poster"}
+            {posterBusy ? t("groupEvent.uploading") : t("groupEvent.uploadPoster")}
           </button>
         )}
         <input ref={posterRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pickPoster} />
@@ -182,49 +184,49 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
       {/* date + time */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Date</label>
+          <label className={labelCls}>{t("groupEvent.date")}</label>
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Time</label>
+          <label className={labelCls}>{t("groupEvent.time")}</label>
           <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputCls} />
         </div>
       </div>
 
       {/* venue / online */}
       <div>
-        <label className={labelCls}>Where?</label>
+        <label className={labelCls}>{t("groupEvent.where")}</label>
         <div className="flex gap-1.5 mb-2">
-          {(["in-person", "online", "hybrid"] as const).map((t) => (
+          {(["in-person", "online", "hybrid"] as const).map((mode) => (
             <button
-              key={t}
-              onClick={() => setEventType(t)}
+              key={mode}
+              onClick={() => setEventType(mode)}
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold border capitalize ${
-                eventType === t ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+                eventType === mode ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
-              {t === "in-person" ? "In person" : t}
+              {mode === "in-person" ? t("groupEvent.type.inPerson") : mode === "online" ? t("groupEvent.type.online") : t("groupEvent.type.hybrid")}
             </button>
           ))}
         </div>
         {eventType !== "online" && (
           <div className="space-y-2">
-            <input value={venueName} onChange={(e) => setVenueName(e.target.value)} maxLength={200} placeholder="Venue name (e.g. Grace Community Hall)" className={inputCls} />
-            <input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} placeholder="Address (optional)" className={inputCls} />
+            <input value={venueName} onChange={(e) => setVenueName(e.target.value)} maxLength={200} placeholder={t("groupEvent.venuePlaceholder")} className={inputCls} />
+            <input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} placeholder={t("groupEvent.addressPlaceholder")} className={inputCls} />
             <div className="grid grid-cols-2 gap-2">
-              <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={80} placeholder="City" className={inputCls} />
-              <input value={state} onChange={(e) => setState(e.target.value)} maxLength={80} placeholder="State" className={inputCls} />
+              <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={80} placeholder={t("groupEvent.cityPlaceholder")} className={inputCls} />
+              <input value={state} onChange={(e) => setState(e.target.value)} maxLength={80} placeholder={t("groupEvent.statePlaceholder")} className={inputCls} />
             </div>
           </div>
         )}
         {eventType !== "in-person" && (
-          <input value={onlineUrl} onChange={(e) => setOnlineUrl(e.target.value)} maxLength={500} placeholder="Online meeting link (YouTube/Zoom/Meet…)" className={`${inputCls} mt-2`} />
+          <input value={onlineUrl} onChange={(e) => setOnlineUrl(e.target.value)} maxLength={500} placeholder={t("groupEvent.onlinePlaceholder")} className={`${inputCls} mt-2`} />
         )}
       </div>
 
       {/* registration */}
       <div>
-        <label className={labelCls}>Registration</label>
+        <label className={labelCls}>{t("groupEvent.registration")}</label>
         <div className="flex gap-1.5 mb-2">
           <button
             onClick={() => setRegistrationType("free")}
@@ -232,7 +234,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
               registrationType === "free" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
-            Free entry
+            {t("groupEvent.freeEntry")}
           </button>
           <button
             onClick={() => setRegistrationType("registration_required")}
@@ -240,29 +242,29 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
               registrationType === "registration_required" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
-            Registration required
+            {t("groupEvent.registrationRequired")}
           </button>
         </div>
         {registrationType === "registration_required" && (
-          <input value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} maxLength={500} placeholder="Registration / ticket link" className={inputCls} />
+          <input value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} maxLength={500} placeholder={t("groupEvent.ticketPlaceholder")} className={inputCls} />
         )}
       </div>
 
       {/* contact */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Contact name</label>
-          <input value={organizerName} onChange={(e) => setOrganizerName(e.target.value)} maxLength={200} placeholder="Who hosts this?" className={inputCls} />
+          <label className={labelCls}>{t("groupEvent.contactName")}</label>
+          <input value={organizerName} onChange={(e) => setOrganizerName(e.target.value)} maxLength={200} placeholder={t("groupEvent.hostPlaceholder")} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Contact phone</label>
-          <input value={organizerPhone} onChange={(e) => setOrganizerPhone(e.target.value)} maxLength={30} placeholder="+91…" className={inputCls} />
+          <label className={labelCls}>{t("groupEvent.contactPhone")}</label>
+          <input value={organizerPhone} onChange={(e) => setOrganizerPhone(e.target.value)} maxLength={30} placeholder={t("groupEvent.phonePlaceholder")} className={inputCls} />
         </div>
       </div>
 
       {/* visibility */}
       <div>
-        <label className={labelCls}>Who can see this event?</label>
+        <label className={labelCls}>{t("groupEvent.visibilityLabel")}</label>
         <div className="flex gap-1.5">
           <button
             onClick={() => setVisibility("public")}
@@ -271,7 +273,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
               isPrivateGroup || visibility === "public" ? (isPrivateGroup ? "bg-white/[0.03] border-white/[0.06] text-[#64748B]" : "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]") : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
-            Everyone
+            {t("groupEvent.public")}
           </button>
           <button
             onClick={() => setVisibility("members")}
@@ -279,30 +281,30 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
               visibility === "members" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
-            Members only
+            {t("groupEvent.membersOnly")}
           </button>
         </div>
         <p className="text-[10px] text-[#64748B] mt-1.5 leading-relaxed">
           {isPrivateGroup
-            ? "Private groups always keep events members-only."
+            ? t("groupEvent.notePrivate")
             : visibility === "public"
-              ? "Shown in the group and eligible for the main Events section after review."
-              : "Only group members can see this event."}
+              ? t("groupEvent.notePublic")
+              : t("groupEvent.noteMembers")}
         </p>
       </div>
 
       <div className="flex items-center justify-between pt-1">
         <span className="inline-flex items-center gap-1.5 text-[10px] text-[#64748B]">
-          <CalendarDays size={11} /> Reviewed by the Koino team before going public
+          <CalendarDays size={11} /> {t("groupEvent.reviewNote")}
         </span>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="px-4 py-2 rounded-full text-xs font-bold text-[#94A3B8] hover:text-white">Cancel</button>
+          <button onClick={onCancel} className="px-4 py-2 rounded-full text-xs font-bold text-[#94A3B8] hover:text-white">{t("common.cancel")}</button>
           <button
             onClick={submit}
             disabled={!valid || submitting || posterBusy}
             className="px-5 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
           >
-            {submitting ? "Submitting…" : "Create event"}
+            {submitting ? t("groupEvent.submitting") : t("groupEvent.submit")}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   FileText,
   Loader2,
@@ -190,6 +191,7 @@ function toFormState(post: BlogPost | null): FormState {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export default function BlogTab() {
+  const t = useTranslation();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<AdminFilter>("all");
@@ -347,7 +349,7 @@ export default function BlogTab() {
         <FilterChip
           active={filter === "all"}
           onClick={() => setFilter("all")}
-          label="All"
+          label={t("common.all")}
           count={counts.total}
         />
         <FilterChip
@@ -360,14 +362,14 @@ export default function BlogTab() {
         <FilterChip
           active={filter === "published"}
           onClick={() => setFilter("published")}
-          label="Published"
+          label={t("common.status.published")}
           count={counts.published}
           color="#22C55E"
         />
         <FilterChip
           active={filter === "featured"}
           onClick={() => setFilter("featured")}
-          label="Featured"
+          label={t("common.featured")}
           count={counts.featured}
           color="#A855F7"
         />
@@ -388,14 +390,14 @@ export default function BlogTab() {
         <FilterChip
           active={filter === "rejected"}
           onClick={() => setFilter("rejected")}
-          label="Rejected"
+          label={t("common.status.rejected")}
           count={counts.rejected}
           color="#EF4444"
         />
         <FilterChip
           active={filter === "archived"}
           onClick={() => setFilter("archived")}
-          label="Archived"
+          label={t("common.status.archived")}
           count={counts.archived}
           color="#64748B"
         />
@@ -512,7 +514,7 @@ export default function BlogTab() {
                   <>
                     <RowAction label="Approve & Publish" onClick={() => { if (window.confirm(`Publish \"${p.title}\" to the Blog and feed?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
                     <RowAction label="Request Changes" onClick={() => requestFeedback(p.id, "request_changes")} disabled={busy} tone="#38BDF8" />
-                    <RowAction label="Reject" onClick={() => requestFeedback(p.id, "reject")} disabled={busy} tone="#EF4444" />
+                    <RowAction label={t("common.action.reject")} onClick={() => requestFeedback(p.id, "reject")} disabled={busy} tone="#EF4444" />
                   </>
                 )}
                 {status === "changes_requested" || status === "rejected" ? (
@@ -524,14 +526,14 @@ export default function BlogTab() {
                 {status === "published" && (
                   <>
                     <RowAction label="Unpublish" onClick={() => { if (window.confirm("Unpublish this article? It will be hidden from the Blog and feed.")) moderate(p.id, "unpublish"); }} disabled={busy} tone="#F59E0B" />
-                    <RowAction label={p.featured ? "Unfeature" : "Feature"} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
+                    <RowAction label={p.featured ? t("common.action.unfeature") : t("common.action.feature")} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
                     <RowAction label="Archive" onClick={() => { if (window.confirm("Archive this article?")) moderate(p.id, "archive"); }} disabled={busy} />
                   </>
                 )}
                 {status === "draft" && (
                   <>
-                    <RowAction label="Publish" onClick={() => { if (window.confirm(`Publish \"${p.title}\" to the Blog and feed?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
-                    <RowAction label={p.featured ? "Unfeature" : "Feature"} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
+                    <RowAction label={t("common.action.publish")} onClick={() => { if (window.confirm(`Publish \"${p.title}\" to the Blog and feed?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
+                    <RowAction label={p.featured ? t("common.action.unfeature") : t("common.action.feature")} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
                     <RowAction label="Archive" onClick={() => { if (window.confirm("Archive this article?")) moderate(p.id, "archive"); }} disabled={busy} />
                   </>
                 )}
@@ -645,6 +647,7 @@ function BlogEditorModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const t = useTranslation();
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [loading, setLoading] = useState(postId !== null);
   const [saving, setSaving] = useState(false);
@@ -724,7 +727,7 @@ function BlogEditorModal({
 
   const save = async () => {
     if (!form.title.trim()) {
-      toast.error("Title is required");
+      toast.error(t("admin.blog.toast.titleRequired"));
       return;
     }
     if (!form.category.trim()) {
@@ -779,7 +782,7 @@ function BlogEditorModal({
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      toast.success("Post deleted");
+      toast.success(t("admin.blog.toast.deleted"));
       onDeleted();
     } catch (e: any) {
       toast.error(e?.message || "Failed to delete post");
@@ -810,13 +813,13 @@ function BlogEditorModal({
           <div className="flex items-center gap-2">
             <FileText size={14} className="text-[#A78BFA]" />
             <h2 className="text-sm font-extrabold text-white">
-              {postId ? "Edit Post" : "New Post"}
+              {postId ? t("admin.blog.editPost") : t("admin.blog.newPost")}
             </h2>
           </div>
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={14} />
           </button>
@@ -897,7 +900,7 @@ function BlogEditorModal({
                 onClick={() => setShowPreview((v) => !v)}
                 className="rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-2.5 py-1.5 text-[10px] font-bold text-white transition-colors"
               >
-                {showPreview ? "Edit" : "Preview"}
+                {showPreview ? t("common.edit") : "Preview"}
               </button>
               <button
                 type="button"
@@ -986,7 +989,7 @@ function BlogEditorModal({
             <Toggle
               checked={form.published}
               onChange={(v) => set("published", v)}
-              label="Published"
+              label={t("common.status.published")}
               hint={form.published ? "Visible on /blog" : "Hidden (draft)"}
               icon={form.published ? <Eye size={12} /> : <EyeOff size={12} />}
               color="#22C55E"
@@ -994,7 +997,7 @@ function BlogEditorModal({
             <Toggle
               checked={form.featured}
               onChange={(v) => set("featured", v)}
-              label="Featured"
+              label={t("common.featured")}
               hint={form.featured ? "Hero card" : "Standard card"}
               icon={<Star size={12} />}
               color="#A855F7"

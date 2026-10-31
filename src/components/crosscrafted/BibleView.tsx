@@ -168,10 +168,10 @@ export default function BibleView({
       if (prevDate !== today) {
         const info = recordStreak("bible_reading");
         if (info.currentStreak === 1) {
-          toast("🔥 Streak started!", { description: "Read the Bible daily to keep your streak alive." });
+          toast(t("bible.streak.started"), { description: t("bible.streak.startedDesc") });
         } else if ([3, 7, 14, 30, 60, 90, 180, 365].includes(info.currentStreak)) {
-          toast.success(`🔥 ${info.currentStreak}-day streak!`, {
-            description: `You've been reading the Bible for ${info.currentStreak} consecutive days. Keep going!`,
+          toast.success(t("bible.streak.nDays", { n: info.currentStreak }), {
+            description: t("bible.streak.nDaysDesc", { n: info.currentStreak }),
           });
         }
 
@@ -186,8 +186,8 @@ export default function BibleView({
             const streakData = await res.json();
             if (streakData.newRewards && streakData.newRewards.length > 0) {
               for (const reward of streakData.newRewards) {
-                toast.success("🎁 New Koino Reward Unlocked!", {
-                  description: `Your ${streakData.currentStreak}-day Faith Streak unlocked: ${reward.reward?.name || "a reward"}`,
+                toast.success(t("bible.streak.rewardUnlocked"), {
+                  description: t("bible.streak.rewardDesc", { n: streakData.currentStreak, name: reward.reward?.name || t("bible.streak.aReward") }),
                 });
               }
             }
@@ -197,12 +197,12 @@ export default function BibleView({
         }
       }
     } catch (e: any) {
-      setChapterError(e.message || "Failed to load chapter. Check your connection.");
-      toast.error("Failed to load chapter", { description: "Please check your internet connection." });
+      setChapterError(e.message || t("bible.loadChapterError"));
+      toast.error(t("bible.loadChapterErrorTitle"), { description: t("bible.loadChapterErrorDesc") });
     } finally {
       setChapterLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const handleSelectBook = (book: BibleBook) => {
     setSelectedBook(book);
@@ -268,17 +268,17 @@ export default function BibleView({
       setSearchResults(results);
       if (results.length === 0) {
         if (isReferenceQuery(searchQuery)) {
-          toast("Verse not found", {
-            description: `Couldn't find "${searchQuery}" in ${translation.toUpperCase()}. Check the reference and try again.`,
+          toast(t("bible.verseNotFound"), {
+            description: t("bible.verseNotFoundToastDesc", { q: searchQuery, T: translation.toUpperCase() }),
           });
         } else {
-          toast("Keyword search coming soon", {
-            description: "Type a verse reference like 'John 3:16' to look up a specific verse.",
+          toast(t("bible.keywordSearchSoon"), {
+            description: t("bible.keywordSearchSoonDesc"),
           });
         }
       }
     } catch {
-      toast.error("Lookup failed", { description: "Check your connection and try again." });
+      toast.error(t("bible.lookupFailed"), { description: t("bible.lookupFailedDesc") });
     } finally {
       setSearchLoading(false);
     }
@@ -294,7 +294,7 @@ export default function BibleView({
       translation,
     });
     refreshBookmarks();
-    toast(added ? "Verse bookmarked" : "Bookmark removed", {
+    toast(added ? t("bible.verseBookmarked") : t("bible.bookmarkRemoved"), {
       description: added ? `${book.name} ${chapter}:${verse}` : undefined,
     });
   };
@@ -303,7 +303,7 @@ export default function BibleView({
     const ref = `${book.name} ${chapter}:${verse} (${translation.toUpperCase()})`;
     const full = `"${text}" — ${ref}`;
     navigator.clipboard.writeText(full);
-    toast.success("Verse copied!", { description: ref });
+    toast.success(t("bible.verseCopied"), { description: ref });
   };
 
   // ─── Task 121: universal verse share (single verse or consecutive range) ──
@@ -339,8 +339,8 @@ export default function BibleView({
     const ref = `${book.name} ${chapter} (${translation.toUpperCase()})`;
     const first = verses[0]?.text?.trim() || "";
     setShareReq({
-      heading: `Share ${book.name} ${chapter}`,
-      shareText: `${ref}\n\n"${first.slice(0, 160)}${first.length > 160 ? "…" : ""}"\n\nRead the full chapter on Koino.`,
+      heading: t("bible.shareHeading", { book: book.name, chapter }),
+      shareText: `${ref}\n\n"${first.slice(0, 160)}${first.length > 160 ? "…" : ""}"\n\n${t("bible.shareTextTail")}`,
       shareUrl: shareLinks.bible(book.id, chapter),
       cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=1&ve=${Math.max(verses.length, 1)}&translation=${translation}`,
       formats: ["portrait", "square"],
@@ -388,7 +388,7 @@ export default function BibleView({
                   ? "bg-[#7C3AED]/15 border-[#7C3AED]/30 text-[#A78BFA]"
                   : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
               }`}
-              title="Search"
+              title={t("common.search")}
             >
               <Search size={14} />
             </button>
@@ -399,7 +399,7 @@ export default function BibleView({
                   ? "bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B]"
                   : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
               }`}
-              title="Bookmarks"
+              title={t("bible.bookmarks")}
             >
               <Bookmark size={14} />
               {bookmarks.length > 0 && (
@@ -423,7 +423,7 @@ export default function BibleView({
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <BookOpen size={13} /> READ
+            <BookOpen size={13} /> {t("bible.mode.read")}
           </button>
           <button
             onClick={() => setMode("comics")}
@@ -433,7 +433,7 @@ export default function BibleView({
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <Sparkles size={13} /> COMICS
+            <Sparkles size={13} /> {t("bible.mode.comics")}
           </button>
           <button
             onClick={() => setMode("plans")}
@@ -443,7 +443,7 @@ export default function BibleView({
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <List size={13} /> PLANS
+            <List size={13} /> {t("bible.mode.plans")}
           </button>
         </div>
       </div>
@@ -477,7 +477,7 @@ export default function BibleView({
               </span>
               {!bibleTextSupported && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F59E0B]/15 text-[#F59E0B] font-bold">
-                  EN text
+                  {t("bible.enTextBadge")}
                 </span>
               )}
             </div>
@@ -488,10 +488,8 @@ export default function BibleView({
           {!bibleTextSupported && view === "reader" && (
             <div className="mb-4 bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3">
               <p className="text-[10px] text-[#A09DB1] leading-relaxed">
-                <span className="font-bold text-[#38BDF8]">Notice:</span> The Bible text below is in
-                English ({translation.toUpperCase()}). The app interface is in your selected language,
-                but Indian-language Bible translations are not yet available. We are working on connecting
-                Hindi, Tamil, Telugu, and other translations.
+                <span className="font-bold text-[#38BDF8]">{t("bible.noticeLabel")}</span>{" "}
+                {t("bible.noticeBody", { T: translation.toUpperCase() })}
               </p>
             </div>
           )}
@@ -563,12 +561,12 @@ export default function BibleView({
                   const result = await fetchVerseByReference(ref, translation);
                   setSearchResults(result ? [result] : []);
                   if (!result) {
-                    toast("Verse not found", {
-                      description: `Couldn't find "${ref}" in ${translation.toUpperCase()}.`,
+                    toast(t("bible.verseNotFound"), {
+                      description: t("bible.verseNotFoundToastDesc", { q: ref, T: translation.toUpperCase() }),
                     });
                   }
                 } catch {
-                  toast.error("Lookup failed");
+                  toast.error(t("bible.lookupFailed"));
                 } finally {
                   setSearchLoading(false);
                 }
@@ -630,6 +628,7 @@ export default function BibleView({
 // ─── BOOKS VIEW ────────────────────────────────────────────────────────────
 
 function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
+  const t = useTranslation();
   const [testament, setTestament] = useState<"OT" | "NT">("OT");
   const books = testament === "OT" ? OT_BOOKS : NT_BOOKS;
   const grouped = books.reduce<Record<string, BibleBook[]>>((acc, b) => {
@@ -647,7 +646,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
             testament === "OT" ? "bg-[#F59E0B] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          Old Testament · 39
+          {t("bible.otCount")}
         </button>
         <button
           onClick={() => setTestament("NT")}
@@ -655,7 +654,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
             testament === "NT" ? "bg-[#38BDF8] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          New Testament · 27
+          {t("bible.ntCount")}
         </button>
       </div>
 
@@ -680,7 +679,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
                     {book.name}
                   </p>
                   <p className="text-[10px] text-[#94A3B8] mt-0.5">
-                    {book.chapters} <span className="hidden sm:inline">chapters</span><span className="sm:hidden">ch</span>
+                    {book.chapters} <span className="hidden sm:inline">{t("bible.chapters")}</span><span className="sm:hidden">{t("bible.chaptersShort")}</span>
                   </p>
                 </motion.button>
               ))}
@@ -704,27 +703,28 @@ function ChaptersView({
   onSelectChapter: (c: number) => void;
   onBack: () => void;
 }) {
+  const t = useTranslation();
   return (
     <div>
       <button
         onClick={onBack}
         className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-white transition-colors mb-3"
       >
-        <ChevronLeft size={14} /> All Books
+        <ChevronLeft size={14} /> {t("bible.allBooks")}
       </button>
 
       <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
           <BookOpen size={16} className="text-[#A78BFA]" />
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
-            {book.testament === "OT" ? "Old Testament" : "New Testament"} · {book.category}
+            {book.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {book.category}
           </span>
         </div>
         <h2 className="text-2xl font-extrabold text-white">{book.name}</h2>
-        <p className="text-xs text-[#94A3B8] mt-1">{book.chapters} chapters</p>
+        <p className="text-xs text-[#94A3B8] mt-1">{t("bible.chapterCount", { n: book.chapters })}</p>
       </div>
 
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Select Chapter</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("bible.selectChapter")}</p>
       <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
         {Array.from({ length: book.chapters }, (_, i) => i + 1).map((ch) => (
           <button
@@ -783,7 +783,8 @@ function ReaderView({
   onShareChapter: () => void;
   onBookmarksChanged: () => void;
 }) {
-  const transLabel = TRANSLATIONS.find((t) => t.id === translation)?.label || "";
+  const transLabel = TRANSLATIONS.find((tr) => tr.id === translation)?.label || "";
+  const t = useTranslation();
 
   // ─── Verse range selection (Task 121) ───────────────────────────────────
   // "Select" toggles tap-to-select: first tap marks the start verse, the
@@ -812,8 +813,8 @@ function ReaderView({
         return;
       }
       if (Math.abs(verse - selStart) >= 50) {
-        toast.error("Please select a shorter passage", {
-          description: "Share up to 50 verses at a time.",
+        toast.error(t("bible.rangeTooLong"), {
+          description: t("bible.rangeTooLongDesc"),
         });
         return;
       }
@@ -832,7 +833,7 @@ function ReaderView({
           onClick={onBackToChapters}
           className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-white transition-colors shrink-0"
         >
-          <ChevronLeft size={14} /> Chapters
+          <ChevronLeft size={14} /> {t("bible.chaptersNav")}
         </button>
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] truncate">
@@ -845,23 +846,23 @@ function ReaderView({
                 ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
                 : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
             }`}
-            title="Select verses to share a passage"
+            title={t("bible.selectVersesTitle")}
           >
-            {selectMode ? "Cancel" : "Select"}
+            {selectMode ? t("common.cancel") : t("bible.select")}
           </button>
         </div>
       </div>
 
       {selectMode && (
         <p className="text-[11px] text-[#A78BFA] mb-2">
-          Tap a verse to start, tap another to finish the passage.
+          {t("bible.selectHint")}
         </p>
       )}
 
       {/* Chapter header */}
       <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
         <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">
-          {book.testament === "OT" ? "Old Testament" : "New Testament"}
+          {book.testament === "OT" ? t("bible.ot") : t("bible.nt")}
         </p>
         <h2 className="text-xl font-extrabold text-white">
           {book.name} <span className="text-[#A78BFA]">{chapter}</span>
@@ -872,7 +873,7 @@ function ReaderView({
       {loading && (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <Loader2 size={32} className="text-[#7C3AED] animate-spin" />
-          <p className="text-xs text-[#94A3B8]">Loading chapter...</p>
+          <p className="text-xs text-[#94A3B8]">{t("bible.loadingChapter")}</p>
         </div>
       )}
 
@@ -888,7 +889,7 @@ function ReaderView({
             }}
             className="px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
           >
-            Retry
+            {t("bible.retry")}
           </button>
         </div>
       )}
@@ -938,7 +939,7 @@ function ReaderView({
                       className={`p-1 rounded-md transition-all ${
                         isMarked ? "text-[#F59E0B]" : "text-[#94A3B8] hover:text-white"
                       }`}
-                      title={isMarked ? "Remove bookmark" : "Bookmark verse"}
+                      title={isMarked ? t("bible.removeBookmarkTitle") : t("bible.bookmarkVerseTitle")}
                     >
                       {isMarked ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}
                     </button>
@@ -948,7 +949,7 @@ function ReaderView({
                         onShare(v.verse, v.text);
                       }}
                       className="p-1 rounded-md text-[#94A3B8] hover:text-white transition-colors"
-                      title="Copy verse"
+                      title={t("bible.copyVerseTitle")}
                     >
                       <Copy size={12} />
                     </button>
@@ -958,7 +959,7 @@ function ReaderView({
                         onShareRange(v.verse, v.verse);
                       }}
                       className="p-1 rounded-md text-[#94A3B8] hover:text-white transition-colors"
-                      title="Share verse (image + link)"
+                      title={t("bible.shareVerseTitle")}
                     >
                       <Share2 size={12} />
                     </button>
@@ -977,7 +978,7 @@ function ReaderView({
           <p className="text-[11px] font-bold text-[#C4B5FD] truncate">
             {book.name} {chapter}:{rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}
             <span className="text-[#94A3B8] font-semibold">
-              {" "}· {rangeEnd - rangeStart + 1} verse{rangeEnd - rangeStart > 0 ? "s" : ""}
+              {" "}· {t("bible.verseCount", { n: rangeEnd - rangeStart + 1 })}
             </span>
           </p>
           <div className="flex items-center gap-1 shrink-0">
@@ -987,10 +988,10 @@ function ReaderView({
                 const ref = `${book.name} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`} (${translation.toUpperCase()})`;
                 const text = selVerses.map((v) => `${v.verse} ${v.text}`).join(" ");
                 navigator.clipboard.writeText(`"${text}"\n\n— ${ref}`);
-                toast.success("Passage copied!", { description: ref });
+                toast.success(t("bible.passageCopied"), { description: ref });
               }}
               className="p-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-colors"
-              title="Copy passage text and reference"
+              title={t("bible.copyPassageTitle")}
             >
               <Copy size={12} />
             </button>
@@ -1015,7 +1016,7 @@ function ReaderView({
               onClick={resetSelection}
               className="px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[10px] font-bold text-[#94A3B8] hover:text-white"
             >
-              Clear
+              {t("bible.clear")}
             </button>
             <button
               onClick={() => {
@@ -1024,7 +1025,7 @@ function ReaderView({
               }}
               className="px-3 py-1.5 rounded-lg bg-[#7C3AED] text-[10px] font-bold text-white flex items-center gap-1.5 hover:bg-[#6D28D9]"
             >
-              <Share2 size={11} /> Share
+              <Share2 size={11} /> {t("bible.share")}
             </button>
           </div>
         </div>
@@ -1037,13 +1038,13 @@ function ReaderView({
             onClick={onPrev}
             className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
           >
-            <ChevronLeft size={14} /> Prev
+            <ChevronLeft size={14} /> {t("bible.prev")}
           </button>
           <button
             onClick={onNext}
             className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
           >
-            Next <ChevronRight size={14} />
+            {t("common.next")} <ChevronRight size={14} />
           </button>
         </div>
       )}
@@ -1186,6 +1187,7 @@ function ChapterActionPanel({
   const [hasVideos, setHasVideos] = useState(false);
   const [hasComic, setHasComic] = useState(false);
   const [saved, setSaved] = useState(false);
+  const t = useTranslation();
 
   // Watch availability — same endpoint/records the ChapterVideos section and
   // comic pages use. Button only appears when a published video is linked.
@@ -1255,12 +1257,12 @@ function ChapterActionPanel({
       bookName: book.name,
       chapter,
       verse: 0,
-      text: `${book.name} ${chapter} · Full chapter (${verses.length} verses)`,
+      text: t("bible.fullChapterLabel", { book: book.name, ch: chapter, n: verses.length }),
       translation,
     });
     setSaved(added);
     onBookmarksChanged();
-    toast(added ? "Chapter saved" : "Saved chapter removed", {
+    toast(added ? t("bible.chapterSaved") : t("bible.chapterUnsaved"), {
       description: `${book.name} ${chapter}`,
     });
   };
@@ -1279,46 +1281,46 @@ function ChapterActionPanel({
   return (
     <div className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-3.5">
       <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-[#94A3B8] mb-2.5">
-        {book.name} {chapter} · Continue your journey
+        {t("bible.continueJourney", { book: book.name, ch: chapter })}
       </h3>
       <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-        <PanelButton icon={BookOpen} label="Read" sublabel="Back to the text" onClick={onReadTop} />
+        <PanelButton icon={BookOpen} label={t("bible.read")} sublabel={t("bible.readSub")} onClick={onReadTop} />
         {ttsSupported() && (
           <PanelButton
             icon={speaking ? X : Headphones}
-            label={speaking ? "Stop" : "Listen"}
-            sublabel="Audio narration"
+            label={speaking ? t("bible.stop") : t("bible.listen")}
+            sublabel={t("bible.audioNarration")}
             onClick={listenChapter}
             active={speaking}
           />
         )}
-        {hasVideos && <PanelButton icon={Video} label="Watch" sublabel="Related videos" onClick={watch} />}
+        {hasVideos && <PanelButton icon={Video} label={t("bible.watch")} sublabel={t("bible.relatedVideos")} onClick={watch} />}
         {hasComic && onOpenComic && (
           <PanelButton
             icon={Palette}
-            label="Comic"
-            sublabel="See the story"
+            label={t("bible.comic")}
+            sublabel={t("bible.seeStory")}
             onClick={() => onOpenComic(book.id, chapter)}
           />
         )}
         {onOpenTrivia && (
-          <PanelButton icon={Brain} label="Quiz" sublabel="Test your knowledge" onClick={onOpenTrivia} />
+          <PanelButton icon={Brain} label={t("bible.quiz")} sublabel={t("bible.testKnowledge")} onClick={onOpenTrivia} />
         )}
         {/* FP is earned inside the existing Trivia hub (quizzes/challenges,
             server-verified) — never by clicking here, so no farming. */}
         <PanelButton
           icon={Zap}
-          label="Earn FP"
-          sublabel="Via quiz & challenges"
+          label={t("bible.earnFp")}
+          sublabel={t("bible.earnFpSub")}
           dimmed
-          onClick={() => toast("Earn Faith Points in Trivia", { description: "Take quizzes and daily challenges — FP is awarded for correct answers." })}
+          onClick={() => toast(t("bible.earnFpToast"), { description: t("bible.earnFpToastDesc") })}
         />
-        {onPray && <PanelButton icon={Heart} label="Pray" sublabel="Prayer wall" onClick={onPray} />}
-        <PanelButton icon={Share2} label="Share" sublabel="Chapter image + link" onClick={onShareChapter} />
+        {onPray && <PanelButton icon={Heart} label={t("bible.pray")} sublabel={t("bible.prayerWallSub")} onClick={onPray} />}
+        <PanelButton icon={Share2} label={t("bible.share")} sublabel={t("bible.shareSub")} onClick={onShareChapter} />
         <PanelButton
           icon={saved ? BookmarkCheck : Bookmark}
-          label={saved ? "Saved" : "Save"}
-          sublabel={saved ? "In your bookmarks" : "Bookmark chapter"}
+          label={saved ? t("bible.saved") : t("common.save")}
+          sublabel={saved ? t("bible.inBookmarks") : t("bible.bookmarkChapter")}
           onClick={toggleChapterSave}
           active={saved}
         />
@@ -1326,10 +1328,10 @@ function ChapterActionPanel({
             shows the same state) — honest unavailable, not a fake link. */}
         <PanelButton
           icon={MessageCircle}
-          label="Discuss"
-          sublabel="Coming soon"
+          label={t("bible.discuss")}
+          sublabel={t("bible.comingSoon")}
           dimmed
-          onClick={() => toast("Discussion coming soon", { description: `Talk about ${book.name} ${chapter} with the community — soon.` })}
+          onClick={() => toast(t("bible.discussSoonToast"), { description: t("bible.discussToastDesc", { book: book.name, ch: chapter }) })}
         />
       </div>
     </div>
@@ -1340,6 +1342,7 @@ function ChapterActionPanel({
 
 function SelectionListenButton({ text, refLabel }: { text: string; refLabel: string }) {
   const [speaking, setSpeaking] = useState(false);
+  const t = useTranslation();
   useEffect(() => () => { if (ttsSupported()) window.speechSynthesis.cancel(); }, []);
   return (
     <button
@@ -1351,7 +1354,7 @@ function SelectionListenButton({ text, refLabel }: { text: string; refLabel: str
         }
         if (speakPassage(text, () => setSpeaking(false))) {
           setSpeaking(true);
-          toast("Audio narration", { description: `${refLabel} — browser voice synthesis.` });
+          toast(t("bible.audioNarration"), { description: t("bible.audioNarrationRefDesc", { ref: refLabel }) });
         }
       }}
       className={`p-2 rounded-lg border transition-colors ${
@@ -1359,7 +1362,7 @@ function SelectionListenButton({ text, refLabel }: { text: string; refLabel: str
           ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
           : "bg-white/[0.06] border-white/[0.08] text-[#94A3B8] hover:text-white"
       }`}
-      title={speaking ? "Stop narration" : "Listen to this passage"}
+      title={speaking ? t("bible.stopNarrationTitle") : t("bible.listenPassageTitle")}
     >
       {speaking ? <X size={12} /> : <Headphones size={12} />}
     </button>
@@ -1385,6 +1388,7 @@ function SelectionSaveButton({
   translation: Translation;
   onChanged: () => void;
 }) {
+  const t = useTranslation();
   const inRange = verses.filter((v) => v.verse >= rangeStart && v.verse <= rangeEnd);
   const allSaved = inRange.length > 0 && inRange.every((v) => isBookmarked(bookId, chapter, v.verse));
   return (
@@ -1406,9 +1410,9 @@ function SelectionSaveButton({
         });
         onChanged();
         if (allSaved) {
-          toast("Bookmarks removed", { description: `${bookName} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}` });
+          toast(t("bible.bookmarksRemovedToast"), { description: `${bookName} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}` });
         } else {
-          toast(`Bookmarked ${added} verse${added === 1 ? "" : "s"}`, {
+          toast(t("bible.bookmarkedCount", { n: added }), {
             description: `${bookName} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}`,
           });
         }
@@ -1418,7 +1422,7 @@ function SelectionSaveButton({
           ? "bg-[#F59E0B]/15 border-[#F59E0B]/40 text-[#F59E0B]"
           : "bg-white/[0.06] border-white/[0.08] text-[#94A3B8] hover:text-white"
       }`}
-      title={allSaved ? "Remove these bookmarks" : "Bookmark every verse in the selection"}
+      title={allSaved ? t("bible.removeRangeBookmarksTitle") : t("bible.bookmarkAllTitle")}
     >
       {allSaved ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}
     </button>
@@ -1443,6 +1447,7 @@ type ChapterVideoCard = {
  * videos are linked, so the reading experience stays undisturbed.
  */
 function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number }) {
+  const t = useTranslation();
   const [videos, setVideos] = useState<ChapterVideoCard[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -1470,7 +1475,7 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
     <div id="chapter-videos" className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#C4B5FD]">
-          <Play size={12} fill="currentColor" /> Watch Related Videos
+          <Play size={12} fill="currentColor" /> {t("bible.watchRelated")}
         </h3>
         <span className="text-[10px] text-[#94A3B8] font-bold">{videos.length}</span>
       </div>
@@ -1518,7 +1523,7 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
         href={`/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}`}
         className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-bold text-[#A78BFA] hover:text-white"
       >
-        Browse all videos for this passage <ChevronRight size={11} />
+        {t("bible.browseVideos")} <ChevronRight size={11} />
       </a>
     </div>
   );
@@ -1545,6 +1550,7 @@ function SearchView({
   translation: Translation;
   onQuickLookup: (ref: string) => Promise<void>;
 }) {
+  const t = useTranslation();
   const isRef = isReferenceQuery(query);
 
   return (
@@ -1552,7 +1558,7 @@ function SearchView({
       <div className="flex gap-2 mb-3">
         <input
           type="text"
-          placeholder="Enter a reference (e.g. John 3:16, Romans 8:28)"
+          placeholder={t("bible.searchPlaceholder")}
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={(e) => {
@@ -1566,24 +1572,21 @@ function SearchView({
           className="px-4 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1.5"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-          Lookup
+          {t("bible.lookup")}
         </button>
       </div>
 
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 mb-3">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">Quick lookup</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">{t("bible.quickLookup")}</p>
         <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-          Enter a verse reference like <span className="font-bold text-white">John 3:16</span>,{" "}
-          <span className="font-bold text-white">Romans 8:28</span>, or{" "}
-          <span className="font-bold text-white">Psalm 23:1</span> to jump straight to that verse.
-          Free-text keyword search across the whole Bible is being prepared — for now, browse by book &amp; chapter.
+          {t("bible.quickLookupDesc")}
         </p>
       </div>
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <Loader2 size={28} className="text-[#7C3AED] animate-spin" />
-          <p className="text-xs text-[#94A3B8]">Looking up "{query}" in {translation.toUpperCase()}...</p>
+          <p className="text-xs text-[#94A3B8]">{t("bible.lookingUp", { q: query, T: translation.toUpperCase() })}</p>
         </div>
       )}
 
@@ -1605,7 +1608,7 @@ function SearchView({
                 <span className="text-[9px] text-[#64748B] uppercase tracking-wider">{translation}</span>
               </div>
               <p className="text-[13px] text-[#A09DB1] leading-relaxed">{r.text}</p>
-              <p className="text-[10px] text-[#7C3AED] mt-2 font-bold">Open chapter →</p>
+              <p className="text-[10px] text-[#7C3AED] mt-2 font-bold">{t("bible.openChapter")}</p>
             </motion.button>
           ))}
         </div>
@@ -1614,9 +1617,9 @@ function SearchView({
       {!loading && results.length === 0 && query && isRef && (
         <div className="text-center py-12">
           <Search size={32} className="mx-auto text-[#475569] mb-2" />
-          <p className="text-sm text-[#94A3B8] mb-1">Verse not found</p>
+          <p className="text-sm text-[#94A3B8] mb-1">{t("bible.verseNotFound")}</p>
           <p className="text-xs text-[#64748B] max-w-xs mx-auto">
-            Check the reference and try again. Make sure the book name is spelled correctly.
+            {t("bible.verseNotFoundHint")}
           </p>
         </div>
       )}
@@ -1624,9 +1627,9 @@ function SearchView({
       {!loading && !query && (
         <div className="text-center py-12">
           <Sparkles size={28} className="mx-auto text-[#A78BFA] mb-2" />
-          <p className="text-sm text-[#94A3B8] mb-1">Look up any verse</p>
+          <p className="text-sm text-[#94A3B8] mb-1">{t("bible.lookUpAnyVerse")}</p>
           <p className="text-xs text-[#64748B] max-w-xs mx-auto mb-3">
-            Try these popular verses:
+            {t("bible.tryPopular")}
           </p>
           <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto">
             {["John 3:16", "Psalm 23:1", "Romans 8:28", "Philippians 4:13", "Jeremiah 29:11", "Isaiah 40:31"].map((ref) => (
@@ -1656,13 +1659,14 @@ function BookmarksView({
   onSelect: (bookId: string, chapter: number) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslation();
   if (bookmarks.length === 0) {
     return (
       <div className="text-center py-12">
         <Bookmark size={32} className="mx-auto text-[#475569] mb-3" />
-        <p className="text-sm text-[#475569] mb-1">No bookmarks yet</p>
+        <p className="text-sm text-[#475569] mb-1">{t("bible.noBookmarks")}</p>
         <p className="text-xs text-[#64748B] max-w-xs mx-auto">
-          Open any chapter and tap the bookmark icon next to a verse to save it here.
+          {t("bible.noBookmarksDesc")}
         </p>
       </div>
     );
@@ -1671,7 +1675,7 @@ function BookmarksView({
   return (
     <div className="space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">
-        {bookmarks.length} saved {bookmarks.length === 1 ? "item" : "items"}
+        {t("bible.savedItems", { n: bookmarks.length })}
       </p>
       {bookmarks.map((bm) => (
         <motion.button
@@ -1691,7 +1695,7 @@ function BookmarksView({
           </div>
           <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-2">
             {bm.verse === 0 ? (
-              <span className="text-[#F59E0B] font-bold">Full chapter saved</span>
+              <span className="text-[#F59E0B] font-bold">{t("bible.fullChapterSaved")}</span>
             ) : (
               bm.text
             )}
@@ -1700,15 +1704,15 @@ function BookmarksView({
       ))}
       <button
         onClick={() => {
-          if (confirm("Remove all bookmarks? This cannot be undone.")) {
+          if (confirm(t("bible.clearBookmarksConfirm"))) {
             localStorage.removeItem("cc_bible_bookmarks");
             onRemove();
-            toast.success("All bookmarks cleared");
+            toast.success(t("bible.allBookmarksCleared"));
           }
         }}
         className="w-full mt-3 py-2 rounded-xl text-[11px] font-bold text-[#EF4444] hover:bg-[#EF4444]/10 transition-all"
       >
-        Clear all bookmarks
+        {t("bible.clearAllBookmarks")}
       </button>
     </div>
   );

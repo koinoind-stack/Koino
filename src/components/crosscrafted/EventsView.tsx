@@ -70,11 +70,34 @@ const QUICK_CATEGORIES = QUICK_CATEGORY_VALUES
   .map((v) => EVENT_CATEGORIES.find((c) => c.value === v))
   .filter((c): c is (typeof EVENT_CATEGORIES)[number] => Boolean(c));
 
+// i18n: category id → translation key. The raw value is what the DB stores
+// and what filters match on — only the display label is translated here.
+// Categories without a key fall back to their data label at render time.
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  worship: "events.category.worship",
+  conference: "events.category.conference",
+  prayer: "events.category.prayer",
+  "bible-study": "events.category.bibleStudy",
+  youth: "events.category.youth",
+  outreach: "events.category.outreach",
+  retreat: "events.category.retreat",
+  concert: "events.category.concert",
+};
+
+// Date filter pills: id → translation key (falls back to the data label).
+const DATE_FILTER_LABEL_KEYS: Record<string, string> = {
+  all: "events.allHeading",
+  today: "events.relative.today",
+  tomorrow: "events.relative.tomorrow",
+};
+
 // Card time label: honours the allDay flag and the separate startTime field
 // ("HH:MM") stored by the submit/admin forms, falling back to the ISO date's
 // own time. Keeps "12:00 AM" from leaking onto all-day events.
-const formatTimeLabel = (e: { date: string; startTime?: string; allDay?: boolean }) => {
-  if (e.allDay) return "All Day";
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+const formatTimeLabel = (e: { date: string; startTime?: string; allDay?: boolean }, t: Translate) => {
+  if (e.allDay) return t("events.allDay");
   if (e.startTime) {
     const [h, m] = e.startTime.split(":").map(Number);
     if (!isNaN(h)) {
@@ -96,13 +119,13 @@ const formatDate = (iso: string) => {
   };
 };
 
-const formatRelative = (iso: string) => {
+const formatRelative = (iso: string, t: Translate) => {
   const diff = new Date(iso).getTime() - Date.now();
   const days = Math.round(diff / (1000 * 60 * 60 * 24));
-  if (days < 0) return "Ended";
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
+  if (days < 0) return t("events.relative.ended");
+  if (days === 0) return t("events.relative.today");
+  if (days === 1) return t("events.relative.tomorrow");
+  return t("events.relative.inDays", { days });
 };
 
 export default function EventsView({ initialEventId }: { initialEventId?: string | null }) {
@@ -156,10 +179,10 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
     try {
       const res = await fetch("/api/events", { cache: "no-store" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load events");
+      if (!res.ok) throw new Error(data.error || t("events.error.load"));
       setEvents(data.events || []);
     } catch (e: any) {
-      setEventsError(e.message || "Failed to load events");
+      setEventsError(e.message || t("events.error.load"));
       setEvents([]); // graceful fallback — empty state, not a crash
     } finally {
       setEventsLoading(false);
@@ -256,16 +279,16 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
   const eventImgInputRef = useRef<HTMLInputElement>(null);
   const handleEventImageUpload = async (file: File) => {
     const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-    if (!allowed.includes(file.type)) { toast.error("Please upload a JPG, PNG or WEBP image."); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Please choose an image smaller than 5 MB."); return; }
+    if (!allowed.includes(file.type)) { toast.error(t("common.image.typeError")); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("common.image.sizeError")); return; }
     setImageUploading(true);
     try {
       const fd = new FormData(); fd.append("file", file);
       const res = await fetch("/api/events/upload-image", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (!res.ok) throw new Error(data.error || t("common.uploadFailed"));
       setEventForm(f => ({ ...f, coverImage: data.url }));
-    } catch (e: any) { toast.error(e.message || "Upload failed"); }
+    } catch (e: any) { toast.error(e.message || t("common.uploadFailed")); }
     finally { setImageUploading(false); if (eventImgInputRef.current) eventImgInputRef.current.value = ""; }
   };
 
@@ -275,11 +298,11 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
   const submitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventForm.title || !eventForm.description || !eventForm.startDate || !eventForm.category) {
-      toast.error("Please fill in all required fields."); return;
+      toast.error(t("common.fillRequired")); return;
     }
-    if (!eventForm.allDay && !eventForm.startTime) { toast.error("Start time is required (or check 'All Day')."); return; }
-    if (eventForm.eventType === "online" && !eventForm.onlineUrl) { toast.error("Online event link is required for online events."); return; }
-    if ((eventForm.eventType === "in-person" || eventForm.eventType === "hybrid") && (!eventForm.city || !eventForm.state)) { toast.error("City and State are required for in-person/hybrid events."); return; }
+    if (!eventForm.allDay && !eventForm.startTime) { toast.error(t("events.form.errorStartTime")); return; }
+    if (eventForm.eventType === "online" && !eventForm.onlineUrl) { toast.error(t("events.form.errorOnlineUrl")); return; }
+    if ((eventForm.eventType === "in-person" || eventForm.eventType === "hybrid") && (!eventForm.city || !eventForm.state)) { toast.error(t("events.form.errorLocation")); return; }
 
     setSubmittingEvent(true);
     try {
@@ -316,12 +339,12 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to submit event");
+        throw new Error(data.error || t("events.form.errorSubmit"));
       }
       // Success — event created with status=PENDING
       setShowCreateModal(false);
-      toast.success("Event submitted!", {
-        description: "Your event will appear once approved by our team.",
+      toast.success(t("events.form.success"), {
+        description: t("events.form.successDesc"),
       });
       setEventForm({
         title: "", description: "", category: "",
@@ -339,7 +362,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
     } catch (err: any) {
       // Real error — do NOT pretend the event was created.
       console.error("[EventsView submitEvent] Error:", err);
-      toast.error(err.message || "Failed to submit event. Please try again.");
+      toast.error(err.message || t("events.form.errorSubmitRetry"));
     } finally {
       setSubmittingEvent(false);
     }
@@ -350,10 +373,10 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        toast("Removed from saved", { description: "Event no longer in your list" });
+        toast(t("events.unsavedToast"), { description: t("events.unsavedDesc") });
       } else {
         next.add(id);
-        toast.success("Saved!", { description: "Event added to your wishlist" });
+        toast.success(t("events.savedToast"), { description: t("events.savedDesc") });
       }
       return next;
     });
@@ -364,8 +387,14 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
     // link that opens the events hub with this event's detail (only PUBLISHED
     // events are listed — the card endpoint re-verifies server-side).
     setShareReq({
-      heading: `Share "${e.title}"`,
-      shareText: `Check out "${e.title}" on Koino — ${formatDate(e.date).weekday} ${e.date} at ${e.location}, ${e.city}!`,
+      heading: t("events.shareHeading", { title: e.title }),
+      shareText: t("events.shareText", {
+        title: e.title,
+        weekday: formatDate(e.date).weekday,
+        date: e.date,
+        location: e.location,
+        city: e.city,
+      }),
       shareUrl: shareLinks.event(e.id),
       cardUrl: `/api/share-card?type=event&id=${encodeURIComponent(e.id)}`,
       formats: ["portrait", "landscape"],
@@ -431,7 +460,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
             style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
           >
-            <Plus size={14} /> List Your Event
+            <Plus size={14} /> {t("events.listYourEvent")}
           </button>
         </div>
       </div>
@@ -447,7 +476,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <MapPin size={12} /> Near You
+            <MapPin size={12} /> {t("events.quick.nearYou")}
           </button>
           <button
             onClick={() => {
@@ -460,7 +489,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <Globe size={12} /> All India
+            <Globe size={12} /> {t("events.quick.allIndia")}
           </button>
           <button
             onClick={() => setQuickFilter("online")}
@@ -470,7 +499,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <Video size={12} /> Online
+            <Video size={12} /> {t("home.events.online")}
           </button>
         </div>
       </div>
@@ -480,8 +509,8 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
         <div className="mb-3 bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 flex items-start gap-2">
           <Info size={14} className="text-[#38BDF8] mt-0.5 shrink-0" />
           <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-            <span className="font-bold text-[#38BDF8]">Select your location.</span>{" "}
-            We don't use precise GPS — pick your State (and optionally City) below to see events near you.
+            <span className="font-bold text-[#38BDF8]">{t("events.nearYouBanner.title")}</span>{" "}
+            {t("events.nearYouBanner.desc")}
           </p>
         </div>
       )}
@@ -498,7 +527,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
-            {d.l}
+            {DATE_FILTER_LABEL_KEYS[d.v] ? t(DATE_FILTER_LABEL_KEYS[d.v]) : d.l}
           </button>
         ))}
       </div>
@@ -515,7 +544,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               : "bg-white/[0.04] text-[#94A3B8] hover:text-white border-white/[0.06]"
           }`}
         >
-          All Categories
+          {t("events.filter.allCategories")}
         </button>
         {QUICK_CATEGORIES.map((c) => {
           const active = filterCategory === c.value;
@@ -530,7 +559,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               }`}
               style={active ? { background: c.color } : {}}
             >
-              {c.label}
+              {CATEGORY_LABEL_KEYS[c.value] ? t(CATEGORY_LABEL_KEYS[c.value]) : c.label}
             </button>
           );
         })}
@@ -548,13 +577,13 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  <Search size={10} className="inline mr-0.5" /> Search
+                  <Search size={10} className="inline mr-0.5" /> {t("common.search")}
                 </label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Title, city, host..."
+                  placeholder={t("events.filter.searchPlaceholder")}
                   className="neo-input text-sm"
                 />
               </div>
@@ -571,7 +600,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   }}
                   className="neo-input text-sm"
                 >
-                  <option value="">All States</option>
+                  <option value="">{t("common.allStates")}</option>
                   {INDIAN_STATES.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -587,7 +616,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   disabled={!filterState}
                   className="neo-input text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">{filterState ? "All Cities" : "Select state first"}</option>
+                  <option value="">{filterState ? t("common.allCities") : t("common.selectStateFirst")}</option>
                   {filterState && getCitiesForState(filterState).map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -595,10 +624,10 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  <Globe size={10} className="inline mr-0.5" /> Language
+                  <Globe size={10} className="inline mr-0.5" /> {t("common.language")}
                 </label>
                 <select value={filterLanguage} onChange={(e) => setFilterLanguage(e.target.value)} className="neo-input text-sm">
-                  <option value="">All Languages</option>
+                  <option value="">{t("common.allLanguages")}</option>
                   {LANGUAGES.map((l) => (
                     <option key={l} value={l}>{l}</option>
                   ))}
@@ -606,7 +635,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               </div>
             </div>
             <div className="mt-3">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Category</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("marketplace.listModal.category")}</label>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setFilterCategory("")}
@@ -614,7 +643,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     !filterCategory ? "bg-white text-slate-950" : "bg-white/[0.04] text-[#94A3B8]"
                   }`}
                 >
-                  All
+                  {t("events.category.all")}
                 </button>
                 {EVENT_CATEGORIES.map((c) => (
                   <button
@@ -625,7 +654,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     }`}
                     style={filterCategory === c.value ? { background: c.color } : {}}
                   >
-                    {c.label}
+                    {CATEGORY_LABEL_KEYS[c.value] ? t(CATEGORY_LABEL_KEYS[c.value]) : c.label}
                   </button>
                 ))}
               </div>
@@ -641,7 +670,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 }}
                 className="mt-3 text-xs text-[#94A3B8] hover:text-white transition-colors"
               >
-                Clear all filters
+                {t("common.clearFilters")}
               </button>
             )}
           </motion.div>
@@ -654,20 +683,20 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
         {eventsLoading && (
           <div className="text-center py-12">
             <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
-            <p className="text-xs text-[#94A3B8]">Loading events…</p>
+            <p className="text-xs text-[#94A3B8]">{t("events.loading")}</p>
           </div>
         )}
 
         {/* Error state — graceful, no crash */}
         {!eventsLoading && eventsError && (
           <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-2xl p-5 text-center">
-            <p className="text-sm font-bold text-[#EF4444] mb-1">Failed to load events</p>
+            <p className="text-sm font-bold text-[#EF4444] mb-1">{t("events.error.load")}</p>
             <p className="text-xs text-[#A09DB1] mb-3">{eventsError}</p>
             <button
               onClick={loadEvents}
               className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
             >
-              Try again
+              {t("common.retry")}
             </button>
           </div>
         )}
@@ -678,15 +707,15 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
               <Calendar size={24} className="text-[#A78BFA]" />
             </div>
-            <p className="text-sm font-bold text-white mb-1">No events published yet</p>
+            <p className="text-sm font-bold text-white mb-1">{t("events.empty.title")}</p>
             <p className="text-xs text-[#A09DB1] mb-4 max-w-sm mx-auto">
-              Be the first to share a Christian event with the Koino community. Submitted events appear here after admin approval.
+              {t("events.empty.desc")}
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
             >
-              Submit an Event
+              {t("events.empty.cta")}
             </button>
           </div>
         )}
@@ -699,7 +728,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2.5">
               <Flame size={13} className="text-[#F59E0B]" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[#F59E0B]">Featured Events</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#F59E0B]">{t("events.featuredHeading")}</h2>
               <span className="text-[10px] text-[#64748B]">({featured.length})</span>
             </div>
             <div className="flex gap-3 overflow-x-auto snap-x pb-2 -mx-4 px-4 md:grid md:grid-cols-2 md:overflow-visible md:mx-0 md:px-0">
@@ -733,17 +762,17 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         <p className="text-[8px] text-white/60">{date.weekday}</p>
                       </div>
                       <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#F59E0B] text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1">
-                        <Flame size={9} /> Featured
+                        <Flame size={9} /> {t("common.featured")}
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         <h3 className="text-sm font-bold text-white mb-1.5 line-clamp-2">{event.title}</h3>
                         <div className="flex items-center gap-2.5 text-[10px] text-white/75 flex-wrap">
                           <span className="flex items-center gap-1">
-                            <Clock size={10} /> {formatTimeLabel(event)}
+                            <Clock size={10} /> {formatTimeLabel(event, t)}
                           </span>
                           {event.eventType === "online" ? (
                             <span className="flex items-center gap-1 text-[#38BDF8]">
-                              <Globe size={10} /> Online
+                              <Globe size={10} /> {t("home.events.online")}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1">
@@ -774,7 +803,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         className="px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-white flex items-center gap-1 shrink-0 transition-all hover:-translate-y-px"
                         style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
                       >
-                        View Event <ArrowRight size={11} />
+                        {t("events.viewEvent")} <ArrowRight size={11} />
                       </button>
                     </div>
                   </motion.div>
@@ -792,7 +821,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             {featured.length > 0 && (
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Calendar size={13} className="text-[#94A3B8]" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">All Events</h2>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">{t("events.allHeading")}</h2>
                 <span className="text-[10px] text-[#64748B]">({upcoming.length})</span>
               </div>
             )}
@@ -850,11 +879,11 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                           style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
                         >
                           <Icon size={9} className="inline mr-0.5" />
-                          {cat.label}
+                          {CATEGORY_LABEL_KEYS[cat.value] ? t(CATEGORY_LABEL_KEYS[cat.value]) : cat.label}
                         </span>
                         {event.featured && (
                           <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                            <Flame size={9} /> Featured
+                            <Flame size={9} /> {t("common.featured")}
                           </span>
                         )}
                       </div>
@@ -863,14 +892,14 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         <p className="flex items-center gap-1.5">
                           <Clock size={11} className="shrink-0" />
                           <span className="truncate">
-                            {date.weekday}, {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {formatTimeLabel(event)}
+                            {date.weekday}, {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {formatTimeLabel(event, t)}
                           </span>
                         </p>
                         <p className="flex items-center gap-1.5">
                           {event.eventType === "online" ? (
                             <>
                               <Globe size={11} className="shrink-0 text-[#38BDF8]" />
-                              <span className="truncate text-[#38BDF8]">Online Event</span>
+                              <span className="truncate text-[#38BDF8]">{t("events.onlineEvent")}</span>
                             </>
                           ) : (
                             <>
@@ -884,31 +913,31 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         {(event.church || event.organizerName) && (
                           <p className="flex items-center gap-1.5">
                             <Users size={11} className="shrink-0" />
-                            <span className="truncate">by {event.church || event.organizerName}</span>
+                            <span className="truncate">{t("events.byHost", { name: event.church || event.organizerName || "" })}</span>
                           </p>
                         )}
                       </div>
                       <div className="mt-auto pt-2.5 border-t border-white/[0.05] flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                           {event.is_free ? (
-                            <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold shrink-0">FREE</span>
+                            <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold shrink-0">{t("events.freeBadge")}</span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[10px] font-bold flex items-center gap-1 shrink-0">
                               <Ticket size={9} /> ₹{event.price}
                             </span>
                           )}
-                          <span className="text-[10px] text-[#64748B] shrink-0">{formatRelative(event.date)}</span>
+                          <span className="text-[10px] text-[#64748B] shrink-0">{formatRelative(event.date, t)}</span>
                         </div>
                         <div className="flex items-center gap-0.5 shrink-0">
                           <button
-                            aria-label="Save event"
+                            aria-label={t("events.saveAria")}
                             onClick={(e) => { e.stopPropagation(); toggleSave(event.id); }}
                             className="h-11 w-11 flex items-center justify-center text-[#94A3B8] hover:text-white"
                           >
                             {isSaved ? <BookmarkCheck size={16} className="text-[#EC4899]" /> : <Bookmark size={16} />}
                           </button>
                           <button
-                            aria-label="Share event"
+                            aria-label={t("events.shareAria")}
                             onClick={(e) => { e.stopPropagation(); shareEvent(event); }}
                             className="h-11 w-11 flex items-center justify-center text-[#94A3B8] hover:text-white"
                           >
@@ -918,7 +947,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                             onClick={(e) => { e.stopPropagation(); setOpenEvent(event); }}
                             className="h-11 px-1.5 text-[11px] font-bold text-[#EC4899] hover:text-white flex items-center"
                           >
-                            Details <ArrowRight size={12} className="ml-0.5" />
+                            {t("events.details")} <ArrowRight size={12} className="ml-0.5" />
                           </button>
                         </div>
                       </div>
@@ -939,15 +968,15 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
             <Calendar size={24} className="text-[#A78BFA]" />
           </div>
-          <p className="text-sm font-bold text-white mb-1 max-w-sm mx-auto">No events found yet. Be the first to bring your community together!</p>
-          <p className="text-xs text-[#A09DB1] mb-4">Try different filters, or clear them to browse everything.</p>
+          <p className="text-sm font-bold text-white mb-1 max-w-sm mx-auto">{t("events.emptyFiltered.title")}</p>
+          <p className="text-xs text-[#A09DB1] mb-4">{t("events.emptyFiltered.desc")}</p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider text-white transition-all hover:-translate-y-px flex items-center gap-1.5"
               style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
             >
-              <Plus size={13} /> List Your Event
+              <Plus size={13} /> {t("events.listYourEvent")}
             </button>
             <button
               onClick={() => {
@@ -961,7 +990,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               }}
               className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
             >
-              Clear Filters
+              {t("events.clearFilters")}
             </button>
           </div>
         </div>
@@ -1008,7 +1037,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   <div className="flex items-center gap-2 mb-2">
                     {openEvent.is_online && (
                       <span className="px-2 py-0.5 rounded-full bg-[#EF4444]/80 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Video size={10} /> Live Stream
+                        <Video size={10} /> {t("events.liveStream")}
                       </span>
                     )}
                     <span
@@ -1018,7 +1047,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         color: "white",
                       }}
                     >
-                      {getCategoryMeta(openEvent.category).label}
+                      {CATEGORY_LABEL_KEYS[getCategoryMeta(openEvent.category).value] ? t(CATEGORY_LABEL_KEYS[getCategoryMeta(openEvent.category).value]) : getCategoryMeta(openEvent.category).label}
                     </span>
                   </div>
                   <h2 className="text-xl font-extrabold text-white">{openEvent.title}</h2>
@@ -1028,7 +1057,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               <div className="p-5 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">When</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("events.when")}</p>
                     <p className="text-xs text-white">
                       {new Date(openEvent.date).toLocaleDateString("en-US", {
                         weekday: "short",
@@ -1039,11 +1068,11 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     <p className="text-[10px] text-[#94A3B8]">{formatDate(openEvent.date).time}</p>
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Where</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("events.where")}</p>
                     {openEvent.eventType === "online" ? (
                       <>
                         <p className="text-xs text-[#38BDF8] flex items-center gap-1 font-bold">
-                          <Globe size={11} /> Online Event
+                          <Globe size={11} /> {t("events.onlineEvent")}
                         </p>
                         {openEvent.onlineUrl && (
                           <a
@@ -1065,28 +1094,28 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         <p className="text-[10px] text-[#94A3B8] mt-0.5">{openEvent.location}</p>
                         {openEvent.eventType === "hybrid" && (
                           <p className="text-[10px] text-[#A855F7] flex items-center gap-1 mt-1 font-bold">
-                            <Globe size={10} /> Also available online
+                            <Globe size={10} /> {t("events.alsoOnline")}
                           </p>
                         )}
                       </>
                     )}
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Format</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("events.format")}</p>
                     <p className="text-xs text-white flex items-center gap-1">
                       {openEvent.eventType === "online" ? (
-                        <><Globe size={11} /> Online</>
+                        <><Globe size={11} /> {t("home.events.online")}</>
                       ) : openEvent.eventType === "hybrid" ? (
-                        <><Radio size={11} /> Hybrid</>
+                        <><Radio size={11} /> {t("events.hybrid")}</>
                       ) : (
-                        <><MapPin size={11} /> In Person</>
+                        <><MapPin size={11} /> {t("events.inPerson")}</>
                       )}
                     </p>
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Cost</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("events.cost")}</p>
                     <p className="text-xs font-bold text-white">
-                      {openEvent.is_free ? "FREE" : `₹${openEvent.price}`}
+                      {openEvent.is_free ? t("events.freeBadge") : `₹${openEvent.price}`}
                     </p>
                   </div>
                 </div>
@@ -1098,7 +1127,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
                 {openEvent.church && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Hosted by</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("events.hostedBy")}</p>
                     <p className="text-sm font-bold text-white">{openEvent.church}</p>
                   </div>
                 )}
@@ -1139,12 +1168,12 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   {openEvent.whatsapp_number && (
                     <a
                       href={`https://wa.me/${openEvent.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                        `Hi, I found your event "${openEvent.title}" on Koino and would like more information.`
+                        t("events.whatsappPrefill", { title: openEvent.title })
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 rounded-xl bg-[#25D366] hover:bg-[#1FB855] text-white flex items-center justify-center transition-all"
-                      title="WhatsApp organizer"
+                      title={t("events.whatsappTitle")}
                     >
                       <MessageCircle size={18} />
                     </a>
@@ -1157,7 +1186,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
                       style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
                     >
-                      <Ticket size={16} /> Get Tickets
+                      <Ticket size={16} /> {t("events.getTickets")}
                       <ExternalLink size={12} className="opacity-80" />
                     </a>
                   ) : openEvent.eventType === "online" && openEvent.onlineUrl ? (
@@ -1168,7 +1197,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
                       style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
                     >
-                      <Video size={16} /> Join Online
+                      <Video size={16} /> {t("events.joinOnline")}
                     </a>
                   ) : (
                     <button
@@ -1176,7 +1205,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
                       style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
                     >
-                      <Calendar size={16} /> Add to Calendar
+                      <Calendar size={16} /> {t("events.addToCalendar")}
                     </button>
                   )}
                 </div>
@@ -1185,8 +1214,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 {openEvent.ticketUrl && (
                   <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
                     <Info size={9} className="inline mr-0.5" />
-                    Tickets and registration are handled by the event organizer.
-                    Koino does not process payments.
+                    {t("events.paymentNote")}
                   </p>
                 )}
               </div>
@@ -1214,7 +1242,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             >
               <div className="sticky top-0 bg-[#1C1929] z-10 flex justify-between items-center p-5 pb-3 border-b border-white/[0.04]">
                 <h2 className="text-lg font-bold bg-gradient-to-r from-[#EC4899] to-[#F59E0B] bg-clip-text text-transparent">
-                  Add an Event
+                  {t("events.form.title")}
                 </h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-[#64748B] hover:text-white p-1">
                   <X size={20} />
@@ -1225,26 +1253,26 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                 {/* ─── EVENT FLYER ─── */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Event Flyer
+                    {t("events.form.flyer")}
                   </label>
-                  <p className="text-[9px] text-[#64748B] mb-2">Portrait/vertical poster. 1080 × 1350 px recommended.</p>
+                  <p className="text-[9px] text-[#64748B] mb-2">{t("events.form.flyerHint")}</p>
                   {eventForm.coverImage ? (
                     <div className="relative">
                       <div className="w-full max-w-[200px] mx-auto aspect-[4/5] rounded-xl overflow-hidden bg-[#0f0f1a] border border-white/[0.08]">
-                        <img src={eventForm.coverImage} alt="Event flyer" className="w-full h-full object-contain" />
+                        <img src={eventForm.coverImage} alt={t("events.form.flyer")} className="w-full h-full object-contain" />
                       </div>
                       <div className="flex gap-2 mt-2 justify-center">
                         <button type="button" onClick={() => eventImgInputRef.current?.click()} disabled={imageUploading} className="px-3 py-1.5 rounded-lg bg-[#EC4899]/15 border border-[#EC4899]/30 text-[#EC4899] text-[10px] font-bold hover:bg-[#EC4899]/25 transition-all disabled:opacity-50">
-                          {imageUploading ? <Loader2 size={11} className="animate-spin" /> : "Replace"}
+                          {imageUploading ? <Loader2 size={11} className="animate-spin" /> : t("common.replace")}
                         </button>
-                        <button type="button" onClick={() => setEventForm(f => ({ ...f, coverImage: "" }))} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-[#EF4444] hover:bg-[#EF4444]/10 transition-all">Remove</button>
+                        <button type="button" onClick={() => setEventForm(f => ({ ...f, coverImage: "" }))} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-[#EF4444] hover:bg-[#EF4444]/10 transition-all">{t("common.remove")}</button>
                       </div>
                     </div>
                   ) : (
                     <button type="button" onClick={() => eventImgInputRef.current?.click()} disabled={imageUploading} className="w-full py-8 rounded-xl border-2 border-dashed border-white/[0.12] bg-white/[0.02] hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all flex flex-col items-center gap-2 text-[#64748B] disabled:opacity-50">
                       {imageUploading ? <Loader2 size={20} className="animate-spin text-[#EC4899]" /> : <Upload size={20} />}
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Upload Event Flyer</span>
-                      <span className="text-[8px] text-[#475569]">JPG, PNG, WEBP · Max 5MB · Portrait preferred</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{t("events.form.uploadFlyer")}</span>
+                      <span className="text-[8px] text-[#475569]">{t("events.form.flyerAccept")}</span>
                     </button>
                   )}
                   <input ref={eventImgInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleEventImageUpload(f); }} className="hidden" />
@@ -1252,49 +1280,49 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
                 {/* ─── BASIC INFORMATION ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">Basic Information</p>
-                  <input type="text" placeholder="Event title *" value={eventForm.title} onChange={(e) => setEventForm(f => ({ ...f, title: e.target.value }))} className="neo-input text-sm" required />
-                  <textarea placeholder="Event description *" value={eventForm.description} onChange={(e) => setEventForm(f => ({ ...f, description: e.target.value }))} className="neo-input h-24 resize-none text-sm" required />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("events.form.basicInfo")}</p>
+                  <input type="text" placeholder={t("events.form.titlePlaceholder")} value={eventForm.title} onChange={(e) => setEventForm(f => ({ ...f, title: e.target.value }))} className="neo-input text-sm" required />
+                  <textarea placeholder={t("events.form.descPlaceholder")} value={eventForm.description} onChange={(e) => setEventForm(f => ({ ...f, description: e.target.value }))} className="neo-input h-24 resize-none text-sm" required />
                   <select value={eventForm.category} onChange={(e) => setEventForm(f => ({ ...f, category: e.target.value }))} className="neo-input text-sm" required>
-                    <option value="">Select category *</option>
-                    {EVENT_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
+                    <option value="">{t("events.form.selectCategory")}</option>
+                    {EVENT_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{CATEGORY_LABEL_KEYS[c.value] ? t(CATEGORY_LABEL_KEYS[c.value]) : c.label}</option>))}
                   </select>
                 </div>
 
                 {/* ─── DATE & TIME ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">Date & Time</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("events.form.dateSection")}</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><label className="text-[9px] text-[#64748B]">Start Date *</label><input type="date" value={eventForm.startDate} onChange={(e) => setEventForm(f => ({ ...f, startDate: e.target.value }))} className="neo-input text-sm" required /></div>
-                    <div><label className="text-[9px] text-[#64748B]">Start Time {!eventForm.allDay ? "*" : "(all day)"}</label><input type="time" value={eventForm.startTime} onChange={(e) => setEventForm(f => ({ ...f, startTime: e.target.value }))} className="neo-input text-sm" disabled={eventForm.allDay} /></div>
+                    <div><label className="text-[9px] text-[#64748B]">{t("events.form.startDate")}</label><input type="date" value={eventForm.startDate} onChange={(e) => setEventForm(f => ({ ...f, startDate: e.target.value }))} className="neo-input text-sm" required /></div>
+                    <div><label className="text-[9px] text-[#64748B]">{eventForm.allDay ? `${t("events.form.startTime").replace(" *", "")} ${t("events.form.allDaySuffix")}` : t("events.form.startTime")}</label><input type="time" value={eventForm.startTime} onChange={(e) => setEventForm(f => ({ ...f, startTime: e.target.value }))} className="neo-input text-sm" disabled={eventForm.allDay} /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><label className="text-[9px] text-[#64748B]">End Date (optional)</label><input type="date" value={eventForm.endDate} onChange={(e) => setEventForm(f => ({ ...f, endDate: e.target.value }))} className="neo-input text-sm" /></div>
-                    <div><label className="text-[9px] text-[#64748B]">End Time (optional)</label><input type="time" value={eventForm.endTime} onChange={(e) => setEventForm(f => ({ ...f, endTime: e.target.value }))} className="neo-input text-sm" disabled={eventForm.allDay} /></div>
+                    <div><label className="text-[9px] text-[#64748B]">{t("events.form.endDate")}</label><input type="date" value={eventForm.endDate} onChange={(e) => setEventForm(f => ({ ...f, endDate: e.target.value }))} className="neo-input text-sm" /></div>
+                    <div><label className="text-[9px] text-[#64748B]">{t("events.form.endTime")}</label><input type="time" value={eventForm.endTime} onChange={(e) => setEventForm(f => ({ ...f, endTime: e.target.value }))} className="neo-input text-sm" disabled={eventForm.allDay} /></div>
                   </div>
                   <label className="flex items-center gap-2 text-[11px] text-[#94A3B8] cursor-pointer">
                     <input type="checkbox" checked={eventForm.allDay} onChange={(e) => setEventForm(f => ({ ...f, allDay: e.target.checked }))} className="accent-[#EC4899]" />
-                    All Day Event
+                    {t("events.form.allDayEvent")}
                   </label>
                 </div>
 
                 {/* ─── LOCATION ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">Location</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("common.location")}</p>
                   <select value={eventForm.eventType} onChange={(e) => setEventForm(f => ({ ...f, eventType: e.target.value as any }))} className="neo-input text-sm" required>
-                    <option value="in-person">In Person</option>
-                    <option value="online">Online</option>
-                    <option value="hybrid">Hybrid</option>
+                    <option value="in-person">{t("events.inPerson")}</option>
+                    <option value="online">{t("home.events.online")}</option>
+                    <option value="hybrid">{t("events.hybrid")}</option>
                   </select>
 
                   {(eventForm.eventType === "in-person" || eventForm.eventType === "hybrid") && (
                     <>
-                      <input type="text" placeholder="Venue name" value={eventForm.venueName} onChange={(e) => setEventForm(f => ({ ...f, venueName: e.target.value }))} className="neo-input text-sm" />
-                      <input type="text" placeholder="Location address" value={eventForm.address} onChange={(e) => setEventForm(f => ({ ...f, address: e.target.value }))} className="neo-input text-sm" />
+                      <input type="text" placeholder={t("events.form.venuePlaceholder")} value={eventForm.venueName} onChange={(e) => setEventForm(f => ({ ...f, venueName: e.target.value }))} className="neo-input text-sm" />
+                      <input type="text" placeholder={t("events.form.addressPlaceholder")} value={eventForm.address} onChange={(e) => setEventForm(f => ({ ...f, address: e.target.value }))} className="neo-input text-sm" />
                       <div className="grid grid-cols-2 gap-3">
-                        <input type="text" placeholder="City *" value={eventForm.city} onChange={(e) => setEventForm(f => ({ ...f, city: e.target.value }))} className="neo-input text-sm" required />
+                        <input type="text" placeholder={t("events.form.cityPlaceholder")} value={eventForm.city} onChange={(e) => setEventForm(f => ({ ...f, city: e.target.value }))} className="neo-input text-sm" required />
                         <select value={eventForm.state} onChange={(e) => setEventForm(f => ({ ...f, state: e.target.value }))} className="neo-input text-sm" required>
-                          <option value="">State *</option>
+                          <option value="">{t("events.form.stateOption")}</option>
                           {INDIAN_STATES.map((s) => (<option key={s} value={s}>{s}</option>))}
                         </select>
                       </div>
@@ -1302,39 +1330,39 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   )}
 
                   {(eventForm.eventType === "online" || eventForm.eventType === "hybrid") && (
-                    <input type="url" placeholder="Online event link (Zoom, YouTube, etc.) *" value={eventForm.onlineUrl} onChange={(e) => setEventForm(f => ({ ...f, onlineUrl: e.target.value }))} className="neo-input text-sm" required={eventForm.eventType === "online"} />
+                    <input type="url" placeholder={t("events.form.onlineUrlPlaceholder")} value={eventForm.onlineUrl} onChange={(e) => setEventForm(f => ({ ...f, onlineUrl: e.target.value }))} className="neo-input text-sm" required={eventForm.eventType === "online"} />
                   )}
                 </div>
 
                 {/* ─── REGISTRATION ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">Registration</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("events.form.registration")}</p>
                   <select value={eventForm.registrationType} onChange={(e) => setEventForm(f => ({ ...f, registrationType: e.target.value }))} className="neo-input text-sm">
-                    <option value="free">Free Event</option>
-                    <option value="paid">Paid Event</option>
-                    <option value="registration_required">Registration Required</option>
-                    <option value="no_registration">No Registration Required</option>
+                    <option value="free">{t("events.form.regFree")}</option>
+                    <option value="paid">{t("events.form.regPaid")}</option>
+                    <option value="registration_required">{t("events.form.regRequired")}</option>
+                    <option value="no_registration">{t("events.form.regNone")}</option>
                   </select>
-                  <input type="url" placeholder="Ticket / Registration URL (Eventbrite, church website, etc.)" value={eventForm.ticketUrl} onChange={(e) => setEventForm(f => ({ ...f, ticketUrl: e.target.value }))} className="neo-input text-sm" />
-                  <p className="text-[9px] text-[#64748B]">Koino does not process ticket payments. Link to your external registration page.</p>
+                  <input type="url" placeholder={t("events.form.ticketUrlPlaceholder")} value={eventForm.ticketUrl} onChange={(e) => setEventForm(f => ({ ...f, ticketUrl: e.target.value }))} className="neo-input text-sm" />
+                  <p className="text-[9px] text-[#64748B]">{t("events.form.ticketNote")}</p>
                 </div>
 
                 {/* ─── CONTACT ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">Contact</p>
-                  <input type="text" placeholder="Organizer name" value={eventForm.organizerName} onChange={(e) => setEventForm(f => ({ ...f, organizerName: e.target.value }))} className="neo-input text-sm" />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("churches.contact")}</p>
+                  <input type="text" placeholder={t("events.form.organizerPlaceholder")} value={eventForm.organizerName} onChange={(e) => setEventForm(f => ({ ...f, organizerName: e.target.value }))} className="neo-input text-sm" />
                   <div className="grid grid-cols-2 gap-3">
-                    <input type="tel" placeholder="WhatsApp number" value={eventForm.whatsappNumber} onChange={(e) => setEventForm(f => ({ ...f, whatsappNumber: e.target.value }))} className="neo-input text-sm" />
-                    <input type="tel" placeholder="Contact phone" value={eventForm.organizerPhone} onChange={(e) => setEventForm(f => ({ ...f, organizerPhone: e.target.value }))} className="neo-input text-sm" />
+                    <input type="tel" placeholder={t("events.form.whatsappPlaceholder")} value={eventForm.whatsappNumber} onChange={(e) => setEventForm(f => ({ ...f, whatsappNumber: e.target.value }))} className="neo-input text-sm" />
+                    <input type="tel" placeholder={t("events.form.phonePlaceholder")} value={eventForm.organizerPhone} onChange={(e) => setEventForm(f => ({ ...f, organizerPhone: e.target.value }))} className="neo-input text-sm" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <input type="email" placeholder="Contact email" value={eventForm.organizerEmail} onChange={(e) => setEventForm(f => ({ ...f, organizerEmail: e.target.value }))} className="neo-input text-sm" />
-                    <input type="url" placeholder="Website / social link" value={eventForm.organizerWebsite} onChange={(e) => setEventForm(f => ({ ...f, organizerWebsite: e.target.value }))} className="neo-input text-sm" />
+                    <input type="email" placeholder={t("events.form.emailPlaceholder")} value={eventForm.organizerEmail} onChange={(e) => setEventForm(f => ({ ...f, organizerEmail: e.target.value }))} className="neo-input text-sm" />
+                    <input type="url" placeholder={t("events.form.websitePlaceholder")} value={eventForm.organizerWebsite} onChange={(e) => setEventForm(f => ({ ...f, organizerWebsite: e.target.value }))} className="neo-input text-sm" />
                   </div>
                 </div>
 
                 <button type="submit" disabled={submittingEvent || imageUploading} className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}>
-                  {submittingEvent ? <Loader2 size={16} className="animate-spin" /> : "Submit Event"}
+                  {submittingEvent ? <Loader2 size={16} className="animate-spin" /> : t("events.form.submit")}
                 </button>
               </form>
             </motion.div>

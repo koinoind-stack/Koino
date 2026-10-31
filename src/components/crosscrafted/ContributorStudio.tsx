@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { HelpCircle, Loader2, PenLine, Send, X } from "lucide-react";
 import ImageUploader from "@/components/crosscrafted/admin/ImageUploader";
 import BibleRefPicker from "@/components/crosscrafted/BibleRefPicker";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const APOLOGETICS_CATEGORIES = [
   "God & Existence", "Jesus Christ", "Resurrection", "Bible", "Science & Faith",
@@ -54,6 +55,31 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   archived: { label: "Archived", color: "#64748B" },
 };
 
+// i18n: labels/categories above are English source data — resolved to keys at render.
+const STATUS_KEYS: Record<string, string> = {
+  draft: "contributor.status.draft",
+  submitted: "contributor.status.inReview",
+  approved: "contributor.status.approved",
+  changes_requested: "contributor.status.changesRequested",
+  rejected: "contributor.status.rejected",
+  published: "contributor.status.published",
+  archived: "contributor.status.archived",
+};
+
+const CATEGORY_KEYS: Record<string, string> = {
+  "God & Existence": "contributor.cat.god",
+  "Jesus Christ": "contributor.cat.jesus",
+  Resurrection: "contributor.cat.resurrection",
+  Bible: "contributor.cat.bible",
+  "Science & Faith": "contributor.cat.science",
+  "Suffering & Evil": "contributor.cat.suffering",
+  "Morality & Ethics": "contributor.cat.morality",
+  "Other Worldviews": "contributor.cat.worldviews",
+  "Doubt & Faith": "contributor.cat.doubt",
+  "Culture & Christianity": "contributor.cat.culture",
+  Salvation: "contributor.cat.salvation",
+};
+
 export default function ContributorStudio({
   displayName,
   onClose,
@@ -61,6 +87,7 @@ export default function ContributorStudio({
   displayName: string;
   onClose: () => void;
 }) {
+  const t = useTranslation();
   const [tab, setTab] = useState<"submissions" | "write" | "answers">("submissions");
   const [articles, setArticles] = useState<MyArticle[]>([]);
   const [questions, setQuestions] = useState<OpenQuestion[]>([]);
@@ -107,7 +134,7 @@ export default function ContributorStudio({
 
   const submitArticle = async (status: "draft" | "submitted") => {
     if (!wTitle.trim() || !wContent.trim()) {
-      toast.error("Title and content are required");
+      toast.error(t("contributor.errRequired"));
       return;
     }
     setSubmitting(true);
@@ -131,15 +158,15 @@ export default function ContributorStudio({
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       toast.success(
         status === "submitted"
-          ? "Submitted for review — an admin will look at it"
-          : "Draft saved"
+          ? t("contributor.submittedToast")
+          : t("contributor.draftSaved")
       );
       setWTitle(""); setWCategory(""); setWExcerpt(""); setWShortAnswer("");
       setWContent(""); setWCover(""); setWRefs([]); setWTags("");
       setTab("submissions");
       load();
     } catch (e: any) {
-      toast.error(e?.message || "Failed to submit");
+      toast.error(e?.message || t("contributor.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -147,7 +174,7 @@ export default function ContributorStudio({
 
   const submitAnswer = async () => {
     if (!answerQuestionId || answerText.trim().length < 20) {
-      toast.error("Write at least a couple of sentences");
+      toast.error(t("contributor.errAnswerShort"));
       return;
     }
     setSubmittingAnswer(true);
@@ -159,12 +186,12 @@ export default function ContributorStudio({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      toast.success(data.message || "Answer submitted for review");
+      toast.success(data.message || t("contributor.answerSubmitted"));
       setAnswerQuestionId(null);
       setAnswerText("");
       load();
     } catch (e: any) {
-      toast.error(e?.message || "Failed to submit answer");
+      toast.error(e?.message || t("contributor.answerFailed"));
     } finally {
       setSubmittingAnswer(false);
     }
@@ -183,14 +210,14 @@ export default function ContributorStudio({
         <div className="flex items-center justify-between p-4 border-b border-white/[0.06] sticky top-0 bg-[#1C1929] z-10">
           <div className="min-w-0">
             <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <PenLine size={14} className="text-[#A78BFA]" /> Contributor Studio
+              <PenLine size={14} className="text-[#A78BFA]" /> {t("contributor.title")}
             </h2>
-            <p className="text-[10px] text-[#94A3B8] truncate">Welcome, {displayName} — submissions are reviewed by the Koino team.</p>
+            <p className="text-[10px] text-[#94A3B8] truncate">{t("contributor.welcome", { name: displayName })}</p>
           </div>
           <button
             onClick={onClose}
             className="shrink-0 w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={15} />
           </button>
@@ -198,15 +225,15 @@ export default function ContributorStudio({
 
         {/* Tabs */}
         <div className="flex gap-1 p-2 pb-0">
-          {(["submissions", "write", "answers"] as const).map((t) => (
+          {(["submissions", "write", "answers"] as const).map((tabId) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabId}
+              onClick={() => setTab(tabId)}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
-                tab === t ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+                tab === tabId ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
               }`}
             >
-              {t === "submissions" ? "My submissions" : t === "write" ? "Write article" : "Answer questions"}
+              {tabId === "submissions" ? t("contributor.tab.submissions") : tabId === "write" ? t("contributor.tab.write") : t("contributor.tab.answers")}
             </button>
           ))}
         </div>
@@ -219,13 +246,13 @@ export default function ContributorStudio({
           ) : tab === "submissions" ? (
             articles.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-sm font-bold text-white mb-1">No submissions yet</p>
-                <p className="text-xs text-[#94A3B8] mb-3">Write your first apologetics article — it goes to review before publishing.</p>
+                <p className="text-sm font-bold text-white mb-1">{t("contributor.empty")}</p>
+                <p className="text-xs text-[#94A3B8] mb-3">{t("contributor.emptyDesc")}</p>
                 <button
                   onClick={() => setTab("write")}
                   className="px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
                 >
-                  Start writing
+                  {t("contributor.startWriting")}
                 </button>
               </div>
             ) : (
@@ -239,21 +266,21 @@ export default function ContributorStudio({
                         className="shrink-0 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
                         style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
                       >
-                        {meta.label}
+                        {t(STATUS_KEYS[a.status] ?? meta.label)}
                       </span>
                     </div>
                     {a.excerpt && <p className="text-[11px] text-[#A09DB1] line-clamp-2 mb-1">{a.excerpt}</p>}
                     {a.reviewNotes && (
                       <p className="text-[10px] text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg px-2 py-1 mt-1">
-                        Editor notes: {a.reviewNotes}
+                        {t("contributor.editorNotes", { notes: a.reviewNotes })}
                       </p>
                     )}
                     <p className="text-[9px] text-[#64748B] mt-1">
-                      Updated {new Date(a.updatedAt).toLocaleDateString()}
+                      {t("contributor.updated", { date: new Date(a.updatedAt).toLocaleDateString() })}
                       {a.status === "published" && a.slug ? " · " : ""}
                       {a.status === "published" && a.slug && (
                         <a href={`/apologetics/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-[#38BDF8] underline">
-                          view live →
+                          {t("contributor.viewLive")}
                         </a>
                       )}
                     </p>
@@ -267,7 +294,7 @@ export default function ContributorStudio({
                 type="text"
                 value={wTitle}
                 onChange={(e) => setWTitle(e.target.value)}
-                placeholder="Article title *"
+                placeholder={t("contributor.titlePlaceholder")}
                 className="neo-input text-sm"
                 maxLength={300}
               />
@@ -277,30 +304,30 @@ export default function ContributorStudio({
                   onChange={(e) => setWCategory(e.target.value)}
                   className="neo-input text-sm bg-[#1C1929]"
                 >
-                  <option value="">Category…</option>
+                  <option value="">{t("contributor.categoryPlaceholder")}</option>
                   {APOLOGETICS_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>{t(CATEGORY_KEYS[c] ?? c)}</option>
                   ))}
                 </select>
                 <input
                   type="text"
                   value={wTags}
                   onChange={(e) => setWTags(e.target.value)}
-                  placeholder="Tags (comma-separated)"
+                  placeholder={t("contributor.tagsPlaceholder")}
                   className="neo-input text-sm"
                 />
               </div>
               <textarea
                 value={wExcerpt}
                 onChange={(e) => setWExcerpt(e.target.value)}
-                placeholder="Short summary shown on cards"
+                placeholder={t("contributor.excerptPlaceholder")}
                 className="neo-input text-xs h-14 resize-none"
                 maxLength={500}
               />
               <textarea
                 value={wShortAnswer}
                 onChange={(e) => setWShortAnswer(e.target.value)}
-                placeholder="Short answer / TL;DR (optional)"
+                placeholder={t("contributor.shortAnswerPlaceholder")}
                 className="neo-input text-xs h-14 resize-none"
                 maxLength={2000}
               />
@@ -309,7 +336,7 @@ export default function ContributorStudio({
               <textarea
                 value={wContent}
                 onChange={(e) => setWContent(e.target.value)}
-                placeholder={"Write in Markdown…\n\n## Question / Objection\n\n## Short Answer\n\n## Main Answer"}
+                placeholder={t("contributor.contentPlaceholder")}
                 className="neo-input text-sm h-56 resize-y font-mono"
               />
               <div className="flex gap-2">
@@ -318,7 +345,7 @@ export default function ContributorStudio({
                   disabled={submitting}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06] disabled:opacity-50"
                 >
-                  Save draft
+                  {t("contributor.saveDraft")}
                 </button>
                 <button
                   onClick={() => submitArticle("submitted")}
@@ -326,7 +353,7 @@ export default function ContributorStudio({
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
-                  Submit for review
+                  {t("contributor.submitForReview")}
                 </button>
               </div>
             </div>
@@ -335,23 +362,23 @@ export default function ContributorStudio({
               {questions.length === 0 ? (
                 <div className="text-center py-8">
                   <HelpCircle size={24} className="mx-auto text-[#475569] mb-2" />
-                  <p className="text-xs text-[#94A3B8]">No open questions right now.</p>
+                  <p className="text-xs text-[#94A3B8]">{t("contributor.noQuestions")}</p>
                 </div>
               ) : (
                 questions.map((q) => (
                   <div key={q.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
                     <p className="text-xs font-bold text-white line-clamp-2 mb-1">{q.question.split("\n")[0]}</p>
                     <p className="text-[10px] text-[#64748B] mb-2">
-                      {q.status === "new" ? "New" : "In review"}
-                      {q.myProposal === "pending" && " · your answer is pending review"}
-                      {q.myProposal === "rejected" && " · your proposal was rejected — revise and resubmit"}
+                      {q.status === "new" ? t("contributor.qNew") : t("contributor.status.inReview")}
+                      {q.myProposal === "pending" && ` ${t("contributor.answerPending")}`}
+                      {q.myProposal === "rejected" && ` ${t("contributor.proposalRejected")}`}
                     </p>
                     {answerQuestionId === q.id ? (
                       <div className="space-y-2">
                         <textarea
                           value={answerText}
                           onChange={(e) => setAnswerText(e.target.value)}
-                          placeholder="Write your proposed answer (it becomes public only after an admin approves it)…"
+                          placeholder={t("contributor.answerPlaceholder")}
                           className="neo-input text-xs h-32 resize-y"
                         />
                         <div className="flex gap-2">
@@ -359,7 +386,7 @@ export default function ContributorStudio({
                             onClick={() => { setAnswerQuestionId(null); setAnswerText(""); }}
                             className="flex-1 py-2 rounded-lg text-xs font-semibold bg-white/[0.04] text-[#94A3B8] border border-white/[0.06]"
                           >
-                            Cancel
+                            {t("common.cancel")}
                           </button>
                           <button
                             onClick={submitAnswer}
@@ -367,7 +394,7 @@ export default function ContributorStudio({
                             className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-[#38BDF8] hover:bg-[#0EA5E9] disabled:opacity-60 flex items-center justify-center gap-1.5"
                           >
                             {submittingAnswer ? <Loader2 size={12} className="animate-spin" /> : <Send size={11} />}
-                            Submit for review
+                            {t("contributor.submitForReview")}
                           </button>
                         </div>
                       </div>
@@ -376,7 +403,7 @@ export default function ContributorStudio({
                         onClick={() => { setAnswerQuestionId(q.id); setAnswerText(""); }}
                         className="text-[10px] font-bold text-[#38BDF8] hover:bg-[#38BDF8]/10 rounded-lg px-2.5 py-1.5 transition-colors"
                       >
-                        {q.myProposal ? "Revise proposal →" : "Propose an answer →"}
+                        {q.myProposal ? t("contributor.reviseProposal") : t("contributor.proposeAnswer")}
                       </button>
                     )}
                   </div>

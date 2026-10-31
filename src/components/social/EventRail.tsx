@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, MapPin, Ticket } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type FeedEvent = {
   id: string;
@@ -42,6 +43,7 @@ const GRADIENTS = [
 ];
 
 export default function EventRail({ onOpenEvents }: Props) {
+  const t = useTranslation();
   const [events, setEvents] = useState<FeedEvent[]>([]);
 
   useEffect(() => {
@@ -60,10 +62,10 @@ export default function EventRail({ onOpenEvents }: Props) {
     <div className="mb-5">
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] inline-flex items-center gap-1.5">
-          <CalendarDays size={13} /> Upcoming Events
+          <CalendarDays size={13} /> {t("explore.upcomingEvents")}
         </h3>
         <button onClick={onOpenEvents} className="text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]">
-          See all
+          {t("common.seeAll")}
         </button>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1.5">
@@ -87,7 +89,7 @@ export default function EventRail({ onOpenEvents }: Props) {
                   <div className="text-[9px] font-bold uppercase text-white/80">{month}</div>
                 </div>
                 <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[9px] font-bold uppercase tracking-wide text-white/90">
-                  {ev.eventType === "online" ? "Online" : ev.eventType === "hybrid" ? "Hybrid" : ev.category}
+                  {ev.eventType === "online" ? t("home.events.online") : ev.eventType === "hybrid" ? t("rail.hybrid") : ev.category}
                 </span>
               </div>
               <div className="p-2.5">
@@ -101,7 +103,7 @@ export default function EventRail({ onOpenEvents }: Props) {
                     onClick={onOpenEvents}
                     className="flex-1 py-1.5 rounded-lg bg-[#7C3AED] text-white text-[11px] font-bold hover:bg-[#6D28D9] transition-colors"
                   >
-                    View Event
+                    {t("home.events.viewEvent")}
                   </button>
                   {ev.ticketUrl ? (
                     <a
@@ -110,7 +112,7 @@ export default function EventRail({ onOpenEvents }: Props) {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[11px] font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50 transition-colors"
                     >
-                      <Ticket size={11} /> Tickets
+                      <Ticket size={11} /> {t("rail.tickets")}
                     </a>
                   ) : null}
                 </div>
