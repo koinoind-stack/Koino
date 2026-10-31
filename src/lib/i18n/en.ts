@@ -1127,7 +1127,7 @@ export const en: Record<string, string> = {
   "comics.completed": "Completed",
   "comics.pctRead": "{pct}% read",
   "comics.new": "New",
-  "comics.panelMeta": "{n} panel(s) · ~{n} min read",
+  "comics.panelMeta": "{panels} panel(s) · ~{mins} min read",
   "comics.illustratedStory": "Illustrated story",
   "comics.readAgain": "Read Again",
   "comics.startReading": "Start Reading",

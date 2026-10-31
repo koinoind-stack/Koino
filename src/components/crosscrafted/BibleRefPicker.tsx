@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import { BookOpen, ChevronLeft, Plus, Search, X } from "lucide-react";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
 import { canonicalizeBibleRef } from "@/lib/bible-ref";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function BibleRefPicker({
   value,
@@ -27,6 +28,7 @@ export default function BibleRefPicker({
   onChange: (refs: string[]) => void;
   max?: number;
 }) {
+  const t = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
@@ -76,11 +78,11 @@ export default function BibleRefPicker({
       return;
     }
     if (value.includes(result.canonical)) {
-      setError(`"${result.canonical}" is already attached.`);
+      setError(t("bibleRef.alreadyAttached", { ref: result.canonical }));
       return;
     }
     if (value.length >= max) {
-      setError(`Maximum ${max} references.`);
+      setError(t("bibleRef.maxRefs", { n: max }));
       return;
     }
     onChange([...value, result.canonical]);
@@ -111,7 +113,7 @@ export default function BibleRefPicker({
                 type="button"
                 onClick={() => removeRef(ref)}
                 className="ml-0.5 text-[#38BDF8]/60 hover:text-white transition-colors"
-                aria-label={`Remove ${ref}`}
+                aria-label={t("bibleRef.removeRef", { ref })}
               >
                 <X size={11} />
               </button>
@@ -128,7 +130,7 @@ export default function BibleRefPicker({
           disabled={value.length >= max}
           className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#A78BFA] hover:text-white bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 border border-[#7C3AED]/25 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Plus size={12} /> Add Bible reference
+          <Plus size={12} /> {t("bibleRef.addBibleRef")}
         </button>
       ) : (
         <div className="bg-black/20 border border-white/[0.08] rounded-xl p-3 space-y-2">
@@ -141,7 +143,7 @@ export default function BibleRefPicker({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search a book… (e.g. John, Ps, 1 Cor)"
+                  placeholder={t("bibleRef.searchBooksPlaceholder")}
                   className="neo-input text-xs pl-7 py-1.5"
                   autoFocus
                 />
@@ -159,7 +161,7 @@ export default function BibleRefPicker({
                       setError(null);
                     }}
                     className="text-left text-[11px] px-2 py-1.5 rounded-lg bg-white/[0.03] hover:bg-[#7C3AED]/20 text-[#A09DB1] hover:text-white transition-colors truncate"
-                    title={`${b.name} (${b.chapters} chapter${b.chapters === 1 ? "" : "s"})`}
+                    title={t("bibleRef.bookChapterCountTitle", { name: b.name, n: b.chapters })}
                   >
                     <span className="font-bold">{b.name}</span>
                     <span className="text-[#64748B] ml-1">{b.abbr}</span>
@@ -167,7 +169,7 @@ export default function BibleRefPicker({
                 ))}
                 {filteredBooks.length === 0 && (
                   <p className="col-span-full text-[11px] text-[#64748B] py-2 text-center">
-                    No book matches “{search}”.
+                    {t("bibleRef.noBookMatch", { q: search })}
                   </p>
                 )}
               </div>
@@ -179,7 +181,7 @@ export default function BibleRefPicker({
                 }}
                 className="text-[10px] font-bold text-[#64748B] hover:text-white transition-colors"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </>
           ) : (
@@ -190,19 +192,19 @@ export default function BibleRefPicker({
                   type="button"
                   onClick={resetForm}
                   className="w-6 h-6 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-[#94A3B8] hover:text-white shrink-0"
-                  aria-label="Back to book list"
+                  aria-label={t("bibleRef.backToBooks")}
                 >
                   <ChevronLeft size={12} />
                 </button>
                 <span className="text-[11px] font-bold text-white">{selectedBook.name}</span>
                 <span className="text-[9px] text-[#64748B]">
-                  {selectedBook.chapters} chapter{selectedBook.chapters === 1 ? "" : "s"}
+                  {t("bibleRef.chapterCount", { n: selectedBook.chapters })}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
                   <label className="block text-[9px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
-                    Chapter {selectedBook.chapters > 1 && "*"}
+                    {t("bibleRef.chapter")} {selectedBook.chapters > 1 && "*"}
                   </label>
                   <input
                     type="number"
@@ -220,7 +222,7 @@ export default function BibleRefPicker({
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
-                    Verse (opt.)
+                    {t("bibleRef.verseOptional")}
                   </label>
                   <input
                     type="number"
@@ -237,7 +239,7 @@ export default function BibleRefPicker({
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
-                    to v. (opt.)
+                    {t("bibleRef.toVerseOptional")}
                   </label>
                   <input
                     type="number"
@@ -264,7 +266,7 @@ export default function BibleRefPicker({
                   className="inline-flex items-center gap-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
                   disabled={!chapter.trim()}
                 >
-                  <Plus size={11} /> Add reference
+                  <Plus size={11} /> {t("bibleRef.addRef")}
                 </button>
                 <button
                   type="button"
@@ -274,7 +276,7 @@ export default function BibleRefPicker({
                   }}
                   className="text-[10px] font-bold text-[#64748B] hover:text-white transition-colors"
                 >
-                  Done
+                  {t("common.done")}
                 </button>
               </div>
             </>

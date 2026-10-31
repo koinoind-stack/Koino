@@ -11,6 +11,7 @@ import ReelsOverlay from "./ReelsView";
 import FeedComposer from "./FeedComposer";
 import EventRail from "./EventRail";
 import VideoRail from "./VideoRail";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   onOpenProfile: (username: string) => void;
@@ -22,10 +23,11 @@ type Props = {
 
 const TABS = ["discover", "following", "trending"] as const;
 type FeedTab = (typeof TABS)[number];
-const TAB_LABELS: Record<FeedTab, string> = {
-  discover: "For You",
-  following: "Following",
-  trending: "Trending",
+// Tab display strings live in the i18n dictionaries — keys resolved via t() at render.
+const TAB_LABEL_KEYS: Record<FeedTab, string> = {
+  discover: "feed.tab.discover",
+  following: "feed.tab.following",
+  trending: "feed.tab.trending",
 };
 
 /**
@@ -33,6 +35,7 @@ const TAB_LABELS: Record<FeedTab, string> = {
  * suggestion rail on Discover, and overlays (detail / reels / stories).
  */
 export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpenEvents, deepLinkPostId }: Props) {
+  const t = useTranslation();
   const [tab, setTab] = useState<FeedTab>("discover");
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -126,17 +129,17 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
 
       {/* tabs */}
       <div className="flex gap-2 mb-4">
-        {TABS.map((t) => (
+        {TABS.map((tabId) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabId}
+            onClick={() => setTab(tabId)}
             className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              tab === t
+              tab === tabId
                 ? "bg-[#7C3AED] text-white shadow-[0_0_20px_rgba(124,58,237,0.35)]"
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
             }`}
           >
-            {TAB_LABELS[t]}
+            {t(TAB_LABEL_KEYS[tabId])}
           </button>
         ))}
       </div>
@@ -169,22 +172,22 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-sm text-[#94A3B8] mb-3">{error}</p>
-          <button onClick={() => load(tab)} className="text-xs font-bold text-[#7C3AED]">Try again</button>
+          <button onClick={() => load(tab)} className="text-xs font-bold text-[#7C3AED]">{t("common.retry")}</button>
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-14">
           <p className="text-[#94A3B8] text-sm mb-4">
             {tab === "following"
-              ? "Follow people to see their posts here."
+              ? t("feed.empty.following")
               : tab === "trending"
-                ? "Nothing trending yet — likes, comments and reposts decide what rises."
-                : "No posts yet. Be the first to share something!"}
+                ? t("feed.empty.trending")
+                : t("feed.empty.discover")}
           </p>
           <button
             onClick={onOpenCreate}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white text-sm font-bold"
           >
-            <Plus size={16} /> Create your first post
+            <Plus size={16} /> {t("feed.createFirst")}
           </button>
         </div>
       ) : (
@@ -204,7 +207,7 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
               show People to follow in the right discovery column */}
           {tab === "discover" && suggestions.length > 0 && (
             <div className="xl:hidden bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">People to follow</h3>
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">{t("feed.peopleToFollow")}</h3>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {suggestions.map((u) => (
                   <button

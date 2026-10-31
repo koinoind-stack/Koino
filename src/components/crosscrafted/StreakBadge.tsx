@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Flame, TrendingUp } from "lucide-react";
 import { getStreakInfo, STREAK_LABELS, type StreakActivity } from "@/lib/streaks";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   activity: StreakActivity;
@@ -14,6 +15,7 @@ type Props = {
  * and progress to next milestone. Reads from localStorage on render.
  */
 export default function StreakBadge({ activity, compact = false }: Props) {
+  const t = useTranslation();
   const info = getStreakInfo(activity);
   const labels = STREAK_LABELS[activity];
 
@@ -81,17 +83,17 @@ export default function StreakBadge({ activity, compact = false }: Props) {
               {info.currentStreak}
             </p>
             <p className="text-xs text-[#94A3B8]">
-              {info.currentStreak === 1 ? labels.singular : labels.plural} streak
+              {info.currentStreak === 1 ? labels.singular : labels.plural} {t("streak.suffix")}
             </p>
           </div>
 
           <div className="flex items-center gap-3 mt-0.5">
             <span className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
-              <TrendingUp size={10} /> Best: {info.bestStreak}
+              <TrendingUp size={10} /> {t("streak.best", { n: info.bestStreak })}
             </span>
             <span className="text-[10px] text-[#64748B]">·</span>
             <span className="text-[10px] text-[#94A3B8]">
-              {info.isActiveToday ? "✓ Done today" : "Not done today"}
+              {info.isActiveToday ? t("streak.doneToday") : t("streak.notDoneToday")}
             </span>
           </div>
 
@@ -99,7 +101,7 @@ export default function StreakBadge({ activity, compact = false }: Props) {
           {info.currentStreak > 0 && (
             <div className="mt-2">
               <div className="flex items-center justify-between text-[9px] mb-0.5">
-                <span className="text-[#94A3B8]">Next: {info.nextMilestone} days</span>
+                <span className="text-[#94A3B8]">{t("streak.nextMilestone", { n: info.nextMilestone })}</span>
                 <span className="font-bold text-[#EF4444]">{info.milestoneProgress}%</span>
               </div>
               <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
@@ -115,7 +117,7 @@ export default function StreakBadge({ activity, compact = false }: Props) {
 
           {info.currentStreak === 0 && (
             <p className="text-[10px] text-[#64748B] mt-1">
-              Start {labels.verb} today to begin a streak!
+              {t("streak.startToday", { verb: labels.verb })}
             </p>
           )}
         </div>
