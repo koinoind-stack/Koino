@@ -23,6 +23,7 @@ import {
   MATRIMONY_LIMITS,
 } from "@/lib/matrimony";
 import type { SerializedMatrimonyProfile } from "@/lib/matrimony/server";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export type EditorProfile = SerializedMatrimonyProfile;
 
@@ -42,6 +43,7 @@ export default function MatrimonyProfileEditor({
   account: AccountFacts;
   onSaved: (p: EditorProfile) => void;
 }) {
+  const t = useTranslation();
   const [languages, setLanguages] = useState<string[]>(profile.languages);
   const [intention, setIntention] = useState(profile.intention ?? "");
   const [timeline, setTimeline] = useState(profile.timeline ?? "");
@@ -66,11 +68,11 @@ export default function MatrimonyProfileEditor({
 
   const save = async () => {
     if (languages.length === 0) {
-      toast.error("Choose at least one language.");
+      toast.error(t("matrimony.editor.errorLanguages"));
       return;
     }
     if (!intention || !timeline) {
-      toast.error("Please choose your intention and timeline.");
+      toast.error(t("matrimony.editor.errorIntention"));
       return;
     }
     setSaving(true);
@@ -94,13 +96,13 @@ export default function MatrimonyProfileEditor({
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(j.error || "Could not save your profile.");
+        toast.error(j.error || t("matrimony.editor.saveFailed"));
         return;
       }
       onSaved(j.profile);
-      toast.success("Profile saved.");
+      toast.success(t("matrimony.editor.saved"));
     } catch {
-      toast.error("Network error. Please try again.");
+      toast.error(t("common.error.network"));
     } finally {
       setSaving(false);
     }
@@ -115,25 +117,24 @@ export default function MatrimonyProfileEditor({
       {/* Account-sourced facts (read-only) */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
-          <span className={labelCls}>Age</span>
+          <span className={labelCls}>{t("matrimony.editor.age")}</span>
           <span className="text-[13.5px] text-white font-bold">{account.age ?? "—"}</span>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
-          <span className={labelCls}>Gender</span>
+          <span className={labelCls}>{t("matrimony.editor.gender")}</span>
           <span className="text-[13.5px] text-white font-bold">
-            {account.gender === "male" ? "Man" : account.gender === "female" ? "Woman" : account.gender === "prefer_not_to_say" ? "Prefer not to say" : "—"}
+            {account.gender === "male" ? t("matrimony.gender.man") : account.gender === "female" ? t("matrimony.gender.woman") : account.gender === "prefer_not_to_say" ? t("matrimony.gender.preferNotToSay") : "—"}
           </span>
         </div>
       </div>
       <p className="mt-2 text-[11px] text-[#64748B]">
-        Taken from your Koino account. Your date of birth is never shown to
-        anyone — only your age.
+        {t("matrimony.editor.accountNote")}
       </p>
 
       {/* Languages */}
       <div className="mt-5">
         <span className={labelCls}>
-          Languages I speak <span className="text-[#F39B9B]">*</span>
+          {t("matrimony.editor.languages")} <span className="text-[#F39B9B]">*</span>
         </span>
         <div className="flex flex-wrap gap-1.5">
           {MATRIMONY_LANGUAGES.map((lang) => {
@@ -155,25 +156,25 @@ export default function MatrimonyProfileEditor({
           })}
         </div>
         <p className="mt-1.5 text-[11px] text-[#64748B]">
-          Pick up to {MATRIMONY_LIMITS.languagesMax}.
+          {t("matrimony.editor.languagesHint", { n: MATRIMONY_LIMITS.languagesMax })}
         </p>
       </div>
 
       {/* Intention + timeline */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={labelCls} htmlFor="m-intention">Marriage intention <span className="text-[#F39B9B]">*</span></label>
+          <label className={labelCls} htmlFor="m-intention">{t("matrimony.editor.intention")} <span className="text-[#F39B9B]">*</span></label>
           <select id="m-intention" value={intention} onChange={(e) => setIntention(e.target.value)} className={inputCls}>
-            <option value="">Choose…</option>
+            <option value="">{t("common.choose")}</option>
             {MATRIMONY_INTENTIONS.map((i) => (
               <option key={i.value} value={i.value}>{i.label}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-timeline">Preferred timeline <span className="text-[#F39B9B]">*</span></label>
+          <label className={labelCls} htmlFor="m-timeline">{t("matrimony.editor.timeline")} <span className="text-[#F39B9B]">*</span></label>
           <select id="m-timeline" value={timeline} onChange={(e) => setTimeline(e.target.value)} className={inputCls}>
-            <option value="">Choose…</option>
+            <option value="">{t("common.choose")}</option>
             {MATRIMONY_TIMELINES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
@@ -184,41 +185,41 @@ export default function MatrimonyProfileEditor({
       {/* Location (writes to account) */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls} htmlFor="m-state">State <span className="text-[#F39B9B]">*</span></label>
-          <input id="m-state" value={stateField} onChange={(e) => setStateField(e.target.value)} maxLength={100} className={inputCls} placeholder="Kerala" />
+          <label className={labelCls} htmlFor="m-state">{t("matrimony.editor.state")} <span className="text-[#F39B9B]">*</span></label>
+          <input id="m-state" value={stateField} onChange={(e) => setStateField(e.target.value)} maxLength={100} className={inputCls} placeholder={t("matrimony.editor.statePlaceholder")} />
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-city">City <span className="text-[#F39B9B]">*</span></label>
-          <input id="m-city" value={cityField} onChange={(e) => setCityField(e.target.value)} maxLength={100} className={inputCls} placeholder="Kochi" />
+          <label className={labelCls} htmlFor="m-city">{t("matrimony.editor.city")} <span className="text-[#F39B9B]">*</span></label>
+          <input id="m-city" value={cityField} onChange={(e) => setCityField(e.target.value)} maxLength={100} className={inputCls} placeholder={t("matrimony.editor.cityPlaceholder")} />
         </div>
       </div>
       <p className="mt-1.5 text-[11px] text-[#64748B]">
-        Saved to your Koino account so churches, events and Matrimony stay consistent.
+        {t("matrimony.editor.locationNote")}
       </p>
 
       {/* Optional fields */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={labelCls} htmlFor="m-denom">Denomination <span className="text-[#64748B] normal-case font-bold">(optional)</span></label>
-          <input id="m-denom" value={denomination} onChange={(e) => setDenomination(e.target.value)} maxLength={MATRIMONY_LIMITS.denominationMax} className={inputCls} placeholder="e.g. Pentecostal, Catholic…" />
+          <label className={labelCls} htmlFor="m-denom">{t("matrimony.editor.denomination")} <span className="text-[#64748B] normal-case font-bold">{t("common.optional")}</span></label>
+          <input id="m-denom" value={denomination} onChange={(e) => setDenomination(e.target.value)} maxLength={MATRIMONY_LIMITS.denominationMax} className={inputCls} placeholder={t("matrimony.editor.denominationPlaceholder")} />
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-edu">Education <span className="text-[#64748B] normal-case font-bold">(optional)</span></label>
-          <input id="m-edu" value={education} onChange={(e) => setEducation(e.target.value)} maxLength={MATRIMONY_LIMITS.educationMax} className={inputCls} placeholder="e.g. B.Tech" />
+          <label className={labelCls} htmlFor="m-edu">{t("matrimony.editor.education")} <span className="text-[#64748B] normal-case font-bold">{t("common.optional")}</span></label>
+          <input id="m-edu" value={education} onChange={(e) => setEducation(e.target.value)} maxLength={MATRIMONY_LIMITS.educationMax} className={inputCls} placeholder={t("matrimony.editor.educationPlaceholder")} />
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-prof">Profession <span className="text-[#64748B] normal-case font-bold">(optional)</span></label>
-          <input id="m-prof" value={profession} onChange={(e) => setProfession(e.target.value)} maxLength={MATRIMONY_LIMITS.professionMax} className={inputCls} placeholder="e.g. Teacher" />
+          <label className={labelCls} htmlFor="m-prof">{t("matrimony.editor.profession")} <span className="text-[#64748B] normal-case font-bold">{t("common.optional")}</span></label>
+          <input id="m-prof" value={profession} onChange={(e) => setProfession(e.target.value)} maxLength={MATRIMONY_LIMITS.professionMax} className={inputCls} placeholder={t("matrimony.editor.professionPlaceholder")} />
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-height">Height (cm) <span className="text-[#64748B] normal-case font-bold">(optional)</span></label>
-          <input id="m-height" type="number" min={MATRIMONY_LIMITS.heightMinCm} max={MATRIMONY_LIMITS.heightMaxCm} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={inputCls} placeholder="170" />
+          <label className={labelCls} htmlFor="m-height">{t("matrimony.editor.height")} <span className="text-[#64748B] normal-case font-bold">{t("common.optional")}</span></label>
+          <input id="m-height" type="number" min={MATRIMONY_LIMITS.heightMinCm} max={MATRIMONY_LIMITS.heightMaxCm} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={inputCls} placeholder={t("matrimony.editor.heightPlaceholder")} />
         </div>
       </div>
 
       {/* About me */}
       <div className="mt-4">
-        <label className={labelCls} htmlFor="m-about">About me <span className="text-[#64748B] normal-case font-bold">(optional)</span></label>
+        <label className={labelCls} htmlFor="m-about">{t("matrimony.editor.aboutMe")} <span className="text-[#64748B] normal-case font-bold">{t("common.optional")}</span></label>
         <textarea
           id="m-about"
           value={aboutMe}
@@ -226,7 +227,7 @@ export default function MatrimonyProfileEditor({
           rows={5}
           maxLength={MATRIMONY_LIMITS.aboutMeMax}
           className={`${inputCls} resize-y`}
-          placeholder="Your faith, personality, interests — what matters to you in life and marriage…"
+          placeholder={t("matrimony.editor.aboutMePlaceholder")}
         />
         <p className="mt-1 text-[11px] text-[#64748B] text-right">
           {aboutMe.length}/{MATRIMONY_LIMITS.aboutMeMax}
@@ -239,7 +240,7 @@ export default function MatrimonyProfileEditor({
         className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-[#F39B9B] to-[#EC4899] text-white text-sm font-black hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-        {profile.status === "draft" && !profile.id ? "Save as draft" : "Save changes"}
+        {profile.status === "draft" && !profile.id ? t("matrimony.editor.saveDraft") : t("matrimony.editor.saveChanges")}
       </button>
     </div>
   );

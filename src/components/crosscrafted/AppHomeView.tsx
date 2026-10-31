@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
-import { BRAND } from "@/lib/brand";
 
 type View =
   | "bible"
@@ -38,7 +37,7 @@ type FeatureCard = {
   icon: typeof BookOpen;
   color: string;
   title: string;
-  desc: string;
+  descKey: string;
   view: View;
   group: "FAITH" | "CONNECT" | "GROW" | "PLAY" | "DISCOVER";
 };
@@ -58,12 +57,14 @@ type BlogCardData = {
 
 // Single source of truth for the App Home feature grid.
 // Each card links to an existing feature — no fake functionality.
+// Descriptions are i18n keys (home.card.*.desc) resolved with t() at render
+// time — the array stays module-scope, never calling t() itself.
 const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: BookOpen,
     color: "#7C3AED",
     title: "Holy Bible",
-    desc: "Read Scripture and explore Bible resources.",
+    descKey: "home.card.bible.desc",
     view: "bible",
     group: "FAITH",
   },
@@ -71,7 +72,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Clapperboard,
     color: "#38BDF8",
     title: "Bible Movies & Videos",
-    desc: "Watch Bible movies, Christian films, sermons, and worship tied to Scripture.",
+    descKey: "home.card.videos.desc",
     view: "videos",
     group: "FAITH",
   },
@@ -79,7 +80,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Sparkles,
     color: "#EC4899",
     title: "Bible Comics",
-    desc: "Experience Bible stories through original visual storytelling.",
+    descKey: "home.card.comics.desc",
     view: "comic",
     group: "PLAY",
   },
@@ -87,7 +88,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Search,
     color: "#F39B9B",
     title: "Churches",
-    desc: "Discover Christian churches and congregations by location.",
+    descKey: "home.card.churches.desc",
     view: "churches",
     group: "CONNECT",
   },
@@ -95,7 +96,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Calendar,
     color: "#38BDF8",
     title: "Events",
-    desc: "Discover Christian events and gatherings near you.",
+    descKey: "home.card.events.desc",
     view: "events",
     group: "CONNECT",
   },
@@ -103,7 +104,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: HeartHandshake,
     color: "#F59E0B",
     title: "Prayer Wall",
-    desc: "Share prayer requests and pray for others.",
+    descKey: "home.card.prayer.desc",
     view: "prayer-wall",
     group: "CONNECT",
   },
@@ -111,7 +112,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Award,
     color: "#22C55E",
     title: "Bible Trivia",
-    desc: "Test your Bible knowledge and earn Faith Points.",
+    descKey: "home.card.trivia.desc",
     view: "trivia",
     group: "PLAY",
   },
@@ -119,7 +120,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Store,
     color: "#9786E3",
     title: "Marketplace",
-    desc: "Discover Christian products and connect with sellers.",
+    descKey: "home.card.marketplace.desc",
     view: "shop",
     group: "DISCOVER",
   },
@@ -127,7 +128,7 @@ const FEATURE_CARDS: FeatureCard[] = [
     icon: Building2,
     color: "#0EA5E9",
     title: "Business Directory",
-    desc: "Discover Christian businesses, services and professionals.",
+    descKey: "home.card.business.desc",
     view: "business-directory",
     group: "DISCOVER",
   },
@@ -186,8 +187,8 @@ export default function AppHomeView({ onNavigate }: Props) {
     : null;
 
   const greeting = displayName
-    ? `Welcome, ${String(displayName).split(" ")[0]}`
-    : `Welcome to ${BRAND.name}`;
+    ? t("home.greeting.user", { name: String(displayName).split(" ")[0] })
+    : t("home.greeting.anon");
 
   return (
     <div className="max-w-[680px] mx-auto px-4 py-5 pb-28 md:pb-5">
@@ -205,10 +206,10 @@ export default function AppHomeView({ onNavigate }: Props) {
           {greeting}
         </h1>
         <p className="text-sm text-[#A09DB1]">
-          Faith. Fellowship. Belong.
+          {t("brand.tagline")}
         </p>
         <p className="text-[11px] text-[#726E88] mt-2 max-w-md mx-auto">
-          Choose where you'd like to go. Everything in Koino is one tap away.
+          {t("home.subtitle")}
         </p>
       </motion.div>
 
@@ -224,7 +225,7 @@ export default function AppHomeView({ onNavigate }: Props) {
                   className="text-[10px] font-black uppercase tracking-[0.25em]"
                   style={{ color: group.color }}
                 >
-                  {group.label}
+                  {t(`home.group.${group.label.toLowerCase()}`)}
                 </span>
                 <div
                   className="flex-1 h-px"
@@ -253,14 +254,14 @@ export default function AppHomeView({ onNavigate }: Props) {
                         {f.title}
                       </h3>
                       <p className="text-[10px] text-[#A09DB1] leading-relaxed mt-0.5 line-clamp-2">
-                        {f.desc}
+                        {t(f.descKey)}
                       </p>
                     </div>
                     <div
                       className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider"
                       style={{ color: f.color }}
                     >
-                      Open <ArrowRight size={9} />
+                      {t("home.card.open")} <ArrowRight size={9} />
                     </div>
                   </motion.button>
                 ))}
@@ -279,12 +280,12 @@ export default function AppHomeView({ onNavigate }: Props) {
         <section className="mt-6">
           <div className="flex items-center gap-2 mb-2.5 px-1">
             <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#F39B9B]">
-              LATEST FROM KOINO
+              {t("home.latestFromKoino")}
             </span>
             <div className="flex-1 h-px bg-gradient-to-r from-[#F39B9B]/20 to-transparent" />
           </div>
           <p className="text-[11px] text-[#A09DB1] mb-3 px-1">
-            Christian articles, teachings, and stories to help you grow in faith.
+            {t("home.latestSubtitle")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {blogPosts.map((post) => (

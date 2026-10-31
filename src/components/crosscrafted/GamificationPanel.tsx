@@ -16,6 +16,7 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type DailyChallenge = {
   id: string;
@@ -52,6 +53,7 @@ type Badge = {
 };
 
 export default function GamificationPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const t = useTranslation();
   const [activeTab, setActiveTab] = useState<"daily" | "spin" | "badges">("daily");
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -128,9 +130,9 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
 
       setChallengeResult(data);
       if (data.isCorrect) {
-        toast.success(`🎉 Daily Challenge! +${data.pointsAwarded} FP (2x bonus!)`);
+        toast.success(t("gamification.challengeSuccess", { n: data.pointsAwarded }));
       } else {
-        toast("Wrong answer — but come back tomorrow for another chance!");
+        toast(t("gamification.challengeWrong"));
       }
 
       // Check for new badges
@@ -138,7 +140,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
       const badgeData = await badgeRes.json();
       if (badgeData.newlyAwarded?.length > 0) {
         badgeData.newlyAwarded.forEach((b: any) => {
-          toast.success(`${b.icon} Badge Unlocked: ${b.name}!`, { description: b.description });
+          toast.success(`${b.icon} ${t("gamification.badgeUnlocked", { name: b.name })}`, { description: b.description });
         });
         fetchBadges();
       }
@@ -164,11 +166,11 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
         setSpinning(false);
 
         if (data.reward.type.startsWith("fp_")) {
-          toast.success(`🎰 ${data.reward.icon} You won ${data.reward.label}!`, {
-            description: `New total: ${data.newTotalPoints} FP`,
+          toast.success(t("gamification.spinWon", { icon: data.reward.icon, label: data.reward.label }), {
+            description: t("gamification.spinWonDesc", { n: data.newTotalPoints }),
           });
         } else {
-          toast.success(`🎰 ${data.reward.icon} You won ${data.reward.label}!`);
+          toast.success(t("gamification.spinWon", { icon: data.reward.icon, label: data.reward.label }));
         }
 
         // Check badges
@@ -177,7 +179,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
           .then((bd) => {
             if (bd.newlyAwarded?.length > 0) {
               bd.newlyAwarded.forEach((b: any) => {
-                toast.success(`${b.icon} Badge Unlocked: ${b.name}!`);
+                toast.success(`${b.icon} ${t("gamification.badgeUnlocked", { name: b.name })}`);
               });
               fetchBadges();
             }
@@ -193,12 +195,12 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
     return (
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
         <Sparkles size={28} className="mx-auto text-[#A78BFA] mb-2" />
-        <p className="text-sm font-bold text-white">Sign in for Daily Rewards</p>
+        <p className="text-sm font-bold text-white">{t("gamification.signInTitle")}</p>
         <p className="text-[11px] text-[#94A3B8] mt-1">
-          Daily Challenge, Treasure Chest, and Badges await!
+          {t("gamification.signInDesc")}
         </p>
         <a href="/auth/signin" className="inline-block mt-3 px-5 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">
-          Sign In
+          {t("rewards.signInButton")}
         </a>
       </div>
     );
@@ -222,7 +224,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
             activeTab === "daily" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <Calendar size={12} /> Daily
+          <Calendar size={12} /> {t("gamification.tab.daily")}
         </button>
         <button
           onClick={() => setActiveTab("spin")}
@@ -230,7 +232,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
             activeTab === "spin" ? "bg-[#F59E0B] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <Gift size={12} /> Spin
+          <Gift size={12} /> {t("gamification.tab.spin")}
         </button>
         <button
           onClick={() => setActiveTab("badges")}
@@ -238,7 +240,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
             activeTab === "badges" ? "bg-[#22C55E] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <Award size={12} /> Badges
+          <Award size={12} /> {t("gamification.tab.badges")}
         </button>
       </div>
 
@@ -253,11 +255,11 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-[#A78BFA]" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
-                Daily Challenge
+                {t("gamification.daily.title")}
               </p>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold">
-              2x FP!
+              {t("gamification.daily.badge")}
             </span>
           </div>
 
@@ -268,17 +270,17 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
                 <>
                   <p className="text-2xl mb-1">🎉</p>
                   <p className="text-sm font-bold text-[#22C55E]">
-                    Correct! +{challenge.userAttempt.pointsAwarded} FP earned!
+                    {t("gamification.daily.correct", { n: challenge.userAttempt.pointsAwarded })}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-2xl mb-1">💪</p>
-                  <p className="text-sm font-bold text-[#94A3B8]">Not quite! Come back tomorrow.</p>
+                  <p className="text-sm font-bold text-[#94A3B8]">{t("gamification.daily.notQuite")}</p>
                 </>
               )}
               <p className="text-[10px] text-[#64748B] mt-2">
-                Next challenge in {hoursUntilTomorrow()}h
+                {t("gamification.daily.nextIn", { n: hoursUntilTomorrow() })}
               </p>
             </div>
           ) : challengeResult ? (
@@ -293,12 +295,12 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
               </motion.div>
               <p className={`text-sm font-bold ${challengeResult.isCorrect ? "text-[#22C55E]" : "text-[#94A3B8]"}`}>
                 {challengeResult.isCorrect
-                  ? `Correct! +${challengeResult.pointsAwarded} FP!`
-                  : "Wrong answer!"}
+                  ? t("gamification.daily.correctResult", { n: challengeResult.pointsAwarded })
+                  : t("gamification.daily.wrong")}
               </p>
               <div className="bg-white/[0.04] rounded-xl p-3 mt-3 text-left">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  Answer: {String.fromCharCode(65 + challengeResult.correctAnswer)}
+                  {t("gamification.daily.answerLabel", { letter: String.fromCharCode(65 + challengeResult.correctAnswer) })}
                 </p>
                 <p className="text-[11px] text-[#A09DB1]">{challengeResult.explanation}</p>
                 {challengeResult.scriptureReference && (
@@ -339,7 +341,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
                   disabled={submitting}
                   className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {submitting ? "Submitting..." : "Submit Answer"}
+                  {submitting ? t("gamification.submitting") : t("triviaView.playing.submit")}
                   <ArrowRight size={14} />
                 </button>
               )}
@@ -358,7 +360,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
           <div className="flex items-center gap-2 mb-3">
             <Gift size={16} className="text-[#F59E0B]" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">
-              Daily Treasure Chest
+              {t("gamification.spin.title")}
             </p>
           </div>
 
@@ -377,7 +379,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
                 {spinResult.label}
               </p>
               <p className="text-[10px] text-[#64748B] mt-2">
-                Come back tomorrow for another spin!
+                {t("gamification.spin.backTomorrow")}
               </p>
             </div>
           ) : (
@@ -391,14 +393,14 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
                 🎰
               </motion.div>
               <p className="text-sm font-bold text-white mb-3">
-                {spinning ? "Spinning..." : "Spin the wheel for a free reward!"}
+                {spinning ? t("gamification.spin.spinning") : t("gamification.spin.prompt")}
               </p>
               <button
                 onClick={doSpin}
                 disabled={spinning}
                 className="px-6 py-2.5 rounded-xl bg-[#F59E0B] hover:bg-[#E59E0B] text-slate-950 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
               >
-                {spinning ? "Spinning..." : "Spin Now!"}
+                {spinning ? t("gamification.spin.spinning") : t("gamification.spin.cta")}
               </button>
             </div>
           )}
@@ -406,7 +408,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
           {/* Rewards table */}
           <div className="mt-3 pt-3 border-t border-white/[0.06]">
             <p className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">
-              Possible Rewards
+              {t("gamification.spin.possibleRewards")}
             </p>
             <div className="grid grid-cols-4 gap-1">
               {rewards.map((r) => (
@@ -437,11 +439,11 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
             <div className="flex items-center gap-2">
               <Award size={16} className="text-[#22C55E]" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E]">
-                Achievements
+                {t("gamification.badges.title")}
               </p>
             </div>
             <span className="text-[10px] text-[#94A3B8]">
-              {badges.filter((b) => b.unlocked).length}/{badges.length} unlocked
+              {t("gamification.badges.progress", { n: badges.filter((b) => b.unlocked).length, m: badges.length })}
             </span>
           </div>
 
@@ -471,11 +473,11 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
           <button
             onClick={() => {
               fetchBadges();
-              toast("Refreshing badges...");
+              toast(t("gamification.badges.refreshToast"));
             }}
             className="w-full mt-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all flex items-center justify-center gap-1.5"
           >
-            <RefreshCw size={11} /> Check for New Badges
+            <RefreshCw size={11} /> {t("gamification.badges.checkNew")}
           </button>
         </motion.div>
       )}

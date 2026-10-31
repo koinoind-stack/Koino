@@ -61,6 +61,18 @@ function mapApiToProduct(c: ApiProduct): Product {
 // the filter pills, and the admin product form all share the same list.
 const CATEGORIES = ["All", ...MARKETPLACE_CATEGORIES];
 
+// i18n: category id → translation key. The raw value is what the DB stores
+// and what the category filter sends — only the display label is translated.
+// Categories without a key fall back to their raw data label at render time.
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  All: "marketplace.category.all",
+  Bibles: "marketplace.category.bibles",
+  Books: "marketplace.category.books",
+  Apparel: "marketplace.category.apparel",
+  Gifts: "marketplace.category.gifts",
+  Music: "marketplace.category.music",
+};
+
 const StarRating = ({ rating, size = 11 }: { rating: number; size?: number }) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((n) => (
@@ -140,7 +152,7 @@ export default function ShopView() {
       }
       setNextCursor(data.nextCursor || null);
     } catch {
-      toast.error("Could not load the marketplace");
+      toast.error(t("shop.error.load"));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -189,15 +201,15 @@ export default function ShopView() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast.error("Please sign in to list an item", { description: "Use the Sign in button at the top of the page." });
+      toast.error(t("shop.error.signInRequired"), { description: t("shop.error.signInDesc") });
       return;
     }
     if (!formData.name || !formData.price || !formData.whatsapp_number) {
-      toast.error("Please fill in name, price, and WhatsApp number");
+      toast.error(t("shop.form.errorRequired"));
       return;
     }
     if (formData.description.trim().length < 10) {
-      toast.error("Please write a short description (at least 10 characters)");
+      toast.error(t("shop.form.errorDesc"));
       return;
     }
     setSubmitting(true);
@@ -219,15 +231,15 @@ export default function ShopView() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not submit the listing");
+      if (!res.ok) throw new Error(data.error || t("shop.form.errorSubmit"));
       setFormData({
         name: "", description: "", price: "", mrp: "", category: "Bibles",
         vendor: "", city: "", state: "", buyUrl: "", images: [],
         whatsapp_number: "", variations: [], attributes: [],
       });
       setShowCreateModal(false);
-      toast.success("Submitted for review!", {
-        description: "A Koino admin will check your listing before it appears publicly. Track it any time from this page after approval.",
+      toast.success(t("shop.form.success"), {
+        description: t("shop.form.successDesc"),
       });
     } catch (err) {
       toast.error((err as Error).message);
@@ -244,10 +256,10 @@ export default function ShopView() {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        toast("Removed from wishlist");
+        toast(t("shop.toast.wishlistRemoved"));
       } else {
         next.add(id);
-        toast.success("Added to wishlist!");
+        toast.success(t("shop.toast.wishlistAdded"));
       }
       return next;
     });
@@ -259,8 +271,8 @@ export default function ShopView() {
       next.add(p.id);
       return next;
     });
-    toast.success(`Added "${p.name}" to cart!`, {
-      description: "Contact vendor on WhatsApp to checkout.",
+    toast.success(t("shop.toast.addedToCart", { name: p.name }), {
+      description: t("shop.toast.addedToCartDesc"),
     });
   };
 
@@ -275,7 +287,7 @@ export default function ShopView() {
           {cart.size > 0 && (
             <button className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E]">
               <ShoppingCart size={14} />
-              Cart
+              {t("marketplace.cart")}
               <span className="w-4 h-4 rounded-full bg-[#22C55E] text-slate-950 text-[9px] flex items-center justify-center font-bold">
                 {cart.size}
               </span>
@@ -312,7 +324,7 @@ export default function ShopView() {
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
-            {cat}
+            {CATEGORY_LABEL_KEYS[cat] ? t(CATEGORY_LABEL_KEYS[cat]) : cat}
           </button>
         ))}
       </div>
@@ -328,7 +340,7 @@ export default function ShopView() {
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <StoreIcon size={12} /> All
+            <StoreIcon size={12} /> {t("common.all")}
           </button>
           <button
             onClick={() => setFilterSellerType("believ")}
@@ -338,7 +350,7 @@ export default function ShopView() {
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <BadgeCheck size={12} /> Koino Store
+            <BadgeCheck size={12} /> {t("shop.koinoStoreBadge")}
           </button>
           <button
             onClick={() => setFilterSellerType("marketplace")}
@@ -348,7 +360,7 @@ export default function ShopView() {
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
-            <StoreIcon size={12} /> Marketplace
+            <StoreIcon size={12} /> {t("marketplace.title")}
           </button>
         </div>
 
@@ -361,7 +373,7 @@ export default function ShopView() {
             }}
             className="neo-input text-xs py-2"
           >
-            <option value="">All States</option>
+            <option value="">{t("common.allStates")}</option>
             {INDIAN_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -372,7 +384,7 @@ export default function ShopView() {
             disabled={!filterState}
             className="neo-input text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <option value="">{filterState ? "All Cities" : "Select state first"}</option>
+            <option value="">{filterState ? t("common.allCities") : t("common.selectStateFirst")}</option>
             {filterState && getCitiesForState(filterState).map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -420,7 +432,7 @@ export default function ShopView() {
                 >
                   <ImageOff size={20} className="text-white/60" />
                   <p className="text-[9px] font-bold uppercase tracking-wider text-white/60">Koino</p>
-                  <p className="text-[8px] text-white/40 leading-tight">Product image unavailable</p>
+                  <p className="text-[8px] text-white/40 leading-tight">{t("shop.imageUnavailable")}</p>
                 </div>
                 {/* Seller type badge — official Koino Store vs Marketplace */}
                 {product.sellerType === "believ" ? (
@@ -429,12 +441,12 @@ export default function ShopView() {
                   </span>
                 ) : (
                   <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-[#38BDF8]/20 backdrop-blur-sm text-[#38BDF8] text-[8px] font-bold uppercase tracking-wider border border-[#38BDF8]/30">
-                    Marketplace
+                    {t("marketplace.title")}
                   </span>
                 )}
                 {discount > 0 && (
                   <span className="absolute top-2 right-9 px-1.5 py-0.5 rounded-md bg-[#EF4444] text-white text-[8px] font-bold uppercase tracking-wider">
-                    -{discount}%
+                    {t("common.discount", { percent: discount })}
                   </span>
                 )}
                 <button
@@ -453,7 +465,7 @@ export default function ShopView() {
                 {!product.in_stock && (
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
                     <span className="px-3 py-1 rounded-full bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider">
-                      Out of Stock
+                      {t("marketplace.outOfStock")}
                     </span>
                   </div>
                 )}
@@ -461,7 +473,7 @@ export default function ShopView() {
 
               <div className="p-3">
                 <p className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8] mb-0.5">
-                  {product.category}
+                  {CATEGORY_LABEL_KEYS[product.category] ? t(CATEGORY_LABEL_KEYS[product.category]) : product.category}
                 </p>
                 <h3 className="text-xs font-bold text-white mb-1 line-clamp-2 leading-tight min-h-[2rem]">
                   {product.name}
@@ -478,7 +490,9 @@ export default function ShopView() {
                       className="ml-auto px-1 py-0.5 rounded bg-[#9786E3]/15 text-[#9786E3] text-[8px] font-bold uppercase tracking-wider"
                       title={product.variations.map((v) => v.name).join(", ")}
                     >
-                      {product.variations.length} option{product.variations.length > 1 ? "s" : ""}
+                      {product.variations.length === 1
+                        ? t("marketplace.optionBadgeSingular", { count: product.variations.length })
+                        : t("marketplace.optionBadge", { count: product.variations.length })}
                     </span>
                   )}
                 </div>
@@ -506,7 +520,7 @@ export default function ShopView() {
             disabled={loadingMore}
             className="px-5 py-2.5 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white disabled:opacity-50"
           >
-            {loadingMore ? "Loading..." : "Show more listings"}
+            {loadingMore ? t("common.loading") : t("biz.showMore")}
           </button>
         </div>
       )}
@@ -564,7 +578,7 @@ export default function ShopView() {
                     >
                       <ImageOff size={28} className="text-white/60" />
                       <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Koino</p>
-                      <p className="text-[9px] text-white/40 leading-tight">Product image unavailable</p>
+                      <p className="text-[9px] text-white/40 leading-tight">{t("shop.imageUnavailable")}</p>
                     </div>
                   );
                 })()}
@@ -583,7 +597,7 @@ export default function ShopView() {
                 )}
                 {!openProduct.in_stock && (
                   <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-[#EF4444]/90 text-white text-[10px] font-bold uppercase tracking-wider">
-                    Out of Stock
+                    {t("marketplace.outOfStock")}
                   </div>
                 )}
               </div>
@@ -610,7 +624,7 @@ export default function ShopView() {
               <div className="p-5 space-y-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    {openProduct.category}
+                    {CATEGORY_LABEL_KEYS[openProduct.category] ? t(CATEGORY_LABEL_KEYS[openProduct.category]) : openProduct.category}
                   </p>
                   <h2 className="text-xl font-extrabold text-white leading-tight mb-2">
                     {openProduct.name}
@@ -618,7 +632,7 @@ export default function ShopView() {
                   <div className="flex items-center gap-2">
                     <StarRating rating={openProduct.rating} size={13} />
                     <span className="text-xs text-[#94A3B8]">
-                      {openProduct.rating} · {openProduct.reviews} reviews
+                      {t("shop.ratingLine", { rating: openProduct.rating, count: openProduct.reviews })}
                     </span>
                   </div>
                 </div>
@@ -629,14 +643,14 @@ export default function ShopView() {
                     <>
                       <span className="text-sm text-[#94A3B8] line-through">₹{openProduct.mrp}</span>
                       <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold">
-                        Save ₹{openProduct.mrp - openProduct.price}
+                        {t("common.saveAmount", { amount: (openProduct.mrp - openProduct.price).toLocaleString("en-IN") })}
                       </span>
                     </>
                   )}
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Description</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("marketplace.listModal.description")}</p>
                   <p className="text-sm text-[#A09DB1] leading-relaxed">{openProduct.description}</p>
                 </div>
 
@@ -680,7 +694,7 @@ export default function ShopView() {
                 {openProduct.attributes && openProduct.attributes.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                      <Palette size={10} /> Specifications
+                      <Palette size={10} /> {t("marketplace.specifications")}
                     </p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {openProduct.attributes.map((attr, aIdx) => (
@@ -704,14 +718,14 @@ export default function ShopView() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Seller</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{t("shop.sellerLabel")}</p>
                       {openProduct.sellerType === "believ" ? (
                         <span className="px-1.5 py-0.5 rounded bg-[#9786E3]/15 text-[#9786E3] text-[8px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                          <BadgeCheck size={8} /> Koino Store
+                          <BadgeCheck size={8} /> {t("shop.koinoStoreBadge")}
                         </span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded bg-[#38BDF8]/15 text-[#38BDF8] text-[8px] font-bold uppercase tracking-wider">
-                          Marketplace
+                          {t("marketplace.title")}
                         </span>
                       )}
                     </div>
@@ -737,11 +751,11 @@ export default function ShopView() {
                     <a
                       href={`https://wa.me/${openProduct.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
                         (() => {
-                          const base = `Hi, I found your product "${openProduct.name}" on Koino and I'd like more information. Is it available?`;
+                          const base = t("shop.whatsappPrefill", { name: openProduct.name });
                           const sel = Object.entries(selectedVariations);
                           if (sel.length === 0) return base;
                           const specs = sel.map(([n, v]) => `${n}: ${v}`).join(", ");
-                          return `${base}\n\nMy preferred variation: ${specs}`;
+                          return `${base}\n\n${t("shop.whatsappVariation", { specs })}`;
                         })()
                       )}`}
                       target="_blank"
@@ -755,15 +769,15 @@ export default function ShopView() {
                     <button
                       onClick={() =>
                         setShareReq({
-                          heading: `Share "${openProduct.name}"`,
-                          shareText: `${openProduct.name} — ₹${openProduct.price.toLocaleString("en-IN")} on Koino Marketplace`,
+                          heading: t("shop.shareHeading", { name: openProduct.name }),
+                          shareText: t("shop.shareText", { name: openProduct.name, price: openProduct.price.toLocaleString("en-IN") }),
                           shareUrl: shareLinks.shop(),
                           cardUrl: `/api/share-card?type=product&id=${encodeURIComponent(openProduct.id)}`,
                           formats: ["square"],
                           fileName: `koino-product-${openProduct.id}.png`,
                         })
                       }
-                      title="Share this listing"
+                      title={t("shop.shareTitle")}
                       className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white flex items-center justify-center transition-all"
                     >
                       <Share2 size={18} />
@@ -778,7 +792,7 @@ export default function ShopView() {
                       className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2 ${openProduct.in_stock ? "hover:-translate-y-px" : "opacity-40 cursor-not-allowed pointer-events-none"}`}
                       style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
                     >
-                      <ShoppingCart size={16} /> Buy Now
+                      <ShoppingCart size={16} /> {t("shop.buyNow")}
                       <ExternalLink size={12} className="opacity-80" />
                     </a>
                   ) : (
@@ -799,8 +813,7 @@ export default function ShopView() {
                 {/* Helper text — Koino does NOT process payments for marketplace products */}
                 {openProduct.sellerType === "marketplace" && openProduct.buyUrl && (
                   <p className="text-[10px] text-[#64748B] text-center leading-relaxed pt-1">
-                    Payment, shipping, and refunds are handled by the seller.
-                    Koino does not process payments.
+                    {t("shop.paymentNote")}
                   </p>
                 )}
               </div>
@@ -828,7 +841,7 @@ export default function ShopView() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold bg-gradient-to-r from-[#9786E3] to-[#38BDF8] bg-clip-text text-transparent">
-                  List an Item
+                  {t("marketplace.listModal.title")}
                 </h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-[#64748B] hover:text-white p-1">
                   <X size={20} />
@@ -837,41 +850,41 @@ export default function ShopView() {
               <div className="bg-[#25D366]/8 border border-[#25D366]/25 rounded-xl p-3 mb-4 flex items-start gap-2">
                 <WhatsAppIcon size={16} />
                 <div>
-                  <p className="text-[11px] font-bold text-[#25D366]">No payment gateway needed</p>
+                  <p className="text-[11px] font-bold text-[#25D366]">{t("marketplace.listModal.noPaymentNeeded")}</p>
                   <p className="text-[10px] text-[#A09DB1] leading-relaxed mt-0.5">
-                    Buyers will contact you directly on WhatsApp. You arrange payment &amp; delivery with them.
+                    {t("marketplace.listModal.noPaymentDesc")}
                   </p>
                 </div>
               </div>
               <form onSubmit={handleCreateProduct} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Product Name *
+                    {t("marketplace.listModal.name")}
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="neo-input text-sm"
-                    placeholder="e.g. ESV Study Bible"
+                    placeholder={t("marketplace.listModal.namePlaceholder")}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Description
+                    {t("marketplace.listModal.description")}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="neo-input h-20 resize-none text-sm"
-                    placeholder="Condition, features, what's included..."
+                    placeholder={t("marketplace.listModal.descriptionPlaceholder")}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      <IndianRupee size={10} className="inline mr-0.5" /> Selling Price *
+                      <IndianRupee size={10} className="inline mr-0.5" /> {t("marketplace.listModal.price")}
                     </label>
                     <input
                       type="number"
@@ -884,7 +897,7 @@ export default function ShopView() {
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      <IndianRupee size={10} className="inline mr-0.5" /> MRP (optional)
+                      <IndianRupee size={10} className="inline mr-0.5" /> {t("marketplace.listModal.mrp")}
                     </label>
                     <input
                       type="number"
@@ -898,7 +911,7 @@ export default function ShopView() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      Category
+                      {t("marketplace.listModal.category")}
                     </label>
                     <select
                       value={formData.category}
@@ -906,20 +919,20 @@ export default function ShopView() {
                       className="neo-input text-sm"
                     >
                       {CATEGORIES.filter((c) => c !== "All").map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>{CATEGORY_LABEL_KEYS[c] ? t(CATEGORY_LABEL_KEYS[c]) : c}</option>
                       ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      State
+                      {t("marketplace.listModal.state")}
                     </label>
                     <select
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value, city: "" })}
                       className="neo-input text-sm"
                     >
-                      <option value="">Select state</option>
+                      <option value="">{t("common.selectState")}</option>
                       {INDIAN_STATES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
@@ -929,7 +942,7 @@ export default function ShopView() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      City
+                      {t("marketplace.listModal.city")}
                     </label>
                     <select
                       value={formData.city}
@@ -937,7 +950,7 @@ export default function ShopView() {
                       disabled={!formData.state}
                       className="neo-input text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="">{formData.state ? "Select city" : "Select state first"}</option>
+                      <option value="">{formData.state ? t("common.selectCity") : t("common.selectStateFirst")}</option>
                       {formData.state && getCitiesForState(formData.state).map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
@@ -945,7 +958,7 @@ export default function ShopView() {
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                      Vendor / Your Name
+                      {t("marketplace.listModal.vendor")}
                     </label>
                     <input
                       type="text"
@@ -960,28 +973,28 @@ export default function ShopView() {
                   images={formData.images}
                   onChange={(images) => setFormData({ ...formData, images })}
                   max={5}
-                  label="Product Photos"
+                  label={t("marketplace.listModal.photos")}
                 />
 
                 <p className="text-[10px] text-[#475569] px-1 py-2 italic">
-                  Tip: mention sizes, colours or specs in the description — Koino admins can help feature your listing.
+                  {t("shop.form.tip")}
                 </p>
 
 
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    <Phone size={10} className="inline mr-0.5" /> WhatsApp Number *
+                    <Phone size={10} className="inline mr-0.5" /> {t("marketplace.listModal.whatsapp")}
                   </label>
                   <input
                     type="tel"
                     value={formData.whatsapp_number}
                     onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
                     className="neo-input text-sm"
-                    placeholder="+91 98765 43210"
+                    placeholder={t("common.whatsappPlaceholder")}
                     required
                   />
                   <p className="text-[10px] text-[#64748B] mt-1">
-                    Buyers will see a "Contact Seller" button that opens WhatsApp with this number.
+                    {t("marketplace.listModal.whatsappHint")}
                   </p>
                 </div>
 
@@ -989,17 +1002,17 @@ export default function ShopView() {
                     Sellers can link to their own checkout/website. */}
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    <ExternalLink size={10} className="inline mr-0.5" /> External Buy Link (optional)
+                    <ExternalLink size={10} className="inline mr-0.5" /> {t("shop.form.buyLinkLabel")}
                   </label>
                   <input
                     type="url"
                     value={formData.buyUrl}
                     onChange={(e) => setFormData({ ...formData, buyUrl: e.target.value })}
                     className="neo-input text-sm"
-                    placeholder="https://yourstore.com/product/..."
+                    placeholder={t("shop.form.buyLinkPlaceholder")}
                   />
                   <p className="text-[10px] text-[#64748B] mt-1">
-                    Optional. Add your website, store, or checkout link. If provided, buyers see a "Buy Now" button that opens this link. Koino does not process payments — payment, shipping, and refunds are handled by you.
+                    {t("shop.form.buyLinkHint")}
                   </p>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -1008,7 +1021,7 @@ export default function ShopView() {
                     onClick={() => setShowCreateModal(false)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                   >
-                    Cancel
+                    {t("marketplace.listModal.cancel")}
                   </button>
                   <button
                     type="submit"
@@ -1016,7 +1029,7 @@ export default function ShopView() {
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                     style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
                   >
-                    {submitting ? "Submitting..." : "List Item"}
+                    {submitting ? t("common.submitting") : t("marketplace.listModal.submit")}
                   </button>
                 </div>
               </form>

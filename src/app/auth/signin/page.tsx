@@ -57,11 +57,11 @@ function SignInForm() {
     setInfo(null);
 
     if (!email.trim() || !password) {
-      setError("Please enter your email and password.");
+      setError(t("signin.error.invalid"));
       return;
     }
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("signin.error.shortPassword"));
       return;
     }
 
@@ -86,9 +86,7 @@ function SignInForm() {
 
         // Check if email confirmation is required
         if (data.user && data.session === null) {
-          setInfo(
-            "Check your inbox — we sent you a confirmation link. Click it to verify your email, then sign in."
-          );
+          setInfo(t("signin.info.confirmEmail"));
           setMode("signin");
         } else if (data.session) {
           // Signed in immediately (email confirmation disabled in Supabase)
@@ -110,7 +108,7 @@ function SignInForm() {
         }
       }
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(err.message || t("signin.error.default"));
     } finally {
       setLoading(false);
     }
@@ -183,7 +181,7 @@ function SignInForm() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="neo-input text-sm"
-                  placeholder="Your name"
+                  placeholder={t("signin.namePlaceholder")}
                 />
               </div>
             )}
@@ -209,7 +207,7 @@ function SignInForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="neo-input text-sm"
-                placeholder={mode === "signup" ? "At least 6 characters" : "Your password"}
+                placeholder={mode === "signup" ? t("signin.passwordSignupPlaceholder") : t("signin.passwordPlaceholder")}
                 required
                 minLength={6}
               />
@@ -252,7 +250,7 @@ function SignInForm() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8]">{t("signin.fpBanner.title")}</p>
             </div>
             <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-              Sign in to earn and track Faith Points securely. Your points are stored server-side — no more localStorage farming!
+              {t("signin.fpBanner.desc")}
             </p>
           </div>
         </div>

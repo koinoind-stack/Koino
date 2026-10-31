@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { INDIAN_STATES, INDIAN_CITIES_BY_STATE } from "@/lib/crosscrafted-data";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { extractYouTubeId, MEMORIAL_VIDEO_CATEGORIES } from "@/lib/youtube";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export type MemorialVideoDraft = {
   url: string;
@@ -65,7 +66,7 @@ export const EMPTY_MEMORIAL_FORM: MemorialFormData = {
   creatorRelation: "Family", visibility: "public", videos: [],
 };
 
-async function uploadImage(file: File): Promise<string> {
+async function uploadImage(file: File, errStart: string, errPut: string): Promise<string> {
   const urlRes = await fetch("/api/social/upload-url", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -73,11 +74,11 @@ async function uploadImage(file: File): Promise<string> {
   });
   if (!urlRes.ok) {
     const data = await urlRes.json().catch(() => ({}));
-    throw new Error(data.error || "Could not start the upload");
+    throw new Error(data.error || errStart);
   }
   const { uploadUrl, publicUrl } = await urlRes.json();
   const put = await fetch(uploadUrl, { method: "PUT", body: file });
-  if (!put.ok) throw new Error("Upload failed — please try again");
+  if (!put.ok) throw new Error(errPut);
   return publicUrl;
 }
 
@@ -88,9 +89,10 @@ type Props = {
   onSaved?: (memorialId: string, status: string) => void;
 };
 
-const STEPS = ["Basic information", "Life story", "Photos & videos", "Privacy & submit"];
+const STEPS = ["memorials.form.step1", "memorials.form.step2", "memorials.form.step3", "memorials.form.step4"];
 
 export default function MemorialForm({ mode, memorialId, initial, onSaved }: Props) {
+  const t = useTranslation();
   const { user, username, displayName, loading: authLoading } = useSupabaseUser();
   const [form, setForm] = useState<MemorialFormData>(initial || EMPTY_MEMORIAL_FORM);
   const [step, setStep] = useState(0);
@@ -119,16 +121,15 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     return (
       <div className="max-w-md mx-auto text-center py-20 px-4">
         <Flower2 size={30} className="mx-auto text-[#C4B5FD] mb-4" />
-        <h2 className="text-lg font-bold text-white mb-2">Sign in to create a memorial</h2>
+        <h2 className="text-lg font-bold text-white mb-2">{t("memorials.form.signinTitle")}</h2>
         <p className="text-sm text-[#94A3B8] mb-6 leading-relaxed">
-          Memorials are created by family members and friends. Please sign in with your
-          Koino account so we can protect these pages from misuse.
+          {t("memorials.form.signinBody")}
         </p>
         <Link
           href="/auth/signin"
           className="inline-flex items-center px-6 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9]"
         >
-          Sign in
+          {t("memorials.form.signinCta")}
         </Link>
       </div>
     );
@@ -138,7 +139,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     if (!file) return;
     setUploading("photo");
     try {
-      set("photoUrl", await uploadImage(file));
+      set("photoUrl", await uploadImage(file, t("memorials.form.err.uploadStart"), t("memorials.form.err.uploadPut")));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -152,10 +153,10 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     try {
       const added: string[] = [];
       for (const f of Array.from(files).slice(0, 12)) {
-        added.push(await uploadImage(f));
+        added.push(await uploadImage(f, t("memorials.form.err.uploadStart"), t("memorials.form.err.uploadPut")));
       }
       setForm((prev) => ({ ...prev, gallery: [...prev.gallery, ...added].slice(0, 12) }));
-      toast.success(`${added.length} photo${added.length === 1 ? "" : "s"} added`);
+      toast.success(t("memorials.form.photosAdded", { n: added.length }));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -167,15 +168,15 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     const url = videoUrl.trim();
     if (!url) return;
     if (!extractYouTubeId(url)) {
-      toast.error("That is not a valid YouTube link. Use youtube.com/watch, youtu.be, or a Shorts link.");
+      toast.error(t("memorials.form.err.badYoutube"));
       return;
     }
     if (videoTitle.trim().length < 2) {
-      toast.error("Please give the video a title");
+      toast.error(t("memorials.form.err.videoTitle"));
       return;
     }
     if (form.videos.length >= 30) {
-      toast.error("A memorial can hold up to 30 videos");
+      toast.error(t("memorials.form.err.videoMax"));
       return;
     }
     set("videos", [
@@ -186,15 +187,15 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     setVideoTitle("");
     setVideoDesc("");
     setVideoCat("life_story");
-    toast.success("Video added — it will be reviewed before it appears");
+    toast.success(t("memorials.form.videoAdded"));
   }
 
   /** Per-step validation before moving forward. */
   function next() {
     if (step === 0) {
-      if (form.fullName.trim().length < 2) return toast.error("Please enter the full name of your loved one");
+      if (form.fullName.trim().length < 2) return toast.error(t("memorials.form.nameRequired"));
       if (form.dob && form.dod && form.dob > form.dod) {
-        return toast.error("Date of birth cannot be after the date of passing");
+        return toast.error(t("memorials.form.dobAfterDod"));
       }
     }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -211,26 +212,26 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         });
         if (!res.ok) {
           const b = await res.json().catch(() => ({}));
-          toast.error(`Video "${v.title}" could not be added: ${b.error || "unknown error"}`);
+          toast.error(t("memorials.form.err.videoAdd", { title: v.title, reason: b.error || t("memorials.form.err.unknown") }));
         }
       } catch {
-        toast.error(`Video "${v.title}" could not be added`);
+        toast.error(t("memorials.form.err.videoAddGeneric", { title: v.title }));
       }
     }
   }
 
   async function save(status: "draft" | "pending") {
     if (busy) return;
-    if (form.fullName.trim().length < 2) return toast.error("Please enter the full name");
+    if (form.fullName.trim().length < 2) return toast.error(t("memorials.form.nameRequired"));
     if (form.dob && form.dod && form.dob > form.dod) {
-      return toast.error("Date of birth cannot be after the date of passing");
+      return toast.error(t("memorials.form.dobAfterDod"));
     }
     if (status === "pending") {
       if (form.tribute.trim().length < 2) {
-        return toast.error("Please write a short tribute for the memorial card (step 1)");
+        return toast.error(t("memorials.form.err.tributeRequired"));
       }
       if (!consent) {
-        return toast.error("Please confirm you have the family's permission to submit this memorial");
+        return toast.error(t("memorials.form.err.consentRequired"));
       }
     }
     setBusy(true);
@@ -242,13 +243,13 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not save the memorial");
+      if (!res.ok) throw new Error(data.error || t("memorials.form.saveFailed"));
       const id = mode === "create" ? data.memorial.id : memorialId!;
       if (form.videos.length > 0) await submitVideos(id);
       toast.success(
         status === "pending"
-          ? "Submitted for review — a Koino admin will check it before it appears publicly"
-          : "Draft saved — continue any time from this page",
+          ? t("memorials.form.submittedToast")
+          : t("memorials.form.draftSavedToast"),
       );
       onSaved?.(id, status);
       if (!onSaved) window.location.href = `/memorials/${id}`;
@@ -272,36 +273,33 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
           <Flower2 size={22} className="text-[#C4B5FD]" />
         </div>
         <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-          {mode === "create" ? "Create a memorial" : "Edit memorial"}
+          {mode === "create" ? t("memorials.form.createTitle") : t("memorials.form.editTitle")}
         </h1>
-        <p className="text-sm text-[#94A3B8] mt-1.5">Honour the life of someone you loved.</p>
+        <p className="text-sm text-[#94A3B8] mt-1.5">{t("memorials.form.subtitle")}</p>
       </div>
 
       {/* step indicator */}
-      <div className="flex items-center gap-1.5 mb-7" role="group" aria-label="Form progress">
+      <div className="flex items-center gap-1.5 mb-7" role="group" aria-label={t("memorials.form.progressAria")}>
         {STEPS.map((label, i) => (
           <button
             key={label}
             onClick={() => i < step && setStep(i)}
             disabled={i >= step}
             className={`flex-1 rounded-full h-1.5 transition-colors ${i <= step ? "bg-[#7C3AED]" : "bg-white/[0.08]"} ${i < step ? "cursor-pointer" : ""}`}
-            aria-label={`Step ${i + 1}: ${label}${i < step ? " (go back)" : ""}`}
-            title={`Step ${i + 1}: ${label}`}
+            aria-label={`${t("memorials.form.stepOf", { n: i + 1, m: STEPS.length, label: t(label) })}${i < step ? " " + t("memorials.form.stepBackHint") : ""}`}
+            title={t("memorials.form.stepOf", { n: i + 1, m: STEPS.length, label: t(label) })}
           />
         ))}
       </div>
       <p className="text-[11px] font-bold uppercase tracking-wider text-[#C4B5FD] mb-5">
-        Step {step + 1} of {STEPS.length} — {STEPS[step]}
+        {t("memorials.form.stepOf", { n: step + 1, m: STEPS.length, label: t(STEPS[step]) })}
       </p>
 
       {/* consent notice */}
       <div className="rounded-xl bg-[#7C3AED]/[0.06] border border-[#7C3AED]/20 px-4 py-3 mb-6 flex gap-2.5">
         <ShieldCheck size={16} className="text-[#C4B5FD] shrink-0 mt-0.5" />
         <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-          Please only share photographs and personal information that your family permits.
-          Do not publish private addresses, phone numbers, or sensitive details. Every
-          memorial is reviewed by a Koino administrator before it becomes public, and
-          managers can moderate every message left on the page.
+          {t("memorials.form.consentNotice")}
         </p>
       </div>
 
@@ -310,7 +308,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         {step === 0 && (
           <>
             <div>
-              <span className={labelCls}>Photograph (optional)</span>
+              <span className={labelCls}>{t("memorials.form.photoOptional")}</span>
               <div className="flex items-center gap-4">
                 {form.photoUrl ? (
                   <div className="relative">
@@ -318,7 +316,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     <button
                       onClick={() => set("photoUrl", "")}
                       className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
-                      aria-label="Remove photo"
+                      aria-label={t("memorials.form.removePhoto")}
                     >
                       <X size={10} className="text-white" />
                     </button>
@@ -334,37 +332,37 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
                 >
                   {uploading === "photo" ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-                  {uploading === "photo" ? "Uploading…" : form.photoUrl ? "Change photo" : "Add photo"}
+                  {uploading === "photo" ? t("memorials.form.uploading") : form.photoUrl ? t("memorials.form.changePhoto") : t("memorials.form.addPhoto")}
                 </button>
                 <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => handlePhoto(e.target.files?.[0])} />
               </div>
             </div>
 
             <div>
-              <label className={labelCls}>Full name of your loved one *</label>
-              <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} maxLength={120} placeholder="e.g. George Mathew Varghese" className={inputCls} />
+              <label className={labelCls}>{t("memorials.form.fullNameLabel")}</label>
+              <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} maxLength={120} placeholder={t("memorials.form.fullNamePh")} className={inputCls} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Date of birth (optional)</label>
+                <label className={labelCls}>{t("memorials.form.dobLabel")}</label>
                 <input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Date of passing (optional)</label>
+                <label className={labelCls}>{t("memorials.form.dodLabel")}</label>
                 <input type="date" value={form.dod} onChange={(e) => set("dod", e.target.value)} className={inputCls} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>State (optional)</label>
+                <label className={labelCls}>{t("memorials.form.stateLabel")}</label>
                 <select value={form.state} onChange={(e) => { set("state", e.target.value); set("city", ""); }} className={`${inputCls} [&>option]:bg-[#1C1929]`}>
                   <option value="">—</option>
                   {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelCls}>City (optional)</label>
+                <label className={labelCls}>{t("memorials.form.cityLabel")}</label>
                 <select value={form.city} onChange={(e) => set("city", e.target.value)} disabled={!form.state} className={`${inputCls} disabled:opacity-40 [&>option]:bg-[#1C1929]`}>
                   <option value="">—</option>
                   {cities.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -373,8 +371,8 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             </div>
 
             <div>
-              <label className={labelCls}>Short tribute for the memorial card *</label>
-              <textarea value={form.tribute} onChange={(e) => set("tribute", e.target.value)} rows={2} maxLength={500} placeholder="A sentence or two that captures their life — this is what people see first." className={`${inputCls} resize-none`} />
+              <label className={labelCls}>{t("memorials.form.tributeLabel")}</label>
+              <textarea value={form.tribute} onChange={(e) => set("tribute", e.target.value)} rows={2} maxLength={500} placeholder={t("memorials.form.tributePh")} className={`${inputCls} resize-none`} />
             </div>
           </>
         )}
@@ -383,30 +381,30 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         {step === 1 && (
           <>
             <div>
-              <label className={labelCls}>Biography & life story</label>
-              <textarea value={form.lifeStory} onChange={(e) => set("lifeStory", e.target.value)} rows={6} maxLength={20000} placeholder="Tell their story — where they were born, their family, their faith, the life they built." className={`${inputCls} resize-y`} />
+              <label className={labelCls}>{t("memorials.form.bioLabel")}</label>
+              <textarea value={form.lifeStory} onChange={(e) => set("lifeStory", e.target.value)} rows={6} maxLength={20000} placeholder={t("memorials.form.bioPh")} className={`${inputCls} resize-y`} />
             </div>
             <div>
-              <label className={labelCls}>Personal memories & achievements</label>
-              <textarea value={form.qualities} onChange={(e) => set("qualities", e.target.value)} rows={4} maxLength={10000} placeholder="What they loved, how they cared for people, the things they were proud of." className={`${inputCls} resize-y`} />
+              <label className={labelCls}>{t("memorials.form.qualitiesLabel")}</label>
+              <textarea value={form.qualities} onChange={(e) => set("qualities", e.target.value)} rows={4} maxLength={10000} placeholder={t("memorials.form.qualitiesPh")} className={`${inputCls} resize-y`} />
             </div>
             <div>
-              <label className={labelCls}>Family background & life milestones</label>
-              <textarea value={form.milestones} onChange={(e) => set("milestones", e.target.value)} rows={4} maxLength={10000} placeholder="Marriage, children, career, ministry, service to the community…" className={`${inputCls} resize-y`} />
+              <label className={labelCls}>{t("memorials.form.milestonesLabel")}</label>
+              <textarea value={form.milestones} onChange={(e) => set("milestones", e.target.value)} rows={4} maxLength={10000} placeholder={t("memorials.form.milestonesPh")} className={`${inputCls} resize-y`} />
             </div>
             <div className="grid grid-cols-[1fr_180px] gap-3">
               <div>
-                <label className={labelCls}>Favourite Bible verse (optional)</label>
-                <textarea value={form.verse} onChange={(e) => set("verse", e.target.value)} rows={2} maxLength={500} placeholder="“I am the resurrection and the life…”" className={`${inputCls} resize-none`} />
+                <label className={labelCls}>{t("memorials.form.verseLabel")}</label>
+                <textarea value={form.verse} onChange={(e) => set("verse", e.target.value)} rows={2} maxLength={500} placeholder={t("memorials.form.versePh")} className={`${inputCls} resize-none`} />
               </div>
               <div>
-                <label className={labelCls}>Reference</label>
-                <input value={form.verseRef} onChange={(e) => set("verseRef", e.target.value)} maxLength={120} placeholder="John 11:25" className={inputCls} />
+                <label className={labelCls}>{t("memorials.form.verseRefLabel")}</label>
+                <input value={form.verseRef} onChange={(e) => set("verseRef", e.target.value)} maxLength={120} placeholder={t("memorials.form.verseRefPh")} className={inputCls} />
               </div>
             </div>
             <div>
-              <label className={labelCls}>Faith testimony or message of hope (optional)</label>
-              <textarea value={form.testimony} onChange={(e) => set("testimony", e.target.value)} rows={4} maxLength={10000} placeholder="What their faith meant to them — or a word of hope for everyone who visits." className={`${inputCls} resize-y`} />
+              <label className={labelCls}>{t("memorials.form.testimonyLabel")}</label>
+              <textarea value={form.testimony} onChange={(e) => set("testimony", e.target.value)} rows={4} maxLength={10000} placeholder={t("memorials.form.testimonyPh")} className={`${inputCls} resize-y`} />
             </div>
           </>
         )}
@@ -415,7 +413,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         {step === 2 && (
           <>
             <div>
-              <span className={labelCls}>Photographs (up to 12)</span>
+              <span className={labelCls}>{t("memorials.form.photosLabel")}</span>
               <div className="flex flex-wrap gap-2.5">
                 {form.gallery.map((g) => (
                   <div key={g} className="relative">
@@ -423,7 +421,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     <button
                       onClick={() => set("gallery", form.gallery.filter((x) => x !== g))}
                       className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
-                      aria-label="Remove photo"
+                      aria-label={t("memorials.form.removePhoto")}
                     >
                       <X size={10} className="text-white" />
                     </button>
@@ -434,7 +432,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     onClick={() => galleryInput.current?.click()}
                     disabled={uploading !== null}
                     className="w-16 h-16 rounded-xl bg-white/[0.03] border border-dashed border-white/15 flex items-center justify-center hover:border-[#7C3AED]/40 disabled:opacity-40"
-                    aria-label="Add photos"
+                    aria-label={t("memorials.form.addPhoto")}
                   >
                     {uploading === "gallery" ? <Loader2 size={16} className="animate-spin text-[#94A3B8]" /> : <ImagePlus size={16} className="text-[#64748B]" />}
                   </button>
@@ -448,31 +446,29 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                 <Film size={13} className="text-[#C4B5FD]" /> YouTube videos &amp; memories
               </p>
               <p className="text-[11px] text-[#64748B] mb-3 leading-relaxed">
-                Add links to YouTube videos of their life, testimony, funeral service, or family
-                memories. Videos play right here on Koino and stay pending until a Koino admin
-                approves them. Koino does not upload or own these videos.
+                {t("memorials.form.videosNote")}
               </p>
               <div className="space-y-2.5">
                 <input
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="YouTube link — youtube.com/watch?v=… , youtu.be/… , or Shorts"
+                  placeholder={t("memorials.form.videoUrlPh")}
                   className={inputCls}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addVideo(); } }}
                 />
                 <div className="grid grid-cols-[1fr_150px] gap-2.5">
-                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder="Video title *" maxLength={150} className={inputCls} />
-                  <select value={videoCat} onChange={(e) => setVideoCat(e.target.value)} className={`${inputCls} [&>option]:bg-[#1C1929]`} aria-label="Video category">
-                    {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder={t("memorials.form.videoTitlePh")} maxLength={150} className={inputCls} />
+                  <select value={videoCat} onChange={(e) => setVideoCat(e.target.value)} className={`${inputCls} [&>option]:bg-[#1C1929]`} aria-label={t("memorials.form.videoCatAria")}>
+                    {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(`memorials.videoCat.${c.id}`)}</option>)}
                   </select>
                 </div>
-                <input value={videoDesc} onChange={(e) => setVideoDesc(e.target.value)} placeholder="Short description (optional)" maxLength={1000} className={inputCls} />
+                <input value={videoDesc} onChange={(e) => setVideoDesc(e.target.value)} placeholder={t("memorials.form.videoDescPh")} maxLength={1000} className={inputCls} />
                 <button
                   onClick={addVideo}
                   disabled={!videoUrl.trim() || videoTitle.trim().length < 2}
                   className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
                 >
-                  + Add video
+                  {t("memorials.form.addVideoBtn")}
                 </button>
               </div>
               {form.videos.length > 0 && (
@@ -486,9 +482,9 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                       <button
                         onClick={() => set("videos", form.videos.filter((_, j) => j !== i))}
                         className="text-[10px] font-bold text-[#64748B] hover:text-red-300 shrink-0"
-                        aria-label={`Remove video ${v.title}`}
+                        aria-label={t("memorials.form.removeVideoAria", { title: v.title })}
                       >
-                        Remove
+                        {t("common.remove")}
                       </button>
                     </li>
                   ))}
@@ -502,12 +498,12 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         {step === 3 && (
           <>
             <div>
-              <span className={labelCls}>Who can visit this memorial?</span>
+              <span className={labelCls}>{t("memorials.form.privacyTitle")}</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {([
-                  { id: "public", label: "Public", desc: "Anyone — listed in the directory & search engines" },
-                  { id: "unlisted", label: "Unlisted", desc: "Anyone with the link — hidden from search" },
-                  { id: "private", label: "Private", desc: "Only managers and Koino admins" },
+                  { id: "public", label: t("memorials.form.vis.public.label"), desc: t("memorials.form.vis.public.desc") },
+                  { id: "unlisted", label: t("memorials.form.vis.unlisted.label"), desc: t("memorials.form.vis.unlisted.desc") },
+                  { id: "private", label: t("memorials.form.vis.private.label"), desc: t("memorials.form.vis.private.desc") },
                 ] as const).map((v) => (
                   <button
                     key={v.id}
@@ -527,12 +523,12 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Your name (shown as creator)</label>
+                <label className={labelCls}>{t("memorials.form.creatorNameLabel")}</label>
                 <input value={displayName || username || ""} disabled className={`${inputCls} opacity-60`} />
               </div>
               <div>
-                <label className={labelCls}>Your relationship</label>
-                <input value={form.creatorRelation} onChange={(e) => set("creatorRelation", e.target.value)} maxLength={80} placeholder="e.g. Daughter, Church friend" className={inputCls} />
+                <label className={labelCls}>{t("memorials.form.relationLabel")}</label>
+                <input value={form.creatorRelation} onChange={(e) => set("creatorRelation", e.target.value)} maxLength={80} placeholder={t("memorials.form.relationPh")} className={inputCls} />
               </div>
             </div>
 
@@ -544,18 +540,14 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                 className="mt-0.5 w-4 h-4 accent-[#7C3AED] shrink-0"
               />
               <span className="text-[11px] text-[#94A3B8] leading-relaxed">
-                I confirm that I am authorised to create this memorial, that the information is
-                submitted respectfully, and that I have permission to publish the photographs and
-                personal details of the person remembered here. *
+                {t("memorials.form.consentCheckbox")}
               </span>
             </label>
 
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3">
               <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                <span className="font-bold text-white">Submitting for review:</span> a Koino
-                administrator will check the memorial before it appears publicly. You will be able
-                to follow its status from the memorial page, keep editing while it is in review,
-                and unpublish it at any time.
+                <span className="font-bold text-white">{t("memorials.form.reviewInfoLabel")}</span>{" "}
+                {t("memorials.form.reviewInfo")}
               </p>
             </div>
           </>
@@ -569,7 +561,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               disabled={busy}
               className="inline-flex items-center gap-1.5 px-4 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
             >
-              <ArrowLeft size={14} /> Back
+              <ArrowLeft size={14} /> {t("common.back")}
             </button>
           )}
           {step < STEPS.length - 1 ? (
@@ -578,7 +570,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               disabled={busy}
               className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
             >
-              Continue <ArrowRight size={14} />
+              {t("memorials.form.continue")} <ArrowRight size={14} />
             </button>
           ) : (
             <button
@@ -587,20 +579,20 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              {busy ? "Submitting…" : "Submit for review"}
+              {busy ? t("common.submitting") : t("memorials.form.submitForReview")}
             </button>
           )}
           <button
             onClick={() => save("draft")}
             disabled={busy || form.fullName.trim().length < 2}
             className="inline-flex items-center px-4 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
-            title="Save as draft — continue later"
+            title={t("memorials.form.draftTitle")}
           >
-            {busy ? "Saving…" : "Save draft"}
+            {busy ? t("memorials.form.saving") : t("memorials.form.saveDraft")}
           </button>
         </div>
         <p className="text-[11px] text-[#64748B] text-center">
-          Drafts are private to the memorial managers until you submit them for review.
+          {t("memorials.form.draftNote")}
         </p>
       </div>
     </div>

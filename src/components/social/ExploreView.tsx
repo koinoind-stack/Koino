@@ -34,6 +34,7 @@ import {
   CHURCH_GRADIENTS, QUIZ_CATEGORIES,
   type Product, type Business,
 } from "@/lib/crosscrafted-data";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   onOpenProfile: (username: string) => void;
@@ -87,14 +88,16 @@ type EventItem = {
 
 type Tab = "foryou" | "people" | "posts" | "reels" | "trivia" | "churches" | "events";
 
-const TABS: Array<{ id: Tab; label: string }> = [
+// labelKey = i18n key resolved at render time; label = fallback literal for
+// strings with no dictionary key yet (never call t() at module scope).
+const TABS: Array<{ id: Tab; labelKey?: string; label: string }> = [
   { id: "foryou", label: "For You" },
-  { id: "people", label: "People" },
-  { id: "posts", label: "Posts" },
-  { id: "reels", label: "Reels" },
-  { id: "trivia", label: "Bible Trivia" },
-  { id: "churches", label: "Churches" },
-  { id: "events", label: "Events" },
+  { id: "people", labelKey: "explore.tab.people", label: "People" },
+  { id: "posts", labelKey: "explore.tab.posts", label: "Posts" },
+  { id: "reels", labelKey: "explore.tab.reels", label: "Reels" },
+  { id: "trivia", labelKey: "feature.trivia.title", label: "Bible Trivia" },
+  { id: "churches", labelKey: "churches.title", label: "Churches" },
+  { id: "events", labelKey: "events.title", label: "Events" },
 ];
 
 type ForYouData = {
@@ -130,6 +133,7 @@ function churchGradient(idx?: number): string {
 
 /** Toggle follow using the existing /follow endpoint (optimistic update). */
 function FollowButton({ user }: { user: ExploreUser }) {
+  const t = useTranslation();
   const [following, setFollowing] = useState(!!user.viewerFollows);
   const [busy, setBusy] = useState(false);
 
@@ -147,7 +151,7 @@ function FollowButton({ user }: { user: ExploreUser }) {
       setFollowing(res.following);
     } catch (err) {
       setFollowing(!next);
-      toast.error(err instanceof Error ? err.message : "Could not update follow");
+      toast.error(err instanceof Error ? err.message : t("explore.followError"));
     } finally {
       setBusy(false);
     }
@@ -163,7 +167,7 @@ function FollowButton({ user }: { user: ExploreUser }) {
           : "bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
       }`}
     >
-      {following ? "Following" : "Follow"}
+      {following ? t("churches.following") : t("churches.follow")}
     </button>
   );
 }
@@ -175,6 +179,7 @@ function PersonCard({
   user: ExploreUser;
   onOpenProfile: (username: string) => void;
 }) {
+  const t = useTranslation();
   return (
     <div
       onClick={() => user.username && onOpenProfile(user.username)}
@@ -198,7 +203,7 @@ function PersonCard({
         <p className="text-sm font-bold text-white truncate">{user.name || user.username}</p>
         <p className="text-[11px] text-[#64748B] truncate">
           @{user.username}
-          {user.followers !== undefined && ` · ${formatCount(user.followers)} followers`}
+          {user.followers !== undefined && ` · ${t("common.followers", { count: formatCount(user.followers) })}`}
         </p>
         {user.role && (
           <p className="text-[11px] font-semibold text-[#C4B5FD] mt-0.5 truncate">{user.role}</p>
@@ -301,6 +306,7 @@ function CompactEmpty({ icon: Icon, text }: { icon: React.ComponentType<{ size?:
 }
 
 export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, onNavigate }: Props) {
+  const t = useTranslation();
   const [query, setQuery] = useState(initialHashtag ? `#${initialHashtag}` : "");
   const [activeTab, setActiveTab] = useState<Tab>("foryou");
   const [activeHashtag, setActiveHashtag] = useState<string | null>(initialHashtag ?? null);
@@ -444,7 +450,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
         <input
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Search people, posts, #hashtags, churches, events…"
+          placeholder={t("explore.searchPlaceholder")}
           className="w-full bg-white/[0.05] border border-white/10 rounded-full pl-10 pr-10 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
         />
         {query && (
@@ -459,17 +465,17 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
 
       {/* discovery tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-none">
-        {TABS.map((t) => (
+        {TABS.map((tb) => (
           <button
-            key={t.id}
-            onClick={() => goTab(t.id)}
+            key={tb.id}
+            onClick={() => goTab(tb.id)}
             className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
-              activeTab === t.id
+              activeTab === tb.id
                 ? "bg-[#7C3AED] border-transparent text-white"
                 : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white hover:border-white/25"
             }`}
           >
-            {t.label}
+            {tb.labelKey ? t(tb.labelKey) : tb.label}
           </button>
         ))}
       </div>
@@ -481,7 +487,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
             onClick={() => openHashtag("")}
             className="text-xs font-bold text-[#A78BFA]"
           >
-            Clear
+            {t("explore.clear")}
           </button>
         </div>
       )}
@@ -492,12 +498,12 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
         </div>
       ) : loadError ? (
         <div className="flex flex-col items-center gap-3 py-14">
-          <p className="text-sm text-[#64748B]">Couldn&apos;t load this section — check your connection.</p>
+          <p className="text-sm text-[#64748B]">{t("explore.loadError")}</p>
           <button
             onClick={() => load(activeTab, queryRef.current, activeHashtag)}
             className="px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9]"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       ) : (
@@ -508,8 +514,8 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               {foryou.users.length > 0 && (
                 <Section
                   icon={Users}
-                  title="People You May Know"
-                  seeAll="See all"
+                  title={t("explore.peopleYouMayKnow")}
+                  seeAll={t("common.seeAll")}
                   onSeeAll={() => goTab("people")}
                 >
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -521,7 +527,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               )}
 
               {foryou.hashtags.length > 0 && (
-                <Section icon={TrendingUp} title="Trending Hashtags">
+                <Section icon={TrendingUp} title={t("explore.trendingHashtags")}>
                   <HashtagChips tags={foryou.hashtags} onPick={openHashtag} />
                 </Section>
               )}
@@ -529,8 +535,8 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               {foryou.posts.length > 0 && (
                 <Section
                   icon={foryou.postsTrending ? Flame : Sparkles}
-                  title={foryou.postsTrending ? "Trending Now" : "Recent Posts"}
-                  seeAll="See all"
+                  title={foryou.postsTrending ? t("explore.trendingNow") : t("explore.recentPosts")}
+                  seeAll={t("common.seeAll")}
                   onSeeAll={() => goTab("posts")}
                 >
                   <PostGrid posts={foryou.posts} onOpen={setDetailId} />
@@ -538,7 +544,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               )}
 
               {foryou.reels.length > 0 && (
-                <Section icon={Clapperboard} title="Reels" seeAll="Open Reels" onSeeAll={() => onNavigate?.("reels")}>
+                <Section icon={Clapperboard} title={t("explore.tab.reels")} seeAll={t("explore.openReels")} onSeeAll={() => onNavigate?.("reels")}>
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {foryou.reels.map((p) => {
                       const media = p.repostedFrom ?? p;
@@ -568,7 +574,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               <VideoRail />
 
               {foryou.churches.length > 0 && (
-                <Section icon={Church} title="Discover Churches" seeAll="Open directory" onSeeAll={() => onNavigate?.("churches")}>
+                <Section icon={Church} title={t("explore.discoverChurches")} seeAll={t("explore.openDirectory")} onSeeAll={() => onNavigate?.("churches")}>
                   <div className="flex gap-3 overflow-x-auto pb-1">
                     {foryou.churches.map((c) => (
                       <button
@@ -583,7 +589,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                           ) : null}
                           {c.featured && (
                             <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[9px] font-extrabold uppercase tracking-wide text-[#FCD34D]">
-                              Featured
+                              {t("explore.featured")}
                             </span>
                           )}
                         </div>
@@ -591,7 +597,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                           <h4 className="text-[13px] font-bold text-white leading-snug truncate">{c.name}</h4>
                           <p className="text-[11px] text-[#94A3B8] mt-1 flex items-center gap-1">
                             <MapPin size={10} className="shrink-0" />
-                            <span className="truncate">{[c.city, c.state].filter(Boolean).join(", ") || c.location || "India"}</span>
+                            <span className="truncate">{[c.city, c.state].filter(Boolean).join(", ") || c.location || t("explore.fallbackLocation")}</span>
                           </p>
                           {c.denomination && (
                             <p className="text-[10px] text-[#64748B] mt-1 truncate">{c.denomination}</p>
@@ -611,13 +617,13 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                 foryou.posts.length === 0 &&
                 foryou.reels.length === 0 &&
                 foryou.churches.length === 0 && (
-                  <CompactEmpty icon={Sparkles} text="Nothing to explore yet — post something, follow people, and it will show up here." />
+                  <CompactEmpty icon={Sparkles} text={t("explore.emptyDiscover")} />
                 )}
               {searching &&
                 foryou.users.length === 0 &&
                 foryou.hashtags.length === 0 &&
                 foryou.posts.length === 0 && (
-                  <p className="text-center text-sm text-[#64748B] py-14">Nothing found. Try a different search.</p>
+                  <p className="text-center text-sm text-[#64748B] py-14">{t("explore.emptySearch")}</p>
                 )}
             </>
           )}
@@ -625,7 +631,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           {/* ───────────── PEOPLE ───────────── */}
           {activeTab === "people" && people && (
             <>
-              <Section icon={Users} title={searching ? `People matching "${query.trim()}"` : "People You May Know"}>
+              <Section icon={Users} title={searching ? t("explore.peopleMatching", { query: query.trim() }) : t("explore.peopleYouMayKnow")}>
                 {people.length > 0 ? (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {people.map((u) => (
@@ -635,7 +641,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                 ) : (
                   <CompactEmpty
                     icon={UserPlus}
-                    text={searching ? `No people found for "${query.trim()}".` : "No member suggestions right now."}
+                    text={searching ? t("explore.emptyPeople", { query: query.trim() }) : t("explore.noSuggestions")}
                   />
                 )}
               </Section>
@@ -646,21 +652,21 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           {activeTab === "posts" && postsData && (
             <>
               {postsData.hashtags.length > 0 && (
-                <Section icon={TrendingUp} title="Hashtags">
+                <Section icon={TrendingUp} title={t("explore.hashtags")}>
                   <HashtagChips tags={postsData.hashtags} onPick={openHashtag} />
                 </Section>
               )}
               {postsData.posts.length > 0 ? (
                 <Section
                   icon={Sparkles}
-                  title={postsData.fromHashtag ? `Posts tagged #${activeHashtag}` : searching ? `Posts matching "${query.trim()}"` : "Recent Posts"}
+                  title={postsData.fromHashtag ? t("explore.postsTagged", { tag: activeHashtag ?? "" }) : searching ? t("explore.postsMatching", { query: query.trim() }) : t("explore.recentPosts")}
                 >
                   <PostGrid posts={postsData.posts} onOpen={setDetailId} />
                 </Section>
               ) : (
                 <CompactEmpty
                   icon={Search}
-                  text={postsData.fromHashtag ? `No posts with #${activeHashtag} yet.` : searching ? `No posts found for "${query.trim()}".` : "No posts yet — be the first to share something."}
+                  text={postsData.fromHashtag ? t("explore.emptyHashtag", { tag: activeHashtag ?? "" }) : searching ? t("explore.emptyPostsSearch", { query: query.trim() }) : t("explore.emptyPosts")}
                 />
               )}
             </>
@@ -669,7 +675,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           {/* ───────────── REELS ───────────── */}
           {activeTab === "reels" && reels && (
             <>
-              <Section icon={Film} title="Reels to watch">
+              <Section icon={Film} title={t("explore.reelsToWatch")}>
                 {reels.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                     {reels.map((p) => {
@@ -701,7 +707,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                     })}
                   </div>
                 ) : (
-                  <CompactEmpty icon={Film} text="No reels yet — share a short vertical video and it will show up here." />
+                  <CompactEmpty icon={Film} text={t("explore.emptyReels")} />
                 )}
               </Section>
             </>
@@ -716,16 +722,15 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                     <Trophy size={22} className="text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-black text-white tracking-tight">Bible Trivia</h3>
+                    <h3 className="text-lg font-black text-white tracking-tight">{t("feature.trivia.title")}</h3>
                     <p className="text-sm text-[#C4B5FD] mt-1 leading-relaxed">
-                      How well do you know the Word? Play Bible Trivia to test your Scripture knowledge,
-                      build a daily streak, and earn Faith Points as you grow in faith.
+                      {t("explore.triviaDesc")}
                     </p>
                     <button
                       onClick={() => onNavigate?.("trivia")}
                       className="mt-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
                     >
-                      <Play size={13} fill="white" /> Play Trivia
+                      <Play size={13} fill="white" /> {t("explore.playTrivia")}
                     </button>
                   </div>
                 </div>
@@ -744,7 +749,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               </div>
 
               {leaderboard && leaderboard.length > 0 && (
-                <Section icon={Trophy} title="Top Players" seeAll="Open Trivia" onSeeAll={() => onNavigate?.("trivia")}>
+                <Section icon={Trophy} title={t("explore.topPlayers")} seeAll={t("explore.openTrivia")} onSeeAll={() => onNavigate?.("trivia")}>
                   <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
                     {leaderboard.slice(0, 10).map((row, i) => (
                       <div key={`${row.rank}-${row.name}`} className={`flex items-center gap-3 px-3.5 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
@@ -762,7 +767,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                           <p className="text-sm font-bold text-white truncate">{row.name}</p>
                           <p className="text-[10px] text-[#64748B] truncate">{row.tierIcon} {row.tier}</p>
                         </div>
-                        <span className="text-xs font-extrabold text-[#C4B5FD] shrink-0">{formatCount(row.points)} pts</span>
+                        <span className="text-xs font-extrabold text-[#C4B5FD] shrink-0">{t("common.points", { count: formatCount(row.points) })}</span>
                       </div>
                     ))}
                   </div>
@@ -774,7 +779,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           {/* ───────────── CHURCHES ───────────── */}
           {activeTab === "churches" && churches && (
             <>
-              <Section icon={Church} title={searching ? `Churches matching "${query.trim()}"` : "Discover Churches"}>
+              <Section icon={Church} title={searching ? t("explore.churchesMatching", { query: query.trim() }) : t("explore.discoverChurches")}>
                 {churches.length > 0 ? (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {churches.map((c) => (
@@ -790,7 +795,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                           ) : null}
                           {c.featured && (
                             <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[9px] font-extrabold uppercase tracking-wide text-[#FCD34D]">
-                              Featured
+                              {t("explore.featured")}
                             </span>
                           )}
                         </div>
@@ -799,11 +804,11 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                           {c.denomination && <p className="text-[11px] text-[#C4B5FD] mt-0.5 truncate">{c.denomination}</p>}
                           <p className="text-[11px] text-[#94A3B8] mt-1 flex items-center gap-1">
                             <MapPin size={10} className="shrink-0" />
-                            <span className="truncate">{[c.city, c.state].filter(Boolean).join(", ") || c.location || "India"}</span>
+                            <span className="truncate">{[c.city, c.state].filter(Boolean).join(", ") || c.location || t("explore.fallbackLocation")}</span>
                           </p>
                           {(c.pastorName || (c.languages && c.languages.length > 0)) && (
                             <p className="text-[10px] text-[#64748B] mt-1 truncate">
-                              {c.pastorName ? `Pastor ${c.pastorName}` : ""}
+                              {c.pastorName ? t("explore.pastor", { name: c.pastorName }) : ""}
                               {c.pastorName && c.languages && c.languages.length > 0 ? " · " : ""}
                               {c.languages && c.languages.length > 0 ? c.languages.slice(0, 3).join(", ") : ""}
                             </p>
@@ -815,7 +820,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                 ) : (
                   <CompactEmpty
                     icon={Church}
-                    text={searching ? `No churches match "${query.trim()}".` : "No churches listed yet — put your church on the map."}
+                    text={searching ? t("explore.emptyChurchesSearch", { query: query.trim() }) : t("explore.emptyChurches")}
                   />
                 )}
               </Section>
@@ -825,13 +830,13 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                     onClick={() => onNavigate?.("churches")}
                     className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
                   >
-                    Open full directory
+                    {t("explore.openFullDirectory")}
                   </button>
                   <button
                     onClick={() => onNavigate?.("list-church")}
                     className="px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9]"
                   >
-                    List your church
+                    {t("explore.listYourChurch")}
                   </button>
                 </div>
               )}
@@ -841,7 +846,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           {/* ───────────── EVENTS ───────────── */}
           {activeTab === "events" && events && (
             <>
-              <Section icon={CalendarDays} title={searching ? `Events matching "${query.trim()}"` : "Upcoming Events"}>
+              <Section icon={CalendarDays} title={searching ? t("explore.eventsMatching", { query: query.trim() }) : t("explore.upcomingEvents")}>
                 {events.length > 0 ? (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {events.slice(0, 12).map((ev) => {
@@ -867,14 +872,14 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                               </div>
                             )}
                             <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[9px] font-bold uppercase tracking-wide text-white/90">
-                              {ev.is_online || ev.eventType === "online" ? "Online" : ev.eventType === "hybrid" ? "Hybrid" : ev.category}
+                              {ev.is_online || ev.eventType === "online" ? t("home.events.online") : ev.eventType === "hybrid" ? t("events.hybrid") : ev.category}
                             </span>
                           </div>
                           <div className="p-2.5">
                             <h4 className="text-[13px] font-bold text-white leading-snug line-clamp-1">{ev.title}</h4>
                             <p className="text-[11px] text-[#94A3B8] mt-1 flex items-center gap-1">
                               <MapPin size={10} className="shrink-0" />
-                              <span className="truncate">{[ev.city, ev.state].filter(Boolean).join(", ") || ev.location || "India"}</span>
+                              <span className="truncate">{[ev.city, ev.state].filter(Boolean).join(", ") || ev.location || t("explore.fallbackLocation")}</span>
                             </p>
                           </div>
                         </button>
@@ -884,7 +889,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                 ) : (
                   <CompactEmpty
                     icon={CalendarDays}
-                    text={searching ? `No events match "${query.trim()}".` : "No events published yet — check back soon."}
+                    text={searching ? t("explore.emptyEventsSearch", { query: query.trim() }) : t("explore.emptyEvents")}
                   />
                 )}
               </Section>
@@ -893,7 +898,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                   onClick={() => onNavigate?.("events")}
                   className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
                 >
-                  Open Events
+                  {t("explore.openEvents")}
                 </button>
               )}
             </>
@@ -928,13 +933,14 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
 /** Marketplace + Business Directory highlights — same curated data the
  *  Shop and Business Directory features render (no invented listings). */
 function MarketplaceHighlights({ onNavigate }: { onNavigate?: (view: string) => void }) {
+  const t = useTranslation();
   const { products, businesses } = useFeaturedPicks(6);
   if (products.length === 0 && businesses.length === 0) return null;
 
   return (
     <>
       {products.length > 0 && (
-        <Section icon={ShoppingBag} title="Christian Marketplace" seeAll="Open shop" onSeeAll={() => onNavigate?.("shop")}>
+        <Section icon={ShoppingBag} title={t("explore.christianMarketplace")} seeAll={t("explore.openShop")} onSeeAll={() => onNavigate?.("shop")}>
           <div className="flex gap-3 overflow-x-auto pb-1">
             {products.map((p) => (
               <button
@@ -972,7 +978,7 @@ function MarketplaceHighlights({ onNavigate }: { onNavigate?: (view: string) => 
       )}
 
       {businesses.length > 0 && (
-        <Section icon={Store} title="Business Directory" seeAll="Open directory" onSeeAll={() => onNavigate?.("business-directory")}>
+        <Section icon={Store} title={t("feature.businessDirectory.title")} seeAll={t("explore.openDirectory")} onSeeAll={() => onNavigate?.("business-directory")}>
           <div className="flex gap-3 overflow-x-auto pb-1">
             {businesses.map((b, i) => (
               <button

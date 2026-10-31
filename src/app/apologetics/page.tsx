@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import Link from "next/link";
 import { Search, Sparkles, MessageCircle, BookOpen } from "lucide-react";
 import { db } from "@/lib/db";
@@ -46,13 +47,10 @@ export default async function ApologeticsPage() {
       {/* Hero */}
       <section className="py-16 px-6 max-w-4xl mx-auto text-center">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
-          <Sparkles size={12} fill="currentColor" /> Apologetics
+          <Sparkles size={12} fill="currentColor" /> <T k="apologetics.title" />
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
-          Have questions about{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3]">
-            Christianity?
-          </span>
+          <T k="apologetics.page.h1" />
         </h1>
         <p className="text-base text-[#A09DB1] leading-relaxed max-w-2xl mx-auto mb-8">
           Explore thoughtful, Bible-grounded answers to difficult questions about God,
@@ -62,7 +60,7 @@ export default async function ApologeticsPage() {
 
       {/* Explore Topics */}
       <section className="py-8 px-6 max-w-5xl mx-auto">
-        <h2 className="text-xl font-bold text-white mb-4">Explore Topics</h2>
+        <h2 className="text-xl font-bold text-white mb-4"><T k="apologetics.page.exploreTopics" /></h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {CATEGORIES.map((cat) => (
             <Link
@@ -89,7 +87,7 @@ export default async function ApologeticsPage() {
                   <img src={featured.coverImageUrl} alt={featured.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
                   {/* FEATURED badge overlay */}
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#22C55E]/20 backdrop-blur-sm border border-[#22C55E]/40 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider">
-                    Featured
+                    <T k="common.featured" />
                   </div>
                 </div>
               ) : (
@@ -98,7 +96,7 @@ export default async function ApologeticsPage() {
                     <BookOpen size={48} className="text-[#475569]/50" />
                   </div>
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#22C55E]/20 backdrop-blur-sm border border-[#22C55E]/40 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider">
-                    Featured
+                    <T k="common.featured" />
                   </div>
                 </div>
               )}
@@ -114,7 +112,7 @@ export default async function ApologeticsPage() {
                 <h2 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#A78BFA] transition-colors">{featured.title}</h2>
                 {featured.excerpt && <p className="text-sm text-[#A09DB1] leading-relaxed line-clamp-2">{featured.excerpt}</p>}
                 <div className="flex items-center gap-2 mt-3 text-[10px] text-[#64748B]">
-                  {featured.authorName && <span>by {featured.authorName}</span>}
+                  {featured.authorName && <span><T k="apologetics.page.by" vars={{ author: featured.authorName }} /></span>}
                   {featured.publishedAt && (
                     <>
                       <span>·</span>
@@ -184,8 +182,8 @@ export default async function ApologeticsPage() {
       ) : (
         <section className="py-12 px-6 max-w-2xl mx-auto text-center">
           <BookOpen size={32} className="mx-auto text-[#475569] mb-3" />
-          <p className="text-sm text-[#94A3B8] mb-2">No apologetics articles published yet.</p>
-          <p className="text-xs text-[#64748B]">Articles are being prepared by Koino contributors. Check back soon.</p>
+          <p className="text-sm text-[#94A3B8] mb-2"><T k="apologetics.page.empty.title" /></p>
+          <p className="text-xs text-[#64748B]"><T k="apologetics.page.empty.desc" /></p>
         </section>
       )}
 
@@ -193,10 +191,10 @@ export default async function ApologeticsPage() {
       <section className="py-8 px-6 max-w-3xl mx-auto">
         <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-3xl p-6 text-center">
           <MessageCircle size={24} className="mx-auto text-[#A78BFA] mb-3" />
-          <h2 className="text-lg font-bold text-white mb-1">Still have a question?</h2>
-          <p className="text-xs text-[#A09DB1] mb-4">Submit your question and our team may address it in a future article.</p>
+          <h2 className="text-lg font-bold text-white mb-1"><T k="apologetics.page.ask.title" /></h2>
+          <p className="text-xs text-[#A09DB1] mb-4"><T k="apologetics.page.ask.body" /></p>
           <Link href="/contact?subject=Apologetics+Question" className="inline-block px-6 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all">
-            Ask Koino
+            <T k="apologetics.page.ask.cta" />
           </Link>
         </div>
       </section>
@@ -204,12 +202,12 @@ export default async function ApologeticsPage() {
       {/* Partner CTA */}
       <section className="py-8 px-6 max-w-3xl mx-auto">
         <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
-          <h2 className="text-sm font-bold text-white mb-1">Partner With Koino</h2>
+          <h2 className="text-sm font-bold text-white mb-1"><T k="apologetics.page.partner.title" /></h2>
           <p className="text-[11px] text-[#A09DB1] leading-relaxed mb-3">
             Are you a pastor, Bible teacher, apologist or Christian writer? Apply to become a Koino contributor and help Christians ask better questions, grow deeper in Scripture and explore the Christian faith.
           </p>
           <Link href="/partner" className="text-[#A78BFA] text-xs font-bold hover:text-white transition-colors">
-            Apply to Become a Contributor →
+            <T k="apologetics.page.partner.cta" />
           </Link>
         </div>
       </section>

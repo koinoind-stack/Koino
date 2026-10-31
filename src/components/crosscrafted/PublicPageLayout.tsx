@@ -5,10 +5,12 @@ import Link from "next/link";
 import KoinoFooter from "@/components/crosscrafted/KoinoFooter";
 import LanguageSwitcher from "@/components/crosscrafted/LanguageSwitcher";
 import { BRAND } from "@/lib/brand";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // Shared layout for public pages (about, contact, partner, support, help, blog)
 // Includes the Koino header + footer so all public pages feel like one platform.
 export default function PublicPageLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslation();
   return (
     <div className="min-h-screen bg-[#12101A] text-white flex flex-col">
       {/* Header */}
@@ -26,14 +28,14 @@ export default function PublicPageLayout({ children }: { children: React.ReactNo
             <h1 className="text-base font-black tracking-tight text-white">{BRAND.name}</h1>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-[#94A3B8]">
-            <Link href="/about" className="hover:text-white transition-colors">About</Link>
-            <Link href="/founder" className="hover:text-white transition-colors">Founder</Link>
-            <Link href="/videos" className="hover:text-white transition-colors">Bible Movies &amp; Videos</Link>
-            <Link href="/memorials" className="hover:text-white transition-colors">Memorials</Link>
-            <Link href="/blog" className="hover:text-white transition-colors">Blog</Link>
-            <Link href="/help" className="hover:text-white transition-colors">Help</Link>
-            <Link href="/partner" className="hover:text-white transition-colors">Partner</Link>
-            <Link href="/support" className="hover:text-white transition-colors">Support</Link>
+            <Link href="/about" className="hover:text-white transition-colors">{t("publicNav.about")}</Link>
+            <Link href="/founder" className="hover:text-white transition-colors">{t("publicNav.founder")}</Link>
+            <Link href="/videos" className="hover:text-white transition-colors">{t("footer.videos")}</Link>
+            <Link href="/memorials" className="hover:text-white transition-colors">{t("publicNav.memorials")}</Link>
+            <Link href="/blog" className="hover:text-white transition-colors">{t("publicNav.blog")}</Link>
+            <Link href="/help" className="hover:text-white transition-colors">{t("publicNav.help")}</Link>
+            <Link href="/partner" className="hover:text-white transition-colors">{t("publicNav.partner")}</Link>
+            <Link href="/support" className="hover:text-white transition-colors">{t("publicNav.support")}</Link>
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
@@ -41,7 +43,7 @@ export default function PublicPageLayout({ children }: { children: React.ReactNo
               href="/"
               className="px-5 py-2.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all hover:-translate-y-px"
             >
-              Enter Koino
+              {t("landing.cta.enterKoino")}
             </Link>
           </div>
         </div>

@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Flower2, Search, EyeOff, RotateCcw, ExternalLink, Trash2, Check, X, Pencil, Film } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type AdminMemorial = {
   id: string;
@@ -67,6 +68,7 @@ function parseGallery(json: string): string[] {
 }
 
 export default function MemorialsTab() {
+  const t = useTranslation();
   const [section, setSection] = useState<"memorials" | "videos">("memorials");
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
@@ -308,13 +310,13 @@ export default function MemorialsTab() {
           onClick={() => setSection("memorials")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${section === "memorials" ? "bg-[#7C3AED] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"}`}
         >
-          <Flower2 size={12} /> Memorials
+          <Flower2 size={12} /> {t("admin.memorials.tab.memorials")}
         </button>
         <button
           onClick={() => setSection("videos")}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${section === "videos" ? "bg-[#7C3AED] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"}`}
         >
-          <Film size={12} /> Video queue {videoStatus === "pending" && videos.length > 0 ? `(${videos.length})` : ""}
+          <Film size={12} /> {t("admin.memorials.tab.videoQueue")} {videoStatus === "pending" && videos.length > 0 ? `(${videos.length})` : ""}
         </button>
       </div>
 
@@ -326,7 +328,7 @@ export default function MemorialsTab() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search memorials by name…"
+                placeholder={t("admin.memorials.searchPlaceholder")}
                 className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
               />
             </div>
@@ -337,9 +339,9 @@ export default function MemorialsTab() {
             >
               <option value="">All statuses</option>
               <option value="pending">Pending review</option>
-              <option value="published">Published</option>
-              <option value="rejected">Rejected</option>
-              <option value="draft">Draft</option>
+              <option value="published">{t("common.status.published")}</option>
+              <option value="rejected">{t("common.status.rejected")}</option>
+              <option value="draft">{t("common.status.draft")}</option>
               <option value="unpublished">Unpublished</option>
               <option value="reported">Reported</option>
             </select>
@@ -352,7 +354,7 @@ export default function MemorialsTab() {
           ) : items.length === 0 ? (
             <div className="text-center py-16">
               <Flower2 size={26} className="mx-auto text-[#475569] mb-3" />
-              <p className="text-sm text-[#94A3B8]">No memorials found.</p>
+              <p className="text-sm text-[#94A3B8]">{t("admin.memorials.empty")}</p>
             </div>
           ) : (
             <ul className="space-y-2.5">
@@ -408,7 +410,7 @@ export default function MemorialsTab() {
                           disabled={busyId === m.id}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25 text-[11px] font-bold text-red-300 hover:bg-red-500/20 disabled:opacity-40"
                         >
-                          <X size={11} /> Reject
+                          <X size={11} /> {t("common.action.reject")}
                         </button>
                       )}
                       {m.status === "unpublished" ? (
@@ -417,7 +419,7 @@ export default function MemorialsTab() {
                           disabled={busyId === m.id}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-bold text-white hover:bg-white/10 disabled:opacity-40"
                         >
-                          <RotateCcw size={11} /> Restore
+                          <RotateCcw size={11} /> {t("admin.memorials.action.restore")}
                         </button>
                       ) : m.status === "published" ? (
                         <button
@@ -425,14 +427,14 @@ export default function MemorialsTab() {
                           disabled={busyId === m.id}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-bold text-white hover:bg-white/10 disabled:opacity-40"
                         >
-                          <EyeOff size={11} /> Unpublish
+                          <EyeOff size={11} /> {t("admin.memorials.action.unpublish")}
                         </button>
                       ) : null}
                       <button
                         onClick={() => setReviewing(m)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-bold text-white hover:bg-white/10"
                       >
-                        Review
+                        {t("admin.memorials.action.review")}
                       </button>
                     </div>
                   </div>
@@ -606,8 +608,8 @@ export default function MemorialsTab() {
                   <textarea value={editing.lifeStory} onChange={(e) => setEditing({ ...editing, lifeStory: e.target.value })} rows={4} maxLength={20000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#7C3AED]/50" />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={saveEdit} disabled={busyId === reviewing.id} className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] text-white text-[11px] font-bold disabled:opacity-40">Save correction</button>
-                  <button onClick={() => setEditing(null)} className="px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-bold text-white">Cancel</button>
+                  <button onClick={saveEdit} disabled={busyId === reviewing.id} className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] text-white text-[11px] font-bold disabled:opacity-40">{t("admin.memorials.saveCorrection")}</button>
+                  <button onClick={() => setEditing(null)} className="px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-bold text-white">{t("common.cancel")}</button>
                 </div>
               </div>
             ) : (

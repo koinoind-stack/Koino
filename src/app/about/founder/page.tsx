@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import { Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 
@@ -48,28 +49,28 @@ export default async function FounderPage() {
 
             {founder.whyIBuiltKoino && (
               <div>
-                <h2 className="text-lg font-bold text-white mb-3">Why I Built Koino</h2>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.why" /></h2>
                 <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.whyIBuiltKoino}</p>
               </div>
             )}
 
             {founder.vision && (
               <div>
-                <h2 className="text-lg font-bold text-white mb-3">My Vision for Koino</h2>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.vision" /></h2>
                 <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.vision}</p>
               </div>
             )}
 
             {founder.mission && (
               <div>
-                <h2 className="text-lg font-bold text-white mb-3">Mission</h2>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.mission" /></h2>
                 <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.mission}</p>
               </div>
             )}
 
             {founder.founderMessage && (
               <div>
-                <h2 className="text-lg font-bold text-white mb-3">A Message from the Founder</h2>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.message" /></h2>
                 <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.founderMessage}</p>
               </div>
             )}
@@ -80,7 +81,7 @@ export default async function FounderPage() {
                   href={`mailto:${founder.email}`}
                   className="px-6 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
                 >
-                  Contact Founder
+                  <T k="founderPage.contact" />
                 </a>
               </div>
             )}
@@ -96,11 +97,10 @@ export default async function FounderPage() {
             </div>
             <h1 className="text-2xl font-black text-white mb-2">Meet the Founder</h1>
             <p className="text-sm text-[#A09DB1] leading-relaxed max-w-md mx-auto mb-6">
-              The founder profile is being prepared. Please check back soon to learn the story
-              behind Koino and the vision that drives it.
+              <T k="founderPage.placeholder" />
             </p>
             <a href="/about" className="text-[#A78BFA] text-xs font-bold hover:text-white transition-colors">
-              ← Back to About Koino
+              <T k="founderPage.back" />
             </a>
           </div>
         )}

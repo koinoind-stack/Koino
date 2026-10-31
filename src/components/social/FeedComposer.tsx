@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import type { Post } from "./types";
 import { api } from "./types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 
 type Props = {
@@ -33,17 +34,20 @@ type Props = {
 
 type Viewer = { name: string | null; image: string | null; username: string | null };
 
+// Label is an i18n key — resolved with t() at render time so language
+// switches re-render (never call t() at module scope).
 const KINDS = [
-  { id: "prayer", label: "Prayer Request", icon: HeartHandshake, tag: "#prayerrequest" },
-  { id: "testimony", label: "Testimony", icon: Sparkles, tag: "#testimony" },
-  { id: "verse", label: "Verse Reflection", icon: BookOpen, tag: "#verse" },
-  { id: "question", label: "Faith Question", icon: HelpCircle, tag: "#question" },
-  { id: "announce", label: "Announcement", icon: Megaphone, tag: "#announcement" },
+  { id: "prayer", labelKey: "feed.kind.prayer", icon: HeartHandshake, tag: "#prayerrequest" },
+  { id: "testimony", labelKey: "feed.kind.testimony", icon: Sparkles, tag: "#testimony" },
+  { id: "verse", labelKey: "feed.kind.verse", icon: BookOpen, tag: "#verse" },
+  { id: "question", labelKey: "feed.kind.question", icon: HelpCircle, tag: "#question" },
+  { id: "announce", labelKey: "feed.kind.announce", icon: Megaphone, tag: "#announcement" },
 ] as const;
 
 const MAX_LEN = 2200;
 
 export default function FeedComposer({ onPosted, onOpenFull }: Props) {
+  const t = useTranslation();
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -85,11 +89,11 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
         body: JSON.stringify({ content, mediaType: "text" }),
       });
       onPosted(data.post);
-      toast.success("Shared with the Koino family");
+      toast.success(t("feed.shared"));
       setText("");
       setOpen(false);
     } catch (err) {
-      toast.error((err as Error).message || "Could not post right now");
+      toast.error((err as Error).message || t("feed.errorPost"));
     } finally {
       setPosting(false);
     }
@@ -111,14 +115,14 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
             onClick={() => setOpen(true)}
             className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-sm text-[#94A3B8] hover:border-[#7C3AED]/40 hover:text-white transition-all"
           >
-            What&apos;s on your heart?
+            {t("feed.whatsOnYourHeart")}
           </button>
           <button
             onClick={onOpenFull}
-            title="Share photos, a Reel or a video"
+            title={t("feed.openFullTitle")}
             className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-xs font-bold text-[#94A3B8] hover:text-white hover:border-[#7C3AED]/40 transition-all"
           >
-            <Images size={15} /> <span className="hidden sm:inline">Photo · Reel · Video</span>
+            <Images size={15} /> <span className="hidden sm:inline">{t("feed.openFullLabel")}</span>
           </button>
         </div>
       ) : (
@@ -141,13 +145,13 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
                 if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit();
               }}
               rows={3}
-              placeholder="What's on your heart? Share a prayer, testimony, verse or question…"
+              placeholder={t("feed.placeholder")}
               className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-white placeholder:text-[#64748B] py-1.5"
             />
             <button
               onClick={() => { setOpen(false); setText(""); }}
               className="text-[#64748B] hover:text-white transition-colors"
-              aria-label="Close composer"
+              aria-label={t("composer.closeAria")}
             >
               <X size={18} />
             </button>
@@ -155,7 +159,7 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
 
           {/* faith post-type chips */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 mt-2 pl-12">
-            {KINDS.map(({ id, label, icon: Icon, tag }) => {
+            {KINDS.map(({ id, labelKey, icon: Icon, tag }) => {
               const active = text.toLowerCase().includes(tag);
               return (
                 <button
@@ -167,7 +171,7 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
                       : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8] hover:text-white hover:border-[#7C3AED]/40"
                   }`}
                 >
-                  <Icon size={13} /> {label}
+                  <Icon size={13} /> {t(labelKey)}
                 </button>
               );
             })}
@@ -192,7 +196,7 @@ export default function FeedComposer({ onPosted, onOpenFull }: Props) {
                 ) : (
                   <Send size={15} />
                 )}
-                Post
+                {t("feed.postButton")}
               </button>
             </div>
           </div>

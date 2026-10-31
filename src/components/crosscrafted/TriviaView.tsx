@@ -165,14 +165,14 @@ export default function TriviaView() {
 
   const startQuiz = async () => {
     if (!selectedLevel || !selectedCategory) {
-      toast.error("Please select a level and category");
+      toast.error(t("triviaView.errors.selectLevelCategory"));
       return;
     }
 
     // EARN_POINTS mode requires auth
     if (gameMode === "EARN_POINTS" && !isAuthenticated) {
-      toast.error("Sign in required to earn Faith Points", {
-        description: "Switch to Practice Mode or sign in to start earning.",
+      toast.error(t("triviaView.errors.signInToEarn"), {
+        description: t("triviaView.errors.signInToEarnDesc"),
       });
       return;
     }
@@ -186,8 +186,8 @@ export default function TriviaView() {
       });
 
       if (!result.questions || result.questions.length === 0) {
-        toast.error("No questions available for this combination", {
-          description: "Try another level or category.",
+        toast.error(t("triviaView.errors.noQuestions"), {
+          description: t("triviaView.errors.noQuestionsDesc"),
         });
         return;
       }
@@ -210,12 +210,12 @@ export default function TriviaView() {
       });
 
       if (gameMode === "EARN_POINTS" && result.newCount < result.questions.length) {
-        toast(`Only ${result.newCount} new questions available`, {
-          description: `You'll earn points for ${result.newCount} new questions. The rest are already mastered.`,
+        toast(t("triviaView.partialNewTitle", { n: result.newCount }), {
+          description: t("triviaView.partialNewDesc", { n: result.newCount }),
         });
       }
     } catch (e: any) {
-      toast.error("Failed to start quiz", { description: e.message });
+      toast.error(t("triviaView.errors.startFailed"), { description: e.message });
     }
   };
 
@@ -281,7 +281,7 @@ export default function TriviaView() {
       // of scoring (idempotent), so anything in newlyAwarded is brand new.
       if (result.newlyAwarded?.length > 0) {
         result.newlyAwarded.forEach((b: { icon: string; name: string; description: string }) => {
-          toast.success(`${b.icon} Badge Unlocked: ${b.name}!`, { description: b.description });
+          toast.success(`${b.icon} ${t("triviaView.badgeUnlocked", { name: b.name })}`, { description: b.description });
         });
       }
 
@@ -297,9 +297,9 @@ export default function TriviaView() {
             import("@/lib/streaks").then(({ recordStreak }) => {
               const info = recordStreak("trivia_play");
               if (info.currentStreak === 1) {
-                toast("🔥 Trivia streak started!", { description: "Play daily to keep it alive." });
+                toast(t("triviaView.streakStarted"), { description: t("triviaView.streakStartedDesc") });
               } else if ([3, 7, 14, 30, 60, 90].includes(info.currentStreak)) {
-                toast.success(`🔥 ${info.currentStreak}-day trivia streak!`);
+                toast.success(t("triviaView.streakDays", { n: info.currentStreak }));
               }
             });
           }
@@ -307,17 +307,17 @@ export default function TriviaView() {
 
         // Show FP toast (non-blocking)
         if (result.totalPointsEarned > 0) {
-          toast.success(`+${result.totalPointsEarned} Faith Points earned!`, {
-            description: `Your verified balance: ${result.newTotalPoints} FP`,
+          toast.success(t("triviaView.fpEarnedToast", { n: result.totalPointsEarned }), {
+            description: t("triviaView.verifiedBalance", { n: result.newTotalPoints }),
           });
         } else {
-          toast("0 Faith Points earned", {
-            description: "You've already mastered all these questions. Try Practice Mode or a different category.",
+          toast(t("triviaView.zeroFp"), {
+            description: t("triviaView.zeroFpDesc"),
           });
         }
       }
     } catch (e: any) {
-      toast.error("Failed to submit quiz", { description: e.message });
+      toast.error(t("triviaView.errors.submitFailed"), { description: e.message });
       setGameState("setup");
     } finally {
       setIsSubmitting(false); // Always release the lock
@@ -330,7 +330,7 @@ export default function TriviaView() {
     // Real numbers only: the image card renders the caller's OWN server-side
     // session record (type=trivia enforces ownership), never fabricated data.
     setShareReq({
-      heading: "Share your results",
+      heading: t("triviaView.shareHeading"),
       shareText: text,
       shareUrl: shareLinks.trivia(),
       cardUrl: submitResult.sessionId
@@ -342,9 +342,9 @@ export default function TriviaView() {
   };
 
   const inviteFriend = async () => {
-    const text = `Hey! Come play Bible Trivia with me on Koino. ${gameMode === "EARN_POINTS" ? "Earn Faith Points for new questions you answer correctly!" : ""}`;
+    const text = gameMode === "EARN_POINTS" ? t("triviaView.inviteText") : "Hey! Come play Bible Trivia with me on Koino.";
     setShareReq({
-      heading: "Invite friends",
+      heading: t("triviaView.inviteHeading"),
       shareText: text,
       shareUrl: shareLinks.trivia(),
       fileName: "koino-trivia-invite.png",
@@ -389,13 +389,13 @@ export default function TriviaView() {
           <LogIn size={18} className="text-[#38BDF8] shrink-0" />
           <div className="flex-1">
             <p className="text-xs font-bold text-white">{t("triviaView.signInPrompt")}</p>
-            <p className="text-[10px] text-[#A09DB1]">Practice Mode is available without signing in.</p>
+            <p className="text-[10px] text-[#A09DB1]">{t("triviaView.practiceNoAuth")}</p>
           </div>
           <a
             href="/auth/signin"
             className="px-3 py-1.5 rounded-lg bg-[#38BDF8] text-slate-950 text-xs font-bold hover:bg-[#0EA5E9] transition-all"
           >
-            Sign In
+            {t("rewards.signInButton")}
           </a>
         </div>
       )}
@@ -436,7 +436,7 @@ export default function TriviaView() {
 
                 {/* Mode toggle */}
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Quiz Mode</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("triviaView.setup.modeLabel")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setGameMode("EARN_POINTS")}
@@ -448,13 +448,13 @@ export default function TriviaView() {
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Trophy size={14} className={gameMode === "EARN_POINTS" ? "text-[#A78BFA]" : "text-[#94A3B8]"} />
-                        <p className="text-sm font-bold text-white">🎯 Earn Points</p>
+                        <p className="text-sm font-bold text-white">{t("triviaView.setup.earnCard")}</p>
                       </div>
                       <p className="text-[10px] text-[#94A3B8] leading-relaxed">
-                        New questions award Faith Points. Already-mastered questions give 0 FP.
+                        {t("triviaView.setup.earnCardDesc")}
                       </p>
                       {!isAuthenticated && (
-                        <p className="text-[9px] text-[#F59E0B] mt-1">⚠ Sign in required</p>
+                        <p className="text-[9px] text-[#F59E0B] mt-1">{t("triviaView.setup.signInRequired")}</p>
                       )}
                     </button>
                     <button
@@ -467,10 +467,10 @@ export default function TriviaView() {
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <BookOpen size={14} className={gameMode === "PRACTICE" ? "text-[#38BDF8]" : "text-[#94A3B8]"} />
-                        <p className="text-sm font-bold text-white">📖 Practice</p>
+                        <p className="text-sm font-bold text-white">{t("triviaView.setup.practiceCard")}</p>
                       </div>
                       <p className="text-[10px] text-[#94A3B8] leading-relaxed">
-                        Unlimited replays. No points earned. Learn freely.
+                        {t("triviaView.setup.practiceCardDesc")}
                       </p>
                     </button>
                   </div>
@@ -541,7 +541,7 @@ export default function TriviaView() {
 
                 {/* Quiz Length */}
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Quiz Length</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("triviaView.setup.length")}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[5, 10, 15].map((n) => (
                       <button
@@ -573,11 +573,11 @@ export default function TriviaView() {
                   }}
                 >
                   {api.loading ? (
-                    "Loading..."
+                    t("common.loading")
                   ) : (
                     <>
                       <Play size={16} fill="currentColor" />
-                      {gameMode === "EARN_POINTS" ? "Start Earning Points" : "Start Practice"}
+                      {gameMode === "EARN_POINTS" ? t("triviaView.setup.startEarn") : t("triviaView.setup.startPractice")}
                     </>
                   )}
                 </button>
@@ -589,11 +589,11 @@ export default function TriviaView() {
                 {/* Progress */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-white">
-                    Question {currentQ + 1} / {questions.length}
+                    {t("triviaView.playing.questionSlash", { n: currentQ + 1, total: questions.length })}
                   </span>
                   {gameMode === "EARN_POINTS" && newCount > 0 && (
                     <span className="text-[#22C55E] font-bold text-[10px]">
-                      {newCount} new · {totalCount - newCount} mastered
+                      {t("triviaView.playing.newMastered", { new: newCount, mastered: totalCount - newCount })}
                     </span>
                   )}
                 </div>
@@ -615,14 +615,14 @@ export default function TriviaView() {
                     />
                   </div>
                   <span className={`text-xs font-bold tabular-nums ${timeLeft <= 5 ? "text-[#EF4444]" : "text-[#94A3B8]"}`}>
-                    {timeLeft}s
+                    {t("triviaView.playing.timeLeft", { seconds: timeLeft })}
                   </span>
                 </div>
 
                 {/* Mode badge */}
                 {gameMode === "PRACTICE" && (
                   <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl px-3 py-1.5">
-                    <p className="text-[10px] font-bold text-[#38BDF8] uppercase tracking-wider">📖 Practice Mode — 0 FP</p>
+                    <p className="text-[10px] font-bold text-[#38BDF8] uppercase tracking-wider">{t("triviaView.playing.practiceBadge")}</p>
                   </div>
                 )}
 
@@ -697,7 +697,7 @@ export default function TriviaView() {
                       onClick={changeAnswer}
                       className="mt-2 text-[11px] text-[#94A3B8] hover:text-white transition-colors"
                     >
-                      ← Change answer
+                      {t("triviaView.playing.changeAnswer")}
                     </button>
                   )}
 
@@ -712,7 +712,7 @@ export default function TriviaView() {
                         {gameMode === "EARN_POINTS" && (
                           <div className="bg-[#7C3AED]/8 border border-[#7C3AED]/20 rounded-xl p-3 mb-2">
                             <p className="text-[10px] text-[#A09DB1]">
-                              Points will be calculated server-side after quiz submission.
+                              {t("triviaView.playing.serverScored")}
                             </p>
                           </div>
                         )}
@@ -720,17 +720,17 @@ export default function TriviaView() {
                           <div className="flex items-center gap-1.5 mb-1">
                             <Sparkles size={12} className="text-[#A78BFA]" />
                             <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
-                              {gameMode === "EARN_POINTS" ? "Answer Locked" : "Answer Selected"}
+                              {gameMode === "EARN_POINTS" ? t("triviaView.playing.answerLocked") : t("triviaView.playing.answerSelected")}
                             </p>
                           </div>
                           <p className="text-xs text-[#A09DB1] leading-relaxed">
                             {gameMode === "EARN_POINTS"
-                              ? "Your answer is locked. The correct answer and explanation will be revealed after you submit the quiz."
-                              : "Your answer is selected. Click Next to continue."}
+                              ? t("triviaView.playing.lockedDesc")
+                              : t("triviaView.playing.selectedDesc")}
                           </p>
                           {currentQuestion.scriptureReference && (
                             <p className="text-[10px] text-[#64748B] mt-1">
-                              Related Scripture: {currentQuestion.scriptureReference}
+                              {t("triviaView.playing.relatedScripture", { ref: currentQuestion.scriptureReference })}
                             </p>
                           )}
                         </div>
@@ -768,9 +768,9 @@ export default function TriviaView() {
                   <p className="text-sm text-[#94A3B8]">
                     {gameMode === "EARN_POINTS"
                       ? submitResult.totalPointsEarned > 0
-                        ? `You earned ${submitResult.totalPointsEarned} Faith Points!`
-                        : "No new points — you've already mastered these questions."
-                      : "Great practice session!"}
+                        ? t("triviaView.results.earnedLine", { n: submitResult.totalPointsEarned })
+                        : t("triviaView.results.noNewPoints")
+                      : t("triviaView.results.practiceLine")}
                   </p>
                 </div>
 
@@ -780,21 +780,21 @@ export default function TriviaView() {
                       <p className="text-2xl font-extrabold text-[#F59E0B]">
                         +{submitResult.totalPointsEarned}
                       </p>
-                      <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">FP Earned</p>
+                      <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.fpEarnedLabel")}</p>
                     </div>
                   )}
                   <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
                     <p className="text-2xl font-extrabold text-[#22C55E]">
                       {submitResult.correctCount}/{submitResult.totalQuestions}
                     </p>
-                    <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">Correct</p>
+                    <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.correctLabel")}</p>
                   </div>
                   {gameMode === "EARN_POINTS" && (
                     <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
                       <p className="text-2xl font-extrabold text-[#38BDF8]">
                         {submitResult.newTotalPoints}
                       </p>
-                      <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">Total FP</p>
+                      <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.totalFp")}</p>
                     </div>
                   )}
                 </div>
@@ -802,7 +802,7 @@ export default function TriviaView() {
                 {/* Question results breakdown */}
                 <div className="max-w-sm mx-auto text-left space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 text-center">
-                    Question Breakdown
+                    {t("triviaView.results.breakdown")}
                   </p>
                   {submitResult.questionResults.map((qr, i) => (
                     <div
@@ -823,11 +823,11 @@ export default function TriviaView() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] text-white line-clamp-1">{qr.question}</p>
                         {qr.pointsAwarded > 0 ? (
-                          <p className="text-[10px] text-[#22C55E] font-bold">+{qr.pointsAwarded} FP earned</p>
+                          <p className="text-[10px] text-[#22C55E] font-bold">{t("triviaView.results.fpEarnedRow", { n: qr.pointsAwarded })}</p>
                         ) : qr.alreadyScored ? (
-                          <p className="text-[10px] text-[#94A3B8]">✅ Already mastered (0 FP)</p>
+                          <p className="text-[10px] text-[#94A3B8]">{t("triviaView.results.alreadyMastered")}</p>
                         ) : (
-                          <p className="text-[10px] text-[#EF4444]">Incorrect (0 FP)</p>
+                          <p className="text-[10px] text-[#EF4444]">{t("triviaView.results.incorrect")}</p>
                         )}
                       </div>
                     </div>
@@ -839,7 +839,7 @@ export default function TriviaView() {
                     onClick={shareResults}
                     className="flex-1 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                   >
-                    <Share2 size={14} /> Share
+                    <Share2 size={14} /> {t("common.share")}
                   </button>
                   <button
                     onClick={resetGame}
@@ -852,20 +852,20 @@ export default function TriviaView() {
                 {gameMode === "EARN_POINTS" && (
                   <div className="max-w-sm mx-auto w-full space-y-2 pt-2">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] text-center">
-                      Challenge your friends
+                      {t("triviaView.results.challengeFriends")}
                     </p>
                     <div className="flex gap-2">
                       <button
                         onClick={inviteFriend}
                         className="flex-1 py-2.5 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/25 text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
                       >
-                        <UserPlus size={13} /> Invite Friend
+                        <UserPlus size={13} /> {t("triviaView.results.inviteFriend")}
                       </button>
                       <button
                         onClick={inviteFriend}
                         className="flex-1 py-2.5 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/25 text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
                       >
-                        <Users size={13} /> Invite Group
+                        <Users size={13} /> {t("triviaView.results.inviteGroup")}
                       </button>
                     </div>
                   </div>
@@ -890,6 +890,7 @@ export default function TriviaView() {
 // ─── LEADERBOARD TAB ──────────────────────────────────────────────────────────
 
 function LeaderboardTab() {
+  const t = useTranslation();
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -915,8 +916,8 @@ function LeaderboardTab() {
     return (
       <div className="text-center py-12">
         <Trophy size={32} className="mx-auto text-[#475569] mb-2" />
-        <p className="text-sm text-[#94A3B8]">No players on the leaderboard yet.</p>
-        <p className="text-[10px] text-[#64748B] mt-1">Be the first to earn Faith Points!</p>
+        <p className="text-sm text-[#94A3B8]">{t("triviaView.leaderboard.empty")}</p>
+        <p className="text-[10px] text-[#64748B] mt-1">{t("triviaView.leaderboard.emptyCta")}</p>
       </div>
     );
   }
@@ -924,7 +925,7 @@ function LeaderboardTab() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
       <p className="text-xs text-[#94A3B8] mb-3">
-        Real leaderboard — ranked by verified lifetime Faith Points from the server.
+        {t("triviaView.leaderboard.note")}
       </p>
       {leaderboard.map((u) => (
         <div
@@ -962,6 +963,7 @@ function LeaderboardTab() {
 // ─── STATS TAB ────────────────────────────────────────────────────────────────
 
 function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const t = useTranslation();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -987,12 +989,12 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
     return (
       <div className="text-center py-12">
         <Lock size={32} className="mx-auto text-[#475569] mb-3" />
-        <p className="text-sm text-[#94A3B8] mb-3">Sign in to view your verified stats</p>
+        <p className="text-sm text-[#94A3B8] mb-3">{t("triviaView.stats.signInPrompt")}</p>
         <a
           href="/auth/signin"
           className="inline-block px-6 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold"
         >
-          Sign In
+          {t("rewards.signInButton")}
         </a>
       </div>
     );
@@ -1015,7 +1017,7 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         <div className="flex items-center gap-2">
           <CheckCircle2 size={14} className="text-[#38BDF8] shrink-0" />
           <p className="text-[11px] text-[#A09DB1]">
-            Faith Points are now tracked securely. Your verified balance is shown above.
+            {t("triviaView.stats.migrationNote")}
           </p>
         </div>
       </div>
@@ -1026,22 +1028,22 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
             {stats.tier?.icon}
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-[#94A3B8]">Your Tier</p>
+            <p className="text-[10px] uppercase tracking-wider text-[#94A3B8]">{t("triviaView.stats.yourTier")}</p>
             <p className="text-lg font-extrabold text-white">{stats.tier?.title}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white/[0.04] rounded-xl p-3 text-center">
             <p className="text-xl font-extrabold text-[#F59E0B]">{stats.totalPoints}</p>
-            <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">Total FP</p>
+            <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.totalFp")}</p>
           </div>
           <div className="bg-white/[0.04] rounded-xl p-3 text-center">
             <p className="text-xl font-extrabold text-[#38BDF8]">{stats.gamesPlayed}</p>
-            <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">Quizzes</p>
+            <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.stats.quizzes")}</p>
           </div>
           <div className="bg-white/[0.04] rounded-xl p-3 text-center">
             <p className="text-xl font-extrabold text-[#EF4444]">{stats.bestStreak}</p>
-            <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">Best Streak</p>
+            <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.stats.bestStreak")}</p>
           </div>
         </div>
       </div>
@@ -1049,7 +1051,7 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       {/* Questions mastered */}
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-bold text-white">Questions Mastered</p>
+          <p className="text-xs font-bold text-white">{t("triviaView.stats.mastered")}</p>
           <span className="text-xs font-bold text-[#22C55E]">
             {stats.questionsScored} / {stats.totalQuestions}
           </span>
@@ -1061,7 +1063,7 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           />
         </div>
         <p className="text-[10px] text-[#94A3B8] mt-2">
-          {stats.totalQuestions - stats.questionsScored} questions remaining to earn points from.
+          {t("triviaView.stats.remaining", { n: stats.totalQuestions - stats.questionsScored })}
         </p>
       </div>
     </motion.div>
@@ -1106,12 +1108,12 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
         selectedVariations.length > 0
           ? ` · ${selectedVariations.map((v) => `${v.name}: ${v.value}`).join(", ")}`
           : "";
-      toast.success(`Claimed: ${title}!`, {
-        description: `Admin will contact you via WhatsApp.${variationSummary} Points spent: ${data.pointsSpent} FP.`,
+      toast.success(t("rewards.claimSuccess.title", { title }), {
+        description: t("rewards.claimSuccess.desc", { variations: variationSummary.trim(), points: data.pointsSpent }),
       });
       loadGifts();
     } catch (e: any) {
-      toast.error("Failed to claim gift", { description: e.message });
+      toast.error(t("triviaView.rewards.claimFailed"), { description: e.message });
     } finally {
       setClaiming(null);
     }
@@ -1119,7 +1121,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
 
   const handleClaim = (gift: any) => {
     if (!isAuthenticated) {
-      toast.error("Sign in required to claim gifts");
+      toast.error(t("triviaView.rewards.signInRequired"));
       return;
     }
     const variations = Array.isArray(gift.variations) ? gift.variations : [];
@@ -1185,7 +1187,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
       {!isAuthenticated && (
         <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 text-center">
           <p className="text-xs text-[#A09DB1]">
-            Sign in to redeem gifts. Your claims persist across devices.
+            {t("rewards.signInRequired")}
           </p>
           <a
             href="/auth/signin"
@@ -1219,11 +1221,13 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                   {gift.tier}
                 </span>
                 <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold">
-                  {gift.stock} left
+                  {t("common.left", { count: gift.stock })}
                 </span>
                 {hasVariations && (
                   <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-[#F59E0B]/90 text-slate-950 text-[8px] font-bold uppercase tracking-wider">
-                    {gift.variations.length} option{gift.variations.length > 1 ? "s" : ""}
+                    {gift.variations.length > 1
+                      ? t("rewards.optionsBadge", { count: gift.variations.length })
+                      : t("rewards.optionsBadgeSingular", { count: gift.variations.length })}
                   </span>
                 )}
               </div>
@@ -1251,7 +1255,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                 </div>
                 {isClaimed ? (
                   <div className="w-full py-2 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
-                    <CheckCircle2 size={11} /> Claimed
+                    <CheckCircle2 size={11} /> {t("rewards.claimed.label")}
                   </div>
                 ) : (
                   <button
@@ -1428,6 +1432,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
 // LIVE / UPCOMING / ENDED sections with prize info + user rank.
 
 function CompeteView() {
+  const t = useTranslation();
   const { isAuthenticated } = useSupabaseUser();
   const [competitions, setCompetitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1502,12 +1507,12 @@ function CompeteView() {
   const ended = competitions.filter((c) => c.status === "ended");
 
   const formatTimeRemaining = (ms: number) => {
-    if (ms <= 0) return "Ended";
+    if (ms <= 0) return t("triviaView.compete.ended");
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
     const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    if (days > 0) return `${days}d ${hours}h`;
+    if (days > 0) return t("triviaView.compete.timeLeftDH", { d: days, h: hours });
     const mins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${mins}m`;
+    return t("triviaView.compete.timeLeftHM", { h: hours, m: mins });
   };
 
   const renderCompetitionCard = (c: any) => (
@@ -1520,7 +1525,7 @@ function CompeteView() {
         <div className="relative h-32 bg-[#0f0f1a]">
           <img src={c.prize.imageUrl} alt={c.prize.name} className="w-full h-full object-contain" />
           <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#F59E0B] text-slate-950 text-[9px] font-bold uppercase tracking-wider">
-            🏆 Prize
+            {t("triviaView.compete.prizeBadge")}
           </div>
         </div>
       )}
@@ -1530,7 +1535,7 @@ function CompeteView() {
             <p className="text-[9px] font-bold uppercase tracking-wider text-[#F59B9B]">{c.type}</p>
             <h3 className="text-sm font-bold text-white leading-tight">{c.title}</h3>
             {c.hostGroup?.name && (
-              <p className="text-[10px] font-bold text-[#A78BFA] mt-0.5">Hosted by {c.hostGroup.name}</p>
+              <p className="text-[10px] font-bold text-[#A78BFA] mt-0.5">{t("triviaView.compete.hostedBy", { name: c.hostGroup.name })}</p>
             )}
           </div>
           <span
@@ -1554,29 +1559,29 @@ function CompeteView() {
         )}
 
         <div className="flex flex-wrap gap-2 text-[10px] text-[#94A3B8]">
-          <span className="flex items-center gap-0.5"><Clock size={9} /> {c.questionCount} Q</span>
+          <span className="flex items-center gap-0.5"><Clock size={9} /> {t("triviaView.compete.questionCountShort", { n: c.questionCount })}</span>
           <span>·</span>
           <span className="capitalize">{c.difficulty}</span>
           <span>·</span>
           <span className="capitalize">{c.category.replace("_", " ")}</span>
           <span>·</span>
-          <span>{c.participantCount} players</span>
+          <span>{t("triviaView.compete.players", { n: c.participantCount })}</span>
         </div>
 
         {c.status === "live" && (
           <p className="text-[10px] text-[#F59E0B] font-bold">
-            ⏱ Ends in {formatTimeRemaining(c.timeRemaining)}
+            {t("triviaView.compete.endsIn", { time: formatTimeRemaining(c.timeRemaining) })}
           </p>
         )}
 
         {/* User's rank if authenticated + has attempts */}
         {isAuthenticated && c.userBestScore !== null && (
           <div className="flex items-center gap-2 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-lg px-2 py-1">
-            <span className="text-[10px] font-bold text-[#A78BFA]">Your rank: #{c.userRank}</span>
+            <span className="text-[10px] font-bold text-[#A78BFA]">{t("triviaView.compete.yourRank", { rank: c.userRank })}</span>
             <span className="text-[10px] text-[#94A3B8]">·</span>
             <span className="text-[10px] text-[#94A3B8]">{c.userBestScore} pts</span>
             <span className="text-[10px] text-[#64748B] ml-auto">
-              {c.userAttemptsRemaining} attempt{c.userAttemptsRemaining === 1 ? "" : "s"} left
+              {t("triviaView.compete.attemptsLeft", { n: c.userAttemptsRemaining })}
             </span>
           </div>
         )}
@@ -1586,7 +1591,7 @@ function CompeteView() {
             onClick={() => setActiveCompetition({ id: c.id, title: c.title })}
             className="w-full py-2 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
           >
-            {c.userAttemptsUsed > 0 ? "Play Again" : "Enter Challenge"}
+            {c.userAttemptsUsed > 0 ? t("triviaView.results.playAgain") : t("triviaView.compete.enter")}
           </button>
         )}
         {c.status === "live" && isAuthenticated && c.userAttemptsRemaining === 0 && (
@@ -1594,7 +1599,7 @@ function CompeteView() {
             onClick={() => setLeaderboardCompetition(c.id)}
             className="w-full py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
           >
-            View Leaderboard
+            {t("triviaView.compete.viewLeaderboard")}
           </button>
         )}
         {c.status === "ended" && (
@@ -1602,15 +1607,15 @@ function CompeteView() {
             onClick={() => setLeaderboardCompetition(c.id)}
             className="w-full py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
           >
-            View Results
+            {t("triviaView.compete.viewResults")}
           </button>
         )}
         {c.status === "live" && !isAuthenticated && (
-          <p className="text-[10px] text-[#64748B] text-center">Sign in to participate</p>
+          <p className="text-[10px] text-[#64748B] text-center">{t("triviaView.compete.signInToParticipate")}</p>
         )}
         {c.status === "scheduled" && (
           <p className="text-[10px] text-[#38BDF8] font-bold">
-            📅 Starts {new Date(c.startAt).toLocaleDateString()}
+            {t("triviaView.compete.startsOn", { date: new Date(c.startAt).toLocaleDateString() })}
           </p>
         )}
       </div>
@@ -1626,13 +1631,13 @@ function CompeteView() {
             onClick={() => setShowHostForm(true)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
           >
-            <Trophy size={13} /> Host a Trivia
+            <Trophy size={13} /> {t("triviaView.host.button")}
           </button>
           <button
             onClick={() => setShowMine((v) => !v)}
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/10 text-white text-xs font-bold hover:bg-white/10 transition-all"
           >
-            My hosted
+            {t("triviaView.host.mine")}
           </button>
         </div>
       )}
@@ -1642,7 +1647,7 @@ function CompeteView() {
       {live.length > 0 && (
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E] mb-2 flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" /> Live Now
+            <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" /> {t("triviaView.compete.liveNow")}
           </p>
           <div className="space-y-3">{live.map(renderCompetitionCard)}</div>
         </div>
@@ -1651,7 +1656,7 @@ function CompeteView() {
       {/* UPCOMING */}
       {upcoming.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-2">📅 Upcoming</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-2">{t("triviaView.compete.upcoming")}</p>
           <div className="space-y-3">{upcoming.map(renderCompetitionCard)}</div>
         </div>
       )}
@@ -1659,7 +1664,7 @@ function CompeteView() {
       {/* ENDED */}
       {ended.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-2">🏁 Ended</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-2">{t("triviaView.compete.endedSection")}</p>
           <div className="space-y-3">{ended.map(renderCompetitionCard)}</div>
         </div>
       )}
@@ -1668,9 +1673,9 @@ function CompeteView() {
       {competitions.length === 0 && (
         <div className="text-center py-12">
           <Trophy size={32} className="mx-auto text-[#475569] mb-3" />
-          <p className="text-sm text-[#94A3B8]">No competitions yet.</p>
+          <p className="text-sm text-[#94A3B8]">{t("triviaView.compete.empty")}</p>
           <p className="text-[11px] text-[#64748B] mt-1">
-            Koino Bible Challenges are coming soon. Keep practicing and earning Faith Points!
+            {t("triviaView.compete.emptyDesc")}
           </p>
         </div>
       )}
@@ -1703,6 +1708,15 @@ const HOST_CATEGORY_OPTIONS = [
   { id: "mixed", label: "Mixed" },
 ];
 
+// i18n: labels above are English source data — resolved to keys at render.
+const HOST_CATEGORY_KEYS: Record<string, string> = {
+  full_bible: "triviaView.setup.cat.full",
+  old_testament: "triviaView.setup.cat.ot",
+  new_testament: "triviaView.setup.cat.nt",
+  apologetics: "triviaView.setup.cat.apologetics",
+  mixed: "triviaView.host.mixed",
+};
+
 const HOST_DIFFICULTY_OPTIONS = [
   { id: "beginners", label: "Beginners" },
   { id: "intermediate", label: "Intermediate" },
@@ -1711,7 +1725,16 @@ const HOST_DIFFICULTY_OPTIONS = [
   { id: "mixed", label: "Mixed" },
 ];
 
+const HOST_DIFFICULTY_KEYS: Record<string, string> = {
+  beginners: "triviaView.setup.level.beginner",
+  intermediate: "triviaView.setup.level.intermediate",
+  skilled: "triviaView.setup.level.skilled",
+  expert: "triviaView.setup.level.expert",
+  mixed: "triviaView.host.mixed",
+};
+
 function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted: () => void }) {
+  const t = useTranslation();
   const [groups, setGroups] = useState<{ id: string; name: string; myRole: string | null }[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1745,13 +1768,13 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.groupId) return toast.error("Choose which group will host this trivia");
-    if (form.title.trim().length < 3) return toast.error("Give your trivia a title (3+ characters)");
-    if (!form.startAt || !form.endAt) return toast.error("Pick a start and end date/time");
+    if (!form.groupId) return toast.error(t("triviaView.host.errGroup"));
+    if (form.title.trim().length < 3) return toast.error(t("triviaView.host.errTitle"));
+    if (!form.startAt || !form.endAt) return toast.error(t("triviaView.host.errDates"));
     const start = new Date(form.startAt);
     const end = new Date(form.endAt);
-    if (end <= start) return toast.error("End must be after start");
-    if (start.getTime() < Date.now() - 5 * 60 * 1000) return toast.error("Start time cannot be in the past");
+    if (end <= start) return toast.error(t("triviaView.host.errEndBeforeStart"));
+    if (start.getTime() < Date.now() - 5 * 60 * 1000) return toast.error(t("triviaView.host.errPastStart"));
     setSaving(true);
     try {
       const res = await fetch("/api/trivia/competitions", {
@@ -1770,13 +1793,13 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to submit");
-      toast.success("Trivia submitted for review!", {
-        description: "It appears on the Compete board once the Koino team approves it.",
+      if (!res.ok) throw new Error(data.error || t("triviaView.host.submitFailed"));
+      toast.success(t("triviaView.host.submittedToast"), {
+        description: t("triviaView.host.submittedToastDesc"),
       });
       onHosted();
     } catch (err: any) {
-      toast.error(err.message || "Failed to submit");
+      toast.error(err.message || t("triviaView.host.submitFailed"));
     } finally {
       setSaving(false);
     }
@@ -1792,36 +1815,35 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
       <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <div>
-            <h2 className="font-extrabold text-white text-sm">Host a Trivia</h2>
-            <p className="text-[10px] text-[#64748B]">Run a quiz night for your group or church</p>
+            <h2 className="font-extrabold text-white text-sm">{t("triviaView.host.button")}</h2>
+            <p className="text-[10px] text-[#64748B]">{t("triviaView.host.subtitle")}</p>
           </div>
           <button onClick={onClose} className="text-[#94A3B8] text-sm font-bold px-2">
-            Done
+            {t("common.done")}
           </button>
         </div>
 
         <form onSubmit={submit} className="overflow-y-auto p-4 space-y-3">
           {loadingGroups ? (
-            <p className="text-xs text-[#94A3B8] text-center py-6">Loading your groups…</p>
+            <p className="text-xs text-[#94A3B8] text-center py-6">{t("triviaView.host.loadingGroups")}</p>
           ) : groups.length === 0 ? (
             <div className="text-center py-6 space-y-2">
-              <p className="text-sm font-bold text-white">You need a group to host trivia</p>
+              <p className="text-sm font-bold text-white">{t("triviaView.host.needGroup")}</p>
               <p className="text-[11px] text-[#94A3B8]">
-                Create a group (or become an admin/moderator of one) first. Churches can use a
-                church group so everyone knows who is hosting.
+                {t("triviaView.host.needGroupDesc")}
               </p>
               <a
                 href="/?view=groups"
                 className="inline-block mt-1 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
               >
-                Go to Groups
+                {t("triviaView.host.goToGroups")}
               </a>
             </div>
           ) : (
             <>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  Hosted by (your group) *
+                  {t("triviaView.host.hostedByLabel")}
                 </label>
                 <select
                   value={form.groupId}
@@ -1829,7 +1851,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
                   className={inputCls}
                   required
                 >
-                  <option value="">Choose a group…</option>
+                  <option value="">{t("triviaView.host.chooseGroup")}</option>
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.name} ({g.myRole})
@@ -1839,34 +1861,34 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  Title *
+                  {t("triviaView.host.titleLabel")}
                 </label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className={inputCls}
-                  placeholder="e.g. Grace Community Youth Quiz Night"
+                  placeholder={t("triviaView.host.titlePlaceholder")}
                   maxLength={120}
                   required
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  Description
+                  {t("triviaView.host.descriptionLabel")}
                 </label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className={`${inputCls} h-16 resize-none`}
-                  placeholder="What makes this trivia special?"
+                  placeholder={t("triviaView.host.descriptionPlaceholder")}
                   maxLength={1000}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Category
+                    {t("triviaView.host.category")}
                   </label>
                   <select
                     value={form.category}
@@ -1875,14 +1897,14 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
                   >
                     {HOST_CATEGORY_OPTIONS.map((o) => (
                       <option key={o.id} value={o.id}>
-                        {o.label}
+                        {t(HOST_CATEGORY_KEYS[o.id] ?? o.label)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Difficulty
+                    {t("triviaView.host.difficulty")}
                   </label>
                   <select
                     value={form.difficulty}
@@ -1891,7 +1913,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
                   >
                     {HOST_DIFFICULTY_OPTIONS.map((o) => (
                       <option key={o.id} value={o.id}>
-                        {o.label}
+                        {t(HOST_DIFFICULTY_KEYS[o.id] ?? o.label)}
                       </option>
                     ))}
                   </select>
@@ -1900,7 +1922,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Questions (5-15)
+                    {t("triviaView.host.questionsLabel")}
                   </label>
                   <input
                     type="number"
@@ -1915,7 +1937,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Starts *
+                    {t("triviaView.host.startsLabel")}
                   </label>
                   <input
                     type="datetime-local"
@@ -1927,7 +1949,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                    Ends *
+                    {t("triviaView.host.endsLabel")}
                   </label>
                   <input
                     type="datetime-local"
@@ -1940,26 +1962,25 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                  Rules (shown to players before joining)
+                  {t("triviaView.host.rulesLabel")}
                 </label>
                 <textarea
                   value={form.rules}
                   onChange={(e) => setForm({ ...form, rules: e.target.value })}
                   className={`${inputCls} h-16 resize-none`}
-                  placeholder="e.g. One attempt each. Top 3 on the leaderboard get shout-outs on Sunday."
+                  placeholder={t("triviaView.host.rulesPlaceholder")}
                   maxLength={2000}
                 />
               </div>
               <p className="text-[10px] text-[#64748B]">
-                Submissions are reviewed by the Koino team before going live — usually within a day.
-                One attempt per player, questions are drawn from the 800-question Koino bank.
+                {t("triviaView.host.reviewNote")}
               </p>
               <button
                 type="submit"
                 disabled={saving}
                 className="w-full py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold disabled:opacity-50"
               >
-                {saving ? "Submitting…" : "Submit for review"}
+                {saving ? t("triviaView.host.submitting") : t("triviaView.host.submitButton")}
               </button>
             </>
           )}
@@ -1974,6 +1995,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
 // with its review state instead of silently disappearing.
 
 function MyHostedCompetitions() {
+  const t = useTranslation();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -2001,33 +2023,35 @@ function MyHostedCompetitions() {
       : "bg-white/[0.06] text-[#64748B]";
 
   const statusLabel = (status: string) =>
-    status === "pending" ? "Pending review" : status === "cancelled" ? "Declined" : status;
+    status === "pending" ? t("triviaView.mine.pendingReview") : status === "cancelled" ? t("triviaView.mine.declined") : status;
 
   if (loading) {
-    return <p className="text-[11px] text-[#64748B] text-center py-2">Loading your hosted trivia…</p>;
+    return <p className="text-[11px] text-[#64748B] text-center py-2">{t("triviaView.mine.loading")}</p>;
   }
 
   if (rows.length === 0) {
     return (
       <p className="text-[11px] text-[#64748B] text-center py-2">
-        You haven&apos;t hosted any trivia yet. Tap <span className="font-bold text-white">Host a Trivia</span> to
-        create your first quiz night.
+        {t("triviaView.mine.empty")}
       </p>
     );
   }
 
   return (
     <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Your hosted trivia</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{t("triviaView.mine.title")}</p>
       {rows.map((c) => (
         <div key={c.id} className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-white truncate">{c.title}</p>
             <p className="text-[10px] text-[#64748B]">
               {c.hostGroup?.name ? `${c.hostGroup.name} · ` : ""}
-              {c.questionCount} questions · {new Date(c.startAt).toLocaleDateString()} →{" "}
-              {new Date(c.endAt).toLocaleDateString()}
-              {c.participantCount > 0 ? ` · ${c.participantCount} player${c.participantCount === 1 ? "" : "s"}` : ""}
+              {t("triviaView.mine.schedule", {
+                n: c.questionCount,
+                start: new Date(c.startAt).toLocaleDateString(),
+                end: new Date(c.endAt).toLocaleDateString(),
+              })}
+              {c.participantCount > 0 ? ` · ${t("triviaView.mine.players", { n: c.participantCount })}` : ""}
             </p>
           </div>
           <span

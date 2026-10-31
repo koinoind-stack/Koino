@@ -19,6 +19,7 @@ import {
   formatINR,
   validateDonationAmount,
 } from "@/lib/founder";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 /**
  * Voluntary donation card (Google Pay / UPI intent).
@@ -36,6 +37,7 @@ import {
 type Status = "idle" | "opening" | "initiated";
 
 export default function DonationCard() {
+  const t = useTranslation();
   const [selection, setSelection] = useState<number | "other" | null>(null);
   const [custom, setCustom] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -95,9 +97,9 @@ export default function DonationCard() {
   const copyUpiId = async () => {
     try {
       await navigator.clipboard.writeText(DONATION_CONFIG.upiId);
-      toast.success("UPI ID copied");
+      toast.success(t("donation.copied"));
     } catch {
-      toast.error(`Couldn't copy — UPI ID: ${DONATION_CONFIG.upiId}`);
+      toast.error(t("donation.error.copy", { upi: DONATION_CONFIG.upiId }));
     }
   };
 
@@ -117,7 +119,7 @@ export default function DonationCard() {
   const downloadQr = () => {
     const canvas = qrTileRef.current?.querySelector("canvas");
     if (!canvas) {
-      toast.error("QR isn't ready yet — please try again in a moment.");
+      toast.error(t("donation.qr.notReady"));
       return;
     }
     try {
@@ -129,9 +131,7 @@ export default function DonationCard() {
       a.click();
       a.remove();
     } catch {
-      toast.error(
-        "Couldn't generate the QR download — you can screenshot the code instead."
-      );
+      toast.error(t("donation.qr.downloadFailed"));
     }
   };
 
@@ -143,11 +143,10 @@ export default function DonationCard() {
             id="donate-heading"
             className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2"
           >
-            Support Koino&rsquo;s Mission
+            {t("donation.heading")}
           </h2>
           <p className="text-sm text-[#A09DB1]">
-            Choose an amount you&rsquo;re comfortable giving. Every contribution
-            is voluntary and appreciated.
+            {t("donation.subheading")}
           </p>
         </div>
 
@@ -159,11 +158,10 @@ export default function DonationCard() {
             </div>
             <div>
               <p className="text-sm font-black text-white">
-                Help Keep Koino Free
+                {t("donation.cardTitle")}
               </p>
               <p className="text-[11px] text-[#94A3B8]">
-                A community built on faith. Sustained by people who believe in
-                its mission.
+                {t("donation.cardSubtitle")}
               </p>
             </div>
           </div>
@@ -173,7 +171,7 @@ export default function DonationCard() {
               {/* Amount selection */}
               <fieldset className="mb-4" disabled={status === "opening"}>
                 <legend className="sr-only">
-                  Choose a donation amount (voluntary)
+                  {t("donation.legend")}
                 </legend>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {DONATION_CONFIG.presets.map((amt) => {
@@ -243,7 +241,7 @@ export default function DonationCard() {
                         selection === "other" ? "text-white" : "text-[#C9C5DA]"
                       }`}
                     >
-                      Other
+                      {t("donation.other")}
                     </span>
                   </label>
                 </div>
@@ -256,14 +254,14 @@ export default function DonationCard() {
                     htmlFor="custom-amount"
                     className="block text-xs font-bold text-[#94A3B8] mb-1.5"
                   >
-                    Enter your amount (₹)
+                    {t("donation.customLabel")}
                   </label>
                   <input
                     id="custom-amount"
                     type="text"
                     inputMode="decimal"
                     autoComplete="off"
-                    placeholder="e.g. 250"
+                    placeholder={t("donation.customPlaceholder")}
                     value={custom}
                     autoFocus
                     onChange={(e) => {
@@ -285,17 +283,9 @@ export default function DonationCard() {
               {/* Selected amount + payee (shown before payment) */}
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-4 flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-xs text-[#94A3B8]">
-                  {selectedAmount !== null ? (
-                    <>
-                      You&rsquo;re choosing to donate{" "}
-                      <span className="text-white font-black">
-                        {formatINR(selectedAmount)}
-                      </span>{" "}
-                      to
-                    </>
-                  ) : (
-                    "Choose an amount above to continue"
-                  )}
+                  {selectedAmount !== null
+                    ? t("donation.chosenAmount", { amt: formatINR(selectedAmount) })
+                    : t("donation.choosePrompt")}
                 </p>
                 <p className="text-xs font-bold text-white">
                   {DONATION_CONFIG.payeeName}{" "}
@@ -324,20 +314,16 @@ export default function DonationCard() {
               >
                 {status === "opening" ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Opening your
-                    UPI app&hellip;
+                    <Loader2 size={16} className="animate-spin" /> {t("donation.opening")}
                   </>
                 ) : (
                   <>
-                    <Smartphone size={16} /> Donate with Google Pay / UPI
+                    <Smartphone size={16} /> {t("donation.donate")}
                   </>
                 )}
               </button>
               <p className="text-[11px] text-[#726E88] text-center mt-2.5 leading-relaxed">
-                Securely continue to a compatible UPI payment app to make your
-                voluntary contribution. Works with Google Pay, PhonePe, Paytm
-                and any UPI app on Android. On a computer? Scan the QR code
-                below — or use the details under &ldquo;Pay manually&rdquo;.
+                {t("donation.helper")}
               </p>
 
               {/* Scan & Pay — QR built from the same single-source UPI builder */}
@@ -349,7 +335,7 @@ export default function DonationCard() {
                     aria-hidden="true"
                   />
                   <p className="text-xs font-black text-white">
-                    Scan &amp; Pay with any UPI app
+                    {t("donation.scanPay")}
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -358,8 +344,8 @@ export default function DonationCard() {
                     role="img"
                     aria-label={
                       selectedAmount !== null
-                        ? `UPI QR code to pay ${formatINR(selectedAmount)} to ${DONATION_CONFIG.payeeName} (${DONATION_CONFIG.upiId})`
-                        : `UPI QR code to pay any amount to ${DONATION_CONFIG.payeeName} (${DONATION_CONFIG.upiId})`
+                        ? t("donation.qr.ariaFixed", { amount: formatINR(selectedAmount), name: DONATION_CONFIG.payeeName, upi: DONATION_CONFIG.upiId })
+                        : t("donation.qr.ariaOpen", { name: DONATION_CONFIG.payeeName, upi: DONATION_CONFIG.upiId })
                     }
                     className="shrink-0 rounded-xl bg-white p-2.5"
                   >
@@ -375,33 +361,19 @@ export default function DonationCard() {
                   </div>
                   <div className="min-w-0 text-center sm:text-left">
                     <p className="text-xs text-[#A09DB1] leading-relaxed">
-                      {selectedAmount !== null ? (
-                        <>
-                          Scanning pays{" "}
-                          <span className="font-black text-white">
-                            {formatINR(selectedAmount)}
-                          </span>{" "}
-                          to {DONATION_CONFIG.payeeName}. Change the amount
-                          above and the QR updates.
-                        </>
-                      ) : (
-                        <>
-                          No amount fixed — you choose it in your UPI app after
-                          scanning. Pick an amount above to lock it into the
-                          QR.
-                        </>
-                      )}
+                      {selectedAmount !== null
+                        ? t("donation.qr.paysFixed", { amount: formatINR(selectedAmount), name: DONATION_CONFIG.payeeName })
+                        : t("donation.qr.paysOpen")}
                     </p>
                     <p className="text-[11px] text-[#726E88] mt-1.5 leading-relaxed">
-                      Point a phone camera or UPI app at the code. On this
-                      phone already? The Donate button above is faster.
+                      {t("donation.qr.howTo")}
                     </p>
                     <button
                       type="button"
                       onClick={downloadQr}
                       className="mt-2.5 px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-white inline-flex items-center gap-1.5 transition-colors"
                     >
-                      <Download size={13} /> Download QR
+                      <Download size={13} /> {t("donation.qr.download")}
                       {selectedAmount !== null
                         ? ` — ${formatINR(selectedAmount)}`
                         : ""}
@@ -409,27 +381,25 @@ export default function DonationCard() {
                   </div>
                 </div>
                 <p className="text-[10px] text-[#726E88] mt-3 leading-relaxed">
-                  The QR encodes the same UPI address as above — payments still
-                  happen entirely inside your own UPI app and Koino cannot
-                  verify them.
+                  {t("donation.qrNote")}
                 </p>
               </div>
 
               {/* Manual / desktop fallback */}
               <details className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
                 <summary className="cursor-pointer list-none px-4 py-3 text-xs font-bold text-[#94A3B8] hover:text-white transition-colors">
-                  Pay manually — UPI ID &amp; details
+                  {t("donation.manual.pay")}
                 </summary>
                 <div className="px-4 pb-4 pt-1 flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <p className="text-[11px] text-[#726E88]">
-                      Open any UPI app and pay to
+                      {t("donation.manual.open")}
                     </p>
                     <p className="text-sm font-black text-white select-all">
                       {DONATION_CONFIG.upiId}
                     </p>
                     <p className="text-[11px] text-[#726E88]">
-                      Payee: {DONATION_CONFIG.payeeName}
+                      {t("donation.manual.payee", { name: DONATION_CONFIG.payeeName })}
                     </p>
                   </div>
                   <button
@@ -437,7 +407,7 @@ export default function DonationCard() {
                     onClick={copyUpiId}
                     className="px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
                   >
-                    <Copy size={13} /> Copy UPI ID
+                    <Copy size={13} /> {t("donation.manual.copy")}
                   </button>
                 </div>
               </details>
@@ -449,18 +419,15 @@ export default function DonationCard() {
                 <HandHeart size={20} className="text-[#F59E0B]" />
               </div>
               <p className="text-sm font-black text-white mb-1.5">
-                Thank you for choosing to support Koino.
+                {t("donation.thanks")}
               </p>
               <p className="text-xs text-[#94A3B8] leading-relaxed max-w-md mx-auto">
-                If your UPI app opened, please complete the contribution there.
-                Koino cannot verify UPI payments automatically, so we
-                won&rsquo;t show a payment confirmation — if something went
-                wrong, you can simply try again.
+                {t("donation.postIntent")}
               </p>
               <div className="mt-4 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex items-center justify-between gap-3 flex-wrap text-left">
                 <div>
                   <p className="text-[11px] text-[#726E88]">
-                    Didn&rsquo;t open? Pay manually to
+                    {t("donation.didntOpen")}
                   </p>
                   <p className="text-sm font-black text-white select-all">
                     {DONATION_CONFIG.upiId}
@@ -471,7 +438,7 @@ export default function DonationCard() {
                   onClick={copyUpiId}
                   className="px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
                 >
-                  <Copy size={13} /> Copy UPI ID
+                  <Copy size={13} /> {t("donation.manual.copy")}
                 </button>
               </div>
               <button
@@ -479,7 +446,7 @@ export default function DonationCard() {
                 onClick={() => setStatus("idle")}
                 className="mt-4 text-xs font-bold text-[#F39B9B] hover:text-[#E27B7B] transition-colors"
               >
-                Choose another amount
+                {t("donation.chooseAnother")}
               </button>
             </div>
           )}
@@ -492,25 +459,22 @@ export default function DonationCard() {
               aria-hidden="true"
             />
             <span className="text-left sm:text-center">
-              Donations are completely voluntary. Koino is free for everyone,
-              whether you give or not. Your payment happens entirely inside
-              your own UPI app — Koino never sees or stores your UPI PIN,
-              passwords or banking credentials.
+              {t("donation.disclaimer")}
             </span>
           </p>
 
           {/* Bible verse — subtle and elegant */}
           <div className="mt-5 text-center">
             <p className="text-sm italic text-[#E8D9A0]/90">
-              &ldquo;God loves a cheerful giver.&rdquo;
+              &ldquo;{t("donation.verse")}&rdquo;
             </p>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F59E0B]/80 mt-1">
-              — 2 Corinthians 9:7
+              {t("donation.verseRef")}
             </p>
           </div>
 
           <p className="text-[11px] text-[#726E88] text-center mt-4">
-            Josh Govada · Founder of Koino.in
+            {t("donation.founderLine")}
           </p>
         </div>
       </div>

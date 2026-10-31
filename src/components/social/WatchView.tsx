@@ -35,6 +35,7 @@ import { getBook } from "@/lib/bible-data";
 import ReelsOverlay, { ReelsFeed } from "./ReelsView";
 import PostDetail from "./PostDetail";
 import { api, type Post } from "./types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type BibleRef = { bookId: string; chapterStart: number };
 
@@ -49,11 +50,11 @@ type Props = {
 
 type Tab = "foryou" | "reels" | "bible" | "christian";
 
-const TABS: Array<{ id: Tab; label: string; icon: typeof Film }> = [
+const TABS: Array<{ id: Tab; labelKey?: string; label: string; icon: typeof Film }> = [
   { id: "foryou", label: "For You", icon: Sparkles },
-  { id: "reels", label: "Reels", icon: Film },
-  { id: "bible", label: "Bible Movies & Stories", icon: BookOpen },
-  { id: "christian", label: "Christian Videos", icon: TvMinimalPlay },
+  { id: "reels", labelKey: "explore.tab.reels", label: "Reels", icon: Film },
+  { id: "bible", labelKey: "watch.tab.bible", label: "Bible Movies & Stories", icon: BookOpen },
+  { id: "christian", labelKey: "watch.tab.christian", label: "Christian Videos", icon: TvMinimalPlay },
 ];
 
 const BIBLE_CATEGORIES = [
@@ -65,6 +66,7 @@ const CHRISTIAN_CATEGORIES = [
 ] as const;
 
 export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, onHashtag }: Props) {
+  const t = useTranslation();
   const [tab, setTab] = useState<Tab>("foryou");
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [featured, setFeatured] = useState<VideoRow[]>([]);
@@ -165,10 +167,10 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           <h1 className="text-xl md:text-2xl font-black text-white tracking-tight inline-flex items-center gap-2">
-            <MonitorPlay size={22} className="text-[#C4B5FD]" /> Koino Watch
+            <MonitorPlay size={22} className="text-[#C4B5FD]" /> {t("watch.title")}
           </h1>
           <p className="text-xs md:text-sm text-[#94A3B8] mt-1">
-            Discover community reels, Bible movies &amp; stories, and Christian videos — one place to watch.
+            {t("watch.subtitle")}
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-2 shrink-0">
@@ -176,30 +178,30 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
             href="/videos"
             className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
           >
-            <Clapperboard size={13} /> Full library
+            <Clapperboard size={13} /> {t("watch.fullLibrary")}
           </a>
           <button
             onClick={onOpenComics}
             className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
           >
-            <Palette size={13} /> Bible Comics
+            <Palette size={13} /> {t("feature.comics.title")}
           </button>
         </div>
       </div>
 
       {/* ─── category tabs ─── */}
       <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-none">
-        {TABS.map((t) => (
+        {TABS.map((tb) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tb.id}
+            onClick={() => setTab(tb.id)}
             className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
-              tab === t.id
+              tab === tb.id
                 ? "bg-[#7C3AED] border-transparent text-white"
                 : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white hover:border-white/25"
             }`}
           >
-            <t.icon size={13} /> {t.label}
+            <tb.icon size={13} /> {tb.labelKey ? t(tb.labelKey) : tb.label}
           </button>
         ))}
       </div>
@@ -210,25 +212,25 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
           href="/videos"
           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD]"
         >
-          <Clapperboard size={12} /> Full library
+          <Clapperboard size={12} /> {t("watch.fullLibrary")}
         </a>
         <button
           onClick={onOpenComics}
           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD]"
         >
-          <Palette size={12} /> Bible Comics
+          <Palette size={12} /> {t("feature.comics.title")}
         </button>
       </div>
 
       {/* ─── library load error ─── */}
       {loadError && (
         <div className="flex flex-col items-center gap-3 py-10">
-          <p className="text-sm text-[#64748B]">Couldn&apos;t load the video library — check your connection.</p>
+          <p className="text-sm text-[#64748B]">{t("watch.loadError")}</p>
           <button
             onClick={load}
             className="px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9]"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       )}
@@ -245,7 +247,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               {featured.length > 0 && (
                 <div className="mb-6">
                   <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
-                    <Sparkles size={13} /> Featured
+                    <Sparkles size={13} /> {t("explore.featured")}
                   </h3>
                   <div className="flex gap-3 overflow-x-auto pb-1">
                     {featured.map((v) => (
@@ -261,13 +263,13 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2.5">
                     <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B]">
-                      <Film size={13} /> From the community
+                      <Film size={13} /> {t("watch.fromCommunity")}
                     </h3>
                     <button
                       onClick={() => setTab("reels")}
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]"
                     >
-                      See all <ChevronRight size={12} />
+                      {t("common.seeAll")} <ChevronRight size={12} />
                     </button>
                   </div>
                   <div className="flex gap-3 overflow-x-auto pb-1">
@@ -279,7 +281,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                           key={`reel-${p.id}`}
                           onClick={() => setFullscreenReels(true)}
                           className="group shrink-0 w-[120px] text-left"
-                          title={p.content || "Watch this reel"}
+                          title={p.content || t("watch.reelTitleFallback")}
                         >
                           <div className="relative aspect-[9/16] rounded-2xl overflow-hidden border border-white/[0.08] bg-[#1C1929] group-hover:border-[#7C3AED]/40 transition-colors">
                             {thumb ? (
@@ -298,7 +300,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                             <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between gap-1">
                               <span className="text-[10px] font-bold text-white truncate">
-                                @{p.author.username || p.author.name || "member"}
+                                @{p.author.username || p.author.name || t("watch.memberFallback")}
                               </span>
                               <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-white/90 shrink-0">
                                 <Heart size={9} fill="currentColor" /> {p.likeCount}
@@ -313,7 +315,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                     })}
                   </div>
                   <p className="text-[11px] text-[#64748B] mt-2">
-                    Short vertical videos shared by Koino members — tap any tile for the full-screen player.
+                    {t("watch.reelsHint")}
                   </p>
                 </div>
               )}
@@ -321,7 +323,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               {recentVideos.length > 0 && (
                 <div className="mb-2">
                   <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
-                    <MonitorPlay size={13} /> New in the library
+                    <MonitorPlay size={13} /> {t("watch.newInLibrary")}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {recentVideos.map((v) => (
@@ -335,8 +337,8 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               {!loadError && featured.length === 0 && communityReels.length === 0 && recentVideos.length === 0 && (
                 <EmptyLibrary
                   icon={MonitorPlay}
-                  title="Nothing to watch yet"
-                  body="Featured movies, new library videos and community reels will appear here as soon as they're available. Members can share a reel from the Create flow."
+                  title={t("watch.emptyTitle")}
+                  body={t("watch.emptyBody")}
                 />
               )}
             </>
@@ -347,13 +349,13 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
             <>
               <div className="flex items-center justify-between mb-2.5">
                 <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B]">
-                  <Film size={13} /> Vertical feed
+                  <Film size={13} /> {t("watch.verticalFeed")}
                 </h3>
                 <button
                   onClick={() => setFullscreenReels(true)}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]"
                 >
-                  <Maximize2 size={12} /> Full screen
+                  <Maximize2 size={12} /> {t("watch.fullScreen")}
                 </button>
               </div>
               <ReelsFeed
@@ -363,7 +365,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                 onOpenCreate={onOpenCreate}
               />
               <p className="text-[11px] text-[#64748B] mt-2 text-center">
-                Swipe up for the next reel · tap the video to pause
+                {t("watch.swipeHint")}
               </p>
             </>
           )}
@@ -374,7 +376,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               {bookChips.length > 0 && (
                 <div className="mb-4">
                   <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-2">
-                    <BookOpen size={13} /> By Bible Book
+                    <BookOpen size={13} /> {t("watch.byBook")}
                   </h3>
                   <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                     <button
@@ -385,7 +387,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                           : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
                       }`}
                     >
-                      All books
+                      {t("watch.allBooks")}
                     </button>
                     {bookChips.map((b) => (
                       <button
@@ -419,8 +421,8 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               ) : (
                 <EmptyLibrary
                   icon={BookOpen}
-                  title="No Bible movies or stories here yet"
-                  body="When Bible movies, chapter videos and animated stories are added to the library, they'll appear here — organised by book and story."
+                  title={t("watch.emptyBibleTitle")}
+                  body={t("watch.emptyBibleBody")}
                 />
               )}
             </>
@@ -443,8 +445,8 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               ) : (
                 <EmptyLibrary
                   icon={TvMinimalPlay}
-                  title="No Christian videos here yet"
-                  body="Worship, sermons, teachings and church-event videos will appear here as the library grows. Browse the full library in the meantime."
+                  title={t("watch.emptyChristianTitle")}
+                  body={t("watch.emptyChristianBody")}
                 />
               )}
             </>
@@ -457,7 +459,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
               href="/videos"
               className="mt-4 flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-4 py-3 text-sm text-[#94A3B8] hover:border-[#7C3AED]/40"
             >
-              <span>Browse the full Bible Movies &amp; Videos library</span>
+              <span>{t("watch.browseLibrary")}</span>
               <ChevronRight size={15} />
             </a>
           )}
@@ -500,6 +502,7 @@ function CategoryChips({
   active: string;
   onPick: (id: string) => void;
 }) {
+  const t = useTranslation();
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-none">
       <button
@@ -510,7 +513,7 @@ function CategoryChips({
             : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
         }`}
       >
-        All
+        {t("common.all")}
       </button>
       {categories.map((c) => (
         <button
@@ -538,6 +541,7 @@ function EmptyLibrary({
   title: string;
   body: string;
 }) {
+  const t = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-12 px-6 text-center rounded-2xl border border-dashed border-white/10">
       <Icon size={22} className="text-[#64748B]" />
@@ -547,7 +551,7 @@ function EmptyLibrary({
         href="/videos"
         className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#7C3AED] hover:text-[#A78BFA]"
       >
-        Open the video library <ChevronRight size={13} />
+        {t("watch.openLibrary")} <ChevronRight size={13} />
       </a>
     </div>
   );

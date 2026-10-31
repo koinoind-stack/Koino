@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CalendarDays, MapPin, TrendingUp, Users } from "lucide-react";
 import type { Post, SocialUser } from "./types";
 import { api } from "./types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   onOpenProfile: (username: string) => void;
@@ -86,6 +87,7 @@ function SectionCard({ title, icon: Icon, children, action }: {
 }
 
 export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, onOpenPassage }: Props) {
+  const t = useTranslation();
   const [suggested, setSuggested] = useState<SocialUser[]>([]);
   const [events, setEvents] = useState<FeedEvent[]>([]);
   const [trendTags, setTrendTags] = useState<{ tag: string; count: number }[]>([]);
@@ -140,7 +142,7 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
     <div className="flex flex-col gap-4">
       {/* ─── 1. PEOPLE TO FOLLOW ─── real suggested members; hidden when none */}
       {suggested.length > 0 && (
-        <SectionCard title="People to follow" icon={Users}>
+        <SectionCard title={t("feed.peopleToFollow")} icon={Users}>
           <div className="space-y-1">
             {suggested.map((u) => (
               <button
@@ -167,25 +169,25 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
       )}
 
       {/* ─── 2. DAILY BIBLE VERSE ─── real KJV scripture; opens the real reader */}
-      <SectionCard title="Daily Verse" icon={BookOpen}>
+      <SectionCard title={t("rail.dailyVerse")} icon={BookOpen}>
         <p className="text-[13px] text-white italic leading-relaxed mb-2">&ldquo;{verse.text}&rdquo;</p>
         <p className="text-[11px] font-bold text-[#A78BFA] mb-3">&mdash; {verse.ref} (KJV)</p>
         <button
           onClick={() => onOpenPassage(verse.bookId, verse.chapter)}
           className="w-full py-2 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-xs font-bold text-[#C4B5FD] hover:bg-[#7C3AED]/25 transition-colors"
         >
-          Read in Bible
+          {t("rail.readInBible")}
         </button>
       </SectionCard>
 
       {/* ─── 3. UPCOMING EVENTS ─── real PUBLISHED events; hidden when none */}
       {events.length > 0 && (
         <SectionCard
-          title="Upcoming Events"
+          title={t("explore.upcomingEvents")}
           icon={CalendarDays}
           action={
             <button onClick={onOpenEvents} className="text-[10px] font-bold text-[#A78BFA] hover:text-white transition-colors">
-              See all
+              {t("common.seeAll")}
             </button>
           }
         >
@@ -221,7 +223,7 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
 
       {/* ─── 4. TRENDING DISCUSSIONS ─── real hashtags from the trending feed */}
       {trendTags.length > 0 && (
-        <SectionCard title="Trending Discussions" icon={TrendingUp}>
+        <SectionCard title={t("rail.trendingDiscussions")} icon={TrendingUp}>
           <div className="space-y-1">
             {trendTags.map(({ tag, count }) => (
               <button
@@ -231,7 +233,7 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
               >
                 <span className="text-[13px] font-bold text-[#38BDF8] truncate">#{tag}</span>
                 <span className="text-[10px] text-[#64748B] shrink-0 ml-2">
-                  {count} {count === 1 ? "post" : "posts"}
+                  {t("rail.postsCount", { count })}
                 </span>
               </button>
             ))}

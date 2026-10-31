@@ -2,6 +2,7 @@
 
 import { Share2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 /**
  * CopyLinkButton — a client component that copies the current URL to clipboard.
@@ -14,6 +15,7 @@ import { useState } from "react";
  */
 export default function CopyLinkButton() {
   const [copied, setCopied] = useState(false);
+  const t = useTranslation();
 
   const handleCopy = () => {
     if (typeof navigator !== "undefined") {
@@ -29,7 +31,7 @@ export default function CopyLinkButton() {
       onClick={handleCopy}
       className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
     >
-      <Share2 size={12} /> {copied ? "Copied!" : "Copy Link"}
+      <Share2 size={12} /> {copied ? t("common.copied") : t("common.copyLink")}
     </button>
   );
 }
