@@ -154,9 +154,9 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
         body: JSON.stringify({ body: text.trim(), kind, ...(parentId ? { parentId } : {}) }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not post your message");
+      if (!res.ok) throw new Error(body.error || t("memorials.view.err.postMsg"));
       if (parentId) { setReplyMsg(""); setReplyTo(null); } else { setMsg(""); }
-      toast.success(parentId ? "Reply shared" : kind === "memory" ? "Memory shared" : "Condolence sent");
+      toast.success(parentId ? t("memorials.view.replySent") : kind === "memory" ? t("memorials.view.memorySent") : t("memorials.view.condolenceSent"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -183,7 +183,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
     try {
       const res = await fetch(`/api/memorials/${memorialId}/condolences/${cid}/heart`, { method: "POST" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not save your heart");
+      if (!res.ok) throw new Error(body.error || t("memorials.view.err.saveHeart"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -195,7 +195,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
 
   async function moderate(cid: string, action: "hide" | "unhide" | "delete") {
     if (busyId) return;
-    if (action === "delete" && !confirm("Remove this message permanently?")) return;
+    if (action === "delete" && !confirm(t("memorials.view.confirmRemoveMsg"))) return;
     setBusyId(cid);
     try {
       const res =
@@ -208,9 +208,9 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
-        throw new Error(b.error || "Action failed");
+        throw new Error(b.error || t("memorials.view.err.action"));
       }
-      toast.success(action === "delete" ? "Message removed" : action === "hide" ? "Message hidden" : "Message visible again");
+      toast.success(action === "delete" ? t("memorials.view.msgRemoved") : action === "hide" ? t("memorials.view.msgHidden") : t("memorials.view.msgVisible"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -221,12 +221,12 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
 
   async function deleteOwn(cid: string) {
     if (busyId) return;
-    if (!confirm("Delete your message?")) return;
+    if (!confirm(t("memorials.view.confirmDeleteMsg"))) return;
     setBusyId(cid);
     try {
       const res = await fetch(`/api/memorials/${memorialId}/condolences/${cid}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not delete your message");
-      toast.success("Your message was deleted");
+      if (!res.ok) throw new Error(t("memorials.view.err.deleteMsg"));
+      toast.success(t("memorials.view.msgDeleted"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -244,9 +244,9 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
-        throw new Error(b.error || "Could not report");
+        throw new Error(b.error || t("memorials.view.err.report"));
       }
-      toast.success("Report submitted. Thank you.");
+      toast.success(t("memorials.view.reported"));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -271,8 +271,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
   function share() {
     const m = data?.memorial;
     setShareReq({
-      heading: m ? `In loving memory of ${m.fullName}` : t("memorials.view.action.share"),
-      shareText: m ? `In loving memory of ${m.fullName} — ${m.tribute || "Remembered with love on Koino."}` : undefined,
+      heading: m ? t("memorials.view.shareHeadingName", { name: m.fullName }) : t("memorials.view.action.share"),
+      shareText: m ? t("memorials.view.shareText", { name: m.fullName, tribute: m.tribute || t("memorials.view.shareTextDefault") }) : undefined,
       shareUrl: shareLinks.memorial(memorialId),
       cardUrl: `/api/share-card?type=memorial&id=${encodeURIComponent(memorialId)}`,
       formats: ["portrait", "square"],
@@ -296,15 +296,15 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
   async function lightCandle() {
     if (candleBusy) return;
     if (!isAuthenticated) {
-      toast.error("Please sign in to light a candle");
+      toast.error(t("memorials.view.signinCandle"));
       return;
     }
     setCandleBusy(true);
     try {
       const res = await fetch(`/api/memorials/${memorialId}/candle`, { method: "POST" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not light the candle");
-      toast.success(data?.viewerLitCandle ? "Your candle is already burning" : "A candle has been lit in their memory");
+      if (!res.ok) throw new Error(body.error || t("memorials.view.err.candle"));
+      toast.success(data?.viewerLitCandle ? t("memorials.view.candleAlready") : t("memorials.view.candleLit"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -318,8 +318,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
     setCandleBusy(true);
     try {
       const res = await fetch(`/api/memorials/${memorialId}/candle`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not remove the candle");
-      toast.success("Candle removed");
+      if (!res.ok) throw new Error(t("memorials.view.err.removeCandle"));
+      toast.success(t("memorials.view.candleRemoved"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -330,13 +330,13 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
 
   async function shareToFeed() {
     if (sharing) return;
-    if (!confirm("Share a respectful announcement of this memorial in the Koino feed?")) return;
+    if (!confirm(t("memorials.view.confirmShareToFeed"))) return;
     setSharing(true);
     try {
       const res = await fetch(`/api/memorials/${memorialId}/share-feed`, { method: "POST" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not share");
-      toast.success("Announcement shared in the feed");
+      if (!res.ok) throw new Error(body.error || t("memorials.view.err.share"));
+      toast.success(t("memorials.view.feedShared"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -346,7 +346,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
 
   async function submitForReview() {
     if (submitting) return;
-    if (!confirm("Submit this memorial for review? A Koino admin will check it before it appears publicly.")) return;
+    if (!confirm(t("memorials.view.confirmSubmit"))) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/memorials/${memorialId}`, {
@@ -355,8 +355,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
         body: JSON.stringify({ status: "pending" }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Could not submit");
-      toast.success("Submitted for review");
+      if (!res.ok) throw new Error(body.error || t("memorials.view.err.submit"));
+      toast.success(t("memorials.view.submitted"));
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -366,7 +366,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
   }
 
   function removeVideo(vid: string) {
-    if (!confirm("Remove this video from the memorial?")) return;
+    if (!confirm(t("memorials.manage.confirmRemoveVideo"))) return;
     setBusyId(vid);
     fetch(`/api/memorials/${memorialId}/videos/${vid}`, { method: "DELETE" })
       .then(async (res) => {
@@ -448,7 +448,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             <button
               onClick={() => toggleHeart(c.id)}
               disabled={busyId === c.id || !isAuthenticated}
-              aria-label={c.likedByViewer ? "Remove your heart from this message" : "Send a heart for this message"}
+              aria-label={c.likedByViewer ? t("memorials.view.heartRemoveAria") : t("memorials.view.heartSendAria")}
               className={`text-[11px] font-bold inline-flex items-center gap-1 disabled:opacity-40 ${c.likedByViewer ? "text-[#F472B6]" : "text-[#64748B] hover:text-[#F472B6]"}`}
             >
               <Heart size={12} fill={c.likedByViewer ? "currentColor" : "none"} /> {c.heartCount}
@@ -501,7 +501,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
                   disabled={posting || replyMsg.trim().length < 2}
                   className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] text-white text-[11px] font-bold disabled:opacity-40"
                 >
-                  {posting ? t("memorials.view.composer.sending") : "Send reply"}
+                  {posting ? t("memorials.view.composer.sending") : t("memorials.view.sendReply")}
                 </button>
               </div>
             </div>
@@ -595,7 +595,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
           <p className="text-xs text-[#94A3B8] flex-1 leading-relaxed">
             {isDraft && t("memorials.view.banner.draft")}
             {isPending && t("memorials.view.banner.pending")}
-            {isRejected && `A Koino admin declined this version. Reason: ${m.rejectionReason || "No reason given"} — you can edit and submit it again.`}
+            {isRejected && t("memorials.view.banner.rejected", { reason: m.rejectionReason || t("memorials.view.noReason") })}
             {isUnpublished && t("memorials.view.banner.unpublished")}
           </p>
           {isDraft && (
@@ -641,7 +641,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             <button
               onClick={data.viewerLitCandle ? unlightCandle : lightCandle}
               disabled={candleBusy}
-              aria-label={data.viewerLitCandle ? "Your candle is lit — tap to remove it" : `Light a candle in memory of ${m.fullName}`}
+              aria-label={data.viewerLitCandle ? t("memorials.view.candleLitRemoveHint") : t("memorials.view.candleAriaLight", { name: m.fullName })}
               className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-40 ${
                 data.viewerLitCandle
                   ? "bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-amber-200"
@@ -704,7 +704,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             </a>
             <button
               onClick={() => setPlaying(null)}
-              aria-label="Close video player"
+              aria-label={t("memorials.view.closeVideoAria")}
               className="w-7 h-7 rounded-full bg-white/[0.05] flex items-center justify-center hover:bg-white/10 shrink-0"
             >
               <X size={13} className="text-white" />
@@ -750,7 +750,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             <div className="text-sm text-[#CBD5E1] leading-relaxed whitespace-pre-wrap">{m.lifeStory}</div>
           ) : (
             !m.tribute && (
-              <p className="text-sm text-[#64748B] italic">The life story will be added by the family.</p>
+              <p className="text-sm text-[#64748B] italic">{t("memorials.view.noLifeStory")}</p>
             )
           )}
           {!m.tribute && !m.lifeStory && (
@@ -852,8 +852,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             </div>
           ) : (
             <p className="text-xs text-[#64748B] text-center py-3">
-              <Link href="/auth/signin" className="text-[#C4B5FD] font-bold hover:text-white">Sign in</Link>
-              {" "}to leave a condolence or share a memory.
+              <Link href="/auth/signin" className="text-[#C4B5FD] font-bold hover:text-white">{t("memorials.view.signin")}</Link>
+              {" "}{t("memorials.view.signinPromptTail")}
             </p>
           )}
 
@@ -910,7 +910,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
       {data.managers.length > 0 && (
         <div className="mt-10 pt-5 border-t border-white/[0.05] text-center">
           <p className="text-[11px] text-[#64748B]">
-            {isManager ? "Managed by" : "This memorial is cared for by"}{" "}
+            {isManager ? t("memorials.view.managedBy") : t("memorials.view.caredForBy")}{" "}
             {data.managers.map((mm, i) => (
               <span key={mm.userId}>
                 {i > 0 && ", "}
@@ -930,7 +930,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
       {isAdmin && !isManager && (
         <div className="mt-4 rounded-xl bg-red-500/[0.05] border border-red-500/20 px-4 py-2.5 flex items-center gap-2">
           <ShieldAlert size={13} className="text-red-300" />
-          <p className="text-[11px] text-[#94A3B8]">You are viewing this memorial as a Koino administrator.</p>
+          <p className="text-[11px] text-[#94A3B8]">{t("memorials.view.adminViewBanner")}</p>
         </div>
       )}
 
