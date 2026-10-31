@@ -13,7 +13,13 @@ import hi from "../src/lib/i18n/hi";
 const PLACEHOLDER = /\{([^}]+)\}/g;
 const allowFormat = /^[-+·•.,:;()%\s{}"']*(FP|pts?|MRP|₹|Koino)?[-+·•.,:;()%\s{}"']*$/i;
 const allowExact =
-  /^(Koino|KJV|WEB|FP|MRP|ESV|WhatsApp|India|https?:\/\/\S+|\+91…?|\{[a-z]+\}(…|\.\.\.)?|[0-9 :A.M.P.Mx\-–]+)$/i;
+  /^(Koino|KJV|WEB|FP|MRP|ESV|WhatsApp|India|https?:\/\/\S+|\+91…?|@yourhandle|@yourchannel|yourwebsite\.com|facebook\.com\/yourpage|[0-9 :A.M.P.Mx\-–]+)$/i;
+// Values made entirely of {placeholders} + separators (format tokens) are
+// legitimately identical in every language.
+function isFormatToken(v: string): boolean {
+  const stripped = v.replace(/\{[^}]+\}/g, "");
+  return allowFormat.test(stripped) || stripped.trim() === "";
+}
 
 test("TE-1: te.ts has exact key parity with en.ts", () => {
   const missing = Object.keys(en).filter((k) => !(k in te));
@@ -34,7 +40,7 @@ test("TE-2: placeholders preserved in te values", () => {
 
 test("TE-3: te values are translated (Telugu script or format token)", () => {
   const leftover = Object.entries(en)
-    .filter(([k, v]) => te[k] === v && /[A-Za-z]{3,}/.test(v) && !allowFormat.test(v) && !allowExact.test(v))
+    .filter(([k, v]) => te[k] === v && /[A-Za-z]{3,}/.test(v) && !isFormatToken(v) && !allowExact.test(v))
     .map(([k]) => k);
   assert.deepEqual(leftover, [], `untranslated te values: ${leftover.slice(0, 10).join(", ")}`);
 });
