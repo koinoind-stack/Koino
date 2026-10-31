@@ -220,7 +220,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
     }
     if (sharing || !data) return;
     const caption = prompt(
-      "Share this video in the Koino feed? You can add a short message (optional):",
+      t("videos.watch.sharePrompt"),
       "",
     );
     if (caption === null) return; // cancelled
@@ -243,7 +243,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
 
   async function report() {
     const reason = prompt(
-      "Why are you reporting this video?\n\n- broken or unavailable link\n- inappropriate content\n- copyright concern\n\nDescribe briefly:",
+      t("videos.watch.reportPrompt"),
     );
     if (!reason?.trim()) return;
     try {
@@ -454,20 +454,20 @@ export default function VideoWatch({ slug }: { slug: string }) {
           </button>
         )}
         <div className="mt-3 pt-3 border-t border-white/[0.05] flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-[#64748B]">
-          {v.sourceName && <span><span className="text-[#94A3B8] font-bold">Source:</span> {v.sourceName}</span>}
-          <span><span className="text-[#94A3B8] font-bold">Audio:</span> {languageLabel(v.language)}</span>
+          {v.sourceName && <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.source")}</span> {v.sourceName}</span>}
+          <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.audio")}</span> {languageLabel(v.language)}</span>
           {subtitles.length > 0 && (
-            <span><span className="text-[#94A3B8] font-bold">Subtitles:</span> {subtitles.map(languageLabel).join(", ")}</span>
+            <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.subtitles")}</span> {subtitles.map(languageLabel).join(", ")}</span>
           )}
           {dubs.length > 0 && (
-            <span><span className="text-[#94A3B8] font-bold">Dubbed:</span> {dubs.map(languageLabel).join(", ")}</span>
+            <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.dubbed")}</span> {dubs.map(languageLabel).join(", ")}</span>
           )}
           {v.originalLanguage && (
-            <span><span className="text-[#94A3B8] font-bold">Original:</span> {languageLabel(v.originalLanguage)}</span>
+            <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.original")}</span> {languageLabel(v.originalLanguage)}</span>
           )}
-          {v.rightsNote && <span><span className="text-[#94A3B8] font-bold">Rights:</span> {v.rightsNote}</span>}
+          {v.rightsNote && <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.rights")}</span> {v.rightsNote}</span>}
           <a href={watchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#A78BFA] hover:text-white">
-            <Youtube size={12} /> Watch on YouTube
+            <Youtube size={12} /> {t("videos.watch.watchOnYoutube")}
           </a>
         </div>
       </div>
@@ -479,13 +479,13 @@ export default function VideoWatch({ slug }: { slug: string }) {
           disabled={sharing}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-[#C4C2D0] hover:text-white disabled:opacity-50"
         >
-          <Share2 size={13} /> {sharing ? "Sharing…" : "Share to Feed"}
+          <Share2 size={13} /> {sharing ? t("videos.watch.sharing") : t("videos.watch.shareToFeed")}
         </button>
         <button
           onClick={report}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-[#64748B] hover:text-white"
         >
-          <Flag size={13} /> Report
+          <Flag size={13} /> {t("videos.watch.report")}
         </button>
       </div>
 

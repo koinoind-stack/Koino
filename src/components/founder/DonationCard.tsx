@@ -99,7 +99,7 @@ export default function DonationCard() {
       await navigator.clipboard.writeText(DONATION_CONFIG.upiId);
       toast.success(t("donation.copied"));
     } catch {
-      toast.error(`Couldn't copy — UPI ID: ${DONATION_CONFIG.upiId}`);
+      toast.error(t("donation.error.copy", { upi: DONATION_CONFIG.upiId }));
     }
   };
 
@@ -119,7 +119,7 @@ export default function DonationCard() {
   const downloadQr = () => {
     const canvas = qrTileRef.current?.querySelector("canvas");
     if (!canvas) {
-      toast.error("QR isn't ready yet — please try again in a moment.");
+      toast.error(t("donation.qr.notReady"));
       return;
     }
     try {
@@ -131,9 +131,7 @@ export default function DonationCard() {
       a.click();
       a.remove();
     } catch {
-      toast.error(
-        "Couldn't generate the QR download — you can screenshot the code instead."
-      );
+      toast.error(t("donation.qr.downloadFailed"));
     }
   };
 
@@ -325,10 +323,7 @@ export default function DonationCard() {
                 )}
               </button>
               <p className="text-[11px] text-[#726E88] text-center mt-2.5 leading-relaxed">
-                Securely continue to a compatible UPI payment app to make your
-                voluntary contribution. Works with Google Pay, PhonePe, Paytm
-                and any UPI app on Android. On a computer? Scan the QR code
-                below — or use the details under &ldquo;Pay manually&rdquo;.
+                {t("donation.helper")}
               </p>
 
               {/* Scan & Pay — QR built from the same single-source UPI builder */}
@@ -349,8 +344,8 @@ export default function DonationCard() {
                     role="img"
                     aria-label={
                       selectedAmount !== null
-                        ? `UPI QR code to pay ${formatINR(selectedAmount)} to ${DONATION_CONFIG.payeeName} (${DONATION_CONFIG.upiId})`
-                        : `UPI QR code to pay any amount to ${DONATION_CONFIG.payeeName} (${DONATION_CONFIG.upiId})`
+                        ? t("donation.qr.ariaFixed", { amount: formatINR(selectedAmount), name: DONATION_CONFIG.payeeName, upi: DONATION_CONFIG.upiId })
+                        : t("donation.qr.ariaOpen", { name: DONATION_CONFIG.payeeName, upi: DONATION_CONFIG.upiId })
                     }
                     className="shrink-0 rounded-xl bg-white p-2.5"
                   >
@@ -366,26 +361,12 @@ export default function DonationCard() {
                   </div>
                   <div className="min-w-0 text-center sm:text-left">
                     <p className="text-xs text-[#A09DB1] leading-relaxed">
-                      {selectedAmount !== null ? (
-                        <>
-                          Scanning pays{" "}
-                          <span className="font-black text-white">
-                            {formatINR(selectedAmount)}
-                          </span>{" "}
-                          to {DONATION_CONFIG.payeeName}. Change the amount
-                          above and the QR updates.
-                        </>
-                      ) : (
-                        <>
-                          No amount fixed — you choose it in your UPI app after
-                          scanning. Pick an amount above to lock it into the
-                          QR.
-                        </>
-                      )}
+                      {selectedAmount !== null
+                        ? t("donation.qr.paysFixed", { amount: formatINR(selectedAmount), name: DONATION_CONFIG.payeeName })
+                        : t("donation.qr.paysOpen")}
                     </p>
                     <p className="text-[11px] text-[#726E88] mt-1.5 leading-relaxed">
-                      Point a phone camera or UPI app at the code. On this
-                      phone already? The Donate button above is faster.
+                      {t("donation.qr.howTo")}
                     </p>
                     <button
                       type="button"
@@ -441,10 +422,7 @@ export default function DonationCard() {
                 {t("donation.thanks")}
               </p>
               <p className="text-xs text-[#94A3B8] leading-relaxed max-w-md mx-auto">
-                If your UPI app opened, please complete the contribution there.
-                Koino cannot verify UPI payments automatically, so we
-                won&rsquo;t show a payment confirmation — if something went
-                wrong, you can simply try again.
+                {t("donation.postIntent")}
               </p>
               <div className="mt-4 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex items-center justify-between gap-3 flex-wrap text-left">
                 <div>
