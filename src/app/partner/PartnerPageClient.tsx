@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
@@ -40,63 +41,63 @@ const PARTNER_TYPES = [
 ];
 
 const PARTNER_KINDS = [
-  { icon: User, title: "Pastors", desc: "Shepherd God's people and share pastoral wisdom with the Koino community." },
-  { icon: Church, title: "Church Leaders", desc: "Lead congregations and bring your church into the wider Christian community." },
-  { icon: BookOpen, title: "Bible Teachers", desc: "Teach the Scriptures faithfully and equip believers to grow in the Word." },
-  { icon: Shield, title: "Apologists", desc: "Defend the faith with clarity, gentleness, and sound reasoning." },
-  { icon: Megaphone, title: "Evangelists", desc: "Proclaim the Gospel and equip others to share their faith boldly." },
-  { icon: PenTool, title: "Christian Authors", desc: "Write books, articles, and devotionals that build up the church." },
-  { icon: GraduationCap, title: "Theologians", desc: "Help believers think deeply and biblically about God, life, and culture." },
-  { icon: Users, title: "Ministry Leaders", desc: "Lead parachurch ministries and disciple believers across India." },
-  { icon: Music, title: "Worship Leaders", desc: "Lead God's people in worship and point them to Christ." },
-  { icon: Video, title: "Christian Content Creators", desc: "Create videos, audio, and digital content for the next generation." },
+  { icon: User, title: "partner.who.pastors.t", desc: "partner.who.pastors.d" },
+  { icon: Church, title: "partner.who.leaders.t", desc: "partner.who.leaders.d" },
+  { icon: BookOpen, title: "partner.who.teachers.t", desc: "partner.who.teachers.d" },
+  { icon: Shield, title: "partner.who.apologists.t", desc: "partner.who.apologists.d" },
+  { icon: Megaphone, title: "partner.who.evangelists.t", desc: "partner.who.evangelists.d" },
+  { icon: PenTool, title: "partner.who.authors.t", desc: "partner.who.authors.d" },
+  { icon: GraduationCap, title: "partner.who.theologians.t", desc: "partner.who.theologians.d" },
+  { icon: Users, title: "partner.who.ministry.t", desc: "partner.who.ministry.d" },
+  { icon: Music, title: "partner.who.worship.t", desc: "partner.who.worship.d" },
+  { icon: Video, title: "partner.who.creators.t", desc: "partner.who.creators.d" },
 ];
 
 const CONTRIBUTION_AREAS = [
-  { icon: PenTool, title: "Blog Articles", desc: "Thoughtful, Christ-centered writing on life, faith, and culture." },
-  { icon: Shield, title: "Apologetics", desc: "Reasoned defenses of the Christian faith and answers to tough questions." },
-  { icon: BookOpen, title: "Bible Studies", desc: "Verse-by-verse and topical studies that help believers understand Scripture." },
-  { icon: HeartHandshake, title: "Devotionals", desc: "Short, daily readings that encourage believers to walk closely with Jesus." },
-  { icon: ListChecks, title: "Christian Questions & Answers", desc: "Answer real questions from believers seeking biblical guidance." },
-  { icon: GraduationCap, title: "Teaching Content", desc: "Long-form teaching, courses, and explainers on doctrine and Christian living." },
+  { icon: PenTool, title: "partner.area.blog.t", desc: "partner.area.blog.d" },
+  { icon: Shield, title: "partner.area.apologetics.t", desc: "partner.area.apologetics.d" },
+  { icon: BookOpen, title: "partner.area.studies.t", desc: "partner.area.studies.d" },
+  { icon: HeartHandshake, title: "partner.area.devotionals.t", desc: "partner.area.devotionals.d" },
+  { icon: ListChecks, title: "partner.area.qa.t", desc: "partner.area.qa.d" },
+  { icon: GraduationCap, title: "partner.area.teaching.t", desc: "partner.area.teaching.d" },
 ];
 
 const WORKFLOW = [
   {
     icon: ClipboardList,
     step: "1",
-    title: "Submit Application",
-    desc: "Fill out the contributor application below. Tell us who you are, where you serve, and what you would like to write.",
+    title: "partner.step1.t",
+    desc: "partner.step1.d",
   },
   {
     icon: Eye,
     step: "2",
-    title: "Admin Review",
-    desc: "The Koino team reviews your application. Your application status moves from PENDING to UNDER_REVIEW during this stage.",
+    title: "partner.step2.t",
+    desc: "partner.step2.d",
   },
   {
     icon: BadgeCheck,
     step: "3",
-    title: "Approval",
-    desc: "If approved, you become a Koino Contributor. A contributor profile is created and you are notified by email.",
+    title: "partner.step3.t",
+    desc: "partner.step3.d",
   },
   {
     icon: KeyRound,
     step: "4",
-    title: "Receive Permissions",
-    desc: "An admin grants you specific permissions such as CAN_WRITE_ARTICLES, CAN_WRITE_BLOG, CAN_WRITE_APOLOGETICS, CAN_WRITE_BIBLE_STUDIES, CAN_WRITE_DEVOTIONALS, or CAN_ANSWER_QUESTIONS.",
+    title: "partner.step4.t",
+    desc: "partner.step4.d",
   },
   {
     icon: Sparkles,
     step: "5",
-    title: "Publish",
-    desc: "Submit draft articles, devotionals, or answers. Drafts go through a light admin review before they are published on Koino.",
+    title: "partner.step5.t",
+    desc: "partner.step5.d",
   },
 ];
 
 const EXPERTISE_OPTIONS = [
   "Bible Exposition",
-  "Apologetics",
+  "partner.area.apologetics.t",
   "Theology",
   "Church History",
   "Pastoral Care",
@@ -110,12 +111,12 @@ const EXPERTISE_OPTIONS = [
 ];
 
 const CONTENT_INTEREST_OPTIONS = [
-  "Blog Articles",
-  "Apologetics",
-  "Bible Studies",
-  "Devotionals",
+  "partner.area.blog.t",
+  "partner.area.apologetics.t",
+  "partner.area.studies.t",
+  "partner.area.devotionals.t",
   "Christian Q&A",
-  "Teaching Content",
+  "partner.area.teaching.t",
 ];
 
 type TabId = "inquiry" | "contributor";
@@ -123,6 +124,7 @@ type TabId = "inquiry" | "contributor";
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function PartnerPageClient() {
+  const t = useTranslation();
   const [tab, setTab] = useState<TabId>("inquiry");
 
   return (
@@ -130,12 +132,11 @@ export default function PartnerPageClient() {
       {/* Hero */}
       <section className="py-16 px-6 max-w-4xl mx-auto text-center">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
-          <BadgeCheck size={12} /> Partner With Koino
-        </div>
+          <BadgeCheck size={12} />{t("partner.badge")}</div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
           Help Christians Grow in Faith Through Your{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3]">
-            Teaching, Experience and Biblical Knowledge
+            {t("partner.tagline")}
           </span>
         </h1>
         <p className="text-base text-[#A09DB1] leading-relaxed max-w-2xl mx-auto mb-8">
@@ -148,7 +149,7 @@ export default function PartnerPageClient() {
       {/* Who Can Partner? */}
       <section className="py-12 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">Who Can Partner?</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">{t("partner.whoTitle")}</h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto">
             Koino is open to a wide range of Christian leaders, teachers, and creators who want to serve
             the broader body of Christ through their gifts and calling.
@@ -157,14 +158,14 @@ export default function PartnerPageClient() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {PARTNER_KINDS.map((p) => (
             <div
-              key={p.title}
+              key={t(p.title)}
               className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F39B9B]/20 transition-colors"
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 border border-white/[0.08] flex items-center justify-center mb-3">
                 <p.icon size={18} className="text-[#F39B9B]" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-1">{p.title}</h3>
-              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{p.desc}</p>
+              <h3 className="text-sm font-bold text-white mb-1">{t(p.title)}</h3>
+              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{t(p.desc)}</p>
             </div>
           ))}
         </div>
@@ -174,9 +175,8 @@ export default function PartnerPageClient() {
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#A78BFA] text-[10px] font-bold uppercase tracking-wider mb-3">
-            <FileText size={11} /> Contribution Areas
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">What You Can Write</h2>
+            <FileText size={11} />{t("partner.areasTitle")}</div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">{t("partner.areasSub")}</h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto">
             Contributors can write across a range of formats. Pick the areas where God has gifted you and
             where you feel called to serve the body of Christ.
@@ -184,12 +184,12 @@ export default function PartnerPageClient() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {CONTRIBUTION_AREAS.map((c) => (
-            <div key={c.title} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
+            <div key={t(c.title)} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
               <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
                 <c.icon size={18} className="text-[#A78BFA]" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-1">{c.title}</h3>
-              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{c.desc}</p>
+              <h3 className="text-sm font-bold text-white mb-1">{t(c.title)}</h3>
+              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{t(c.desc)}</p>
             </div>
           ))}
         </div>
@@ -199,9 +199,8 @@ export default function PartnerPageClient() {
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 text-[#38BDF8] text-[10px] font-bold uppercase tracking-wider mb-3">
-            <ListChecks size={11} /> How It Works
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">From Application to Publish</h2>
+            <ListChecks size={11} />{t("partner.howTitle")}</div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">{t("partner.howSub")}</h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto">
             Becoming a Koino Contributor is a simple, transparent process. Every application is reviewed
             by a real person before permissions are granted.
@@ -238,20 +237,15 @@ export default function PartnerPageClient() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">
-                  ✓ Koino Verified Contributor
+                  {t("partner.verifiedBadge")}
                 </span>
               </div>
-              <h3 className="text-base font-bold text-white mb-2">What verification means</h3>
+              <h3 className="text-base font-bold text-white mb-2">{t("partner.verifyTitle")}</h3>
               <p className="text-xs text-[#A09DB1] leading-relaxed">
-                A <span className="text-white font-semibold">&quot;Koino Verified Contributor&quot;</span> badge
-                means that Koino has reviewed and approved the contributor&apos;s application — including their
-                identity, church or ministry affiliation, and the areas in which they wish to write. It
-                signals that the contributor is a real person serving in a recognized capacity.
+                {t("partner.verifyA1")} <span className="text-white font-semibold">&quot;Koino Verified Contributor&quot;</span> {t("partner.verifyA2")}
               </p>
               <p className="text-xs text-[#A09DB1] leading-relaxed mt-2">
-                It does <span className="text-white font-semibold">not</span> mean that Koino endorses every
-                theological statement, opinion, or interpretation a contributor may publish. Readers are
-                encouraged to test everything against the Scriptures, just as the Bereans did (Acts 17:11).
+                {t("partner.verifyB1")} <span className="text-white font-semibold">{t("partner.verifyNot")}</span> {t("partner.verifyB2")}
               </p>
             </div>
           </div>
@@ -270,9 +264,7 @@ export default function PartnerPageClient() {
                 ? "bg-[#F39B9B] text-slate-950"
                 : "text-[#94A3B8] hover:text-white"
             }`}
-          >
-            Partnership Inquiry
-          </button>
+          >{t("partner.inquiryTitle")}</button>
           <button
             type="button"
             onClick={() => setTab("contributor")}
@@ -281,9 +273,7 @@ export default function PartnerPageClient() {
                 ? "bg-[#F39B9B] text-slate-950"
                 : "text-[#94A3B8] hover:text-white"
             }`}
-          >
-            Become a Contributor
-          </button>
+          >{t("partner.contributorTitle")}</button>
         </div>
 
         {tab === "inquiry" ? <PartnershipInquiryForm /> : <ContributorApplicationForm />}
@@ -295,6 +285,7 @@ export default function PartnerPageClient() {
 // ─── Partnership Inquiry form (existing flow, posts to /api/partner) ────────
 
 function PartnershipInquiryForm() {
+  const t = useTranslation();
   const [form, setForm] = useState({
     name: "",
     organization: "",
@@ -333,7 +324,7 @@ function PartnershipInquiryForm() {
   return (
     <div>
       <div className="text-center mb-6">
-        <h2 className="text-xl font-black text-white mb-1">Partnership Inquiry</h2>
+        <h2 className="text-xl font-black text-white mb-1">{t("partner.inquiryTitle")}</h2>
         <p className="text-xs text-[#A09DB1]">
           For churches, ministries, Christian businesses, sponsors, and organizations interested in
           partnering with Koino.
@@ -343,9 +334,9 @@ function PartnershipInquiryForm() {
       {sent ? (
         <div className="bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-2xl p-6 text-center">
           <Check size={32} className="mx-auto text-[#22C55E] mb-3" />
-          <p className="text-sm font-bold text-white mb-1">Thank you!</p>
+          <p className="text-sm font-bold text-white mb-1">{t("partner.thanks")}</p>
           <p className="text-xs text-[#94A3B8]">
-            Your partnership inquiry has been received. We&apos;ll be in touch soon.
+            {t("partner.inquiryDone")}
           </p>
           <button
             onClick={() => {
@@ -361,16 +352,12 @@ function PartnershipInquiryForm() {
               });
             }}
             className="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
-          >
-            Submit Another Inquiry
-          </button>
+          >{t("partner.anotherInquiry")}</button>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Name *
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.name")}</label>
             <input
               type="text"
               value={form.name}
@@ -380,9 +367,7 @@ function PartnershipInquiryForm() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Organization
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.org")}</label>
             <input
               type="text"
               value={form.organization}
@@ -391,9 +376,7 @@ function PartnershipInquiryForm() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Email *
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.email")}</label>
             <input
               type="email"
               value={form.email}
@@ -404,9 +387,7 @@ function PartnershipInquiryForm() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                Phone
-              </label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -415,9 +396,7 @@ function PartnershipInquiryForm() {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-                Website
-              </label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.website")}</label>
               <input
                 type="url"
                 value={form.website}
@@ -427,16 +406,14 @@ function PartnershipInquiryForm() {
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Partnership Type *
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.ptype")}</label>
             <select
               value={form.partnershipType}
               onChange={(e) => setForm({ ...form, partnershipType: e.target.value })}
               className="neo-input text-sm w-full"
               required
             >
-              <option value="">Select type</option>
+              <option value="">{t("partner.selectType")}</option>
               {PARTNER_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -445,9 +422,7 @@ function PartnershipInquiryForm() {
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Message *
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.message")}</label>
             <textarea
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
@@ -462,8 +437,7 @@ function PartnershipInquiryForm() {
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : (
               <>
-                <Send size={16} /> Submit Inquiry
-              </>
+                <Send size={16} />{t("partner.submitInquiry")}</>
             )}
           </button>
         </form>
@@ -475,6 +449,7 @@ function PartnershipInquiryForm() {
 // ─── Contributor Application form (posts to /api/contributor/apply) ─────────
 
 function ContributorApplicationForm() {
+  const t = useTranslation();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -547,12 +522,12 @@ function ContributorApplicationForm() {
     return (
       <div>
         <div className="text-center mb-6">
-          <h2 className="text-xl font-black text-white mb-1">Become a Contributor</h2>
-          <p className="text-xs text-[#A09DB1]">Your application has been received.</p>
+          <h2 className="text-xl font-black text-white mb-1">{t("partner.contributorTitle")}</h2>
+          <p className="text-xs text-[#A09DB1]">{t("partner.appReceived")}</p>
         </div>
         <div className="bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-2xl p-6 text-center">
           <Check size={32} className="mx-auto text-[#22C55E] mb-3" />
-          <p className="text-sm font-bold text-white mb-1">Application Submitted</p>
+          <p className="text-sm font-bold text-white mb-1">{t("partner.appSubmitted")}</p>
           <p className="text-xs text-[#94A3B8] leading-relaxed">
             Thank you for applying to become a Koino Contributor. Our team will review your application
             and respond by email. You can track your status (PENDING → UNDER_REVIEW → APPROVED) once your
@@ -579,9 +554,7 @@ function ContributorApplicationForm() {
               });
             }}
             className="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
-          >
-            Submit Another Application
-          </button>
+          >{t("partner.anotherApp")}</button>
         </div>
       </div>
     );
@@ -590,7 +563,7 @@ function ContributorApplicationForm() {
   return (
     <div>
       <div className="text-center mb-6">
-        <h2 className="text-xl font-black text-white mb-1">Become a Contributor</h2>
+        <h2 className="text-xl font-black text-white mb-1">{t("partner.contributorTitle")}</h2>
         <p className="text-xs text-[#A09DB1]">
           Apply to write blog articles, devotionals, apologetics, Bible studies, Q&amp;A, and teaching
           content for the Koino community.
@@ -599,9 +572,7 @@ function ContributorApplicationForm() {
 
       <form onSubmit={submit} className="space-y-3">
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-            Full Name *
-          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.fullName")}</label>
           <input
             type="text"
             value={form.fullName}
@@ -611,9 +582,7 @@ function ContributorApplicationForm() {
           />
         </div>
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-            Email *
-          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.email")}</label>
           <input
             type="email"
             value={form.email}
@@ -625,26 +594,22 @@ function ContributorApplicationForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Church / Ministry
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.churchMinistry")}</label>
             <input
               type="text"
               value={form.church}
               onChange={(e) => setForm({ ...form, church: e.target.value })}
-              placeholder="e.g. Grace Community Church"
+              placeholder={t("partner.ph.church")}
               className="neo-input text-sm w-full"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Church Role
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.churchRole")}</label>
             <input
               type="text"
               value={form.churchRole}
               onChange={(e) => setForm({ ...form, churchRole: e.target.value })}
-              placeholder="e.g. Pastor, Elder, Worship Leader"
+              placeholder={t("partner.ph.role")}
               className="neo-input text-sm w-full"
             />
           </div>
@@ -652,9 +617,7 @@ function ContributorApplicationForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              City
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.city")}</label>
             <input
               type="text"
               value={form.city}
@@ -663,9 +626,7 @@ function ContributorApplicationForm() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              State
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.state")}</label>
             <input
               type="text"
               value={form.state}
@@ -674,9 +635,7 @@ function ContributorApplicationForm() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Country
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.country")}</label>
             <input
               type="text"
               value={form.country}
@@ -687,21 +646,17 @@ function ContributorApplicationForm() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-            Short Bio
-          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.shortBio")}</label>
           <textarea
             value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
-            placeholder="Tell us briefly about yourself, your faith journey, and your ministry."
+            placeholder={t("partner.ph.bio")}
             className="neo-input text-sm h-20 resize-none w-full"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">
-            Areas of Expertise
-          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("partner.expertise")}</label>
           <div className="flex flex-wrap gap-1.5">
             {EXPERTISE_OPTIONS.map((opt) => {
               const selected = form.expertise.includes(opt);
@@ -725,9 +680,7 @@ function ContributorApplicationForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Website
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.website")}</label>
             <input
               type="url"
               value={form.website}
@@ -737,27 +690,23 @@ function ContributorApplicationForm() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-              Social Links
-            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.socialLinks")}</label>
             <input
               type="text"
               value={form.socialLinks}
               onChange={(e) => setForm({ ...form, socialLinks: e.target.value })}
-              placeholder="Comma-separated URLs (YouTube, X, Instagram)"
+              placeholder={t("partner.ph.social")}
               className="neo-input text-sm w-full"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-            Why do you want to contribute? *
-          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.whyContribute")}</label>
           <textarea
             value={form.whyContribute}
             onChange={(e) => setForm({ ...form, whyContribute: e.target.value })}
-            placeholder="Share your heart for serving the Koino community through your writing."
+            placeholder={t("partner.ph.why")}
             className="neo-input text-sm h-24 resize-none w-full"
             required
           />
@@ -765,7 +714,7 @@ function ContributorApplicationForm() {
 
         <div>
           <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">
-            Content You&apos;d Like to Create
+            {t("partner.contentToCreate")}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {CONTENT_INTEREST_OPTIONS.map((opt) => {
@@ -789,14 +738,12 @@ function ContributorApplicationForm() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
-            Sample URL
-          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("partner.sampleUrl")}</label>
           <input
             type="url"
             value={form.sampleUrl}
             onChange={(e) => setForm({ ...form, sampleUrl: e.target.value })}
-            placeholder="A link to something you've written or taught"
+            placeholder={t("partner.ph.sample")}
             className="neo-input text-sm w-full"
           />
         </div>
@@ -810,8 +757,7 @@ function ContributorApplicationForm() {
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <>
-              <Send size={16} /> Submit Application
-            </>
+              <Send size={16} />{t("partner.submitApp")}</>
           )}
         </button>
       </form>
