@@ -33,14 +33,17 @@ import {
   Image as ImageIcon, FileDown, Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export type ShareFormat = "square" | "portrait" | "story" | "landscape";
 
-const FORMAT_LABELS: Record<ShareFormat, string> = {
-  square: "Square 1:1",
-  portrait: "Portrait 4:5",
-  story: "Story 9:16",
-  landscape: "Landscape",
+// format → i18n key. Resolved with t() at render time inside the component so
+// language switches re-render (never call t() at module scope).
+const FORMAT_KEYS: Record<ShareFormat, string> = {
+  square: "share.format.square",
+  portrait: "share.format.portrait",
+  story: "share.format.story",
+  landscape: "share.format.landscape",
 };
 
 export type ShareRequest = {
@@ -106,6 +109,7 @@ export default function ShareSheet({
   request: ShareRequest | null;
   onClose: () => void;
 }) {
+  const t = useTranslation();
   const open = !!request;
   const formats = useMemo<ShareFormat[]>(
     () => (request?.formats?.length ? request.formats : request?.cardUrl ? ["square"] : []),
@@ -173,12 +177,12 @@ export default function ShareSheet({
     if (cardError || !request?.cardUrl) return;
     const blob = await blobFromUrl(buildCardUrl(request.cardUrl, format));
     if (!blob) {
-      toast.error("Could not load the image");
+      toast.error(t("share.imageError"));
       return;
     }
     if (await nativeShareFiles(blob)) return;
     await downloadBlob(blob, fileName);
-    toast.success("Image downloaded", { description: "Attach it in the app you share to." });
+    toast.success(t("share.downloaded"), { description: t("share.downloadedDesc") });
   };
 
   const actionWhatsApp = () => {
@@ -201,8 +205,8 @@ export default function ShareSheet({
     if (blob && (await nativeShareFiles(blob))) return;
     if (blob) await downloadBlob(blob, fileName);
     if (text) await copyText(text);
-    toast.success("Image downloaded + caption copied", {
-      description: "Open Instagram and add the image from your gallery.",
+    toast.success(t("share.instagramDone"), {
+      description: t("share.instagramDoneDesc"),
     });
   };
 
@@ -210,21 +214,21 @@ export default function ShareSheet({
     if (!request?.cardUrl) return;
     const blob = await blobFromUrl(buildCardUrl(request.cardUrl, format));
     if (!blob) {
-      toast.error("Could not load the image");
+      toast.error(t("share.imageError"));
       return;
     }
     await downloadBlob(blob, fileName);
-    toast.success("Image downloaded");
+    toast.success(t("share.downloaded"));
   };
 
   const actionCopyText = async () => {
     if (!text) return;
-    if (await copyText(text)) toast.success("Copied!");
+    if (await copyText(text)) toast.success(t("share.copied"));
   };
 
   const actionCopyLink = async () => {
     if (!url) return;
-    if (await copyText(url)) toast.success("Link copied!");
+    if (await copyText(url)) toast.success(t("share.linkCopied"));
   };
 
   const actionDownloadOriginal = async () => {
@@ -232,7 +236,7 @@ export default function ShareSheet({
     const blob = await blobFromUrl(request.imageUrl);
     if (blob) {
       await downloadBlob(blob, request.imageLabel || "koino-original.png");
-      toast.success("Original image downloaded");
+      toast.success(t("share.originalDownloaded"));
     } else {
       window.open(request.imageUrl, "_blank");
     }
@@ -254,7 +258,7 @@ export default function ShareSheet({
           />
           <motion.div
             role="dialog"
-            aria-label={request.heading || "Share"}
+            aria-label={request.heading || t("churches.share")}
             className="relative w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-[#17141F] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5"
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -265,12 +269,12 @@ export default function ShareSheet({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Share2 size={16} className="text-[#A78BFA]" />
-                {request.heading || "Share"}
+                {request.heading || t("churches.share")}
               </h3>
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-white/5"
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X size={16} />
               </button>
@@ -291,7 +295,7 @@ export default function ShareSheet({
                             : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
                         }`}
                       >
-                        {FORMAT_LABELS[f]}
+                        {t(FORMAT_KEYS[f])}
                       </button>
                     ))}
                   </div>
@@ -300,14 +304,14 @@ export default function ShareSheet({
                   {loadingCard && (
                     <div className="flex flex-col items-center gap-2 py-8">
                       <Loader2 size={22} className="text-[#A78BFA] animate-spin" />
-                      <p className="text-[11px] text-[#94A3B8]">Creating image…</p>
+                      <p className="text-[11px] text-[#94A3B8]">{t("share.creating")}</p>
                     </div>
                   )}
                   {!loadingCard && cardError && (
                     <div className="flex items-center gap-2 py-6 px-4 text-center">
                       <AlertCircle size={15} className="text-[#F59E0B] shrink-0" />
                       <p className="text-[11px] text-[#94A3B8]">
-                        Image sharing isn&apos;t available for this — text and link still work.
+                        {t("share.unavailable")}
                       </p>
                     </div>
                   )}
@@ -315,7 +319,7 @@ export default function ShareSheet({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={previewUrl}
-                      alt="Share card preview"
+                      alt={t("share.previewAlt")}
                       className="w-full max-h-[46vh] object-contain"
                     />
                   )}
@@ -329,7 +333,7 @@ export default function ShareSheet({
                 <SheetButton
                   onClick={actionShareImage}
                   icon={loadingCard ? Loader2 : ImageIcon}
-                  label="Share Image"
+                  label={t("share.shareImage")}
                   primary
                   spin={loadingCard}
                 />
@@ -342,22 +346,21 @@ export default function ShareSheet({
                 <SheetButton onClick={actionInstagram} icon={InstagramIcon} label="Instagram" ig />
               )}
               {request.cardUrl && !cardError && (
-                <SheetButton onClick={actionDownloadCard} icon={Download} label="Download Image" />
+                <SheetButton onClick={actionDownloadCard} icon={Download} label={t("share.downloadImage")} />
               )}
               {request.imageUrl && (
                 <SheetButton
                   onClick={actionDownloadOriginal}
                   icon={FileDown}
-                  label={request.imageLabel || "Original Image"}
+                  label={request.imageLabel || t("share.originalImage")}
                 />
               )}
-              {text && <SheetButton onClick={actionCopyText} icon={Copy} label="Copy Text" />}
-              {url && <SheetButton onClick={actionCopyLink} icon={Link2} label="Copy Link" />}
+              {text && <SheetButton onClick={actionCopyText} icon={Copy} label={t("share.copyText")} />}
+              {url && <SheetButton onClick={actionCopyLink} icon={Link2} label={t("share.copyLink")} />}
             </div>
 
             <p className="text-[10px] text-[#64748B] mt-4 text-center leading-relaxed">
-              Links open the content on koino.in. Private or unpublished content
-              can&apos;t be shared.
+              {t("share.footerNote")}
             </p>
           </motion.div>
         </motion.div>

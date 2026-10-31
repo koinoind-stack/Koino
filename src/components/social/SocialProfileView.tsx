@@ -8,6 +8,7 @@ import type { Post, SocialUser } from "./types";
 import { api } from "./types";
 import PostDetail from "./PostDetail";
 import { formatCount } from "@/lib/social/format";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { resolvedCommunityRoleLabel } from "@/lib/community-roles";
 
 type Props = {
@@ -46,17 +47,20 @@ type ProfileData = {
   nextCursor: string | null;
 };
 
-/** Profile link chips (public, under the bio). Order + labels + icons. */
+/** Profile link chips (public, under the bio). Order + labels + icons.
+ *  i18nKey = dictionary key; label = literal fallback for strings that have
+ *  no key yet (Instagram/YouTube/Facebook are brand names anyway). */
 const PROFILE_LINKS: {
   key: "website" | "instagram" | "youtube" | "facebook" | "twitter";
+  i18nKey?: string;
   label: string;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
 }[] = [
-  { key: "website", label: "Website", Icon: Globe },
+  { key: "website", i18nKey: "profile.link.website", label: "Website", Icon: Globe },
   { key: "instagram", label: "Instagram", Icon: Instagram },
   { key: "youtube", label: "YouTube", Icon: Youtube },
   { key: "facebook", label: "Facebook", Icon: Facebook },
-  { key: "twitter", label: "X (Twitter)", Icon: Twitter },
+  { key: "twitter", i18nKey: "profile.link.twitter", label: "X (Twitter)", Icon: Twitter },
 ];
 
 /** Short chip label from a stored link: hostname, or @handle for platforms. */
@@ -74,6 +78,7 @@ function linkChipLabel(key: string, url: string): string {
 
 /** Instagram-style profile: header, counters, Posts/Reels/Saved tabs, grid. */
 export default function SocialProfileView({ username, onBack, onOpenProfile, onHashtag, onEditProfile }: Props) {
+  const t = useTranslation();
   const [data, setData] = useState<ProfileData | null>(null);
   const [tab, setTab] = useState<"posts" | "reels" | "saved">("posts");
   const [loading, setLoading] = useState(true);
@@ -196,22 +201,22 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
     // Fetch failed (or profile unavailable) — never render a blank page.
     return (
       <div className="max-w-[680px] mx-auto px-3 md:px-4 pt-20 pb-24 text-center">
-        <h2 className="text-lg font-bold text-white mb-1">Profile unavailable</h2>
+        <h2 className="text-lg font-bold text-white mb-1">{t("profile.unavailable")}</h2>
         <p className="text-sm text-[#94A3B8] mb-6">
-          We couldn&apos;t load this profile right now. Check your connection and try again.
+          {t("profile.unavailableBody")}
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={onBack}
             className="px-4 py-2 rounded-full bg-white/5 text-white text-sm font-semibold hover:bg-white/10"
           >
-            Back to home
+            {t("profile.backHome")}
           </button>
           <button
             onClick={() => load(tab)}
             className="px-4 py-2 rounded-full bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9]"
           >
-            Try again
+            {t("common.retry")}
           </button>
         </div>
       </div>
@@ -220,9 +225,9 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
 
   const gridPosts = data.posts;
   const tabs: Array<{ id: "posts" | "reels" | "saved"; label: string }> = [
-    { id: "posts", label: "Posts" },
-    { id: "reels", label: "Reels" },
-    ...(data.isSelf ? [{ id: "saved" as const, label: "Saved" }] : []),
+    { id: "posts", label: t("explore.tab.posts") },
+    { id: "reels", label: t("explore.tab.reels") },
+    ...(data.isSelf ? [{ id: "saved" as const, label: t("profile.tab.saved") }] : []),
   ];
 
   return (
@@ -271,15 +276,15 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
         <div className="flex gap-6 text-center">
           <div>
             <p className="text-lg font-extrabold text-white">{formatCount(data.counters.posts)}</p>
-            <p className="text-[11px] text-[#64748B]">posts</p>
+            <p className="text-[11px] text-[#64748B]">{t("profile.count.posts")}</p>
           </div>
           <button onClick={() => setFollowModal("followers")}>
             <p className="text-lg font-extrabold text-white">{formatCount(data.counters.followers)}</p>
-            <p className="text-[11px] text-[#64748B]">followers</p>
+            <p className="text-[11px] text-[#64748B]">{t("profile.count.followers")}</p>
           </button>
           <button onClick={() => setFollowModal("following")}>
             <p className="text-lg font-extrabold text-white">{formatCount(data.counters.following)}</p>
-            <p className="text-[11px] text-[#64748B]">following</p>
+            <p className="text-[11px] text-[#64748B]">{t("profile.count.following")}</p>
           </button>
         </div>
       </div>
@@ -290,10 +295,10 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           {data.user.name}
           {data.user.role === "admin" && (
             <span
-              title="Administrator"
+              title={t("profile.adminTitle")}
               className="shrink-0 px-1.5 py-px rounded bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
             >
-              Admin
+              {t("group.role.admin")}
             </span>
           )}
         </p>
@@ -310,7 +315,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           if (!roleLabel) return null;
           return (
             <span
-              title="Self-reported community role"
+              title={t("profile.communityRoleTitle")}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[11px] font-bold text-[#C4B5FD] mt-2.5"
             >
               <Church size={12} className="text-[#7C3AED]" />
@@ -319,9 +324,10 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           );
         })()}
         {(() => {
-          const links = PROFILE_LINKS.flatMap(({ key, label, Icon }) => {
+          const links = PROFILE_LINKS.flatMap(({ key, i18nKey, label, Icon }) => {
             const url = data.user[key];
-            return url ? [{ key, label, Icon, url }] : [];
+            const displayLabel = i18nKey ? t(i18nKey) : label;
+            return url ? [{ key, label: displayLabel, Icon, url }] : [];
           });
           if (links.length === 0) return null;
           return (
@@ -350,11 +356,11 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
         <div className="mb-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[11px] font-extrabold text-[#FCD34D]">
-              ⚡ {data.faith.points.toLocaleString()} FP
+              ⚡ {t("common.faithPoints", { count: data.faith.points.toLocaleString() })}
             </span>
             {data.faith.tier && (
               <span
-                title="Faith tier from earned points"
+                title={t("profile.tierTitle")}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[11px] font-bold text-[#C4B5FD]"
               >
                 {data.faith.tierIcon && <span>{data.faith.tierIcon}</span>}
@@ -367,7 +373,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
               {data.faith.badges.map((b) => (
                 <span
                   key={b.id}
-                  title={`${b.description} — unlocked ${new Date(b.unlockedAt).toLocaleDateString()}`}
+                  title={t("profile.badgeUnlockedTitle", { description: b.description, date: new Date(b.unlockedAt).toLocaleDateString() })}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-bold text-[#CBD5E1]"
                 >
                   <span aria-hidden>{b.icon}</span>
@@ -386,7 +392,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
             onClick={onEditProfile}
             className="flex-1 py-2.5 rounded-2xl bg-white/[0.06] border border-white/10 text-sm font-bold text-white hover:bg-white/10"
           >
-            Edit profile
+            {t("profile.edit")}
           </button>
         ) : (
           <button
@@ -398,7 +404,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
                 : "bg-[#7C3AED] text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]"
             }`}
           >
-            {data.viewerFollows ? "Following" : "Follow"}
+            {data.viewerFollows ? t("churches.following") : t("churches.follow")}
           </button>
         )}
       </div>
@@ -421,7 +427,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
       {/* grid */}
       {gridPosts.length === 0 ? (
         <p className="text-center text-sm text-[#64748B] py-14">
-          {tab === "saved" ? "Nothing saved yet." : tab === "reels" ? "No reels yet." : "No posts yet."}
+          {tab === "saved" ? t("profile.emptySaved") : tab === "reels" ? t("profile.emptyReels") : t("profile.emptyPosts")}
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-1 md:gap-2">
@@ -493,6 +499,7 @@ function FollowListModal({
   onClose: () => void;
   onOpenProfile: (username: string) => void;
 }) {
+  const t = useTranslation();
   const [users, setUsers] = useState<SocialUser[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -524,8 +531,8 @@ function FollowListModal({
     <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-sm max-h-[70vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-          <h2 className="font-extrabold text-white capitalize">{list}</h2>
-          <button onClick={onClose} className="text-[#94A3B8] text-sm font-bold">Done</button>
+          <h2 className="font-extrabold text-white capitalize">{t(list === "followers" ? "profile.followersHeading" : "profile.count.following")}</h2>
+          <button onClick={onClose} className="text-[#94A3B8] text-sm font-bold">{t("profile.done")}</button>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {users.map((u) => (
@@ -550,10 +557,10 @@ function FollowListModal({
           {loading && <p className="text-center text-xs text-[#64748B] py-4">Loading…</p>}
           {!loading && hasMore && (
             <button onClick={() => { const p = page + 1; setPage(p); load(p); }} className="w-full py-3 text-xs font-bold text-[#7C3AED]">
-              Load more
+              {t("profile.loadMore")}
             </button>
           )}
-          {!loading && users.length === 0 && <p className="text-center text-xs text-[#64748B] py-6">Nobody here yet.</p>}
+          {!loading && users.length === 0 && <p className="text-center text-xs text-[#64748B] py-6">{t("profile.nobodyYet")}</p>}
         </div>
       </div>
     </div>

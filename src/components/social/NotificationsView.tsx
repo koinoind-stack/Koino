@@ -6,6 +6,7 @@ import { Heart, MessageCircle, UserPlus, Repeat2, AtSign, Camera, CheckCheck, Bo
 import { toast } from "sonner";
 import type { NotificationItem } from "./types";
 import { api } from "./types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { timeAgo } from "@/lib/social/format";
 
 type Props = {
@@ -36,31 +37,34 @@ const ICONS: Record<string, { icon: typeof Heart; color: string }> = {
   apologetics_review: { icon: ShieldCheck, color: "text-[#34D399]" },
 };
 
-const LABELS: Record<string, string> = {
-  like: "liked your post",
-  comment: "commented on your post",
-  reply: "replied to you",
-  follow: "started following you",
-  mention: "mentioned you",
-  repost: "reposted your post",
-  story_reply: "replied to your story",
+// type → i18n key. Resolved with t() at render time inside the component so
+// language switches re-render (never call t() at module scope).
+const LABEL_KEYS: Record<string, string> = {
+  like: "notification.label.like",
+  comment: "notification.label.comment",
+  reply: "notification.label.reply",
+  follow: "notification.label.follow",
+  mention: "notification.label.mention",
+  repost: "notification.label.repost",
+  story_reply: "notification.label.storyReply",
   // Apologetics PART 2
-  apologetics_comment: "commented on your apologetics content",
-  apologetics_reply: "replied to your comment",
-  apologetics_reaction: "reacted to your apologetics content",
+  apologetics_comment: "notification.label.apologeticsComment",
+  apologetics_reply: "notification.label.apologeticsReply",
+  apologetics_reaction: "notification.label.apologeticsReaction",
   // Task 73
-  article_published: "published your article",
-  article_changes_requested: "requested changes on your article",
-  article_rejected: "rejected your article",
-  prayer_prayed: "prayed for your prayer request",
-  prayer_comment: "commented on your prayer request",
-  prayer_reply: "replied to your comment on a prayer request",
-  apologetics_submission: "submitted apologetics content for review",
-  apologetics_review: "reviewed your apologetics submission",
+  article_published: "notification.label.articlePublished",
+  article_changes_requested: "notification.label.articleChangesRequested",
+  article_rejected: "notification.label.articleRejected",
+  prayer_prayed: "notification.label.prayerPrayed",
+  prayer_comment: "notification.label.prayerComment",
+  prayer_reply: "notification.label.prayerReply",
+  apologetics_submission: "notification.label.apologeticsSubmission",
+  apologetics_review: "notification.label.apologeticsReview",
 };
 
 /** Notifications hub: 7 types, unread dots, mark-all-read, pagination. */
 export default function NotificationsView({ onOpenProfile, onOpenPost }: Props) {
+  const t = useTranslation();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -133,11 +137,11 @@ export default function NotificationsView({ onOpenProfile, onOpenPost }: Props) 
     <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-extrabold text-white">
-          Notifications{unreadCount > 0 && <span className="ml-2 text-xs font-bold text-[#EC4899]">· {unreadCount} new</span>}
+          Notifications{unreadCount > 0 && <span className="ml-2 text-xs font-bold text-[#EC4899]">{t("notifications.newCount", { count: unreadCount })}</span>}
         </h1>
         {unreadCount > 0 && (
           <button onClick={markAll} className="flex items-center gap-1.5 text-xs font-bold text-[#7C3AED] hover:text-white">
-            <CheckCheck size={14} /> Mark all read
+            <CheckCheck size={14} /> {t("notifications.markAllRead")}
           </button>
         )}
       </div>
@@ -147,7 +151,7 @@ export default function NotificationsView({ onOpenProfile, onOpenPost }: Props) 
           <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <p className="text-center text-sm text-[#64748B] py-16">No notifications yet. They'll show up here.</p>
+        <p className="text-center text-sm text-[#64748B] py-16">{t("notifications.empty")}</p>
       ) : (
         <div className="space-y-1">
           {items.map((n) => {
@@ -175,8 +179,8 @@ export default function NotificationsView({ onOpenProfile, onOpenPost }: Props) 
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] text-white">
-                    <span className="font-bold">{n.actor?.name || n.actor?.username || "Someone"}</span>{" "}
-                    <span className="text-[#94A3B8]">{LABELS[n.type] ?? n.type}</span>
+                    <span className="font-bold">{n.actor?.name || n.actor?.username || t("social.someone")}</span>{" "}
+                    <span className="text-[#94A3B8]">{LABEL_KEYS[n.type] ? t(LABEL_KEYS[n.type]) : n.type}</span>
                   </p>
                   <p className="text-[10px] text-[#64748B]">{timeAgo(n.createdAt)}</p>
                 </div>

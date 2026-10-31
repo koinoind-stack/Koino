@@ -10,10 +10,13 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
+// Module-scope on purpose — labels are i18n KEYS resolved with t() inside
+// the component (never call t() at module scope).
 export const REACTION_KINDS = [
-  { kind: "AMEN", emoji: "🙏", label: "Amen" },
-  { kind: "INSIGHTFUL", emoji: "💡", label: "Insightful" },
+  { kind: "AMEN", emoji: "🙏", labelKey: "reaction.amen" },
+  { kind: "INSIGHTFUL", emoji: "💡", labelKey: "reaction.insightful" },
 ] as const;
 
 export type EngagementCounts = { AMEN: number; INSIGHTFUL: number; comments: number };
@@ -36,11 +39,12 @@ export default function ReactionBar({
   compact?: boolean;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
+  const t = useTranslation();
 
   const toggle = async (kind: string) => {
     if (!isAuthenticated) {
-      toast.error("Please sign in to react", {
-        description: "Reactions are saved to your Koino account.",
+      toast.error(t("reaction.signInRequired"), {
+        description: t("reaction.signInDesc"),
       });
       return;
     }
@@ -53,10 +57,10 @@ export default function ReactionBar({
         body: JSON.stringify({ targetType, targetId, kind, react: !reacted }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Failed to react");
+      if (!res.ok) throw new Error(data?.error || t("reaction.error"));
       onChange(targetType, targetId, kind, data.reacted, data.count);
     } catch (e: any) {
-      toast.error(e?.message || "Failed to react");
+      toast.error(e?.message || t("reaction.error"));
     } finally {
       setBusy(null);
     }
@@ -64,14 +68,14 @@ export default function ReactionBar({
 
   return (
     <div className="flex items-center gap-1.5">
-      {REACTION_KINDS.map(({ kind, emoji, label }) => {
+      {REACTION_KINDS.map(({ kind, emoji, labelKey }) => {
         const mine = myReactions.includes(kind);
         return (
           <button
             key={kind}
             onClick={() => toggle(kind)}
             disabled={busy === kind}
-            title={label}
+            title={t(labelKey)}
             className={`flex items-center gap-1 rounded-lg font-bold transition-all disabled:opacity-50 ${
               compact ? "px-2 py-1 text-[10px]" : "px-2.5 py-1.5 text-[11px]"
             } ${
