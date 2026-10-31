@@ -38,6 +38,7 @@ import GroupForm, { type GroupFormValue } from "./GroupForm";
 import GroupEventForm from "./GroupEventForm";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type MemberUser = { id: string; name: string | null; username: string | null; image: string | null };
 
@@ -119,11 +120,19 @@ const GRADIENTS = [
 
 const EVENT_GRADIENTS = GRADIENTS;
 
-const ROLE_LABEL: Record<string, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  moderator: "Moderator",
-  member: "Member",
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  owner: "group.role.owner",
+  admin: "group.role.admin",
+  moderator: "group.role.moderator",
+  member: "post.member",
+};
+
+// i18n: tab id → translation key (falls back to the raw tab id, capitalised by CSS).
+const TAB_LABEL_KEYS: Record<string, string> = {
+  posts: "group.tab.posts",
+  members: "admin.tab.members",
+  events: "events.title",
+  about: "publicNav.about",
 };
 
 const MAX_IMAGES = 4;
@@ -133,6 +142,7 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 type MediaItem = { file: File; preview: string; isVideo: boolean };
 
 export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHashtag }: Props) {
+  const t = useTranslation();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [members, setMembers] = useState<Array<{ role: string; user: MemberUser }>>([]);
   const [pending, setPending] = useState<Array<{ id: string; user: MemberUser }>>([]);
@@ -175,14 +185,14 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
 
   function copyGroupLink() {
     navigator.clipboard?.writeText(groupLink).then(
-      () => toast.success("Group link copied — share it anywhere"),
-      () => toast.error("Could not copy the link"),
+      () => toast.success(t("group.linkCopied")),
+      () => toast.error(t("group.linkCopyError")),
     );
   }
 
   function shareGroupWhatsApp() {
     const text = group
-      ? `Join "${group.name}" on Koino — a Christian community app. ${groupLink}`
+      ? t("group.whatsappText", { name: group.name, link: groupLink })
       : groupLink;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
@@ -208,7 +218,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
       setViewerRole(d.viewer?.role ?? null);
       setRestricted(!!d.restricted);
     } catch (err) {
-      toast.error((err as Error).message || "Could not load this group");
+      toast.error((err as Error).message || t("group.loadError"));
     } finally {
       setLoading(false);
     }
@@ -255,10 +265,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
     try {
       const d = await api<{ status: string }>(`/api/social/groups/${groupId}/members`, { method: "POST" });
       setViewerStatus(d.status);
-      toast.success(d.status === "active" ? "Welcome to the group!" : "Request sent — the managers will review it");
+      toast.success(d.status === "active" ? t("group.joined") : t("group.requestSent"));
       loadGroup();
     } catch (err) {
-      toast.error((err as Error).message || "Could not join");
+      toast.error((err as Error).message || t("group.joinError"));
     } finally {
       setActing(false);
     }
@@ -271,11 +281,11 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
       await api(`/api/social/groups/${groupId}/members`, { method: "DELETE" });
       setViewerStatus(null);
       setViewerRole(null);
-      toast.success("You left the group");
+      toast.success(t("group.left"));
       loadGroup();
       loadPosts();
     } catch (err) {
-      toast.error((err as Error).message || "Could not leave");
+      toast.error((err as Error).message || t("group.leaveError"));
     } finally {
       setActing(false);
     }
@@ -287,10 +297,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         method: "PATCH",
         body: JSON.stringify({ action, userId }),
       });
-      toast.success(action === "approve" ? "Member approved" : "Removed");
+      toast.success(action === "approve" ? t("group.memberApproved") : t("group.memberRemoved"));
       loadGroup();
     } catch (err) {
-      toast.error((err as Error).message || "Action failed");
+      toast.error((err as Error).message || t("group.actionFailed"));
     }
   }
 
@@ -300,10 +310,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         method: "PATCH",
         body: JSON.stringify({ action: "setRole", userId, role }),
       });
-      toast.success(`Role updated — now ${ROLE_LABEL[role]}`);
+      toast.success(t("group.roleUpdated", { role: ROLE_LABEL_KEYS[role] ? t(ROLE_LABEL_KEYS[role]) : role }));
       loadGroup();
     } catch (err) {
-      toast.error((err as Error).message || "Could not change the role");
+      toast.error((err as Error).message || t("group.roleError"));
     }
   }
 
@@ -319,31 +329,31 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         const isVideo = f.type.startsWith("video/");
         if (isVideo) {
           if (next.some((m) => m.isVideo)) {
-            toast.error("A post can include only one video");
+            toast.error(t("group.errorOneVideo"));
             continue;
           }
           if (f.size > MAX_VIDEO_SIZE) {
-            toast.error("Video must be under 100 MB");
+            toast.error(t("group.errorVideoSize"));
             continue;
           }
           next.push({ file: f, preview: URL.createObjectURL(f), isVideo: true });
         } else if (/^image\/(jpeg|png|webp)$/.test(f.type)) {
           const imageCount = next.filter((m) => !m.isVideo).length;
           if (hasVideo) {
-            toast.error("Remove the video first to add photos");
+            toast.error(t("group.errorRemoveVideoFirst"));
             continue;
           }
           if (imageCount >= MAX_IMAGES) {
-            toast.error(`Up to ${MAX_IMAGES} photos per post`);
+            toast.error(t("group.errorTooManyPhotos"));
             continue;
           }
           if (f.size > MAX_IMAGE_SIZE) {
-            toast.error("Each photo must be under 10 MB");
+            toast.error(t("group.errorPhotoSize"));
             continue;
           }
           next.push({ file: f, preview: URL.createObjectURL(f), isVideo: false });
         } else {
-          toast.error("Use JPG, PNG or WEBP photos, or MP4/MOV/WebM video");
+          toast.error(t("group.errorMediaType"));
         }
       }
       return next;
@@ -361,7 +371,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
       body: JSON.stringify({ contentType: blob.type, size: blob.size, kind }),
     });
     const put = await fetch(res.uploadUrl, { method: "PUT", body: blob });
-    if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+    if (!put.ok) throw new Error(t("group.uploadFailedStatus", { status: put.status }));
     return res.publicUrl;
   }
 
@@ -383,9 +393,9 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
       setText("");
       media.forEach((m) => URL.revokeObjectURL(m.preview));
       setMedia([]);
-      toast.success("Shared with the group");
+      toast.success(t("group.posted"));
     } catch (err) {
-      toast.error((err as Error).message || "Could not post");
+      toast.error((err as Error).message || t("group.postError"));
     } finally {
       setPosting(false);
     }
@@ -395,10 +405,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
   async function pinPost(postId: string) {
     try {
       await api(`/api/social/groups/${groupId}/pin`, { method: "POST", body: JSON.stringify({ postId }) });
-      toast.success("Pinned to the top of the group");
+      toast.success(t("group.pinned"));
       loadGroup();
     } catch (err) {
-      toast.error((err as Error).message || "Could not pin");
+      toast.error((err as Error).message || t("group.actionFailed"));
     }
   }
 
@@ -406,10 +416,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
     try {
       await api(`/api/social/groups/${groupId}/pin`, { method: "DELETE" });
       setPinnedPost(null);
-      toast.success("Announcement unpinned");
+      toast.success(t("group.unpinned"));
       setGroup((g) => (g ? { ...g, pinnedPostId: null } : g));
     } catch (err) {
-      toast.error((err as Error).message || "Could not unpin");
+      toast.error((err as Error).message || t("group.actionFailed"));
     }
   }
 
@@ -421,11 +431,11 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         method: "PATCH",
         body: JSON.stringify(v),
       });
-      toast.success("Group updated");
+      toast.success(t("group.updated"));
       setShowEdit(false);
       loadGroup();
     } catch (err) {
-      toast.error((err as Error).message || "Could not save changes");
+      toast.error((err as Error).message || t("group.saveError"));
     } finally {
       setSaving(false);
     }
@@ -445,8 +455,8 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
   if (!group) {
     return (
       <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-16 pb-24 text-center">
-        <p className="text-sm text-[#94A3B8] mb-4">This group doesn&apos;t exist or is unavailable.</p>
-        <button onClick={onBack} className="text-xs font-bold text-[#7C3AED]">Back to Groups</button>
+        <p className="text-sm text-[#94A3B8] mb-4">{t("group.notFound")}</p>
+        <button onClick={onBack} className="text-xs font-bold text-[#7C3AED]">{t("group.backToGroups")}</button>
       </div>
     );
   }
@@ -456,7 +466,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
   return (
     <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
       <button onClick={onBack} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#94A3B8] hover:text-white mb-3">
-        <ArrowLeft size={14} /> Groups
+        <ArrowLeft size={14} /> {t("side.groups")}
       </button>
 
       {/* ─── edit panel ─── */}
@@ -495,7 +505,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
         {group.visibility === "private" && (
           <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-[10px] font-bold text-white/90">
-            <Users size={10} /> Private
+            <Users size={10} /> {t("group.privateBadge")}
           </span>
         )}
         {group.logoUrl ? (
@@ -516,7 +526,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         <div className="min-w-0">
           <h1 className="text-lg font-extrabold text-white leading-tight">{group.name}</h1>
           <p className="text-[11px] text-[#94A3B8] capitalize inline-flex flex-wrap items-center gap-x-1.5 mt-0.5">
-            <Users size={11} /> {group.memberCount} member{group.memberCount === 1 ? "" : "s"} · {group.category.replace("-", " ")}
+            <Users size={11} /> {t("group.memberCount", { count: group.memberCount })} · {group.category.replace("-", " ")}
             {(group.city || group.state) && (
               <>
                 {" · "}
@@ -531,7 +541,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               {group.churchName}
               {group.churchVerified && (
                 <span className="inline-flex items-center gap-0.5 text-[#60A5FA] font-bold">
-                  <BadgeCheck size={11} /> Official
+                  <BadgeCheck size={11} /> {t("group.official")}
                 </span>
               )}
             </p>
@@ -540,17 +550,17 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
         <div className="shrink-0 flex flex-col items-end gap-1.5">
           {isMember ? (
             viewerRole === "owner" ? (
-              <span className="text-[10px] font-bold px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-300">Owner</span>
+              <span className="text-[10px] font-bold px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-300">{t("group.role.owner")}</span>
             ) : (
               <button onClick={leave} disabled={acting} className="text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white disabled:opacity-40">
-                Leave
+                {t("group.leave")}
               </button>
             )
           ) : viewerStatus === "pending" ? (
-            <span className="text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-white/[0.06] text-[#94A3B8]">Requested</span>
+            <span className="text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-white/[0.06] text-[#94A3B8]">{t("group.requested")}</span>
           ) : (
             <button onClick={join} disabled={acting} className="text-[11px] font-bold px-4 py-1.5 rounded-full bg-[#7C3AED] text-white hover:bg-[#6D28D9] disabled:opacity-40">
-              {group.visibility === "private" || group.joinMode === "approval" ? "Request to join" : "Join"}
+              {group.visibility === "private" || group.joinMode === "approval" ? t("group.requestToJoin") : t("group.join")}
             </button>
           )}
           {perms.canManage && (
@@ -558,7 +568,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               onClick={() => setShowEdit((v) => !v)}
               className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-[#7C3AED]/15 border border-[#7C3AED]/40 text-[#C4B5FD] hover:bg-[#7C3AED]/25"
             >
-              Edit Group
+              {t("group.editGroup")}
             </button>
           )}
         </div>
@@ -570,20 +580,20 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
       {restricted ? (
         <div className="text-center py-12 mt-6">
           <Users size={22} className="text-[#64748B] mx-auto mb-3" />
-          <p className="text-sm text-[#94A3B8]">This group is private. Join to see posts, members and events.</p>
+          <p className="text-sm text-[#94A3B8]">{t("group.privateNotice")}</p>
         </div>
       ) : (
         <>
           <div className="flex gap-1 mt-4 border-b border-white/[0.06]">
-            {(["posts", "members", "events", "about"] as const).map((t) => (
+            {(["posts", "members", "events", "about"] as const).map((tabKey) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabKey}
+                onClick={() => setTab(tabKey)}
                 className={`px-3.5 py-2.5 text-xs font-extrabold capitalize border-b-2 -mb-px transition-colors ${
-                  tab === t ? "border-[#7C3AED] text-white" : "border-transparent text-[#64748B] hover:text-[#94A3B8]"
+                  tab === tabKey ? "border-[#7C3AED] text-white" : "border-transparent text-[#64748B] hover:text-[#94A3B8]"
                 }`}
               >
-                {t}
+                {TAB_LABEL_KEYS[tabKey] ? t(TAB_LABEL_KEYS[tabKey]) : tabKey}
               </button>
             ))}
           </div>
@@ -595,17 +605,17 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-2xl p-3">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Megaphone size={12} className="text-amber-300" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">Announcement</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">{t("group.announcement")}</span>
                     {perms.canModerate && (
                       <button onClick={unpin} className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-[#94A3B8] hover:text-white">
-                        <PinOff size={11} /> Unpin
+                        <PinOff size={11} /> {t("group.unpin")}
                       </button>
                     )}
                   </div>
                   <button onClick={() => setDetailId(pinnedPost.id)} className="text-left w-full">
-                    <p className="text-xs text-[#CBD5E1] line-clamp-3">{pinnedPost.content || "(media post)"}</p>
+                    <p className="text-xs text-[#CBD5E1] line-clamp-3">{pinnedPost.content || t("group.mediaPostFallback")}</p>
                     <p className="text-[10px] text-[#64748B] mt-1">
-                      {pinnedPost.author.name || pinnedPost.author.username || "Manager"}
+                      {pinnedPost.author.name || pinnedPost.author.username || t("group.managerFallback")}
                     </p>
                   </button>
                 </div>
@@ -619,7 +629,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                     onChange={(e) => setText(e.target.value)}
                     rows={2}
                     maxLength={2200}
-                    placeholder={`Share something with ${group.name}…`}
+                    placeholder={t("group.postPlaceholder", { name: group.name })}
                     className="w-full bg-transparent border-none outline-none resize-none text-sm text-white placeholder:text-[#64748B]"
                   />
                   {media.length > 0 && (
@@ -632,7 +642,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={m.preview} alt="" className="w-full h-full object-cover" />
                           )}
-                          <button onClick={() => removeMedia(m)} className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/70 text-white" aria-label="Remove">
+                          <button onClick={() => removeMedia(m)} className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/70 text-white" aria-label={t("common.remove")}>
                             <X size={10} />
                           </button>
                         </div>
@@ -648,7 +658,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                       <button
                         onClick={() => mediaInputRef.current?.click()}
                         className="p-2 rounded-full text-[#94A3B8] hover:text-white hover:bg-white/[0.05]"
-                        title="Add photo or video"
+                        title={t("group.addMediaTitle")}
                       >
                         <ImagePlus size={15} />
                       </button>
@@ -670,26 +680,26 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                       className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
                     >
                       {posting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                      {posting ? "Posting…" : "Post"}
+                      {posting ? t("group.posting") : t("group.postButton")}
                     </button>
                   </div>
                 </div>
               ) : isMember ? (
                 <p className="text-[11px] text-[#64748B] text-center py-2">
-                  Only the group owner and admins can publish posts in this group.
+                  {t("group.ownerOnlyPosts")}
                 </p>
               ) : null}
 
               {postsError ? (
                 <div className="text-center py-8">
                   <p className="text-xs text-[#94A3B8] mb-2">{postsError}</p>
-                  <button onClick={loadPosts} className="text-xs font-bold text-[#7C3AED]">Try again</button>
+                  <button onClick={loadPosts} className="text-xs font-bold text-[#7C3AED]">{t("common.retry")}</button>
                 </div>
               ) : posts.length === 0 ? (
                 <div className="text-center py-10">
                   <Send size={20} className="text-[#475569] mx-auto mb-2.5" />
                   <p className="text-sm text-[#94A3B8]">
-                    {isMember ? "No posts yet — start the conversation!" : "Join the group to see and share posts."}
+                    {isMember ? t("group.emptyPostsMember") : t("group.emptyPostsGuest")}
                   </p>
                 </div>
               ) : (
@@ -715,7 +725,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               {perms.canModerate && pending.length > 0 && (
                 <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-2xl p-3">
                   <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-amber-300 mb-2">
-                    Join requests ({pending.length})
+                    {t("group.joinRequests", { count: pending.length })}
                   </h3>
                   <div className="space-y-2">
                     {pending.map((p) => (
@@ -731,10 +741,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                         <span className="text-xs font-bold text-white truncate flex-1">
                           {p.user.name || p.user.username || "Someone"}
                         </span>
-                        <button onClick={() => moderateMember("approve", p.user.id)} className="p-1.5 rounded-lg bg-[#7C3AED] text-white" title="Approve">
+                        <button onClick={() => moderateMember("approve", p.user.id)} className="p-1.5 rounded-lg bg-[#7C3AED] text-white" title={t("group.approveTitle")}>
                           <Check size={13} />
                         </button>
-                        <button onClick={() => moderateMember("remove", p.user.id)} className="p-1.5 rounded-lg bg-white/[0.06] text-[#94A3B8]" title="Decline">
+                        <button onClick={() => moderateMember("remove", p.user.id)} className="p-1.5 rounded-lg bg-white/[0.06] text-[#94A3B8]" title={t("group.declineTitle")}>
                           <X size={13} />
                         </button>
                       </div>
@@ -745,7 +755,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
 
               <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-3">
                 <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
-                  Members ({group.memberCount})
+                  {t("group.membersHeading", { count: group.memberCount })}
                 </h3>
                 <div className="space-y-1">
                   {members.map((m) => (
@@ -762,7 +772,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                         onClick={() => m.user.username && onOpenProfile(m.user.username)}
                         className="text-xs font-bold text-white hover:text-[#C4B5FD] truncate flex-1 text-left"
                       >
-                        {m.user.name || m.user.username || "Member"}
+                        {m.user.name || m.user.username || t("post.member")}
                       </button>
                       <span className={`shrink-0 text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
                         m.role === "owner"
@@ -773,30 +783,30 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                               ? "bg-sky-500/15 text-sky-300"
                               : "bg-white/[0.05] text-[#64748B]"
                       }`}>
-                        {ROLE_LABEL[m.role] || m.role}
+                        {ROLE_LABEL_KEYS[m.role] ? t(ROLE_LABEL_KEYS[m.role]) : m.role}
                       </span>
                       {viewerRole === "owner" && m.role !== "owner" && m.role !== "admin" && (
                         <select
                           value={m.role}
                           onChange={(e) => setRole(m.user.id, e.target.value as "admin" | "moderator" | "member")}
                           className="shrink-0 bg-white/[0.04] border border-white/[0.06] rounded-lg text-[10px] font-bold text-[#94A3B8] px-1.5 py-1 outline-none"
-                          title="Change role"
+                          title={t("group.changeRoleTitle")}
                         >
-                          <option value="member" className="bg-[#111827]">Member</option>
-                          <option value="moderator" className="bg-[#111827]">Moderator</option>
-                          <option value="admin" className="bg-[#111827]">Admin</option>
+                          <option value="member" className="bg-[#111827]">{t("post.member")}</option>
+                          <option value="moderator" className="bg-[#111827]">{t("group.role.moderator")}</option>
+                          <option value="admin" className="bg-[#111827]">{t("group.role.admin")}</option>
                         </select>
                       )}
                       {viewerRole === "owner" && m.role === "admin" && (
-                        <button onClick={() => setRole(m.user.id, "member")} className="shrink-0 text-[10px] font-bold text-[#94A3B8] hover:text-white px-1.5" title="Remove admin role">
-                          Demote
+                        <button onClick={() => setRole(m.user.id, "member")} className="shrink-0 text-[10px] font-bold text-[#94A3B8] hover:text-white px-1.5" title={t("group.removeAdminTitle")}>
+                          {t("group.demote")}
                         </button>
                       )}
                       {perms.canModerate && m.role !== "owner" && (m.role !== "admin" && m.role !== "moderator" || perms.canManage) && (
                         <button
                           onClick={() => moderateMember("remove", m.user.id)}
                           className="shrink-0 p-1.5 rounded-lg bg-white/[0.04] text-[#94A3B8] hover:text-[#F87171]"
-                          title="Remove from group"
+                          title={t("group.removeMemberTitle")}
                         >
                           <UserMinus size={12} />
                         </button>
@@ -816,7 +826,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                   onClick={() => setShowEventForm(true)}
                   className="w-full py-2.5 rounded-xl border border-dashed border-[#7C3AED]/40 bg-[#7C3AED]/[0.06] text-xs font-extrabold text-[#C4B5FD] hover:bg-[#7C3AED]/[0.12] inline-flex items-center justify-center gap-1.5"
                 >
-                  <CalendarDays size={13} /> Create a group event
+                  <CalendarDays size={13} /> {t("group.createEvent")}
                 </button>
               )}
               {showEventForm && isMember && (
@@ -841,7 +851,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 <div className="text-center py-10">
                   <CalendarDays size={20} className="text-[#475569] mx-auto mb-2.5" />
                   <p className="text-sm text-[#94A3B8]">
-                    {isMember ? "No events yet — plan the first one!" : "No public events in this group yet."}
+                    {isMember ? t("group.emptyEventsMember") : t("group.emptyEvents")}
                   </p>
                 </div>
               ) : (
@@ -854,54 +864,54 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
           {tab === "about" && (
             <div className="mt-4 space-y-4">
               <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
-                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2">About</h3>
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2">{t("publicNav.about")}</h3>
                 <p className="text-[13px] text-[#CBD5E1] leading-relaxed">
-                  {group.description || "This group hasn't written a description yet."}
+                  {group.description || t("group.noDescription")}
                 </p>
                 {group.rules && (
                   <>
-                    <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mt-4 mb-2">Group rules</h3>
+                    <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mt-4 mb-2">{t("group.rulesHeading")}</h3>
                     <p className="text-[12px] text-[#94A3B8] leading-relaxed whitespace-pre-line">{group.rules}</p>
                   </>
                 )}
               </div>
 
               <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
-                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">Details</h3>
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">{t("group.detailsHeading")}</h3>
                 <dl className="space-y-2 text-xs">
                   <div className="flex justify-between gap-3">
-                    <dt className="text-[#64748B]">Category</dt>
+                    <dt className="text-[#64748B]">{t("marketplace.listModal.category")}</dt>
                     <dd className="text-white font-bold capitalize">{group.category.replace("-", " ")}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-[#64748B]">Visibility</dt>
+                    <dt className="text-[#64748B]">{t("group.visibilityLabel")}</dt>
                     <dd className="text-white font-bold capitalize">{group.visibility}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-[#64748B]">Joining</dt>
+                    <dt className="text-[#64748B]">{t("group.joiningLabel")}</dt>
                     <dd className="text-white font-bold">
-                      {group.visibility === "private" ? "Manager approval" : group.joinMode === "approval" ? "Manager approval" : "Open to everyone"}
+                      {group.visibility === "private" ? t("group.managerApproval") : group.joinMode === "approval" ? t("group.managerApproval") : t("group.openToEveryone")}
                     </dd>
                   </div>
                   {(group.city || group.state) && (
                     <div className="flex justify-between gap-3">
-                      <dt className="text-[#64748B]">Location</dt>
+                      <dt className="text-[#64748B]">{t("group.locationLabel")}</dt>
                       <dd className="text-white font-bold">{[group.city, group.state].filter(Boolean).join(", ")}</dd>
                     </div>
                   )}
                   {group.language && (
                     <div className="flex justify-between gap-3">
-                      <dt className="text-[#64748B]">Language</dt>
+                      <dt className="text-[#64748B]">{t("group.languageLabel")}</dt>
                       <dd className="text-white font-bold">{group.language}</dd>
                     </div>
                   )}
                   <div className="flex justify-between gap-3">
-                    <dt className="text-[#64748B]">Created</dt>
+                    <dt className="text-[#64748B]">{t("group.createdLabel")}</dt>
                     <dd className="text-white font-bold">{new Date(group.createdAt).toLocaleDateString()}</dd>
                   </div>
                   {group.createdBy && (
                     <div className="flex justify-between gap-3">
-                      <dt className="text-[#64748B]">Started by</dt>
+                      <dt className="text-[#64748B]">{t("group.startedBy")}</dt>
                       <dd className="text-white font-bold truncate">{group.createdBy.name || group.createdBy.username}</dd>
                     </div>
                   )}
@@ -910,38 +920,38 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
 
               {group.churchName && (
                 <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
-                  <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2">Church</h3>
+                  <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2">{t("group.churchHeading")}</h3>
                   <p className="text-xs text-white font-bold inline-flex items-center gap-1.5">
                     <Landmark size={13} className="text-[#C4B5FD]" /> {group.churchName}
                     {group.churchVerified && (
                       <span className="inline-flex items-center gap-1 text-[#60A5FA]">
-                        <BadgeCheck size={13} /> Verified official affiliation
+                        <BadgeCheck size={13} /> {t("group.verifiedAffiliation")}
                       </span>
                     )}
                   </p>
                   <p className="text-[10px] text-[#64748B] mt-1.5 leading-relaxed">
                     {group.churchVerified
-                      ? "This affiliation has been verified by the Koino team."
-                      : "Community-listed affiliation — pending official verification. Linking alone never grants church permissions."}
+                      ? t("group.verifiedDesc")
+                      : t("group.unverifiedDesc")}
                   </p>
                 </div>
               )}
 
               <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
-                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">Share this group</h3>
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">{t("group.shareHeading")}</h3>
                 <div className="flex gap-2">
                   <button onClick={copyGroupLink} className="flex-1 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold inline-flex items-center justify-center gap-1.5">
-                    <Copy size={12} /> Copy invite link
+                    <Copy size={12} /> {t("group.copyInvite")}
                   </button>
                   <button onClick={shareGroupWhatsApp} className="flex-1 py-2 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 text-[#4ADE80] text-xs font-bold inline-flex items-center justify-center gap-1.5">
-                    <Share2 size={12} /> WhatsApp
+                    <Share2 size={12} /> {t("common.whatsappLabel")}
                   </button>
                   {group?.visibility === "public" && (
                     <button
                       onClick={() =>
                         setShareReq({
-                          heading: `Share ${group.name}`,
-                          shareText: `Join "${group.name}" on Koino — a Christian community app.`,
+                          heading: t("group.shareHeading"),
+                          shareText: t("group.shareText", { name: group.name }),
                           shareUrl: shareLinks.group(groupId),
                           cardUrl: `/api/share-card?type=group&id=${encodeURIComponent(groupId)}`,
                           formats: ["square", "portrait"],
@@ -950,13 +960,13 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                       }
                       className="flex-1 py-2 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold inline-flex items-center justify-center gap-1.5"
                     >
-                      <Share2 size={12} /> Share Card
+                      <Share2 size={12} /> {t("group.shareCard")}
                     </button>
                   )}
                 </div>
                 {group?.visibility !== "public" && (
                   <p className="text-[10px] text-[#64748B] mt-2">
-                    Private group — invitations stay member-only.
+                    {t("group.privateShareNote")}
                   </p>
                 )}
               </div>
@@ -983,6 +993,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
 
 /** Compact event card for the group Events tab — shareable via link/WhatsApp. */
 function GroupEventCard({ ev }: { ev: GroupEvent }) {
+  const t = useTranslation();
   const [showDetail, setShowDetail] = useState(false);
   const grad = EVENT_GRADIENTS[Math.abs(ev.coverGradient ?? 0) % EVENT_GRADIENTS.length];
   const date = new Date(ev.startDate);
@@ -991,10 +1002,10 @@ function GroupEventCard({ ev }: { ev: GroupEvent }) {
     typeof window !== "undefined"
       ? `${window.location.origin}/?view=events`
       : "";
-  const shareText = `${ev.title} — ${dateStr}${ev.startTime ? ` at ${ev.startTime}` : ""} · ${ev.isOnline ? "Online" : ev.location}`;
+  const shareText = `${ev.title} — ${dateStr}${ev.startTime ? ` at ${ev.startTime}` : ""} · ${ev.isOnline ? t("home.events.online") : ev.location}`;
 
   function copyEvent() {
-    navigator.clipboard?.writeText(`${shareText}\n${shareUrl}`).then(() => toast.success("Event copied — paste it anywhere"), () => {});
+    navigator.clipboard?.writeText(`${shareText}\n${shareUrl}`).then(() => toast.success(t("group.eventCopied")), () => {});
   }
   function whatsappEvent() {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, "_blank");
@@ -1014,17 +1025,17 @@ function GroupEventCard({ ev }: { ev: GroupEvent }) {
         <span className="min-w-0 flex-1">
           <span className="text-sm font-bold text-white block truncate">{ev.title}</span>
           <span className="text-[11px] text-[#94A3B8] block truncate">
-            {dateStr}{ev.startTime && !ev.allDay ? ` · ${ev.startTime}` : ""} · {ev.isOnline && ev.eventType !== "hybrid" ? "Online" : ev.location}
+            {dateStr}{ev.startTime && !ev.allDay ? ` · ${ev.startTime}` : ""} · {ev.isOnline && ev.eventType !== "hybrid" ? t("home.events.online") : ev.location}
           </span>
           <span className="flex gap-1.5 mt-1">
             {ev.status === "PENDING" && (
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300">In review</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{t("group.inReview")}</span>
             )}
             {ev.groupVisibility === "members" && (
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8]">Members only</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8]">{t("group.membersOnly")}</span>
             )}
             {ev.registrationType === "registration_required" && (
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#7C3AED]/20 text-[#C4B5FD]">Register</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#7C3AED]/20 text-[#C4B5FD]">{t("events.register")}</span>
             )}
           </span>
         </span>
@@ -1032,17 +1043,17 @@ function GroupEventCard({ ev }: { ev: GroupEvent }) {
       {showDetail && (
         <div className="px-3 pb-3 border-t border-white/[0.05] pt-2.5">
           <p className="text-xs text-[#CBD5E1] line-clamp-4 mb-2">{ev.description}</p>
-          {ev.organizerName && <p className="text-[10px] text-[#64748B]">Host: {ev.organizerName}{ev.organizerPhone ? ` · ${ev.organizerPhone}` : ""}</p>}
+          {ev.organizerName && <p className="text-[10px] text-[#64748B]">{t("group.host", { name: ev.organizerName })}{ev.organizerPhone ? ` · ${ev.organizerPhone}` : ""}</p>}
           <div className="flex gap-2 mt-2">
             <button onClick={copyEvent} className="flex-1 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[10px] font-bold text-[#94A3B8] hover:text-white inline-flex items-center justify-center gap-1">
-              <Copy size={10} /> Copy
+              <Copy size={10} /> {t("group.copy")}
             </button>
             <button onClick={whatsappEvent} className="flex-1 py-1.5 rounded-lg bg-[#25D366]/15 border border-[#25D366]/30 text-[10px] font-bold text-[#4ADE80] inline-flex items-center justify-center gap-1">
-              <Share2 size={10} /> WhatsApp
+              <Share2 size={10} /> {t("common.whatsappLabel")}
             </button>
             {ev.ticketUrl && (
               <a href={ev.ticketUrl} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold inline-flex items-center justify-center gap-1">
-                Register
+                {t("events.register")}
               </a>
             )}
           </div>

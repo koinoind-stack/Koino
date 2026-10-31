@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
 
 import { MATRIMONY_LIMITS } from "@/lib/matrimony";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import type { SerializedMatrimonyPhoto } from "@/lib/matrimony/server";
 
 export default function MatrimonyPhotos({
@@ -25,6 +26,7 @@ export default function MatrimonyPhotos({
   visibility: string;
   onChanged: () => void;
 }) {
+  const t = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,7 +37,7 @@ export default function MatrimonyPhotos({
 
   const upload = async (file: File) => {
     if (photos.length >= MATRIMONY_LIMITS.photosMax) {
-      toast.error(`You can have up to ${MATRIMONY_LIMITS.photosMax} photos.`);
+      toast.error(t("matrimony.photos.maxToast", { n: MATRIMONY_LIMITS.photosMax }));
       return;
     }
     setUploading(true);
@@ -45,13 +47,13 @@ export default function MatrimonyPhotos({
       const res = await fetch("/api/matrimony/photos", { method: "POST", body: fd });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(j.error || "Upload failed.");
+        toast.error(j.error || t("matrimony.photos.uploadFailed"));
         return;
       }
-      toast.success("Photo added.");
+      toast.success(t("matrimony.photos.added"));
       onChanged();
     } catch {
-      toast.error("Network error. Please try again.");
+      toast.error(t("common.error.network"));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -59,19 +61,19 @@ export default function MatrimonyPhotos({
   };
 
   const remove = async (photo: SerializedMatrimonyPhoto) => {
-    if (!window.confirm("Remove this photo?")) return;
+    if (!window.confirm(t("matrimony.photos.confirmRemove"))) return;
     setRemovingId(photo.id);
     try {
       const res = await fetch(`/api/matrimony/photos/${photo.id}`, { method: "DELETE" });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error(j.error || "Could not remove the photo.");
+        toast.error(j.error || t("matrimony.photos.removeFailed"));
         return;
       }
-      toast.success("Photo removed.");
+      toast.success(t("matrimony.photos.removed"));
       onChanged();
     } catch {
-      toast.error("Network error. Please try again.");
+      toast.error(t("common.error.network"));
     } finally {
       setRemovingId(null);
     }
@@ -79,10 +81,9 @@ export default function MatrimonyPhotos({
 
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-4 md:p-5">
-      <h3 className="text-sm font-black text-white">Profile photos</h3>
+      <h3 className="text-sm font-black text-white">{t("matrimony.photos.title")}</h3>
       <p className="mt-1 text-[12px] text-[#94A3B8]">
-        Up to {MATRIMONY_LIMITS.photosMax} photos, stored privately. Your first
-        photo is your primary photo.
+        {t("matrimony.photos.subtitle", { n: MATRIMONY_LIMITS.photosMax })}
       </p>
 
       <div className="mt-4 grid grid-cols-3 gap-2.5">
@@ -96,19 +97,19 @@ export default function MatrimonyPhotos({
                 {/* Authorized owner-only serving route — never a storage URL */}
                 <img
                   src={photo.url}
-                  alt={`Matrimony photo ${idx + 1}`}
+                  alt={t("matrimony.photos.photoAlt", { n: idx + 1 })}
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
                 {idx === 0 && (
                   <span className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur text-[9px] font-black text-amber-300">
-                    <Star size={9} className="fill-amber-300" /> PRIMARY
+                    <Star size={9} className="fill-amber-300" /> {t("matrimony.photos.primaryBadge")}
                   </span>
                 )}
                 <button
                   onClick={() => remove(photo)}
                   disabled={removingId === photo.id || uploading}
-                  aria-label={`Remove photo ${idx + 1}`}
+                  aria-label={t("matrimony.photos.removeAria", { n: idx + 1 })}
                   className="absolute top-1.5 right-1.5 w-7 h-7 rounded-lg bg-black/60 backdrop-blur flex items-center justify-center text-red-300 hover:bg-black/80 transition-colors disabled:opacity-50"
                 >
                   {removingId === photo.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
@@ -125,7 +126,7 @@ export default function MatrimonyPhotos({
                 ) : (
                   <ImagePlus size={20} strokeWidth={1.6} />
                 )}
-                <span className="text-[10px] font-bold">Add photo</span>
+                <span className="text-[10px] font-bold">{t("matrimony.photos.add")}</span>
               </button>
             )}
           </div>
@@ -144,13 +145,11 @@ export default function MatrimonyPhotos({
       />
 
       <p className="mt-3 text-[11px] text-[#64748B] leading-relaxed">
-        Current setting:{" "}
+        {t("matrimony.photos.currentSetting")}{" "}
         <span className="text-[#94A3B8] font-bold">
-          {visibility === "ELIGIBLE_MEMBERS" ? "Eligible members" : "Connections only"}
+          {visibility === "ELIGIBLE_MEMBERS" ? t("matrimony.privacy.eligibleMembers") : t("matrimony.privacy.connectionsOnly")}
         </span>{" "}
-        — change it in the Privacy tab. Photos are checked server-side on every
-        view and are never publicly accessible. Screenshots can never be fully
-        prevented — share thoughtfully. JPG, PNG or WEBP, up to 4 MB.
+        {t("matrimony.photos.settingsNote")}
       </p>
     </div>
   );

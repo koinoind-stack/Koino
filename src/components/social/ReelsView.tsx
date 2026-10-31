@@ -8,6 +8,7 @@ import { api } from "./types";
 import { formatCount } from "@/lib/social/format";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 /**
  * Reels — full-screen vertical video feed for posts flagged `isReel`.
@@ -65,6 +66,7 @@ export function ReelsFeed({
   onOpenCreate,
   className,
 }: Omit<Props, "onClose"> & { className?: string }) {
+  const t = useTranslation();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export function ReelsFeed({
       setPosts(list.filter((p) => (p.repostedFrom ?? p).mediaUrls?.length));
     } catch (err) {
       setPosts([]);
-      setError(err instanceof Error ? err.message : "Could not load reels");
+      setError(err instanceof Error ? err.message : t("reels.loadError"));
     } finally {
       setLoading(false);
     }
@@ -139,15 +141,15 @@ export function ReelsFeed({
       );
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Could not update like");
+      toast.error(err instanceof Error ? err.message : t("reels.likeError"));
     }
   }
 
   function openReelShare(post: Post) {
     const target = (post.repostedFrom ?? post).id;
     setShareReq({
-      heading: "Share reel",
-      shareText: (post.repostedFrom ?? post).content?.slice(0, 600) || "Watch this reel on Koino",
+      heading: t("reels.shareHeading"),
+      shareText: (post.repostedFrom ?? post).content?.slice(0, 600) || t("reels.shareTextFallback"),
       shareUrl: shareLinks.post(target),
       cardUrl: `/api/share-card?type=post&id=${encodeURIComponent(target)}`,
       formats: ["square"],
@@ -162,7 +164,7 @@ export function ReelsFeed({
         <button
           onClick={() => setMuted((m) => !m)}
           className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur"
-          aria-label={muted ? "Unmute" : "Mute"}
+          aria-label={muted ? t("reels.unmute") : t("reels.mute")}
         >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
@@ -175,28 +177,26 @@ export function ReelsFeed({
       ) : error ? (
         <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
           <Clapperboard size={28} className="text-white/40" />
-          <p className="text-white/70 text-sm">Reels couldn&apos;t load right now.</p>
+          <p className="text-white/70 text-sm">{t("reels.errorHeading")}</p>
           <p className="text-white/40 text-xs max-w-xs truncate">{error}</p>
           <button
             onClick={load}
             className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       ) : posts.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
           <Clapperboard size={28} className="text-white/40" />
-          <p className="text-white/70 text-sm font-bold">No reels yet — share the first one!</p>
-          <p className="text-white/40 text-xs max-w-xs">
-            Record or upload a short vertical video from the Create flow and it will appear here.
-          </p>
+          <p className="text-white/70 text-sm font-bold">{t("reels.emptyTitle")}</p>
+          <p className="text-white/40 text-xs max-w-xs">{t("reels.emptyBody")}</p>
           {onOpenCreate && (
             <button
               onClick={onOpenCreate}
               className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
             >
-              Create a reel
+              {t("reels.createCta")}
             </button>
           )}
         </div>
@@ -230,8 +230,8 @@ export function ReelsFeed({
                       />
                     ) : null}
                     <Clapperboard size={26} className="relative text-white/50" />
-                    <p className="relative text-white/70 text-sm font-bold">This video can&apos;t be played right now.</p>
-                    <p className="relative text-white/40 text-xs">Swipe to see the next reel.</p>
+                    <p className="relative text-white/70 text-sm font-bold">{t("reels.brokenTitle")}</p>
+                    <p className="relative text-white/40 text-xs">{t("reels.brokenHint")}</p>
                   </div>
                 ) : (
                   <video
@@ -265,7 +265,7 @@ export function ReelsFeed({
                   )}
                   <button onClick={() => openReelShare(post)} className="flex flex-col items-center gap-1 text-white">
                     <Send size={24} />
-                    <span className="text-[11px] font-bold">Share</span>
+                    <span className="text-[11px] font-bold">{t("common.share")}</span>
                   </button>
                   <button
                     onClick={() => post.author.username && onOpenProfile(post.author.username)}
@@ -303,15 +303,16 @@ export default function ReelsOverlay({
   onOpenPost,
   onOpenCreate,
 }: Props) {
+  const t = useTranslation();
   return (
     <div className="fixed inset-0 z-[80] bg-black">
       {/* header */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
-        <h2 className="text-white font-extrabold">Reels</h2>
+        <h2 className="text-white font-extrabold">{t("reels.title")}</h2>
         <button
           onClick={onClose}
           className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur"
-          aria-label="Close reels"
+          aria-label={t("reels.closeAria")}
         >
           <ChevronDown size={20} />
         </button>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
 import { Sparkles, Heart, Users, BookOpen, Trophy, Store, Languages, MapPin, Globe } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
@@ -16,9 +17,9 @@ export const metadata: Metadata = {
 };
 
 const PILLARS = [
-  { icon: BookOpen, title: "Faith", desc: "Read the Bible, explore Bible Comics, and grow in your understanding of Scripture." },
-  { icon: Heart, title: "Fellowship", desc: "Connect with churches, discover Christian events, and pray together as a community." },
-  { icon: Users, title: "Belong", desc: "Find your place in the Christian community — churches, groups, businesses and more." },
+  { icon: BookOpen, title: "about.pillar.faith.title", desc: "Read the Bible, explore Bible Comics, and grow in your understanding of Scripture." },
+  { icon: Heart, title: "about.pillar.fellowship.title", desc: "Connect with churches, discover Christian events, and pray together as a community." },
+  { icon: Users, title: "about.pillar.belong.title", desc: "Find your place in the Christian community — churches, groups, businesses and more." },
 ];
 
 const FEATURES = [
@@ -41,13 +42,10 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="py-16 px-6 max-w-4xl mx-auto text-center">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
-          <Sparkles size={12} fill="currentColor" /> About Koino
+          <Sparkles size={12} fill="currentColor" /> <T k="about.badge" />
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
-          An all-in-one Christian{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3]">
-            community platform
-          </span>
+          <T k="about.h1" />
         </h1>
         <p className="text-base text-[#A09DB1] leading-relaxed max-w-2xl mx-auto mb-8">
           Koino is inspired by the Greek word &quot;koinonia&quot; — fellowship, communion, partnership
@@ -56,7 +54,7 @@ export default function AboutPage() {
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <a href="/" className="px-8 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px">
-            Enter Koino
+            <T k="about.cta.enter" />
           </a>
           <a href="/about/founder" className="px-8 py-3.5 border border-white/[0.08] hover:border-white/[0.15] text-[#A09DB1] hover:text-white font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all bg-white/[0.02]">
             Meet the Founder
@@ -68,9 +66,9 @@ export default function AboutPage() {
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#A78BFA] text-[10px] font-bold uppercase tracking-wider mb-3">
-            <BookOpen size={11} /> The Meaning of Koino
+            <BookOpen size={11} /> <T k="about.meaningTitle" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-3">The Meaning of Koino</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-3"><T k="about.meaningTitle" /></h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto leading-relaxed">
             The name Koino comes from the Greek word <span className="text-white font-semibold">&quot;koinonia&quot;</span> (κοινωνία) —
             a word used throughout the New Testament to describe the deep, shared life of the early church.
@@ -120,8 +118,8 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="pt-3 border-t border-white/[0.06]">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#F39B9B]">Acts 2:42</p>
-              <p className="text-[10px] text-[#94A3B8] mt-1">The pattern of the early church.</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#F39B9B]"><T k="about.verse.ref" /></p>
+              <p className="text-[10px] text-[#94A3B8] mt-1"><T k="about.verse.caption" /></p>
             </div>
           </aside>
         </div>
@@ -131,7 +129,7 @@ export default function AboutPage() {
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <h2 className="text-xl font-bold text-white">Faith. Fellowship. Belong.</h2>
-          <p className="text-xs text-[#A09DB1] mt-2">Three pillars that shape everything we build at Koino.</p>
+          <p className="text-xs text-[#A09DB1] mt-2"><T k="about.pillarsIntro" /></p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PILLARS.map((p) => (
@@ -139,7 +137,7 @@ export default function AboutPage() {
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 border border-white/[0.08] flex items-center justify-center">
                 <p.icon size={24} className="text-[#F39B9B]" />
               </div>
-              <h3 className="text-lg font-black text-white mb-2">{p.title}</h3>
+              <h3 className="text-lg font-black text-white mb-2"><T k={p.title} /></h3>
               <p className="text-xs text-[#A09DB1] leading-relaxed">{p.desc}</p>
             </div>
           ))}
@@ -148,7 +146,7 @@ export default function AboutPage() {
 
       {/* Features */}
       <section className="py-12 px-6 max-w-5xl mx-auto">
-        <h2 className="text-xl font-bold text-white text-center mb-2">Everything for Your Faith Journey</h2>
+        <h2 className="text-xl font-bold text-white text-center mb-2"><T k="about.featuresTitle" /></h2>
         <p className="text-xs text-[#A09DB1] text-center mb-8 max-w-xl mx-auto">
           From Bible reading and Bible Comics to churches, events, prayer, Bible Trivia, and a Christian
           marketplace — Koino brings the Christian experience into one place.
@@ -170,9 +168,9 @@ export default function AboutPage() {
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 text-[#38BDF8] text-[10px] font-bold uppercase tracking-wider mb-3">
-            <MapPin size={11} /> Built With India in Mind
+            <MapPin size={11} /> <T k="about.indiaTitle" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-3">Built With India in Mind</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-3"><T k="about.indiaTitle" /></h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto leading-relaxed">
             Koino is being built with India in mind — a country with a rich and growing Christian community
             across every state and language. From churches and events to Bible Trivia and local Christian
@@ -212,10 +210,10 @@ export default function AboutPage() {
                 <div className="w-8 h-8 rounded-lg bg-[#38BDF8]/15 border border-[#38BDF8]/25 flex items-center justify-center">
                   <Languages size={16} className="text-[#38BDF8]" />
                 </div>
-                <h3 className="text-sm font-bold text-white">UI Languages (Available Now)</h3>
+                <h3 className="text-sm font-bold text-white"><T k="about.coverage.uiTitle" /></h3>
               </div>
               <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">
-                The Koino interface is currently available in the following languages:
+                <T k="about.coverage.uiIntro" />
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {SUPPORTED_LANGUAGES.map((lang) => (
@@ -231,23 +229,21 @@ export default function AboutPage() {
                 <div className="w-8 h-8 rounded-lg bg-[#F39B9B]/15 border border-[#F39B9B]/25 flex items-center justify-center">
                   <BookOpen size={16} className="text-[#F39B9B]" />
                 </div>
-                <h3 className="text-sm font-bold text-white">Bible Translations (Available Now)</h3>
+                <h3 className="text-sm font-bold text-white"><T k="about.coverage.bibleTitle" /></h3>
               </div>
               <ul className="space-y-2 text-[11px] text-[#A09DB1]">
                 <li className="flex items-start gap-2">
                   <span className="text-[#22C55E] font-bold mt-0.5">✓</span>
-                  <span><span className="text-white font-semibold">KJV</span> (King James Version, English)</span>
+                  <span><T k="about.coverage.bibleKjv" /></span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#22C55E] font-bold mt-0.5">✓</span>
-                  <span><span className="text-white font-semibold">WEB</span> (World English Bible, English)</span>
+                  <span><T k="about.coverage.bibleWeb" /></span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#F59E0B] font-bold mt-0.5">•</span>
                   <span>
-                    <span className="text-white font-semibold">Indian-language Bible translations</span> are
-                    not yet available — we are working to add them. UI language support does not yet mean
-                    that the Bible text itself is available in that language.
+                    <T k="about.coverage.bibleNote" />
                   </span>
                 </li>
               </ul>
@@ -258,11 +254,10 @@ export default function AboutPage() {
                 <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center">
                   <Globe size={16} className="text-[#A78BFA]" />
                 </div>
-                <h3 className="text-sm font-bold text-white">Local Support</h3>
+                <h3 className="text-sm font-bold text-white"><T k="about.coverage.supportTitle" /></h3>
               </div>
               <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-                Churches, events, and the Christian business directory are organized around Indian states
-                and cities, making it easier for believers to find local community and gatherings near them.
+                <T k="about.coverage.supportBody" />
               </p>
             </div>
           </div>
@@ -272,10 +267,10 @@ export default function AboutPage() {
       {/* CTA */}
       <section className="py-12 px-6 text-center max-w-3xl mx-auto">
         <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-3xl p-8">
-          <h2 className="text-2xl font-extrabold text-white mb-2">Join the Koino community</h2>
-          <p className="text-sm text-[#A09DB1] mb-5">It&apos;s free. Grow in faith, connect with believers, and belong.</p>
+          <h2 className="text-2xl font-extrabold text-white mb-2"><T k="about.cta.join" /></h2>
+          <p className="text-sm text-[#A09DB1] mb-5"><T k="about.cta.joinSub" /></p>
           <a href="/" className="inline-block px-8 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px">
-            Enter Koino
+            <T k="about.cta.enter" />
           </a>
         </div>
       </section>

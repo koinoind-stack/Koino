@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   HelpCircle,
   Loader2,
@@ -120,6 +121,7 @@ function topicLabel(categoryId: string): string | null {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export default function QuestionsTab() {
+  const t = useTranslation();
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [counts, setCounts] = useState<Counts>({ all: 0, new: 0, in_review: 0, answered: 0, turned_into_article: 0, archived: 0 });
   const [loading, setLoading] = useState(true);
@@ -215,7 +217,7 @@ export default function QuestionsTab() {
         <FilterChip
           active={filter === "all"}
           onClick={() => setFilter("all")}
-          label="All"
+          label={t("common.all")}
           count={counts.all}
         />
         <FilterChip
@@ -235,7 +237,7 @@ export default function QuestionsTab() {
         <FilterChip
           active={filter === "answered"}
           onClick={() => setFilter("answered")}
-          label="Answered"
+          label={t("common.status.answered")}
           count={counts.answered}
           color="#22C55E"
         />
@@ -249,7 +251,7 @@ export default function QuestionsTab() {
         <FilterChip
           active={filter === "archived"}
           onClick={() => setFilter("archived")}
-          label="Archived"
+          label={t("common.status.archived")}
           count={counts.archived}
           color="#64748B"
         />
@@ -456,6 +458,7 @@ function QuestionDetailModal({
   onClose: () => void;
   onMutated: () => void;
 }) {
+  const t = useTranslation();
   const [answer, setAnswer] = useState(question.answer || "");
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -550,7 +553,7 @@ function QuestionDetailModal({
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      toast.success("Answer saved successfully");
+      toast.success(t("admin.questions.toast.answerSaved"));
       onMutated();
     } catch (e: any) {
       toast.error(e?.message || "Failed to save answer");
@@ -643,7 +646,7 @@ function QuestionDetailModal({
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      toast.success("Question deleted");
+      toast.success(t("admin.questions.toast.deleted"));
       onMutated();
       onClose();
     } catch (e: any) {
@@ -672,14 +675,14 @@ function QuestionDetailModal({
         <div className="flex items-center justify-between mb-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <HelpCircle size={14} className="text-[#38BDF8] shrink-0" />
-            <h2 className="text-sm font-extrabold text-white truncate">Question Details</h2>
+            <h2 className="text-sm font-extrabold text-white truncate">{t("admin.questions.detailTitle")}</h2>
             <StatusBadge color={meta.color} label={meta.label} />
           </div>
           <button
             onClick={onClose}
             disabled={saving || deleting}
             className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white disabled:opacity-50"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={14} />
           </button>
@@ -888,7 +891,7 @@ function QuestionDetailModal({
               ) : (
                 <Save size={12} />
               )}
-              Save Answer
+              {t("admin.questions.action.saveAnswer")}
             </button>
 
             {!isArchived ? (
@@ -902,7 +905,7 @@ function QuestionDetailModal({
                 ) : (
                   <Archive size={12} />
                 )}
-                Close
+                {t("admin.contactMessages.action.close")}
               </button>
             ) : (
               <button
@@ -915,7 +918,7 @@ function QuestionDetailModal({
                 ) : (
                   <RotateCcw size={12} />
                 )}
-                Reopen
+                {t("admin.questions.action.reopen")}
               </button>
             )}
 
@@ -931,7 +934,7 @@ function QuestionDetailModal({
                 ) : (
                   <FileText size={12} />
                 )}
-                Turn Into Article
+                {t("admin.questions.action.turnIntoArticle")}
               </button>
             )}
 
@@ -954,7 +957,7 @@ function QuestionDetailModal({
                   disabled={saving || deleting}
                   className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 border border-[#EF4444]/30 text-[#EF4444] text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all disabled:opacity-50"
                 >
-                  <Trash2 size={12} /> Delete
+                  <Trash2 size={12} /> {t("common.delete")}
                 </button>
               ) : (
                 <div className="flex items-center gap-1.5 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl px-2 py-1.5">
@@ -976,7 +979,7 @@ function QuestionDetailModal({
                     disabled={deleting}
                     className="bg-white/[0.04] hover:bg-white/[0.08] text-[#94A3B8] text-[10px] font-bold rounded-lg px-2 py-1"
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                 </div>
               )}
@@ -1005,6 +1008,7 @@ function CreateQAModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const t = useTranslation();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [category, setCategory] = useState("");
@@ -1037,7 +1041,7 @@ function CreateQAModal({
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      toast.success("Q&A created successfully");
+      toast.success(t("admin.questions.toast.created"));
       onCreated();
     } catch (e: any) {
       toast.error(e?.message || "Failed to create Q&A");
@@ -1062,13 +1066,13 @@ function CreateQAModal({
         <div className="flex items-center justify-between mb-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Plus size={14} className="text-[#A78BFA] shrink-0" />
-            <h2 className="text-sm font-extrabold text-white truncate">Create Q&amp;A</h2>
+            <h2 className="text-sm font-extrabold text-white truncate">{t("admin.questions.createTitle")}</h2>
           </div>
           <button
             onClick={onClose}
             disabled={creating}
             className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white disabled:opacity-50"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={14} />
           </button>

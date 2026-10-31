@@ -51,6 +51,17 @@ function mapCategoryToTopicId(category: string | null | undefined): string {
   return ""; // no topic match — shows under "All Topics"
 }
 
+// i18n: topic id → translation key. Topic ids are stored on DB questions —
+// only the display label is translated at render time.
+const TOPIC_LABEL_KEYS: Record<string, string> = {
+  gods_existence: "apologetics.topic.godsExistence",
+  problem_of_evil: "apologetics.topic.problemOfEvil",
+  resurrection: "apologetics.topic.resurrection",
+  bible_reliability: "apologetics.topic.bibleReliability",
+  science_faith: "apologetics.topic.scienceFaith",
+  world_religions: "apologetics.topic.worldReligions",
+};
+
 export default function ApologeticsView({
   deepLinkQuestionId = null,
 }: {
@@ -104,7 +115,7 @@ export default function ApologeticsView({
     try {
       const res = await fetch("/api/articles?type=APOLOGETICS", { cache: "no-store" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load articles");
+      if (!res.ok) throw new Error(data.error || t("apologetics.error.articles"));
       const articles = data.articles || [];
       // Map DB article → ApologeticsPost shape. likes/comments are now real
       // values from the engagement endpoint (PART 2) — set to 0 here and
@@ -125,7 +136,7 @@ export default function ApologeticsView({
       }));
       setPosts(mapped);
     } catch (e: any) {
-      setPostsError(e.message || "Failed to load articles");
+      setPostsError(e.message || t("apologetics.error.articles"));
       setPosts([]);
     } finally {
       setPostsLoading(false);
@@ -146,14 +157,14 @@ export default function ApologeticsView({
     try {
       const res = await fetch("/api/questions", { cache: "no-store" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load questions");
+      if (!res.ok) throw new Error(data.error || t("apologetics.error.questions"));
       const mapped: (ApologeticsQuestion & {
         refs: string[]; // PART 2: validated Bible references
         answeredByName: string | null; // PART 2: official answer attribution
       })[] = (data.questions || []).map((q: any) => {
         const fullQuestion: string = q.question || "";
         const firstLine = fullQuestion.split("\n")[0]?.trim() || "";
-        const title = (firstLine.slice(0, 100) || fullQuestion.slice(0, 100)) || "Untitled question";
+        const title = (firstLine.slice(0, 100) || fullQuestion.slice(0, 100)) || t("apologetics.untitled");
         const dateStr = (q.createdAt || "").split("T")[0] || new Date().toISOString().split("T")[0];
         const answers: ApologeticsAnswer[] = q.answer
           ? [{
@@ -183,7 +194,7 @@ export default function ApologeticsView({
       setDbQuestions(mapped);
       setQuestions(mapped);
     } catch (e: any) {
-      setQuestionsError(e.message || "Failed to load questions");
+      setQuestionsError(e.message || t("apologetics.error.questions"));
       setQuestions([]);
       setDbQuestions([]);
     } finally {
@@ -276,7 +287,7 @@ export default function ApologeticsView({
 
   const toggleSaveArticle = async (articleId: string) => {
     if (!isAuthenticated) {
-      toast.error("Please sign in to save articles");
+      toast.error(t("apologetics.error.signInToSave"));
       return;
     }
     const wasSaved = myBookmarks.has(articleId);
@@ -287,16 +298,16 @@ export default function ApologeticsView({
         body: JSON.stringify({ targetType: "article", targetId: articleId, saved: !wasSaved }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Failed to save");
+      if (!res.ok) throw new Error(data?.error || t("apologetics.error.save"));
       setMyBookmarks((prev) => {
         const next = new Set(prev);
         if (wasSaved) next.delete(articleId);
         else next.add(articleId);
         return next;
       });
-      toast.success(wasSaved ? "Removed from saved" : "Saved");
+      toast.success(wasSaved ? t("events.unsavedToast") : t("apologetics.saved"));
     } catch (e: any) {
-      toast.error(e?.message || "Failed to save");
+      toast.error(e?.message || t("apologetics.error.save"));
     }
   };
 
@@ -329,8 +340,8 @@ export default function ApologeticsView({
     // text share (no fabricated URL).
     if (p.slug) {
       setShareReq({
-        heading: `Share "${p.title.slice(0, 60)}"`,
-        shareText: `${p.title} — Koino Apologetics by ${p.author}`,
+        heading: t("apologetics.shareHeading", { title: p.title.slice(0, 60) }),
+        shareText: t("apologetics.shareText", { title: p.title, author: p.author }),
         shareUrl: shareLinks.apologetics(p.slug),
         cardUrl: `/api/share-card?type=article&kind=apologetics&slug=${encodeURIComponent(p.slug)}`,
         formats: ["portrait", "landscape"],
@@ -338,14 +349,14 @@ export default function ApologeticsView({
       });
       return;
     }
-    navigator.clipboard.writeText(`"${p.title}" by ${p.author} on Koino Apologetics`);
-    toast.success("Post copied!");
+    navigator.clipboard.writeText(t("apologetics.copyText", { title: p.title, author: p.author }));
+    toast.success(t("apologetics.toast.copied"));
   };
 
   const handleAskQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!askForm.title.trim() || !askForm.body.trim()) {
-      toast.error("Please enter both a title and question details");
+      toast.error(t("apologetics.form.errorRequired"));
       return;
     }
     // The DB stores a single `question` field — combine title + body so the
@@ -364,10 +375,10 @@ export default function ApologeticsView({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || `Failed to submit question (HTTP ${res.status})`);
+        throw new Error(data.error || t("apologetics.form.errorHttp", { status: res.status }));
       }
-      toast.success("Question submitted successfully", {
-        description: "It will appear once answered by our team.",
+      toast.success(t("apologetics.form.success"), {
+        description: t("apologetics.form.successDesc"),
       });
       setAskForm({ title: "", body: "", topic: "", author: "" });
       setShowAskModal(false);
@@ -375,7 +386,7 @@ export default function ApologeticsView({
       // but this keeps the list + count in sync.
       loadQuestions();
     } catch (e: any) {
-      toast.error(e.message || "Failed to submit question");
+      toast.error(e.message || t("apologetics.form.errorSubmit"));
       // Keep modal open + preserve form content so the user can retry.
     } finally {
       setSubmittingQuestion(false);
@@ -395,7 +406,7 @@ export default function ApologeticsView({
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
             style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
           >
-            <Plus size={14} /> Ask Question
+            <Plus size={14} /> {t("apologetics.askShort")}
           </button>
         )}
       </div>
@@ -408,7 +419,7 @@ export default function ApologeticsView({
             activeTab === "articles" ? "bg-[#38BDF8] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <BookOpen size={12} /> Articles
+          <BookOpen size={12} /> {t("apologetics.tab.articles")}
         </button>
         <button
           onClick={() => setActiveTab("qa")}
@@ -416,7 +427,7 @@ export default function ApologeticsView({
             activeTab === "qa" ? "bg-[#38BDF8] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
-          <HelpCircle size={12} /> Q&amp;A
+          <HelpCircle size={12} /> {t("apologetics.tab.qa")}
           <span className="px-1.5 py-0.5 rounded-full bg-[#38BDF8]/15 text-[#38BDF8] text-[9px] font-bold tabular-nums">
             {questionsLoading ? "…" : dbQuestions.length}
           </span>
@@ -426,7 +437,7 @@ export default function ApologeticsView({
       {/* Search */}
       <input
         type="text"
-        placeholder={`Search ${activeTab === "articles" ? "articles" : "questions"}...`}
+        placeholder={t("apologetics.searchPlaceholder", { articles: activeTab === "articles" ? "articles" : "questions" })}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="neo-input text-sm mb-3"
@@ -442,7 +453,7 @@ export default function ApologeticsView({
               : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
           }`}
         >
-          All Topics
+          {t("apologetics.allTopics")}
         </button>
         {isAuthenticated && (
           <button
@@ -453,19 +464,19 @@ export default function ApologeticsView({
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
-            <Bookmark size={11} fill={savedOnly ? "currentColor" : "none"} /> Saved
+            <Bookmark size={11} fill={savedOnly ? "currentColor" : "none"} /> {t("apologetics.saved")}
           </button>
         )}
-        {APOLOGETICS_TOPICS.map((t) => (
+        {APOLOGETICS_TOPICS.map((topic) => (
           <button
-            key={t.id}
-            onClick={() => { setFilterTopic(t.id); setSavedOnly(false); }}
+            key={topic.id}
+            onClick={() => { setFilterTopic(topic.id); setSavedOnly(false); }}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-              filterTopic === t.id && !savedOnly ? "text-slate-950" : "text-[#94A3B8] hover:text-white border border-white/[0.06]"
+              filterTopic === topic.id && !savedOnly ? "text-slate-950" : "text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
-            style={filterTopic === t.id && !savedOnly ? { background: t.color } : {}}
+            style={filterTopic === topic.id && !savedOnly ? { background: topic.color } : {}}
           >
-            {t.label}
+            {t(TOPIC_LABEL_KEYS[topic.id])}
           </button>
         ))}
       </div>
@@ -481,10 +492,10 @@ export default function ApologeticsView({
             <PenLine size={16} className="text-[#A78BFA]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-white">Contributor Studio</p>
-            <p className="text-[10px] text-[#94A3B8]">Submit articles &amp; proposed answers as {contributorName}</p>
+            <p className="text-xs font-bold text-white">{t("apologetics.studio.title")}</p>
+            <p className="text-[10px] text-[#94A3B8]">{t("apologetics.studio.subtitle", { name: contributorName })}</p>
           </div>
-          <span className="text-[10px] font-bold text-[#A78BFA]">Open →</span>
+          <span className="text-[10px] font-bold text-[#A78BFA]">{t("apologetics.studio.open")}</span>
         </button>
       )}
 
@@ -495,20 +506,20 @@ export default function ApologeticsView({
             {postsLoading && (
               <div className="text-center py-12">
                 <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
-                <p className="text-xs text-[#94A3B8]">Loading articles…</p>
+                <p className="text-xs text-[#94A3B8]">{t("apologetics.loadingArticles")}</p>
               </div>
             )}
 
             {/* Error state */}
             {!postsLoading && postsError && (
               <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-2xl p-5 text-center">
-                <p className="text-sm font-bold text-[#EF4444] mb-1">Failed to load articles</p>
+                <p className="text-sm font-bold text-[#EF4444] mb-1">{t("apologetics.error.articles")}</p>
                 <p className="text-xs text-[#A09DB1] mb-3">{postsError}</p>
                 <button
                   onClick={loadPosts}
                   className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
                 >
-                  Try again
+                  {t("common.retry")}
                 </button>
               </div>
             )}
@@ -519,9 +530,9 @@ export default function ApologeticsView({
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
                   <BookOpen size={24} className="text-[#A78BFA]" />
                 </div>
-                <p className="text-sm font-bold text-white mb-1">No articles published yet</p>
+                <p className="text-sm font-bold text-white mb-1">{t("apologetics.emptyArticles.title")}</p>
                 <p className="text-xs text-[#A09DB1] max-w-sm mx-auto">
-                  Apologetics articles will appear here once they are published by the Koino team.
+                  {t("apologetics.emptyArticles.desc")}
                 </p>
               </div>
             )}
@@ -548,7 +559,7 @@ export default function ApologeticsView({
                 <div className="relative h-44" style={{ background: CHURCH_GRADIENTS[filtered[0].cover_gradient] }}>
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-[#1C1929]/40 to-transparent" />
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#22C55E]/15 backdrop-blur-sm border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider">
-                    Featured
+                    {t("common.featured")}
                   </div>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -598,7 +609,7 @@ export default function ApologeticsView({
                           className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block mb-1.5"
                           style={{ backgroundColor: `${topic?.color}20`, color: topic?.color }}
                         >
-                          {topic?.label}
+                          {topic ? t(TOPIC_LABEL_KEYS[topic.id]) : ""}
                         </span>
                         <h3 className="text-base font-bold text-white leading-tight">{post.title}</h3>
                       </div>
@@ -634,7 +645,7 @@ export default function ApologeticsView({
                         />
                         <button
                           onClick={() => toggleSaveArticle(post.id)}
-                          title={myBookmarks.has(post.id) ? "Saved" : "Save"}
+                          title={myBookmarks.has(post.id) ? t("apologetics.saved") : t("apologetics.save")}
                           className={`p-1.5 rounded-lg transition-colors ${
                             myBookmarks.has(post.id)
                               ? "text-[#F59E0B]"
@@ -662,7 +673,7 @@ export default function ApologeticsView({
             {filtered.length === 0 && (
               <div className="text-center py-12">
                 <Search size={32} className="mx-auto text-[#475569] mb-2" />
-                <p className="text-sm text-[#475569]">No articles found.</p>
+                <p className="text-sm text-[#475569]">{t("apologetics.noResults")}</p>
               </div>
             )}
               </>
@@ -677,10 +688,9 @@ export default function ApologeticsView({
                   <HelpCircle size={18} className="text-[#38BDF8]" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white mb-1">Have a question about faith?</p>
+                  <p className="text-sm font-bold text-white mb-1">{t("apologetics.qaBanner.title")}</p>
                   <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-                    Ask anything — our team reviews every question and posts a thoughtful,
-                    biblically-grounded answer. Answered questions appear below.
+                    {t("apologetics.qaBanner.desc")}
                   </p>
                 </div>
               </div>
@@ -690,20 +700,20 @@ export default function ApologeticsView({
             {questionsLoading && (
               <div className="text-center py-12">
                 <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#38BDF8] animate-spin mb-3" />
-                <p className="text-xs text-[#94A3B8]">Loading questions…</p>
+                <p className="text-xs text-[#94A3B8]">{t("apologetics.loadingQuestions")}</p>
               </div>
             )}
 
             {/* Error state */}
             {!questionsLoading && questionsError && (
               <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-2xl p-5 text-center">
-                <p className="text-sm font-bold text-[#EF4444] mb-1">Failed to load questions</p>
+                <p className="text-sm font-bold text-[#EF4444] mb-1">{t("apologetics.error.questions")}</p>
                 <p className="text-xs text-[#A09DB1] mb-3">{questionsError}</p>
                 <button
                   onClick={loadQuestions}
                   className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
                 >
-                  Try again
+                  {t("common.retry")}
                 </button>
               </div>
             )}
@@ -714,9 +724,9 @@ export default function ApologeticsView({
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#38BDF8]/10 border border-[#38BDF8]/25 mb-3">
                   <HelpCircle size={24} className="text-[#38BDF8]" />
                 </div>
-                <p className="text-sm font-bold text-white mb-1">No questions yet</p>
+                <p className="text-sm font-bold text-white mb-1">{t("apologetics.emptyQuestions.title")}</p>
                 <p className="text-xs text-[#A09DB1] max-w-sm mx-auto mb-4">
-                  Be the first to ask! Your question will be reviewed and answered by our team.
+                  {t("apologetics.emptyQuestions.desc")}
                 </p>
                 {isAuthenticated ? (
                   <button
@@ -724,7 +734,7 @@ export default function ApologeticsView({
                     className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-1.5"
                     style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
                   >
-                    <Plus size={14} /> Ask a Question
+                    <Plus size={14} /> {t("apologetics.askQuestion")}
                   </button>
                 ) : (
                   <a
@@ -732,7 +742,7 @@ export default function ApologeticsView({
                     className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-1.5"
                     style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
                   >
-                    Sign in to ask
+                    {t("apologetics.signInToAsk")}
                   </a>
                 )}
               </div>
@@ -758,7 +768,7 @@ export default function ApologeticsView({
                           className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                           style={{ backgroundColor: `${topic.color}20`, color: topic.color }}
                         >
-                          {topic.label}
+                          {topic ? t(TOPIC_LABEL_KEYS[topic.id]) : ""}
                         </span>
                       )}
                       <span
@@ -768,7 +778,7 @@ export default function ApologeticsView({
                             : "bg-[#F59E0B]/15 text-[#F59E0B]"
                         }`}
                       >
-                        {q.status === "answered" ? "Answered" : "Open"}
+                        {q.status === "answered" ? t("apologetics.statusAnswered") : t("apologetics.statusOpen")}
                       </span>
                     </div>
                     <h3 className="text-base font-bold text-white leading-tight mb-1">{q.title}</h3>
@@ -810,7 +820,7 @@ export default function ApologeticsView({
             {!questionsLoading && !questionsError && questions.length > 0 && filteredQuestions.length === 0 && (
               <div className="text-center py-12">
                 <Search size={32} className="mx-auto text-[#475569] mb-2" />
-                <p className="text-sm text-[#475569]">No questions match your search.</p>
+                <p className="text-sm text-[#475569]">{t("apologetics.noQuestionsMatch")}</p>
               </div>
             )}
           </motion.div>
@@ -883,16 +893,16 @@ export default function ApologeticsView({
                       onChange={onReactionChange}
                     />
                   ) : (
-                    <span className="text-[10px] text-[#64748B]">Open the full article to react and comment.</span>
+                    <span className="text-[10px] text-[#64748B]">{t("apologetics.openFullArticle")}</span>
                   )}
                   <button
                     onClick={() => sharePost(openPost)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06] transition-all"
                   >
-                    <Share2 size={14} /> Share
+                    <Share2 size={14} /> {t("common.share")}
                   </button>
                   <div className="ml-auto flex items-center gap-1 text-[10px] text-[#94A3B8]">
-                    <Eye size={12} /> {(engagement[openPost.id]?.AMEN ?? 0) + (engagement[openPost.id]?.INSIGHTFUL ?? 0)} reactions
+                    <Eye size={12} /> {t("apologetics.reactionsCount", { count: (engagement[openPost.id]?.AMEN ?? 0) + (engagement[openPost.id]?.INSIGHTFUL ?? 0) })}
                   </div>
                 </div>
               </div>
@@ -924,7 +934,7 @@ export default function ApologeticsView({
                     onClick={() => setOpenQuestion(null)}
                     className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-white transition-colors"
                   >
-                    <X size={14} /> Close
+                    <X size={14} /> {t("common.close")}
                   </button>
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -933,7 +943,7 @@ export default function ApologeticsView({
                         : "bg-[#F59E0B]/15 text-[#F59E0B]"
                     }`}
                   >
-                    {openQuestion.status === "answered" ? "Answered" : "Open"}
+                    {openQuestion.status === "answered" ? t("apologetics.statusAnswered") : t("apologetics.statusOpen")}
                   </span>
                 </div>
 
@@ -944,7 +954,7 @@ export default function ApologeticsView({
                       className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                       style={{ backgroundColor: `${topic?.color}20`, color: topic?.color }}
                     >
-                      {topic?.label}
+                      {topic ? t(TOPIC_LABEL_KEYS[topic.id]) : ""}
                     </span>
                   );
                 })()}
@@ -963,7 +973,7 @@ export default function ApologeticsView({
                           href={bibleRefHref(parsed)}
                           onClick={(e) => e.stopPropagation()}
                           className="px-2 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[10px] font-bold hover:bg-[#38BDF8]/20 transition-colors"
-                          title="Open this passage in the Bible reader"
+                          title={t("apologetics.refTitle")}
                         >
                           {ref} ↗
                         </a>
@@ -991,12 +1001,12 @@ export default function ApologeticsView({
                 {/* Answers — the official answer with real attribution */}
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">
-                    {openQuestion.answers.length} {openQuestion.answers.length === 1 ? "Answer" : "Answers"}
+                    {t("apologetics.answersCount", { count: openQuestion.answers.length })}
                   </p>
                   {openQuestion.answers.length === 0 ? (
                     <div className="rounded-xl p-4 border border-dashed border-white/[0.08] bg-white/[0.02] text-center">
                       <p className="text-xs text-[#94A3B8]">
-                        This question hasn't been answered yet.
+                        {t("apologetics.noAnswers")}
                       </p>
                     </div>
                   ) : (
@@ -1019,7 +1029,7 @@ export default function ApologeticsView({
                                 {a.author}
                                 {a.is_accepted && (
                                   <span className="flex items-center gap-0.5 text-[#22C55E] text-[9px] font-bold uppercase">
-                                    <CheckCircle2 size={10} /> Accepted
+                                    <CheckCircle2 size={10} /> {t("apologetics.accepted")}
                                   </span>
                                 )}
                               </p>
@@ -1052,14 +1062,14 @@ export default function ApologeticsView({
                       className="flex items-center gap-1.5 text-[11px] font-bold text-[#38BDF8] hover:bg-[#38BDF8]/10 rounded-lg px-2 py-1.5 transition-colors"
                     >
                       <MessageCircle size={12} />
-                      Discussion ({engagement[openQuestion.id]?.comments ?? 0})
+                      {t("apologetics.discussion", { count: engagement[openQuestion.id]?.comments ?? 0 })}
                     </button>
                   )}
                   <button
                     onClick={() =>
                       setShareReq({
-                        heading: "Share this Q&A",
-                        shareText: `${openQuestion.title} — Koino Apologetics Q&A`,
+                        heading: t("apologetics.shareQaHeading"),
+                        shareText: t("apologetics.shareQaText", { title: openQuestion.title }),
                         shareUrl: shareLinks.apologeticsQuestion(openQuestion.id),
                         formats: ["landscape"],
                         fileName: `koino-qa-${openQuestion.id.slice(-8)}.png`,
@@ -1067,7 +1077,7 @@ export default function ApologeticsView({
                     }
                     className="flex items-center gap-1.5 text-[11px] font-bold text-[#94A3B8] hover:text-white px-2 py-1.5 transition-colors"
                   >
-                    <Share2 size={12} /> Share
+                    <Share2 size={12} /> {t("common.share")}
                   </button>
                 </div>
 
@@ -1076,8 +1086,7 @@ export default function ApologeticsView({
                 <div className="pt-3 border-t border-white/[0.06] flex items-start gap-2">
                   <BookOpen size={14} className="text-[#38BDF8] shrink-0 mt-0.5" />
                   <p className="text-[10px] text-[#64748B] leading-relaxed">
-                    Official answers are written by the Koino team and approved contributors,
-                    then reviewed before they appear here.
+                    {t("apologetics.answersNote")}
                   </p>
                 </div>
                 </div>
@@ -1106,7 +1115,7 @@ export default function ApologeticsView({
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold bg-gradient-to-r from-[#38BDF8] to-[#A855F7] bg-clip-text text-transparent">
-                  Ask a Question
+                  {t("apologetics.askQuestion")}
                 </h2>
                 <button onClick={() => setShowAskModal(false)} className="text-[#64748B] hover:text-white p-1">
                   <X size={20} />
@@ -1115,54 +1124,54 @@ export default function ApologeticsView({
               <form onSubmit={handleAskQuestion} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Question Title *
+                    {t("apologetics.form.title")}
                   </label>
                   <input
                     type="text"
                     value={askForm.title}
                     onChange={(e) => setAskForm({ ...askForm, title: e.target.value })}
                     className="neo-input text-sm"
-                    placeholder="e.g. How do we know Jesus is God?"
+                    placeholder={t("apologetics.form.titlePlaceholder")}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Topic
+                    {t("apologetics.form.topic")}
                   </label>
                   <select
                     value={askForm.topic}
                     onChange={(e) => setAskForm({ ...askForm, topic: e.target.value })}
                     className="neo-input text-sm"
                   >
-                    <option value="">Select topic</option>
-                    {APOLOGETICS_TOPICS.map((t) => (
-                      <option key={t.id} value={t.id}>{t.label}</option>
+                    <option value="">{t("apologetics.form.selectTopic")}</option>
+                    {APOLOGETICS_TOPICS.map((topic) => (
+                      <option key={topic.id} value={topic.id}>{t(TOPIC_LABEL_KEYS[topic.id])}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Question Details *
+                    {t("apologetics.form.details")}
                   </label>
                   <textarea
                     value={askForm.body}
                     onChange={(e) => setAskForm({ ...askForm, body: e.target.value })}
                     className="neo-input h-32 resize-none text-sm"
-                    placeholder="Provide context, what you've read so far, what specifically you're struggling with..."
+                    placeholder={t("apologetics.form.detailsPlaceholder")}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-                    Your Name (optional)
+                    {t("apologetics.form.author")}
                   </label>
                   <input
                     type="text"
                     value={askForm.author}
                     onChange={(e) => setAskForm({ ...askForm, author: e.target.value })}
                     className="neo-input text-sm"
-                    placeholder="Leave blank for Anonymous"
+                    placeholder={t("apologetics.form.authorPlaceholder")}
                   />
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -1172,7 +1181,7 @@ export default function ApologeticsView({
                     disabled={submittingQuestion}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                   <button
                     type="submit"
@@ -1182,10 +1191,10 @@ export default function ApologeticsView({
                   >
                     {submittingQuestion ? (
                       <>
-                        <Loader2 size={14} className="animate-spin" /> Submitting…
+                        <Loader2 size={14} className="animate-spin" /> {t("common.submitting")}
                       </>
                     ) : (
-                      "Post Question"
+                      t("apologetics.form.submit")
                     )}
                   </button>
                 </div>

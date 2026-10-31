@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Clock, FileText, RefreshCcw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { ARTICLE_STATUS_LABELS, type ArticleStatus } from "@/lib/blog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import type { ArticleEditorInitial } from "./ArticleEditor";
 
 export type MyArticle = {
@@ -50,16 +51,17 @@ export default function MyArticles({
   const [articles, setArticles] = useState<MyArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const t = useTranslation();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/blog/articles");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Couldn't load your articles.");
+      if (!res.ok) throw new Error(data.error || t("blog.mine.loadFailed"));
       setArticles(data.articles ?? []);
     } catch (e: any) {
-      toast.error(e?.message || "Couldn't load your articles.");
+      toast.error(e?.message || t("blog.mine.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -74,11 +76,11 @@ export default function MyArticles({
     try {
       const res = await fetch(`/api/blog/articles/${a.id}/submit`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Couldn't submit.");
-      toast.success("Submitted for review.");
+      if (!res.ok) throw new Error(data.error || t("blog.mine.submitFailed"));
+      toast.success(t("blog.mine.submitted"));
       load();
     } catch (e: any) {
-      toast.error(e?.message || "Couldn't submit.");
+      toast.error(e?.message || t("blog.mine.submitFailed"));
     } finally {
       setSubmittingId(null);
     }
@@ -90,25 +92,25 @@ export default function MyArticles({
   return (
     <section aria-label="My article submissions" className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-black text-white uppercase tracking-wider">My Submissions</h2>
+        <h2 className="text-sm font-black text-white uppercase tracking-wider">{t("blog.mine.title")}</h2>
         <button
           type="button"
           onClick={load}
           className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#A09DB1] hover:text-white transition-colors"
         >
-          <RefreshCcw size={11} /> Refresh
+          <RefreshCcw size={11} /> {t("blog.mine.refresh")}
         </button>
       </div>
 
       {loading ? (
         <div className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-6 text-center text-sm text-[#A09DB1]">
-          Loading…
+          {t("common.loadingShort")}
         </div>
       ) : articles.length === 0 ? (
         <div className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-6 text-center">
           <FileText size={20} className="mx-auto mb-2 text-[#726E88]" />
           <p className="text-sm text-[#A09DB1]">
-            No articles yet — write your first one above. Save a draft or submit it for review.
+            {t("blog.mine.empty")}
           </p>
         </div>
       ) : (
@@ -128,15 +130,15 @@ export default function MyArticles({
                       <span className="text-[11px] text-[#726E88]">{a.category}</span>
                       {a.readingMinutes != null && (
                         <span className="inline-flex items-center gap-1 text-[11px] text-[#726E88]">
-                          <Clock size={10} /> {a.readingMinutes} min
+                          <Clock size={10} /> {t("blog.mine.minRead", { n: a.readingMinutes })}
                         </span>
                       )}
-                      <span className="text-[11px] text-[#726E88]">Updated {fmtDate(a.updatedAt)}</span>
+                      <span className="text-[11px] text-[#726E88]">{t("blog.mine.updated", { date: fmtDate(a.updatedAt) })}</span>
                     </div>
                     <p className="text-sm font-bold text-white truncate">{a.title}</p>
                     {a.reviewNotes && a.status !== "published" && (
                       <p className="mt-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-xs text-[#A09DB1]">
-                        <span className="font-bold text-[#94A3B8]">Admin feedback: </span>
+                        <span className="font-bold text-[#94A3B8]">{t("blog.mine.adminFeedback")}</span>
                         {a.reviewNotes}
                       </p>
                     )}
@@ -147,7 +149,7 @@ export default function MyArticles({
                         href={`/blog/${a.slug}`}
                         className="rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-3 py-1.5 text-xs font-bold text-white transition-colors"
                       >
-                        View
+                        {t("blog.mine.action.view")}
                       </a>
                     )}
                     {canEdit && (
@@ -156,7 +158,7 @@ export default function MyArticles({
                         onClick={() => onEdit(a)}
                         className="rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-3 py-1.5 text-xs font-bold text-white transition-colors"
                       >
-                        {a.status === "pending" ? "View" : "Edit"}
+                        {a.status === "pending" ? t("blog.mine.action.view") : t("blog.mine.action.edit")}
                       </button>
                     )}
                     {canSubmit && (
@@ -167,7 +169,7 @@ export default function MyArticles({
                         className="inline-flex items-center gap-1.5 rounded-lg bg-[#F39B9B] hover:bg-[#E27B7B] px-3 py-1.5 text-xs font-extrabold text-slate-950 transition-colors disabled:opacity-40"
                       >
                         <Send size={11} />
-                        {submittingId === a.id ? "…" : a.status === "draft" ? "Submit" : "Resubmit"}
+                        {submittingId === a.id ? "…" : a.status === "draft" ? t("blog.mine.action.submit") : t("blog.mine.action.resubmit")}
                       </button>
                     )}
                   </div>

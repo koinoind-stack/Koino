@@ -17,6 +17,7 @@ import {
   categoryLabel,
 } from "@/lib/videos";
 import { getBook } from "@/lib/bible-data";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Me = {
   username?: string | null;
@@ -31,6 +32,7 @@ type MeResponse = {
 };
 
 export default function VideosLibrary({ initialBook, initialChapter }: { initialBook?: string; initialChapter?: number }) {
+  const t = useTranslation();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("");
   const [language, setLanguage] = useState("");
@@ -127,10 +129,9 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-4">
           <Clapperboard size={26} className="text-[#C4B5FD]" />
         </div>
-        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">Bible Movies &amp; Videos</h1>
+        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{t("videos.library.title")}</h1>
         <p className="text-sm text-[#94A3B8] mt-2 max-w-lg mx-auto leading-relaxed">
-          Bible movies, animated Bible stories, Christian films, sermons, and worship —
-          connected to the Scriptures they bring to life. Read the Bible. Watch its stories.
+          {t("videos.library.subtitle")}
         </p>
       </div>
 
@@ -140,12 +141,14 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
           <div className="flex items-center gap-2.5 min-w-0">
             <BookOpen size={16} className="text-[#C4B5FD] shrink-0" />
             <p className="text-sm text-[#C4B5FD] font-bold truncate">
-              Videos for {getBook(initialBook || "")?.name || initialBook}
-              {initialChapter ? ` ${initialChapter}` : ""}
+              {t("videos.library.passageScoped", {
+                book: getBook(initialBook || "")?.name || initialBook || "",
+                ch: initialChapter ? ` ${initialChapter}` : "",
+              })}
             </p>
           </div>
           <a href="/videos" className="shrink-0 flex items-center gap-1 text-xs font-bold text-[#94A3B8] hover:text-white">
-            <ChevronLeft size={13} /> Clear
+            <ChevronLeft size={13} /> {t("videos.library.clear")}
           </a>
         </div>
       )}
@@ -157,7 +160,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search videos, stories, teachings…"
+            placeholder={t("videos.library.searchPlaceholder")}
             className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
           />
         </div>
@@ -167,7 +170,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
             onChange={(e) => setLanguage(e.target.value)}
             className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]"
           >
-            <option value="">All languages</option>
+            <option value="">{t("videos.library.allLanguages")}</option>
             {VIDEO_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.nativeLabel} ({l.name})
@@ -184,7 +187,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
             }}
             className="md:hidden bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none [&>option]:bg-[#1C1929]"
           >
-            <option value="">All categories</option>
+            <option value="">{t("videos.library.allCategories")}</option>
             {VIDEO_CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>{c.label}</option>
             ))}
@@ -200,7 +203,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
                 : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
             }`}
           >
-            All
+            {t("common.all")}
           </button>
           {VIDEO_CATEGORIES.map((c) => (
             <button
@@ -220,7 +223,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
 
       {/* ─── continue watching ─── */}
       {signedIn && continueWatching.length > 0 && (
-        <Section title="Continue Watching" subtitle={me?.username ? `Welcome back, ${me.username}` : undefined}>
+        <Section title={t("videos.library.continueWatching")} subtitle={me?.username ? t("videos.library.welcomeBack", { u: me.username }) : undefined}>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {continueWatching.slice(0, 4).map((v) => (
               <VideoCard key={`cw-${v.id}`} video={v} />
@@ -231,7 +234,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
 
       {/* ─── featured ─── */}
       {!filtersActive && featured.length > 0 && (
-        <Section title="Featured Videos">
+        <Section title={t("videos.library.section.featured")}>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {featured.slice(0, 8).map((v) => (
               <VideoCard key={`f-${v.id}`} video={{ ...v, featured: true }} />
@@ -242,7 +245,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
 
       {/* ─── recently added (unfiltered only) ─── */}
       {!filtersActive && recent.length > 0 && (
-        <Section title="Recently Added">
+        <Section title={t("videos.library.section.recent")}>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {recent.map((v) => (
               <VideoCard key={`r-${v.id}`} video={v} />
@@ -257,39 +260,39 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
           filtersActive
             ? category
               ? categoryLabel(category)
-              : "Search Results"
-            : "Browse All Videos"
+              : t("videos.library.section.search")
+            : t("videos.library.section.all")
         }
       >
         {loading && videos.length === 0 && (
           <div className="flex flex-col items-center justify-center py-14 gap-3">
             <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-[#94A3B8]">Loading videos…</p>
+            <p className="text-xs text-[#94A3B8]">{t("videos.library.loading")}</p>
           </div>
         )}
         {loaded && !loading && videos.length === 0 && loadError && (
           <div className="flex flex-col items-center justify-center py-14 gap-3">
             <TriangleAlert size={32} className="text-[#F59E0B]" />
-            <p className="text-sm font-bold text-[#94A3B8]">Couldn&apos;t load the library</p>
+            <p className="text-sm font-bold text-[#94A3B8]">{t("videos.library.errorTitle")}</p>
             <p className="text-xs text-[#64748B] max-w-xs mx-auto">
-              Check your connection and try again.
+              {t("common.error.checkConnection")}
             </p>
             <button
               onClick={() => load()}
               className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
             >
-              Retry
+              {t("common.retry")}
             </button>
           </div>
         )}
         {loaded && !loading && videos.length === 0 && !loadError && (
           <div className="text-center py-14">
             <PlayCircle size={36} className="mx-auto text-[#4B5563] mb-3" />
-            <p className="text-sm font-bold text-[#94A3B8]">No videos found</p>
+            <p className="text-sm font-bold text-[#94A3B8]">{t("videos.library.emptyTitle")}</p>
             <p className="text-xs text-[#64748B] mt-1 max-w-xs mx-auto">
               {filtersActive
-                ? "Try different search words or clear a filter."
-                : "The library is just getting started — check back soon."}
+                ? t("videos.library.emptyFilteredHint")
+                : t("videos.library.emptyHint")}
             </p>
           </div>
         )}
@@ -305,7 +308,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
               disabled={loading}
               className="px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-[#94A3B8] hover:text-white disabled:opacity-50"
             >
-              {loading ? "Loading…" : "Load more"}
+              {loading ? t("common.loadingShort") : t("videos.library.loadMore")}
             </button>
           </div>
         )}

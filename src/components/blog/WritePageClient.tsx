@@ -11,6 +11,7 @@ import { ArrowLeft, LogIn, PenLine } from "lucide-react";
 import ArticleEditor, { type ArticleEditorInitial } from "./ArticleEditor";
 import MyArticles, { type MyArticle } from "./MyArticles";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 function toEditorInitial(a: MyArticle): ArticleEditorInitial {
   let tags: string[] = [];
@@ -32,6 +33,7 @@ function toEditorInitial(a: MyArticle): ArticleEditorInitial {
 }
 
 export default function WritePageClient() {
+  const t = useTranslation();
   const { isAuthenticated, loading: userLoading } = useSupabaseUser();
   const [editing, setEditing] = useState<MyArticle | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -46,35 +48,33 @@ export default function WritePageClient() {
           href="/blog"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-[#A09DB1] hover:text-white transition-colors mb-4"
         >
-          <ArrowLeft size={13} /> Back to Blog
+          <ArrowLeft size={13} /> {t("blog.write.back")}
         </Link>
         <h1 className="text-2xl sm:text-3xl font-black text-white mb-2 flex items-center gap-2.5">
           <PenLine size={24} className="text-[#F39B9B]" />
-          {editing ? "Edit Article" : "Write an Article"}
+          {editing ? t("blog.write.editTitle") : t("blog.write.writeTitle")}
         </h1>
         <p className="text-sm text-[#A09DB1] leading-relaxed">
-          Share a Bible study, devotional, testimony or reflection. Submitted articles are
-          reviewed by the Koino team before they appear on the Blog and in the community feed.
+          {t("blog.write.subtitle")}
         </p>
       </div>
 
       {userLoading ? (
         <div className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-8 text-center text-sm text-[#A09DB1]">
-          Checking your session…
+          {t("blog.write.checking")}
         </div>
       ) : !isAuthenticated ? (
         <div className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-8 text-center">
           <LogIn size={22} className="mx-auto mb-3 text-[#F39B9B]" />
-          <p className="text-sm font-bold text-white mb-1.5">Sign in to write for Koino</p>
+          <p className="text-sm font-bold text-white mb-1.5">{t("blog.write.signinTitle")}</p>
           <p className="text-xs text-[#A09DB1] mb-5 leading-relaxed">
-            Articles are written by Koino members. Sign in (or create a free account) to start
-            yours — your draft will be saved so you can continue any time.
+            {t("blog.write.signinBody")}
           </p>
           <Link
             href="/auth/signin"
             className="inline-block rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] px-6 py-3 text-xs font-extrabold text-slate-950 uppercase tracking-wider transition-colors"
           >
-            Sign in to continue
+            {t("blog.write.signinCta")}
           </Link>
         </div>
       ) : (

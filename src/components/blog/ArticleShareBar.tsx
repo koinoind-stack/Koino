@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Share2 } from "lucide-react";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   title: string;
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export default function ArticleShareBar({ title, excerpt, slug, imageUrl, shareUrl }: Props) {
+  const t = useTranslation();
   const [req, setReq] = useState<ShareRequest | null>(null);
 
   const open = () => {
@@ -40,7 +42,7 @@ export default function ArticleShareBar({ title, excerpt, slug, imageUrl, shareU
         onClick={open}
         className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] px-4 py-2 text-xs font-bold text-white transition-colors"
       >
-        <Share2 size={13} /> Share
+        <Share2 size={13} /> {t("common.share")}
       </button>
       {req && <ShareSheet request={req} onClose={() => setReq(null)} />}
     </>

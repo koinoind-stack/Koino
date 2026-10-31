@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { INDIAN_STATES, INDIAN_CITIES_BY_STATE } from "@/lib/crosscrafted-data";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { extractYouTubeId, MEMORIAL_VIDEO_CATEGORIES } from "@/lib/youtube";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export type MemorialVideoDraft = {
   url: string;
@@ -88,9 +89,10 @@ type Props = {
   onSaved?: (memorialId: string, status: string) => void;
 };
 
-const STEPS = ["Basic information", "Life story", "Photos & videos", "Privacy & submit"];
+const STEPS = ["memorials.form.step1", "memorials.form.step2", "memorials.form.step3", "memorials.form.step4"];
 
 export default function MemorialForm({ mode, memorialId, initial, onSaved }: Props) {
+  const t = useTranslation();
   const { user, username, displayName, loading: authLoading } = useSupabaseUser();
   const [form, setForm] = useState<MemorialFormData>(initial || EMPTY_MEMORIAL_FORM);
   const [step, setStep] = useState(0);
@@ -119,16 +121,15 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
     return (
       <div className="max-w-md mx-auto text-center py-20 px-4">
         <Flower2 size={30} className="mx-auto text-[#C4B5FD] mb-4" />
-        <h2 className="text-lg font-bold text-white mb-2">Sign in to create a memorial</h2>
+        <h2 className="text-lg font-bold text-white mb-2">{t("memorials.form.signinTitle")}</h2>
         <p className="text-sm text-[#94A3B8] mb-6 leading-relaxed">
-          Memorials are created by family members and friends. Please sign in with your
-          Koino account so we can protect these pages from misuse.
+          {t("memorials.form.signinBody")}
         </p>
         <Link
           href="/auth/signin"
           className="inline-flex items-center px-6 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9]"
         >
-          Sign in
+          {t("memorials.form.signinCta")}
         </Link>
       </div>
     );
@@ -155,7 +156,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         added.push(await uploadImage(f));
       }
       setForm((prev) => ({ ...prev, gallery: [...prev.gallery, ...added].slice(0, 12) }));
-      toast.success(`${added.length} photo${added.length === 1 ? "" : "s"} added`);
+      toast.success(t("memorials.form.photosAdded", { n: added.length }));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -192,9 +193,9 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
   /** Per-step validation before moving forward. */
   function next() {
     if (step === 0) {
-      if (form.fullName.trim().length < 2) return toast.error("Please enter the full name of your loved one");
+      if (form.fullName.trim().length < 2) return toast.error(t("memorials.form.nameRequired"));
       if (form.dob && form.dod && form.dob > form.dod) {
-        return toast.error("Date of birth cannot be after the date of passing");
+        return toast.error(t("memorials.form.dobAfterDod"));
       }
     }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -221,9 +222,9 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
 
   async function save(status: "draft" | "pending") {
     if (busy) return;
-    if (form.fullName.trim().length < 2) return toast.error("Please enter the full name");
+    if (form.fullName.trim().length < 2) return toast.error(t("memorials.form.nameRequired"));
     if (form.dob && form.dod && form.dob > form.dod) {
-      return toast.error("Date of birth cannot be after the date of passing");
+      return toast.error(t("memorials.form.dobAfterDod"));
     }
     if (status === "pending") {
       if (form.tribute.trim().length < 2) {
@@ -242,13 +243,13 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not save the memorial");
+      if (!res.ok) throw new Error(data.error || t("memorials.form.saveFailed"));
       const id = mode === "create" ? data.memorial.id : memorialId!;
       if (form.videos.length > 0) await submitVideos(id);
       toast.success(
         status === "pending"
-          ? "Submitted for review — a Koino admin will check it before it appears publicly"
-          : "Draft saved — continue any time from this page",
+          ? t("memorials.form.submittedToast")
+          : t("memorials.form.draftSavedToast"),
       );
       onSaved?.(id, status);
       if (!onSaved) window.location.href = `/memorials/${id}`;
@@ -272,9 +273,9 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
           <Flower2 size={22} className="text-[#C4B5FD]" />
         </div>
         <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-          {mode === "create" ? "Create a memorial" : "Edit memorial"}
+          {mode === "create" ? t("memorials.form.createTitle") : t("memorials.form.editTitle")}
         </h1>
-        <p className="text-sm text-[#94A3B8] mt-1.5">Honour the life of someone you loved.</p>
+        <p className="text-sm text-[#94A3B8] mt-1.5">{t("memorials.form.subtitle")}</p>
       </div>
 
       {/* step indicator */}
@@ -285,13 +286,13 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             onClick={() => i < step && setStep(i)}
             disabled={i >= step}
             className={`flex-1 rounded-full h-1.5 transition-colors ${i <= step ? "bg-[#7C3AED]" : "bg-white/[0.08]"} ${i < step ? "cursor-pointer" : ""}`}
-            aria-label={`Step ${i + 1}: ${label}${i < step ? " (go back)" : ""}`}
-            title={`Step ${i + 1}: ${label}`}
+            aria-label={`${t("memorials.form.stepOf", { n: i + 1, m: STEPS.length, label: t(label) })}${i < step ? " (go back)" : ""}`}
+            title={t("memorials.form.stepOf", { n: i + 1, m: STEPS.length, label: t(label) })}
           />
         ))}
       </div>
       <p className="text-[11px] font-bold uppercase tracking-wider text-[#C4B5FD] mb-5">
-        Step {step + 1} of {STEPS.length} — {STEPS[step]}
+        {t("memorials.form.stepOf", { n: step + 1, m: STEPS.length, label: t(STEPS[step]) })}
       </p>
 
       {/* consent notice */}
@@ -318,7 +319,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     <button
                       onClick={() => set("photoUrl", "")}
                       className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
-                      aria-label="Remove photo"
+                      aria-label={t("memorials.form.removePhoto")}
                     >
                       <X size={10} className="text-white" />
                     </button>
@@ -334,7 +335,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
                 >
                   {uploading === "photo" ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-                  {uploading === "photo" ? "Uploading…" : form.photoUrl ? "Change photo" : "Add photo"}
+                  {uploading === "photo" ? t("memorials.form.uploading") : form.photoUrl ? t("memorials.form.changePhoto") : t("memorials.form.addPhoto")}
                 </button>
                 <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => handlePhoto(e.target.files?.[0])} />
               </div>
@@ -423,7 +424,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     <button
                       onClick={() => set("gallery", form.gallery.filter((x) => x !== g))}
                       className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
-                      aria-label="Remove photo"
+                      aria-label={t("memorials.form.removePhoto")}
                     >
                       <X size={10} className="text-white" />
                     </button>
@@ -434,7 +435,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     onClick={() => galleryInput.current?.click()}
                     disabled={uploading !== null}
                     className="w-16 h-16 rounded-xl bg-white/[0.03] border border-dashed border-white/15 flex items-center justify-center hover:border-[#7C3AED]/40 disabled:opacity-40"
-                    aria-label="Add photos"
+                    aria-label={t("memorials.form.addPhoto")}
                   >
                     {uploading === "gallery" ? <Loader2 size={16} className="animate-spin text-[#94A3B8]" /> : <ImagePlus size={16} className="text-[#64748B]" />}
                   </button>
@@ -488,7 +489,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                         className="text-[10px] font-bold text-[#64748B] hover:text-red-300 shrink-0"
                         aria-label={`Remove video ${v.title}`}
                       >
-                        Remove
+                        {t("common.remove")}
                       </button>
                     </li>
                   ))}
@@ -569,7 +570,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               disabled={busy}
               className="inline-flex items-center gap-1.5 px-4 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
             >
-              <ArrowLeft size={14} /> Back
+              <ArrowLeft size={14} /> {t("common.back")}
             </button>
           )}
           {step < STEPS.length - 1 ? (
@@ -578,7 +579,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               disabled={busy}
               className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
             >
-              Continue <ArrowRight size={14} />
+              {t("memorials.form.continue")} <ArrowRight size={14} />
             </button>
           ) : (
             <button
@@ -587,7 +588,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              {busy ? "Submitting…" : "Submit for review"}
+              {busy ? t("common.submitting") : t("memorials.form.submitForReview")}
             </button>
           )}
           <button
@@ -596,11 +597,11 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             className="inline-flex items-center px-4 py-3 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm font-bold text-white hover:bg-white/10 disabled:opacity-40"
             title="Save as draft — continue later"
           >
-            {busy ? "Saving…" : "Save draft"}
+            {busy ? t("memorials.form.saving") : t("memorials.form.saveDraft")}
           </button>
         </div>
         <p className="text-[11px] text-[#64748B] text-center">
-          Drafts are private to the memorial managers until you submit them for review.
+          {t("memorials.form.draftNote")}
         </p>
       </div>
     </div>

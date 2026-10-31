@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, X, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  * targets are ≥ 44px.
  */
 export default function ImageUploader({ value, onChange, label = "Cover Image" }: Props) {
+  const t = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -189,7 +191,7 @@ export default function ImageUploader({ value, onChange, label = "Cover Image" }
               className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-xs font-bold border border-[#EF4444]/30 transition-colors disabled:opacity-50"
             >
               <X size={12} />
-              Remove
+              {t("common.remove")}
             </button>
           </div>
         </div>

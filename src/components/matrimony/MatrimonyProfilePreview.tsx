@@ -13,6 +13,7 @@
 import { Heart, MapPin, Languages, GraduationCap, Briefcase, Ruler } from "lucide-react";
 
 import { MATRIMONY_INTENTIONS, MATRIMONY_TIMELINES } from "@/lib/matrimony";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import type { EditorProfile } from "./MatrimonyProfileEditor";
 
 type AccountFacts = {
@@ -29,6 +30,7 @@ export default function MatrimonyProfilePreview({
   profile: EditorProfile;
   account: AccountFacts;
 }) {
+  const t = useTranslation();
   const primary = profile.photos.find((p) => p.position === 0);
   const intention = MATRIMONY_INTENTIONS.find((i) => i.value === profile.intention);
   const timeline = MATRIMONY_TIMELINES.find((t) => t.value === profile.timeline);
@@ -41,7 +43,7 @@ export default function MatrimonyProfilePreview({
           {primary ? (
             <img
               src={primary.url}
-              alt="Primary profile photo"
+              alt={t("matrimony.preview.photoAlt")}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -50,7 +52,7 @@ export default function MatrimonyProfilePreview({
             </div>
           )}
           <span className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/50 backdrop-blur text-[10px] font-black text-[#94A3B8] uppercase tracking-wide">
-            Preview
+            {t("matrimony.preview.badge")}
           </span>
         </div>
 
@@ -61,7 +63,7 @@ export default function MatrimonyProfilePreview({
               {account.age ?? "—"}
             </span>
             <span className="text-[13px] text-[#94A3B8]">
-              {account.gender === "male" ? "Man" : account.gender === "female" ? "Woman" : "Member"}
+              {account.gender === "male" ? t("matrimony.gender.man") : account.gender === "female" ? t("matrimony.gender.woman") : t("matrimony.gender.member")}
             </span>
           </div>
 
@@ -123,9 +125,7 @@ export default function MatrimonyProfilePreview({
       </div>
 
       <p className="mt-3 text-[11px] text-[#64748B] text-center leading-relaxed">
-        This is how eligible members will see your profile once matching
-        launches. Your date of birth, contact details and account info are
-        never shown.
+        {t("matrimony.preview.footerNote")}
       </p>
     </div>
   );

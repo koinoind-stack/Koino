@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Upload, X, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ function escapeAlt(alt: string): string {
  * Mobile: full-width on mobile (max-w-sm with mx-4). All tap targets ≥ 44px.
  */
 export default function InlineImagePopover({ onInsert, onClose }: Props) {
+  const t = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [alt, setAlt] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -197,7 +199,7 @@ export default function InlineImagePopover({ onInsert, onClose }: Props) {
             onClick={onClose}
             disabled={uploading}
             className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-[#94A3B8] hover:text-white disabled:opacity-50"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={14} />
           </button>
@@ -315,7 +317,7 @@ export default function InlineImagePopover({ onInsert, onClose }: Props) {
               disabled={uploading}
               className="flex-1 px-4 py-2.5 min-h-[44px] rounded-xl bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06] text-sm font-semibold disabled:opacity-50 transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="button"
