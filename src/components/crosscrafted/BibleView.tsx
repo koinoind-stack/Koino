@@ -33,18 +33,32 @@ import {
   BIBLE_BOOKS,
   OT_BOOKS,
   NT_BOOKS,
-  TRANSLATIONS,
   getBook,
-  fetchChapter,
   isReferenceQuery,
   toggleBookmark,
   isBookmarked,
   getBookmarks,
   type BibleBook,
-  type Translation,
   type Bookmark as BookmarkType,
 } from "@/lib/bible-data";
-import { useTranslation, useLanguage, LANGUAGES } from "@/lib/i18n/LanguageContext";
+import {
+  DEFAULT_VERSION_REF,
+  VERSION_STORAGE_KEY,
+  formatVersionRef,
+  parseVersionRef,
+  resolveVersionOrGeneric,
+  KOINO_FALLBACK_VERSIONS,
+  SCRIPTURE_LANGUAGES,
+  type BibleVersion,
+  type VersionRef,
+} from "@/lib/bible-versions";
+import {
+  fetchChapterVersioned,
+  fetchVersionCatalog,
+  lookupReferenceVersioned,
+  BibleFetchError,
+} from "@/lib/bible-fetch";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
 import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
 import ComicLibraryView from "@/components/crosscrafted/ComicLibraryView";
@@ -77,7 +91,15 @@ export default function BibleView({
   const [mode, setMode] = useState<BibleMode>("read");
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
-  const [translation, setTranslation] = useState<Translation>("kjv");
+  // Unified version selection (YouVersion primary + Koino fallback).
+  // Scripture language is INDEPENDENT of the UI language: the user picks the
+  // Bible version in the selector; the interface language never changes it.
+  const [versionRef, setVersionRef] = useState<VersionRef>(DEFAULT_VERSION_REF);
+  const [catalog, setCatalog] = useState<{ enabled: boolean; versions: BibleVersion[] }>({
+    enabled: false,
+    versions: KOINO_FALLBACK_VERSIONS,
+  });
+  const [versionMenuOpen, setVersionMenuOpen] = useState(false);
   const [chapterText, setChapterText] = useState<string>("");
   const [chapterVerses, setChapterVerses] = useState<{ verse: number; text: string }[]>([]);
   const [chapterLoading, setChapterLoading] = useState(false);
@@ -95,11 +117,46 @@ export default function BibleView({
     typeof initialVerse === "number" && initialVerse >= 1 ? initialVerse : null
   );
 
-  // Whether Bible text is available in the selected language.
-  // bible-api.com only supports English (KJV/WEB). Indian-language
-  // Bible translations will be connected in the future — until then,
-  // non-English languages show a clear "unavailable" notice + English fallback.
-  const bibleTextSupported = lang === "en";
+  // Whether English fallback text applies. With the YouVersion provider
+  // connected, scripture is available in every language the catalogue lists —
+  // the user selects scripture language via the version selector. Without it,
+  // only English (KJV/WEB) text exists (existing notice applies).
+  const bibleTextSupported = catalog.enabled || lang === "en";
+  const availableVersions = catalog.versions.filter((v) => !v.coveredByYouVersion);
+  const currentVersion =
+    resolveVersionOrGeneric(versionRef, availableVersions) || KOINO_FALLBACK_VERSIONS[0];
+
+  // Load the persisted version selection + the live version catalogue once.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(VERSION_STORAGE_KEY);
+      if (saved && parseVersionRef(saved)) setVersionRef(saved);
+    } catch {
+      // storage unavailable — keep default
+    }
+    let alive = true;
+    fetchVersionCatalog()
+      .then((c) => {
+        if (alive) setCatalog(c);
+      })
+      .catch(() => {
+        // catalogue endpoint failed — fallback versions already in state
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const selectVersion = (v: BibleVersion) => {
+    const ref = formatVersionRef(v);
+    setVersionRef(ref);
+    try {
+      localStorage.setItem(VERSION_STORAGE_KEY, ref);
+    } catch {
+      // storage unavailable — selection persists for this session only
+    }
+    setVersionMenuOpen(false);
+  };
 
   // Load bookmarks on mount
   useEffect(() => {
@@ -138,22 +195,22 @@ export default function BibleView({
   useEffect(() => {
     if (selectedBook && selectedChapter !== null) {
       setView("reader");
-      loadChapter(selectedBook.id, selectedChapter, translation);
+      loadChapter(selectedBook.id, selectedChapter, versionRef);
     }
   }, [selectedBook, selectedChapter]);
 
-  // Reload chapter when translation changes (if we're in reader)
+  // Reload chapter when the selected Bible version changes (if we're in reader)
   useEffect(() => {
     if (view === "reader" && selectedBook && selectedChapter !== null) {
-      loadChapter(selectedBook.id, selectedChapter, translation);
+      loadChapter(selectedBook.id, selectedChapter, versionRef);
     }
-  }, [translation]);
+  }, [versionRef]);
 
-  const loadChapter = useCallback(async (bookId: string, chapter: number, trans: Translation) => {
+  const loadChapter = useCallback(async (bookId: string, chapter: number, vRef: VersionRef) => {
     setChapterLoading(true);
     setChapterError(null);
     try {
-      const data = await fetchChapter(bookId, chapter, trans);
+      const data = await fetchChapterVersioned(vRef, bookId, chapter);
       setChapterVerses(data.verses.map((v) => ({ verse: v.verse, text: v.text.trim() })));
       setChapterText(data.verses.map((v) => `${v.verse} ${v.text.trim()}`).join(" "));
       scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -197,8 +254,14 @@ export default function BibleView({
         }
       }
     } catch (e: any) {
-      setChapterError(e.message || t("bible.loadChapterError"));
-      toast.error(t("bible.loadChapterErrorTitle"), { description: t("bible.loadChapterErrorDesc") });
+      if (e instanceof BibleFetchError) {
+        const msg = versionErrorText(t, e.kind);
+        setChapterError(msg);
+        toast.error(t("bible.version.unavailableTitle"), { description: msg });
+      } else {
+        setChapterError(e.message || t("bible.loadChapterError"));
+        toast.error(t("bible.loadChapterErrorTitle"), { description: t("bible.loadChapterErrorDesc") });
+      }
     } finally {
       setChapterLoading(false);
     }
@@ -259,17 +322,15 @@ export default function BibleView({
     if (!searchQuery.trim()) return;
     setSearchLoading(true);
     try {
-      // Always treat as a verse reference first (most common use case)
-      const result = await (await import("@/lib/bible-data")).fetchVerseByReference(
-        searchQuery.trim(),
-        translation
-      );
+      // Unified reference lookup through the selected Bible version
+      // (YouVersion primary / Koino fallback — one experience for all).
+      const result = await lookupReferenceVersioned(searchQuery.trim(), versionRef);
       const results = result ? [result] : [];
       setSearchResults(results);
       if (results.length === 0) {
         if (isReferenceQuery(searchQuery)) {
           toast(t("bible.verseNotFound"), {
-            description: t("bible.verseNotFoundToastDesc", { q: searchQuery, T: translation.toUpperCase() }),
+            description: t("bible.verseNotFoundToastDesc", { q: searchQuery, T: currentVersion.abbr }),
           });
         } else {
           toast(t("bible.keywordSearchSoon"), {
@@ -291,7 +352,8 @@ export default function BibleView({
       chapter,
       verse,
       text,
-      translation,
+      versionRef: formatVersionRef(currentVersion),
+      versionAbbr: currentVersion.abbr === "…" ? undefined : currentVersion.abbr,
     });
     refreshBookmarks();
     toast(added ? t("bible.verseBookmarked") : t("bible.bookmarkRemoved"), {
@@ -300,7 +362,7 @@ export default function BibleView({
   };
 
   const handleShareVerse = (book: BibleBook, chapter: number, verse: number, text: string) => {
-    const ref = `${book.name} ${chapter}:${verse} (${translation.toUpperCase()})`;
+    const ref = `${book.name} ${chapter}:${verse} (${currentVersion.abbr})`;
     const full = `"${text}" — ${ref}`;
     navigator.clipboard.writeText(full);
     toast.success(t("bible.verseCopied"), { description: ref });
@@ -320,13 +382,13 @@ export default function BibleView({
     const text = verses.map((v) => `${v.verse} ${v.text}`).join(" ");
     const ref =
       verseStart === verseEnd
-        ? `${book.name} ${chapter}:${verseStart} (${translation.toUpperCase()})`
-        : `${book.name} ${chapter}:${verseStart}-${verseEnd} (${translation.toUpperCase()})`;
+        ? `${book.name} ${chapter}:${verseStart} (${currentVersion.abbr})`
+        : `${book.name} ${chapter}:${verseStart}-${verseEnd} (${currentVersion.abbr})`;
     setShareReq({
       heading: ref,
       shareText: `"${text.slice(0, 2200)}"\n\n— ${ref}`,
       shareUrl: shareLinks.bible(book.id, chapter, verseStart),
-      cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=${verseStart}&ve=${verseEnd}&translation=${translation}`,
+      cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=${verseStart}&ve=${verseEnd}&translation=${currentVersion.provider === "koino" ? currentVersion.id : "kjv"}&version=${encodeURIComponent(formatVersionRef(currentVersion))}`,
       formats: ["square", "story", "portrait"],
       fileName: `koino-verse-${book.id}-${chapter}-${verseStart}${verseEnd !== verseStart ? `-${verseEnd}` : ""}.png`,
     });
@@ -336,13 +398,13 @@ export default function BibleView({
   // Same universal ShareSheet the verse share uses; the card is the verse
   // card for the whole chapter (the share-card API clamps long excerpts).
   const openChapterShare = (book: BibleBook, chapter: number, verses: { verse: number; text: string }[]) => {
-    const ref = `${book.name} ${chapter} (${translation.toUpperCase()})`;
+    const ref = `${book.name} ${chapter} (${currentVersion.abbr})`;
     const first = verses[0]?.text?.trim() || "";
     setShareReq({
       heading: t("bible.shareHeading", { book: book.name, chapter }),
       shareText: `${ref}\n\n"${first.slice(0, 160)}${first.length > 160 ? "…" : ""}"\n\n${t("bible.shareTextTail")}`,
       shareUrl: shareLinks.bible(book.id, chapter),
-      cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=1&ve=${Math.max(verses.length, 1)}&translation=${translation}`,
+      cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=1&ve=${Math.max(verses.length, 1)}&translation=${currentVersion.provider === "koino" ? currentVersion.id : "kjv"}&version=${encodeURIComponent(formatVersionRef(currentVersion))}`,
       formats: ["portrait", "square"],
       fileName: `koino-chapter-${book.id}-${chapter}.png`,
     });
@@ -449,31 +511,30 @@ export default function BibleView({
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────
-          READ MODE — existing Bible experience unchanged
+          READ MODE — ONE unified Bible reader
           ────────────────────────────────────────────────────────────────── */}
       {mode === "read" && (
         <>
-          {/* Translation picker (KJV/WEB) + language notice */}
+          {/* Unified version selector (YouVersion primary + Koino fallback)
+              + scripture-language availability indicator */}
           <div className="flex gap-2 mb-4">
-            <div className="flex p-1 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-              {TRANSLATIONS.map((tr) => (
-                <button
-                  key={tr.id}
-                  onClick={() => setTranslation(tr.id)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                    translation === tr.id ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"
-                  }`}
-                >
-                  {tr.abbr}
-                </button>
-              ))}
-            </div>
-            {/* Language indicator — reflects the app-wide LanguageContext selection.
-                Uses the globe LanguageSwitcher in the header, not a separate dropdown here. */}
+            <button
+              onClick={() => setVersionMenuOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs transition-all hover:border-[#7C3AED]/40"
+              title={t("bible.version.open")}
+              aria-label={t("bible.version.open")}
+              aria-expanded={versionMenuOpen}
+            >
+              <BookOpen size={12} className="text-[#A78BFA]" />
+              <span className="font-bold text-white">{currentVersion.abbr}</span>
+              <ChevronDown size={12} className="text-[#94A3B8]" />
+            </button>
+            {/* Scripture-language indicator — reflects the SELECTED BIBLE VERSION's
+                language (independent of the UI language chosen in the header). */}
             <div className="flex-1 flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs">
               <span className="flex items-center gap-1.5 text-white">
-                <span>{LANGUAGES.find((l) => l.code === lang)?.flag || "🌐"}</span>
-                <span className="font-bold">{LANGUAGES.find((l) => l.code === lang)?.nativeName || "English"}</span>
+                <Globe size={12} className="text-[#38BDF8]" />
+                <span className="font-bold">{currentVersion.nativeLanguageLabel}</span>
               </span>
               {!bibleTextSupported && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F59E0B]/15 text-[#F59E0B] font-bold">
@@ -483,13 +544,14 @@ export default function BibleView({
             </div>
           </div>
 
-          {/* Scripture language notice — clearly tells the user that Bible TEXT
-              is only available in English (KJV/WEB), while UI is in their language. */}
+          {/* Scripture language notice — shown only when the YouVersion provider
+              is NOT connected: Bible TEXT is then only available in English
+              (KJV/WEB), while the UI can be in any language. */}
           {!bibleTextSupported && view === "reader" && (
             <div className="mb-4 bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3">
               <p className="text-[10px] text-[#A09DB1] leading-relaxed">
                 <span className="font-bold text-[#38BDF8]">{t("bible.noticeLabel")}</span>{" "}
-                {t("bible.noticeBody", { T: translation.toUpperCase() })}
+                {t("bible.noticeBody", { T: currentVersion.abbr })}
               </p>
             </div>
           )}
@@ -520,7 +582,7 @@ export default function BibleView({
               verses={chapterVerses}
               loading={chapterLoading}
               error={chapterError}
-              translation={translation}
+              version={currentVersion}
               bookmarkedVerses={bookmarkedVerses}
               scrollRef={scrollRef}
               onPrev={handlePrevChapter}
@@ -552,17 +614,16 @@ export default function BibleView({
                   setSelectedChapter(chapter);
                 }
               }}
-              translation={translation}
+              versionAbbr={currentVersion.abbr}
               onQuickLookup={async (ref) => {
                 setSearchQuery(ref);
                 setSearchLoading(true);
                 try {
-                  const { fetchVerseByReference } = await import("@/lib/bible-data");
-                  const result = await fetchVerseByReference(ref, translation);
+                  const result = await lookupReferenceVersioned(ref, versionRef);
                   setSearchResults(result ? [result] : []);
                   if (!result) {
                     toast(t("bible.verseNotFound"), {
-                      description: t("bible.verseNotFoundToastDesc", { q: ref, T: translation.toUpperCase() }),
+                      description: t("bible.verseNotFoundToastDesc", { q: ref, T: currentVersion.abbr }),
                     });
                   }
                 } catch {
@@ -605,7 +666,7 @@ export default function BibleView({
           ────────────────────────────────────────────────────────────────── */}
       {mode === "plans" && (
         <BiblePlansView
-          translation={translation}
+          versionRef={versionRef}
           onOpenChapter={(bookId, chapter) => {
             // Switch from PLANS → READ mode and load the chosen chapter
             // inside the existing Bible reader.
@@ -621,6 +682,16 @@ export default function BibleView({
 
       {/* ─── UNIVERSAL SHARE SHEET (verses) ─── */}
       <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
+
+      {/* ─── UNIFIED VERSION MENU (YouVersion primary + Koino fallback) ─── */}
+      {versionMenuOpen && (
+        <VersionMenu
+          versions={availableVersions}
+          currentRef={formatVersionRef(currentVersion)}
+          onSelect={selectVersion}
+          onClose={() => setVersionMenuOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -748,7 +819,7 @@ function ReaderView({
   verses,
   loading,
   error,
-  translation,
+  version,
   bookmarkedVerses,
   scrollRef,
   onPrev,
@@ -768,7 +839,7 @@ function ReaderView({
   verses: { verse: number; text: string }[];
   loading: boolean;
   error: string | null;
-  translation: Translation;
+  version: BibleVersion;
   bookmarkedVerses: Set<string>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onPrev: () => void;
@@ -783,7 +854,6 @@ function ReaderView({
   onShareChapter: () => void;
   onBookmarksChanged: () => void;
 }) {
-  const transLabel = TRANSLATIONS.find((tr) => tr.id === translation)?.label || "";
   const t = useTranslation();
 
   // ─── Verse range selection (Task 121) ───────────────────────────────────
@@ -837,7 +907,7 @@ function ReaderView({
         </button>
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] truncate">
-            {transLabel}
+            {version.abbr !== "…" ? version.label : ""}
           </span>
           <button
             onClick={() => (selectMode ? resetSelection() : setSelectMode(true))}
@@ -856,6 +926,14 @@ function ReaderView({
       {selectMode && (
         <p className="text-[11px] text-[#A78BFA] mb-2">
           {t("bible.selectHint")}
+        </p>
+      )}
+
+      {/* Version attribution — required copyright notice from the version
+          metadata (YouVersion catalogue / Koino public-domain note) */}
+      {!loading && !error && version.attribution && (
+        <p className="text-[9px] text-[#64748B] leading-relaxed mb-3">
+          {version.attribution}
         </p>
       )}
 
@@ -985,7 +1063,7 @@ function ReaderView({
             <button
               onClick={() => {
                 const selVerses = verses.filter((v) => v.verse >= rangeStart && v.verse <= rangeEnd);
-                const ref = `${book.name} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`} (${translation.toUpperCase()})`;
+                const ref = `${book.name} ${chapter}:${rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`} (${version.abbr})`;
                 const text = selVerses.map((v) => `${v.verse} ${v.text}`).join(" ");
                 navigator.clipboard.writeText(`"${text}"\n\n— ${ref}`);
                 toast.success(t("bible.passageCopied"), { description: ref });
@@ -1009,7 +1087,8 @@ function ReaderView({
               rangeStart={rangeStart}
               rangeEnd={rangeEnd}
               verses={verses}
-              translation={translation}
+              versionRef={formatVersionRef(version)}
+              versionAbbr={version.abbr}
               onChanged={onBookmarksChanged}
             />
             <button
@@ -1058,7 +1137,8 @@ function ReaderView({
           book={book}
           chapter={chapter}
           verses={verses}
-          translation={translation}
+          versionRef={formatVersionRef(version)}
+          versionAbbr={version.abbr}
           onReadTop={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
           onOpenComic={onOpenComic}
           onOpenTrivia={onOpenTrivia}
@@ -1164,7 +1244,8 @@ function ChapterActionPanel({
   book,
   chapter,
   verses,
-  translation,
+  versionRef,
+  versionAbbr,
   onReadTop,
   onOpenComic,
   onOpenTrivia,
@@ -1175,7 +1256,8 @@ function ChapterActionPanel({
   book: BibleBook;
   chapter: number;
   verses: { verse: number; text: string }[];
-  translation: Translation;
+  versionRef: VersionRef;
+  versionAbbr: string;
   onReadTop: () => void;
   onOpenComic?: (bookId: string, chapter: number) => void;
   onOpenTrivia?: () => void;
@@ -1258,7 +1340,8 @@ function ChapterActionPanel({
       chapter,
       verse: 0,
       text: t("bible.fullChapterLabel", { book: book.name, ch: chapter, n: verses.length }),
-      translation,
+      versionRef,
+      versionAbbr: versionAbbr === "…" ? undefined : versionAbbr,
     });
     setSaved(added);
     onBookmarksChanged();
@@ -1376,7 +1459,8 @@ function SelectionSaveButton({
   rangeStart,
   rangeEnd,
   verses,
-  translation,
+  versionRef,
+  versionAbbr,
   onChanged,
 }: {
   bookId: string;
@@ -1385,7 +1469,8 @@ function SelectionSaveButton({
   rangeStart: number;
   rangeEnd: number;
   verses: { verse: number; text: string }[];
-  translation: Translation;
+  versionRef: VersionRef;
+  versionAbbr: string;
   onChanged: () => void;
 }) {
   const t = useTranslation();
@@ -1403,7 +1488,8 @@ function SelectionSaveButton({
             chapter,
             verse: v.verse,
             text: v.text,
-            translation,
+            versionRef,
+            versionAbbr: versionAbbr === "…" ? undefined : versionAbbr,
           });
           if (didAdd) added++;
           else removed++;
@@ -1538,7 +1624,7 @@ function SearchView({
   loading,
   results,
   onSelectResult,
-  translation,
+  versionAbbr,
   onQuickLookup,
 }: {
   query: string;
@@ -1547,7 +1633,7 @@ function SearchView({
   loading: boolean;
   results: any[];
   onSelectResult: (bookId: string, chapter: number) => void;
-  translation: Translation;
+  versionAbbr: string;
   onQuickLookup: (ref: string) => Promise<void>;
 }) {
   const t = useTranslation();
@@ -1586,7 +1672,7 @@ function SearchView({
       {loading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <Loader2 size={28} className="text-[#7C3AED] animate-spin" />
-          <p className="text-xs text-[#94A3B8]">{t("bible.lookingUp", { q: query, T: translation.toUpperCase() })}</p>
+          <p className="text-xs text-[#94A3B8]">{t("bible.lookingUp", { q: query, T: versionAbbr })}</p>
         </div>
       )}
 
@@ -1605,7 +1691,7 @@ function SearchView({
                 <span className="text-xs font-bold text-[#A78BFA]">
                   {r.bookName} {r.chapter}:{r.verse}
                 </span>
-                <span className="text-[9px] text-[#64748B] uppercase tracking-wider">{translation}</span>
+                <span className="text-[9px] text-[#64748B] uppercase tracking-wider">{versionAbbr}</span>
               </div>
               <p className="text-[13px] text-[#A09DB1] leading-relaxed">{r.text}</p>
               <p className="text-[10px] text-[#7C3AED] mt-2 font-bold">{t("bible.openChapter")}</p>
@@ -1691,7 +1777,9 @@ function BookmarksView({
               {/* verse 0 = whole-chapter marker saved by the reader's action panel */}
               {bm.verse === 0 ? `${bm.bookName} ${bm.chapter}` : `${bm.bookName} ${bm.chapter}:${bm.verse}`}
             </span>
-            <span className="text-[9px] text-[#64748B] uppercase tracking-wider">{bm.translation}</span>
+            <span className="text-[9px] text-[#64748B] uppercase tracking-wider">
+              {bm.versionAbbr || (bm.translation ? bm.translation.toUpperCase() : "")}
+            </span>
           </div>
           <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-2">
             {bm.verse === 0 ? (
@@ -1716,4 +1804,120 @@ function BookmarksView({
       </button>
     </div>
   );
+}
+
+// ─── UNIFIED VERSION MENU ───────────────────────────────────────────────────
+// ONE selector for the ONE reader: English + Indian-language versions,
+// grouped by language (English first, then the Indian languages). Each row
+// shows the version name, abbreviation, language and its provider. Only
+// versions Koino is permitted to use are listed (the server catalogue is the
+// source of truth; the Koino fallback entries cover YouVersion outages).
+
+function VersionMenu({
+  versions,
+  currentRef,
+  onSelect,
+  onClose,
+}: {
+  versions: BibleVersion[];
+  currentRef: string;
+  onSelect: (v: BibleVersion) => void;
+  onClose: () => void;
+}) {
+  const t = useTranslation();
+
+  // Group by scripture language in the fixed order (en, hi, ta, te, …);
+  // skip languages with no accessible version.
+  const groups = SCRIPTURE_LANGUAGES.map((lang) => ({
+    lang,
+    versions: versions.filter((v) => v.languageTag === lang.tag),
+  })).filter((g) => g.versions.length > 0);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("bible.version.selectTitle")}
+    >
+      <div
+        className="w-full max-w-md max-h-[75vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-[#171522] border border-white/[0.08] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.06]">
+          <h2 className="text-sm font-bold text-white">{t("bible.version.selectTitle")}</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[#94A3B8] hover:text-white transition-colors"
+            aria-label={t("bible.version.close")}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-3 py-3">
+          {groups.map((g) => (
+            <div key={g.lang.tag} className="mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] px-2 mb-1.5">
+                {g.lang.nativeLabel} · {g.lang.label}
+              </p>
+              <div className="space-y-1">
+                {g.versions.map((v) => {
+                  const ref = formatVersionRef(v);
+                  const isCurrent = ref === currentRef;
+                  return (
+                    <button
+                      key={ref}
+                      onClick={() => onSelect(v)}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-left transition-all ${
+                        isCurrent
+                          ? "bg-[#7C3AED]/20 border border-[#7C3AED]/40"
+                          : "bg-white/[0.03] border border-transparent hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-xs font-bold text-white truncate">
+                          {v.label}
+                        </span>
+                        <span className="block text-[10px] text-[#94A3B8] mt-0.5">
+                          {v.abbr} ·{" "}
+                          {v.provider === "youversion"
+                            ? t("bible.version.providerYV")
+                            : t("bible.version.providerKoino")}
+                        </span>
+                      </span>
+                      {isCurrent && (
+                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7C3AED] text-white">
+                          {t("bible.version.current")}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Version error text mapping (graceful unavailability) ───────────────────
+
+function versionErrorText(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  kind: string
+): string {
+  switch (kind) {
+    case "unlicensed":
+      return t("bible.version.error.unlicensed");
+    case "rate_limited":
+      return t("bible.version.error.rateLimited");
+    case "network":
+      return t("bible.version.error.network");
+    default:
+      return t("bible.version.error.generic");
+  }
 }

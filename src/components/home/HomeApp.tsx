@@ -63,9 +63,8 @@ import HomeRightRail from "@/components/social/HomeRightRail";
 import type { Post } from "@/components/social/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
-import { type Translation } from "@/lib/bible-data";
-import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
 
 type View =
   | "landing"
@@ -911,7 +910,7 @@ export default function Home() {
               )}
               {view === "bible-plans" && (
                 <BiblePlansView
-                  translation="kjv"
+                  versionRef="koino:kjv"
                   onOpenChapter={() => goView("bible")}
                 />
               )}

@@ -372,7 +372,12 @@ export type Bookmark = {
   chapter: number;
   verse: number;
   text: string;
-  translation: Translation;
+  /** Legacy field for pre-unified bookmarks ("kjv" | "web"). New bookmarks use versionRef/versionAbbr. */
+  translation?: Translation;
+  /** Unified version reference, e.g. "youversion:3034" / "koino:kjv". */
+  versionRef?: string;
+  /** Abbreviation shown in the bookmarks list, e.g. "BSB", "KJV". */
+  versionAbbr?: string;
   createdAt: number;
 };
 
