@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage, useTranslation } from "@/lib/i18n/LanguageContext";
+import { getComicTeChapter } from "@/lib/i18n/content/comics-te-pack";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { getBook, getComicProgress, saveComicProgress } from "@/lib/bible-data";
 import { shareLinks } from "@/lib/share/links";
@@ -84,6 +85,10 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   // Universal share sheet state (chapter + per-panel requests).
   const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
   const [chapterData, setChapterData] = useState<ComicChapter | null>(null);
+  // Application-owned comic metadata is localized via the static pack;
+  // scripture text and artwork-embedded words stay in their original form.
+  const comicTe = chapterData ? getComicTeChapter(chapterData.bookId, chapterData.chapter) : undefined;
+  const chapterTitle = (comicTe?.title || chapterData?.title || "") as string;
 
   // Quiz state
   const [showQuiz, setShowQuiz] = useState(false);
@@ -212,8 +217,8 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   const openChapterShare = () => {
     if (!chapterData) return;
     setShareReq({
-      heading: t("comics.shareChapterHeading", { title: chapterData.title }),
-      shareText: t("comics.shareText", { title: chapterData.title }),
+      heading: t("comics.shareChapterHeading", { title: chapterTitle }),
+      shareText: t("comics.shareText", { title: chapterTitle }),
       shareUrl: shareLinks.comic(chapterData.bookId, chapterData.chapter),
       cardUrl: `/api/share-card?type=comic-chapter&book=${encodeURIComponent(chapterData.bookId)}&chapter=${chapterData.chapter}&lang=${lang}`,
       formats: ["portrait", "square"],
@@ -312,7 +317,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
           {bookName} {chapter}
         </h1>
         <p className="text-lg text-[#A09DB1] font-semibold mb-2">
-          {chapterData.title}
+          {chapterTitle}
         </p>
         {onBackToLibrary && (
           <button

@@ -3445,6 +3445,13 @@ export const en: Record<string, string> = {
   "comicsAdmin.panelArtAlt": "Comic panel artwork",
   "comicsAdmin.replaceArtwork": "Replace artwork",
   "comicsAdmin.removeArtwork": "Remove artwork",
+
+  // ── rendered-audit: trivia categories + profile ──
+  "triviaView.cat.fullBible": "Full Bible",
+  "triviaView.cat.newTestament": "New Testament",
+  "triviaView.cat.oldTestament": "Old Testament",
+  "triviaView.cat.apologetics": "Apologetics",
+  "profile.label.gender": "Gender",
 };
 
 export default en;

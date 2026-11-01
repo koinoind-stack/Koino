@@ -3343,6 +3343,13 @@ export const te: Record<string, string> = {
   "comicsAdmin.panelArtAlt": "కామిక్ ప్యానెల్ ఆర్ట్‌వర్క్",
   "comicsAdmin.replaceArtwork": "ఆర్ట్‌వర్క్ మార్చండి",
   "comicsAdmin.removeArtwork": "ఆర్ట్‌వర్క్ తొలగించండి",
+
+  // ── rendered-audit: trivia categories + profile ──
+  "triviaView.cat.fullBible": "మొత్తం బైబిల్",
+  "triviaView.cat.newTestament": "కొత్త నిబంధన",
+  "triviaView.cat.oldTestament": "పాత నియమం",
+  "triviaView.cat.apologetics": "అపాలజెటిక్స్",
+  "profile.label.gender": "లింగం",
 };
 
 export default te;

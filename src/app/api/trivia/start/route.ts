@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { selectQuizQuestions } from "@/lib/trivia-server";
+import { getTriviaTePack } from "@/lib/i18n/content/trivia-te-pack";
 
 /**
  * POST /api/trivia/start
@@ -59,8 +60,10 @@ export async function POST(req: NextRequest) {
     );
 
     // Return questions WITHOUT correct answers (client doesn't know which is right).
-    // If the user requested a non-English language AND the question has a translation
-    // for that language, use the translated question + options + explanation.
+    // Translation priority per question: (1) DB `translations` column (populated
+    // offline), (2) static Telugu content pack shipped with the build (no
+    // per-load translation, no production-DB writes), (3) English original.
+    const tePack = lang === "te" ? getTriviaTePack() : null;
     const questions = result.questions.map((q) => {
       let translated: { question?: string; options?: string[]; explanation?: string } | null = null;
       try {
@@ -69,16 +72,17 @@ export async function POST(req: NextRequest) {
       } catch {
         // Malformed JSON — fall back to English
       }
+      const packed = tePack?.[q.questionId] || null;
 
       return {
         id: q.questionId,
-        question: translated?.question || q.question,
-        options: translated?.options || JSON.parse(q.options),
+        question: translated?.question || packed?.q || q.question,
+        options: translated?.options || packed?.options || JSON.parse(q.options),
         difficulty: q.difficulty,
         category: q.category,
         basePoints: q.basePoints,
         scriptureReference: q.scriptureReference,
-        explanation: translated?.explanation || q.explanation,
+        explanation: translated?.explanation || packed?.explanation || q.explanation,
       };
     });
 

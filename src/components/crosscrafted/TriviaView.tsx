@@ -1561,9 +1561,9 @@ function CompeteView() {
         <div className="flex flex-wrap gap-2 text-[10px] text-[#94A3B8]">
           <span className="flex items-center gap-0.5"><Clock size={9} /> {t("triviaView.compete.questionCountShort", { n: c.questionCount })}</span>
           <span>·</span>
-          <span className="capitalize">{c.difficulty}</span>
+          <span className="capitalize">{t(HOST_DIFFICULTY_KEYS[c.difficulty] || c.difficulty)}</span>
           <span>·</span>
-          <span className="capitalize">{c.category.replace("_", " ")}</span>
+          <span className="capitalize">{t(TRIVIA_CATEGORY_KEYS[c.category] || c.category)}</span>
           <span>·</span>
           <span>{t("triviaView.compete.players", { n: c.participantCount })}</span>
         </div>
@@ -1724,6 +1724,13 @@ const HOST_DIFFICULTY_OPTIONS = [
   { id: "expert", label: "Expert" },
   { id: "mixed", label: "Mixed" },
 ];
+
+const TRIVIA_CATEGORY_KEYS: Record<string, string> = {
+  full_bible: "triviaView.cat.fullBible",
+  new_testament: "triviaView.cat.newTestament",
+  old_testament: "triviaView.cat.oldTestament",
+  apologetics: "triviaView.cat.apologetics",
+};
 
 const HOST_DIFFICULTY_KEYS: Record<string, string> = {
   beginners: "triviaView.setup.level.beginner",

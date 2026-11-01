@@ -10,8 +10,8 @@ import ZAI from "z-ai-web-dev-sdk";
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "src/lib/i18n/content/trivia-te.json");
 const PROG = path.join(ROOT, "scripts/.trivia-te-progress.json");
-const BATCH = 4;
-const DELAY_MS = 3000;
+const BATCH = 8;
+const DELAY_MS = 2000;
 
 type SeedQ = { questionId: string; question: string; options: string; explanation?: string };
 

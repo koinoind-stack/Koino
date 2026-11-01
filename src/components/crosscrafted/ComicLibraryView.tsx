@@ -36,7 +36,8 @@ import {
   getAllComicProgress,
   type ComicProgress,
 } from "@/lib/bible-data";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
+import { getComicTeChapter } from "@/lib/i18n/content/comics-te-pack";
 
 type ComicChapterSummary = {
   id: string;
@@ -65,6 +66,9 @@ export default function ComicLibraryView({
   onOpenComic: (bookId: string, chapter: number) => void;
 }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const locComicTitle = (ch: { bookId: string; chapter: number; title: string }) => getComicTeChapter(ch.bookId, ch.chapter)?.title || ch.title;
+  const locComicDesc = (ch: { bookId: string; chapter: number; description?: string | null }) => getComicTeChapter(ch.bookId, ch.chapter)?.description || ch.description;
   const [chapters, setChapters] = useState<ComicChapterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -434,6 +438,9 @@ function ContinueReadingStrip({
   onContinue: () => void;
 }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const locComicTitle = (ch: { bookId: string; chapter: number; title: string }) => getComicTeChapter(ch.bookId, ch.chapter)?.title || ch.title;
+  const locComicDesc = (ch: { bookId: string; chapter: number; description?: string | null }) => getComicTeChapter(ch.bookId, ch.chapter)?.description || ch.description;
   const book = getBook(chapter.bookId);
   const bookName = book?.name || chapter.bookId;
   const total = prog.totalPanels || chapter.panelCount || 0;
@@ -446,7 +453,7 @@ function ContinueReadingStrip({
       animate={{ opacity: 1, y: 0 }}
       onClick={onContinue}
       className="w-full group text-left mb-4 rounded-2xl p-[1px] bg-gradient-to-r from-[#7C3AED]/60 via-[#F39B9B]/50 to-[#7C3AED]/60 hover:from-[#7C3AED] hover:to-[#F39B9B] transition-all"
-      aria-label={t("comics.continueAria", { title: chapter.title, n: nextPanel, total })}
+      aria-label={t("comics.continueAria", { title: locComicTitle(chapter), n: nextPanel, total })}
     >
       <div className="rounded-2xl bg-[#1C1929] p-3 flex items-center gap-3">
         {/* Cover thumbnail */}
@@ -472,7 +479,7 @@ function ContinueReadingStrip({
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F39B9B]">
             {t("comics.continueReading")}
           </p>
-          <p className="text-xs font-extrabold text-white truncate mt-0.5">{chapter.title}</p>
+          <p className="text-xs font-extrabold text-white truncate mt-0.5">{locComicTitle(chapter)}</p>
           <p className="text-[10px] text-[#94A3B8] font-bold">
             {t("comics.panelProgress", { book: bookName, ch: chapter.chapter, n: nextPanel, total: total || "?", pct })}
           </p>
@@ -508,6 +515,9 @@ function BookPicker({
   onSelect: (bookId: string | null) => void;
 }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const locComicTitle = (ch: { bookId: string; chapter: number; title: string }) => getComicTeChapter(ch.bookId, ch.chapter)?.title || ch.title;
+  const locComicDesc = (ch: { bookId: string; chapter: number; description?: string | null }) => getComicTeChapter(ch.bookId, ch.chapter)?.description || ch.description;
   const groups: { label: string; books: typeof BIBLE_BOOKS }[] = [];
   if (testament !== "NT") groups.push({ label: t("bible.ot"), books: BIBLE_BOOKS.filter((b) => b.testament === "OT") });
   if (testament !== "OT") groups.push({ label: t("bible.nt"), books: BIBLE_BOOKS.filter((b) => b.testament === "NT") });
@@ -590,6 +600,9 @@ function ComicChapterCard({
   onOpen: () => void;
 }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const locComicTitle = (ch: { bookId: string; chapter: number; title: string }) => getComicTeChapter(ch.bookId, ch.chapter)?.title || ch.title;
+  const locComicDesc = (ch: { bookId: string; chapter: number; description?: string | null }) => getComicTeChapter(ch.bookId, ch.chapter)?.description || ch.description;
   const total = chapter.panelCount;
   const pct = prog && total > 0 ? Math.min(100, Math.round((prog.lastPanel / total) * 100)) : 0;
 
@@ -600,7 +613,7 @@ function ComicChapterCard({
       transition={{ delay: Math.min(index * 0.04, 0.3) }}
       onClick={onOpen}
       className="group bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col"
-      aria-label={t("comics.cardAria", { title: chapter.title, book: bookName, ch: chapter.chapter })}
+      aria-label={t("comics.cardAria", { title: locComicTitle(chapter), book: bookName, ch: chapter.chapter })}
     >
       {/* Cover */}
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
@@ -608,7 +621,7 @@ function ComicChapterCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={chapter.coverArtUrl}
-            alt={t("comics.coverAlt", { title: chapter.title, book: bookName, ch: chapter.chapter })}
+            alt={t("comics.coverAlt", { title: locComicTitle(chapter), book: bookName, ch: chapter.chapter })}
             className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
             loading="lazy"
             decoding="async"
@@ -660,11 +673,11 @@ function ComicChapterCard({
       {/* Body */}
       <div className="p-3 flex-1 flex flex-col">
         <p className="text-xs font-extrabold text-white leading-snug line-clamp-2">
-          {chapter.title}
+          {locComicTitle(chapter)}
         </p>
         {chapter.description && (
           <p className="text-[10px] text-[#94A3B8] leading-relaxed line-clamp-2 mt-1">
-            {chapter.description}
+            {locComicDesc(chapter)}
           </p>
         )}
         <p className="text-[9px] text-[#64748B] font-bold mt-1.5 flex items-center gap-1">

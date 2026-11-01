@@ -1,0 +1,14 @@
+{
+ "lang": "te",
+ "note": "Static Telugu content pack for Bible Comics chapters, keyed by '<bookId>.<chapter>' (stable across environments). Covers application-owned chapter titles/descriptions for the seeded comics; chapters not present here fall back to English. Panel artwork text is baked into images and is not translated.",
+ "chapters": {
+  "genesis.2": {
+   "title": "ఆదికాండము 2 — మనిషి సృష్టి",
+   "description": ""
+  },
+  "genesis.3": {
+   "title": "మనిషి పతనం",
+   "description": "సర్పం అవ్వను మోసగిస్తుంది; దానితో మానవుల అవిధేయత, సిగ్గు, దేవుని పరిపూర్ణ సృష్టి నుండి వేరుపడటం జరుగుతుంది."
+  }
+ }
+}
