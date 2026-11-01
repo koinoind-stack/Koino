@@ -671,7 +671,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                         onChange={pickMedia}
                       />
                       {group.memberPostPermission === "admins" && !perms.canManage && (
-                        <span className="text-[10px] text-[#64748B]">Admins-only posting is on</span>
+                        <span className="text-[10px] text-[#64748B]">{t("group.adminsOnlyPosting")}</span>
                       )}
                     </div>
                     <button

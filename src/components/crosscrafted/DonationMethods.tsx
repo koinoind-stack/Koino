@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Check, Download, QrCode, Landmark, Wallet } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // Shape returned by GET /api/donation-settings (public fields only — no id/updatedAt).
 // Kept in sync with src/app/api/donation-settings/route.ts.
@@ -35,6 +36,7 @@ export default function DonationMethods({
 }: {
   settings: PublicDonationSettings;
 }) {
+  const t = useTranslation();
   const showUpi = Boolean(settings.upiId);
   const showQr = Boolean(settings.qrCodeUrl);
   // Bank card requires ALL core fields — branch is optional for display only.
@@ -51,12 +53,11 @@ export default function DonationMethods({
     return (
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
         <p className="text-sm text-[#A09DB1]">
-          Donation methods haven&apos;t been configured yet. Please check back
-          soon, or{" "}
+          {t("support.notConfigured1")}{" "}
           <a href="/contact" className="text-[#A78BFA] underline">
-            contact us
+            {t("support.notConfiguredLink")}
           </a>{" "}
-          to support Koino.
+          {t("support.notConfigured2")}
         </p>
       </div>
     );
@@ -73,6 +74,7 @@ export default function DonationMethods({
 
 // ─── UPI card ───────────────────────────────────────────────────────────
 function UpiCard({ upiId }: { upiId: string }) {
+  const t = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -108,12 +110,12 @@ function UpiCard({ upiId }: { upiId: string }) {
       </div>
       <h3 className="text-base font-bold text-white mb-1">UPI</h3>
       <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">
-        Pay directly to our UPI ID from any UPI-enabled app.
+        {t("support.upi.desc")}
       </p>
       <div className="flex-1" />
       <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] px-3 py-2.5 mb-3">
         <p className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8] mb-0.5">
-          UPI ID
+          {t("support.upi.label")}
         </p>
         <p className="text-sm font-extrabold text-white break-all">{upiId}</p>
       </div>
@@ -123,7 +125,7 @@ function UpiCard({ upiId }: { upiId: string }) {
         className="w-full py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-1.5"
       >
         {copied ? <Check size={13} /> : <Copy size={13} />}
-        {copied ? "Copied!" : "Copy UPI ID"}
+        {copied ? t("support.upi.copied") : t("support.upi.copy")}
       </button>
     </div>
   );
@@ -131,6 +133,7 @@ function UpiCard({ upiId }: { upiId: string }) {
 
 // ─── QR code card ───────────────────────────────────────────────────────
 function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
+  const t = useTranslation();
   // Use a plain <a download> for download — this works for same-origin
   // URLs (Supabase Storage public URLs are same-origin-ish / CORS-enabled)
   // and falls back to opening the image in a new tab if download fails.
@@ -141,9 +144,9 @@ function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
       <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
         <QrCode size={18} className="text-[#A78BFA]" />
       </div>
-      <h3 className="text-base font-bold text-white mb-1">Scan &amp; Pay</h3>
+      <h3 className="text-base font-bold text-white mb-1">{t("support.qr.title")}</h3>
       <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">
-        Scan this QR code with any UPI app to give.
+        {t("support.qr.desc")}
       </p>
       <div className="flex-1 flex items-center justify-center my-2">
         {/* Use a plain <img> — Next/Image requires remote domains to be
@@ -152,7 +155,7 @@ function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrCodeUrl}
-          alt="Donation QR code"
+          alt={t("support.qr.alt")}
           className="w-44 h-44 object-contain rounded-xl bg-white p-2 border border-white/[0.06]"
           loading="lazy"
         />
@@ -165,7 +168,7 @@ function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
         className="w-full py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-1.5"
       >
         <Download size={13} />
-        Download QR Code
+        {t("support.qr.download")}
       </a>
     </div>
   );
@@ -173,14 +176,15 @@ function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
 
 // ─── Bank transfer card ─────────────────────────────────────────────────
 function BankCard({ settings }: { settings: PublicDonationSettings }) {
+  const t = useTranslation();
   const rows: { label: string; value: string }[] = [
-    { label: "Account Name", value: settings.accountName! },
-    { label: "Account Number", value: settings.accountNumber! },
-    { label: "IFSC Code", value: settings.ifsc! },
-    { label: "Bank Name", value: settings.bankName! },
+    { label: t("support.bank.accountName"), value: settings.accountName! },
+    { label: t("support.bank.accountNumber"), value: settings.accountNumber! },
+    { label: t("support.bank.ifsc"), value: settings.ifsc! },
+    { label: t("support.bank.bankName"), value: settings.bankName! },
   ];
   if (settings.branch) {
-    rows.push({ label: "Branch", value: settings.branch });
+    rows.push({ label: t("support.bank.branch"), value: settings.branch });
   }
 
   return (
@@ -188,9 +192,9 @@ function BankCard({ settings }: { settings: PublicDonationSettings }) {
       <div className="w-10 h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/25 flex items-center justify-center mb-3">
         <Landmark size={18} className="text-[#38BDF8]" />
       </div>
-      <h3 className="text-base font-bold text-white mb-1">Bank Transfer</h3>
+      <h3 className="text-base font-bold text-white mb-1">{t("support.bank.title")}</h3>
       <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">
-        Direct NEFT / IMPS / RTGS transfer to Koino&apos;s account.
+        {t("support.bank.desc")}
       </p>
       <div className="flex-1 space-y-2">
         {rows.map((r) => (

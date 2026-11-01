@@ -14,10 +14,17 @@ type Props = {
  * Streak badge — shows current streak with flame icon, best streak,
  * and progress to next milestone. Reads from localStorage on render.
  */
+const activityVerbKey: Record<string, string> = {
+  bible_reading: "streak.verb.bibleReading",
+  trivia_play: "streak.verb.triviaPlay",
+  prayer_share: "streak.verb.prayerShare",
+};
+
 export default function StreakBadge({ activity, compact = false }: Props) {
   const t = useTranslation();
   const info = getStreakInfo(activity);
   const labels = STREAK_LABELS[activity];
+  const verbKey = activityVerbKey[activity];
 
   if (compact) {
     return (
@@ -38,7 +45,7 @@ export default function StreakBadge({ activity, compact = false }: Props) {
             info.currentStreak > 0 ? "text-[#EF4444]" : "text-[#64748B]"
           }`}
         >
-          {info.currentStreak} {info.currentStreak === 1 ? labels.singular : labels.plural}
+          {info.currentStreak} {info.currentStreak === 1 ? t("streak.daySingular") : t("streak.dayPlural")}
         </span>
       </div>
     );
@@ -83,7 +90,7 @@ export default function StreakBadge({ activity, compact = false }: Props) {
               {info.currentStreak}
             </p>
             <p className="text-xs text-[#94A3B8]">
-              {info.currentStreak === 1 ? labels.singular : labels.plural} {t("streak.suffix")}
+              {info.currentStreak === 1 ? t("streak.daySingular") : t("streak.dayPlural")} {t("streak.suffix")}
             </p>
           </div>
 
@@ -117,7 +124,7 @@ export default function StreakBadge({ activity, compact = false }: Props) {
 
           {info.currentStreak === 0 && (
             <p className="text-[10px] text-[#64748B] mt-1">
-              {t("streak.startToday", { verb: labels.verb })}
+              {t("streak.startToday", { verb: verbKey ? t(verbKey) : labels.verb })}
             </p>
           )}
         </div>

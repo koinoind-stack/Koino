@@ -171,7 +171,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
         method: "POST",
         body: JSON.stringify({ targetType: "user", targetId: data.user.id, reason: "inappropriate" }),
       });
-      toast.success("Report submitted");
+      toast.success(t("post.reported"));
     } catch (err) {
       toast.error((err as Error).message);
     }

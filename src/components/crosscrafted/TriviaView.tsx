@@ -501,7 +501,7 @@ export default function TriviaView() {
                             </span>
                           </div>
                           <p className="text-sm font-bold text-white">{levelLabel(lvl.id)}</p>
-                          <p className="text-[10px] text-[#94A3B8]">{lvl.description}</p>
+                          <p className="text-[10px] text-[#94A3B8]">{t(LEVEL_DESC_KEY[lvl.id] || "") || lvl.description}</p>
                         </button>
                       );
                     })}
@@ -1724,6 +1724,13 @@ const HOST_DIFFICULTY_OPTIONS = [
   { id: "expert", label: "Expert" },
   { id: "mixed", label: "Mixed" },
 ];
+
+const LEVEL_DESC_KEY: Record<string, string> = {
+  beginners: "triviaView.setup.levelDesc.beginner",
+  intermediate: "triviaView.setup.levelDesc.intermediate",
+  skilled: "triviaView.setup.levelDesc.skilled",
+  expert: "triviaView.setup.levelDesc.expert",
+};
 
 const TRIVIA_CATEGORY_KEYS: Record<string, string> = {
   full_bible: "triviaView.cat.fullBible",

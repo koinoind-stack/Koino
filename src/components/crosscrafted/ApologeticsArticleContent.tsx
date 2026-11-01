@@ -122,7 +122,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
 
   const toggleSave = async () => {
     if (!isAuthenticated) {
-      toast.error("Please sign in to save articles");
+      toast.error(t("apologetics.article.signInToSave"));
       return;
     }
     setSaveBusy(true);
@@ -246,7 +246,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
                   key={i}
                   href={bibleRefHref(parsed)}
                   className="px-2.5 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[11px] font-semibold hover:bg-[#38BDF8]/20 transition-colors"
-                  title="Open this passage in the Bible reader"
+                  title={t("apologetics.article.openInBible")}
                 >
                   {ref} ↗
                 </a>
@@ -274,7 +274,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       {/* Sources */}
       {article.sources.length > 0 && (
         <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-4 mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Sources &amp; Further Reading</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("apologetics.article.sources")}</p>
           <ol className="space-y-1.5">
             {article.sources.map((src, i) => (
               <li key={i} className="text-[11px] text-[#A09DB1]">

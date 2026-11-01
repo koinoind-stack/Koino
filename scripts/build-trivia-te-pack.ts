@@ -50,6 +50,13 @@ function isTelugu(s: string): boolean {
   return /[\u0C00-\u0C7F]/.test(s);
 }
 
+// A translated field is valid if it contains Telugu script OR contains no Latin
+// letters at all (pure numbers/punctuation — e.g. answer options "5", "7", "40")
+// — numeric answers legitimately stay numeric in Telugu.
+function validField(s: string): boolean {
+  return isTelugu(s) || !/[A-Za-z]/.test(s);
+}
+
 type Raw = { id: string; q: string; options: string[]; explanation: string };
 
 function parseLineFormat(text: string): Raw[] {
@@ -116,6 +123,7 @@ async function main() {
     const stillNeeded = new Set(batch.map((b) => b.id));
     const gotItems: Raw[] = [];
     for (let attempt = 1; attempt <= 4 && stillNeeded.size > 0; attempt++) {
+      if (attempt > 1) await sleep(5000 * attempt);
       try {
         const sub = batch.filter((b) => stillNeeded.has(b.id));
         const prompt = sub
@@ -128,15 +136,21 @@ async function main() {
             { role: "user", content: prompt },
           ],
         });
-        const parsed = parseLineFormat(res.choices[0]?.message?.content ?? "");
+        const content = res.choices[0]?.message?.content ?? "";
+        const parsed = parseLineFormat(content);
+        const validNew: Raw[] = [];
         for (const src of sub) {
           const got = parsed.find((x) => x.id === src.id);
           if (!got) continue;
-          if (!isTelugu(got.q)) continue;
+          if (!validField(got.q)) continue;
           if (got.options.length !== src.options.length) continue;
-          if (!got.options.every(isTelugu)) continue;
-          gotItems.push(got);
+          if (!got.options.every(validField)) continue;
+          validNew.push(got);
           stillNeeded.delete(src.id);
+        }
+        gotItems.push(...validNew);
+        if (validNew.length === 0) {
+          console.log(`[pack] batch ${sub[0].id}… attempt ${attempt} returned 0 valid items; sample: ${JSON.stringify(content.slice(0, 160))}`);
         }
       } catch (e) {
         console.log(`[pack] attempt ${attempt} error: ${(e as Error).message}`);

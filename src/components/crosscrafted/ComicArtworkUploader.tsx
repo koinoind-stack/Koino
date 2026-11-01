@@ -94,7 +94,7 @@ export default function ComicArtworkUploader({
   const handleFile = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+      setError(t("comicsAdmin.selectImage"));
       return;
     }
 
@@ -165,15 +165,15 @@ export default function ComicArtworkUploader({
           ? ` · WebP ${(data.optimizedSize / 1024).toFixed(0)}KB (from ${(data.originalSize / 1024).toFixed(0)}KB)`
           : ` · ${(file.size / 1024).toFixed(0)}KB original`;
 
-      const dbNote = data.dbUpdated === true ? " · saved to DB" : "";
+      const dbNote = data.dbUpdated === true ? ` · ${t("comicsAdmin.savedToDb")}` : "";
 
-      toast.success("Artwork uploaded!", {
-        description: `Saved to Supabase Storage${sizeNote}${dbNote}`,
+      toast.success(t("comicsAdmin.artworkUploaded"), {
+        description: `${t("comicsAdmin.savedToStorage")}${sizeNote}${dbNote}`,
       });
     } catch (e: any) {
-      const msg = e?.message || "Upload failed";
+      const msg = e?.message || t("comicsAdmin.uploadFailed");
       setError(msg);
-      toast.error("Upload failed", { description: msg });
+      toast.error(t("comicsAdmin.uploadFailed"), { description: msg });
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -237,7 +237,7 @@ export default function ComicArtworkUploader({
             <>
               <ImageIcon size={20} />
               <span className="text-[10px] font-bold uppercase tracking-wider">{t("comicsAdmin.uploadArtwork")}</span>
-              <span className="text-[9px] text-[#475569]">PNG, JPG, or WEBP (max 10MB)</span>
+              <span className="text-[9px] text-[#475569]">{t("comicsAdmin.fileTypes")}</span>
             </>
           )}
         </button>

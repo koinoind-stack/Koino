@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Globe, Check, ChevronDown } from "lucide-react";
-import { useLanguage, LANGUAGES, type LanguageCode } from "@/lib/i18n/LanguageContext";
+import { useLanguage, useTranslation, LANGUAGES, type LanguageCode } from "@/lib/i18n/LanguageContext";
 
 /**
  * Language switcher dropdown — shown in the app header.
@@ -15,6 +15,7 @@ import { useLanguage, LANGUAGES, type LanguageCode } from "@/lib/i18n/LanguageCo
  */
 export default function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { lang, setLang } = useLanguage();
+  const t = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,7 +44,7 @@ export default function LanguageSwitcher({ compact = false }: { compact?: boolea
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white hover:bg-white/[0.08] transition-all text-xs font-semibold"
         title={current.name}
-        aria-label="Switch language"
+        aria-label={t("common.switchLanguage")}
         aria-expanded={open}
       >
         <Globe size={13} />

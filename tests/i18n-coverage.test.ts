@@ -20,6 +20,7 @@ const brandKeysOk = new Set([
   "profile.label.instagram",
   "profile.label.youtube",
   "profile.label.facebook",
+  "support.upi.label", // "UPI ID" — technical payment identifier, Latin by design
 ]);
 // Values made entirely of {placeholders} + separators (format tokens) are
 // legitimately identical in every language; two aria/unit templates are

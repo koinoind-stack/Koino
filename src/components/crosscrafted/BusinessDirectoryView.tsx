@@ -167,7 +167,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
             if (onListBusiness) {
               onListBusiness();
             } else {
-              toast("Open 'List Business' to submit your business.");
+              toast(t("biz.toast.fallback"));
             }
           }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold text-white transition-all hover:-translate-y-px"

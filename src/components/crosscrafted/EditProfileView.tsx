@@ -419,7 +419,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
               <option value="prefer_not_to_say">{t("onboarding.gender.preferNot")}</option>
             </select>
           </Field>
-          <Field label="Date of birth">
+          <Field label={t("onboarding.profile.dob")}>
             <input
               type="date"
               value={dob}

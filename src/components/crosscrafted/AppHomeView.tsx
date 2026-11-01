@@ -36,7 +36,7 @@ type Props = {
 type FeatureCard = {
   icon: typeof BookOpen;
   color: string;
-  title: string;
+  titleKey: string;
   descKey: string;
   view: View;
   group: "FAITH" | "CONNECT" | "GROW" | "PLAY" | "DISCOVER";
@@ -57,13 +57,13 @@ type BlogCardData = {
 
 // Single source of truth for the App Home feature grid.
 // Each card links to an existing feature — no fake functionality.
-// Descriptions are i18n keys (home.card.*.desc) resolved with t() at render
-// time — the array stays module-scope, never calling t() itself.
+// Titles AND descriptions are i18n keys resolved with t() at render time —
+// the array stays module-scope, never calling t() itself.
 const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: BookOpen,
     color: "#7C3AED",
-    title: "Holy Bible",
+    titleKey: "home.card.bible.title",
     descKey: "home.card.bible.desc",
     view: "bible",
     group: "FAITH",
@@ -71,7 +71,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Clapperboard,
     color: "#38BDF8",
-    title: "Bible Movies & Videos",
+    titleKey: "home.card.videos.title",
     descKey: "home.card.videos.desc",
     view: "videos",
     group: "FAITH",
@@ -79,7 +79,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Sparkles,
     color: "#EC4899",
-    title: "Bible Comics",
+    titleKey: "home.card.comics.title",
     descKey: "home.card.comics.desc",
     view: "comic",
     group: "PLAY",
@@ -87,7 +87,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Search,
     color: "#F39B9B",
-    title: "Churches",
+    titleKey: "home.card.churches.title",
     descKey: "home.card.churches.desc",
     view: "churches",
     group: "CONNECT",
@@ -95,7 +95,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Calendar,
     color: "#38BDF8",
-    title: "Events",
+    titleKey: "home.card.events.title",
     descKey: "home.card.events.desc",
     view: "events",
     group: "CONNECT",
@@ -103,7 +103,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: HeartHandshake,
     color: "#F59E0B",
-    title: "Prayer Wall",
+    titleKey: "home.card.prayer.title",
     descKey: "home.card.prayer.desc",
     view: "prayer-wall",
     group: "CONNECT",
@@ -111,7 +111,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Award,
     color: "#22C55E",
-    title: "Bible Trivia",
+    titleKey: "home.card.trivia.title",
     descKey: "home.card.trivia.desc",
     view: "trivia",
     group: "PLAY",
@@ -119,7 +119,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Store,
     color: "#9786E3",
-    title: "Marketplace",
+    titleKey: "home.card.marketplace.title",
     descKey: "home.card.marketplace.desc",
     view: "shop",
     group: "DISCOVER",
@@ -127,7 +127,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: Building2,
     color: "#0EA5E9",
-    title: "Business Directory",
+    titleKey: "home.card.business.title",
     descKey: "home.card.business.desc",
     view: "business-directory",
     group: "DISCOVER",
@@ -235,7 +235,7 @@ export default function AppHomeView({ onNavigate }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 {cards.map((f, i) => (
                   <motion.button
-                    key={f.title}
+                    key={f.titleKey}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: i * 0.05 }}
@@ -251,7 +251,7 @@ export default function AppHomeView({ onNavigate }: Props) {
                     </div>
                     <div>
                       <h3 className="text-[13px] font-bold text-white group-hover:opacity-90 transition-opacity">
-                        {f.title}
+                        {t(f.titleKey)}
                       </h3>
                       <p className="text-[10px] text-[#A09DB1] leading-relaxed mt-0.5 line-clamp-2">
                         {t(f.descKey)}

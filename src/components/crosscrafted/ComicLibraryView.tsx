@@ -135,7 +135,7 @@ export default function ComicLibraryView({
         const text = await res.text();
         if (!text) throw new Error(t("comics.error.emptyResponse"));
         const data = JSON.parse(text);
-        if (!res.ok) throw new Error(data.error || "Failed to load comics");
+        if (!res.ok) throw new Error(data.error || t("comics.error.loadFailedList"));
         const list: ComicChapterSummary[] = (data.chapters || []).slice();
         // Order: admin sortOrder first, then canonical Bible book order, then chapter.
         const bookIndex = (bid: string) => {

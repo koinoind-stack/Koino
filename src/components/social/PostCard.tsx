@@ -151,17 +151,17 @@ export default function PostCard({
       });
       setState((s) => ({ ...s, content: res.post.content, editedAt: res.post.editedAt, hashtags: res.post.hashtags }));
       setEditing(false);
-      toast.success("Caption updated");
+      toast.success(t("post.captionUpdated"));
     } catch (err) {
       toast.error((err as Error).message);
     }
   }
 
   async function removePost() {
-    if (!confirm("Delete this post? This can't be undone.")) return;
+    if (!confirm(t("post.deleteConfirm"))) return;
     try {
       await api(`/api/social/posts/${state.id}`, { method: "DELETE" });
-      toast.success("Post deleted");
+      toast.success(t("post.deleted"));
       onChanged?.();
     } catch (err) {
       toast.error((err as Error).message);
@@ -174,7 +174,7 @@ export default function PostCard({
         method: "POST",
         body: JSON.stringify({ targetType: "post", targetId: state.id, reason: "inappropriate" }),
       });
-      toast.success("Report submitted. Thank you.");
+      toast.success(t("post.reported"));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -337,10 +337,10 @@ export default function PostCard({
         >
           <Flower2 size={16} className="text-[#C4B5FD] shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold text-[#C4B5FD] uppercase tracking-wide">In loving memory</p>
+            <p className="text-[11px] font-bold text-[#C4B5FD] uppercase tracking-wide">{t("post.inLovingMemory")}</p>
             <p className="text-xs text-[#94A3B8] truncate">{state.memorial.fullName}</p>
           </div>
-          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">View Memorial →</span>
+          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">{t("post.viewMemorial")} →</span>
         </a>
       )}
 
@@ -360,10 +360,10 @@ export default function PostCard({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-[#C4B5FD] uppercase tracking-wide">Bible Movies &amp; Videos</p>
+            <p className="text-[10px] font-bold text-[#C4B5FD] uppercase tracking-wide">{t("post.videoChip")}</p>
             <p className="text-xs text-white font-bold truncate">{shown.video.title}</p>
           </div>
-          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">Watch Now →</span>
+          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">{t("post.watchNow")}</span>
         </a>
       )}
 
@@ -384,12 +384,13 @@ export default function PostCard({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold text-[#F39B9B] uppercase tracking-wide truncate">
-              Article{state.article.category ? ` · ${state.article.category}` : ""}
-              {state.article.readingMinutes ? ` · ${state.article.readingMinutes} min read` : ""}
+              {t("post.articleChip")}
+              {state.article.category ? ` · ${state.article.category}` : ""}
+              {state.article.readingMinutes ? ` · ${t("post.minRead", { n: state.article.readingMinutes })}` : ""}
             </p>
             <p className="text-xs text-white font-bold truncate">{state.article.title}</p>
           </div>
-          <span className="shrink-0 text-[11px] font-bold text-[#F39B9B]">Read Article →</span>
+          <span className="shrink-0 text-[11px] font-bold text-[#F39B9B]">{t("post.readArticle")}</span>
         </a>
       )}
 

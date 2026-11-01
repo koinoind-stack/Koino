@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, Search, X } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // Public post shape — a subset of the admin BlogPost. Only fields the
 // public /blog list actually needs.
@@ -36,6 +37,7 @@ export default function BlogListClient({
   posts: PublicBlogPost[];
   categories: string[];
 }) {
+  const t = useTranslation();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
 
@@ -82,14 +84,14 @@ export default function BlogListClient({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search articles…"
+            placeholder={t("blog.list.searchPlaceholder")}
             className="w-full bg-[#1C1929] border border-white/[0.06] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]/60 focus:bg-[#22202F] transition-all"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white"
-              aria-label="Clear search"
+              aria-label={t("blog.list.clearSearch")}
             >
               <X size={14} />
             </button>
