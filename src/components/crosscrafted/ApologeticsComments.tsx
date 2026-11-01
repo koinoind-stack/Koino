@@ -20,6 +20,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type CommentNode = {
   id: string;
@@ -39,6 +40,7 @@ export default function ApologeticsComments({
   targetId: string;
 }) {
   const { isAuthenticated } = useSupabaseUser();
+  const t = useTranslation();
   const [comments, setComments] = useState<CommentNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [canModerate, setCanModerate] = useState(false);
@@ -142,7 +144,7 @@ export default function ApologeticsComments({
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Share a thought…"
+            placeholder={t("apo.shareThought")}
             className="neo-input text-xs h-16 resize-none"
             maxLength={1500}
           />
@@ -153,13 +155,13 @@ export default function ApologeticsComments({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/25 transition-all disabled:opacity-40"
             >
               {posting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
-              Post comment
+              {t("apo.postComment")}
             </button>
           </div>
         </div>
       ) : (
         <p className="text-[11px] text-[#64748B] mb-4">
-          <Link href="/login" className="text-[#38BDF8] underline">Sign in</Link> to join the discussion.
+          <Link href="/login" className="text-[#38BDF8] underline">{t("apo.signInLink")}</Link> {t("apo.joinTail")}
         </p>
       )}
 
@@ -238,13 +240,13 @@ export default function ApologeticsComments({
               {reportingId === c.id && (
                 <div className="ml-6 mt-2 bg-[#EF4444]/5 border border-[#EF4444]/20 rounded-lg p-2.5">
                   <p className="text-[10px] font-bold text-[#F39B9B] mb-1.5 flex items-center gap-1">
-                    <Flag size={9} /> Report this comment
+                    <Flag size={9} /> {t("apo.reportComment")}
                   </p>
                   <input
                     type="text"
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
-                    placeholder="What's wrong with it? (optional)"
+                    placeholder={t("apo.reportPlaceholder")}
                     className="neo-input text-[11px] h-8"
                     maxLength={300}
                   />
@@ -259,7 +261,7 @@ export default function ApologeticsComments({
                       onClick={() => report(c.id)}
                       className="bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#EF4444] text-[10px] font-bold rounded-lg px-2.5 py-1 hover:bg-[#EF4444]/25 transition-colors"
                     >
-                      Submit report
+                      {t("apo.submitReport")}
                     </button>
                   </div>
                 </div>
@@ -287,6 +289,7 @@ function CommentItem({
   onReport?: () => void;
   onModerate: (kind: string, id: string) => void;
 }) {
+  const t = useTranslation();
   return (
     <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
       <div className="flex items-center gap-2 mb-1">
@@ -314,14 +317,14 @@ function CommentItem({
             <button
               onClick={onReport}
               className="text-[#64748B] hover:text-[#F39B9B] p-1 transition-colors"
-              aria-label="Report comment"
+              aria-label={t("apo.reportAria")}
             >
               <Flag size={10} />
             </button>
           )}
           {canModerate && (
             <div className="flex items-center gap-0.5 border-l border-white/[0.08] pl-1">
-              <span title="Admin moderation" className="flex items-center">
+              <span title={t("apo.adminModeration")} className="flex items-center">
                 <ShieldAlert size={9} className="text-[#A855F7]" />
               </span>
               {node.status !== "hidden" ? (
@@ -336,18 +339,18 @@ function CommentItem({
                   onClick={() => onModerate("comment_unhide", node.id)}
                   className="text-[9px] font-bold text-[#22C55E] hover:text-white px-1"
                 >
-                  Unhide
+                  {t("apo.unhide")}
                 </button>
               )}
               <button
                 onClick={() => {
-                  if (confirm("Delete this comment and its replies permanently?")) {
+                  if (confirm(t("apo.deleteConfirm"))) {
                     onModerate("comment_delete", node.id);
                   }
                 }}
                 className="text-[9px] font-bold text-[#EF4444] hover:text-white px-1"
               >
-                Delete
+                {t("apo.delete")}
               </button>
             </div>
           )}

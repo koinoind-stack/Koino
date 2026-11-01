@@ -39,7 +39,7 @@ export default async function FounderPage() {
                 />
               )}
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-3">
-                <Sparkles size={12} fill="currentColor" /> Meet the Founder
+                <Sparkles size={12} fill="currentColor" /> <T k="page.founder.meetTitle" />
               </div>
               <h1 className="text-2xl font-black text-white mb-1">{founder.founderName}</h1>
               {founder.shortIntro && (
@@ -93,7 +93,7 @@ export default async function FounderPage() {
               <Sparkles size={28} className="text-white" />
             </div>
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-3">
-              <Sparkles size={12} fill="currentColor" /> Meet the Founder
+              <Sparkles size={12} fill="currentColor" /> <T k="page.founder.meetTitle" />
             </div>
             <h1 className="text-2xl font-black text-white mb-2">Meet the Founder</h1>
             <p className="text-sm text-[#A09DB1] leading-relaxed max-w-md mx-auto mb-6">

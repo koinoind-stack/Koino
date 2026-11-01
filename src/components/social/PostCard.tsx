@@ -28,6 +28,7 @@ import { computePostPermissions } from "./post-permissions";
 import { useViewerId } from "./use-viewer-id";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { formatCount, timeAgo, tokenizeCaption } from "@/lib/social/format";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 
@@ -60,6 +61,7 @@ export default function PostCard({
   compact,
   canModerate = false,
 }: Props) {
+  const t = useTranslation();
   const [state, setState] = useState<Post>(post);
   const [mediaIndex, setMediaIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -259,7 +261,7 @@ export default function PostCard({
                     onClick={() => { setMenuOpen(false); setEditing(true); setEditText(state.content || ""); }}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-white hover:bg-white/5"
                   >
-                    <Pencil size={15} /> Edit caption
+                    <Pencil size={15} /> {t("post.editCaption")}
                   </button>
                 )}
                 {canDelete && (
@@ -267,7 +269,7 @@ export default function PostCard({
                     onClick={() => { setMenuOpen(false); removePost(); }}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10"
                   >
-                    <Trash2 size={15} /> Delete post
+                    <Trash2 size={15} /> {t("post.deletePost")}
                   </button>
                 )}
                 <button

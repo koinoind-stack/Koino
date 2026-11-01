@@ -60,7 +60,7 @@ export default async function HelpPage() {
             <p className="text-sm text-[#94A3B8] mb-2"><T k="help.empty" /></p>
             <p className="text-xs text-[#64748B]"><T k="help.emptyNote" /></p>
             <Link href="/contact" className="inline-block mt-4 px-4 py-2 rounded-xl bg-[#F39B9B] text-slate-950 text-xs font-bold">
-              Contact Us
+              <T k="page.support.contactUs" />
             </Link>
           </div>
         ) : (

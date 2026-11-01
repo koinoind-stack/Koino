@@ -1283,7 +1283,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className="neo-input text-sm"
-                      placeholder="City"
+                      placeholder={t("churches.placeholder.city")}
                     />
                   </div>
                 </div>

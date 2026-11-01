@@ -380,9 +380,9 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         <Field label={t("profile.social")}>
           <div className="space-y-2.5">
             <LinkInput icon={Globe} label={t("profile.link.website")} value={website} onChange={setWebsite} placeholder={t("profile.placeholder.website")} />
-            <LinkInput icon={Instagram} label="Instagram" value={instagram} onChange={setInstagram} placeholder={t("profile.placeholder.handle")} />
-            <LinkInput icon={Youtube} label="YouTube" value={youtube} onChange={setYoutube} placeholder={t("profile.placeholder.channel")} />
-            <LinkInput icon={Facebook} label="Facebook" value={facebook} onChange={setFacebook} placeholder={t("profile.placeholder.facebook")} />
+            <LinkInput icon={Instagram} label={t("profile.label.instagram")} value={instagram} onChange={setInstagram} placeholder={t("profile.placeholder.handle")} />
+            <LinkInput icon={Youtube} label={t("profile.label.youtube")} value={youtube} onChange={setYoutube} placeholder={t("profile.placeholder.channel")} />
+            <LinkInput icon={Facebook} label={t("profile.label.facebook")} value={facebook} onChange={setFacebook} placeholder={t("profile.placeholder.facebook")} />
             <LinkInput icon={Twitter} label={t("profile.link.twitter")} value={twitter} onChange={setTwitter} placeholder={t("profile.placeholder.handle")} />
           </div>
           <p className="text-[11px] mt-1.5 text-[#64748B]">
@@ -391,7 +391,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="State">
+          <Field label={t("profile.label.state")}>
             <select value={state_} onChange={(e) => { setState(e.target.value); setCity(""); }} className={inputCls}>
               <option value="">{t("common.selectState")}</option>
               {INDIAN_STATES.map((s) => (
@@ -399,19 +399,19 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
               ))}
             </select>
           </Field>
-          <Field label="City">
+          <Field label={t("profile.label.city")}>
             <input
               value={city}
               onChange={(e) => setCity(e.target.value)}
               maxLength={100}
-              placeholder="City"
+              placeholder={t("profile.placeholder.city")}
               className={inputCls}
             />
           </Field>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Gender">
+          <Field label={t("profile.label.gender")}>
             <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
               <option value="">{t("onboarding.gender.preferNot")}</option>
               <option value="male">{t("onboarding.gender.male")}</option>

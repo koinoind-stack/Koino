@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Image as ImageIcon, X, Upload, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   /** Current artwork URL (storage path like https://...supabase.co/.../GEN2-P01.webp) */
@@ -48,6 +49,7 @@ export default function ComicArtworkUploader({
   chapterId,
   label = "Artwork",
 }: Props) {
+  const t = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -194,7 +196,7 @@ export default function ComicArtworkUploader({
           <div className="w-full h-32 rounded-xl overflow-hidden border border-white/[0.08] bg-[#0f0f1a]">
             <img
               src={artworkUrl}
-              alt="Comic panel artwork"
+              alt={t("comicsAdmin.panelArtAlt")}
               className="w-full h-full object-cover"
             />
           </div>
@@ -204,7 +206,7 @@ export default function ComicArtworkUploader({
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
               className="w-6 h-6 rounded-md bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-all"
-              title="Replace artwork"
+              title={t("comicsAdmin.replaceArtwork")}
             >
               {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
             </button>
@@ -213,7 +215,7 @@ export default function ComicArtworkUploader({
               onClick={handleRemove}
               disabled={uploading}
               className="w-6 h-6 rounded-md bg-[#EF4444]/80 backdrop-blur-sm flex items-center justify-center text-white hover:bg-[#EF4444] transition-all"
-              title="Remove artwork"
+              title={t("comicsAdmin.removeArtwork")}
             >
               <X size={12} />
             </button>
@@ -234,7 +236,7 @@ export default function ComicArtworkUploader({
           ) : (
             <>
               <ImageIcon size={20} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Upload Artwork</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{t("comicsAdmin.uploadArtwork")}</span>
               <span className="text-[9px] text-[#475569]">PNG, JPG, or WEBP (max 10MB)</span>
             </>
           )}

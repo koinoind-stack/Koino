@@ -471,7 +471,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
       <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <Megaphone size={14} className="text-[#A78BFA]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Admin Tip</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("admin.tip")}</p>
         </div>
         <p className="text-xs text-[#A09DB1] leading-relaxed">
           New church submissions need approval before they appear in the public directory.
@@ -591,19 +591,19 @@ function MembersTab() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
             <p className="text-xl font-extrabold text-white">{stats.totalMembers}</p>
-            <p className="text-[9px] text-[#94A3B8] uppercase">Total Members</p>
+            <p className="text-[9px] text-[#94A3B8] uppercase">{t("admin.stats.totalMembers")}</p>
           </div>
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
             <p className="text-xl font-extrabold text-[#22C55E]">{stats.newToday}</p>
-            <p className="text-[9px] text-[#94A3B8] uppercase">New Today</p>
+            <p className="text-[9px] text-[#94A3B8] uppercase">{t("admin.stats.newToday")}</p>
           </div>
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
             <p className="text-xl font-extrabold text-[#38BDF8]">{stats.newThisWeek}</p>
-            <p className="text-[9px] text-[#94A3B8] uppercase">This Week</p>
+            <p className="text-[9px] text-[#94A3B8] uppercase">{t("admin.stats.thisWeek")}</p>
           </div>
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
             <p className="text-xl font-extrabold text-[#A855F7]">{stats.newThisMonth}</p>
-            <p className="text-[9px] text-[#94A3B8] uppercase">This Month</p>
+            <p className="text-[9px] text-[#94A3B8] uppercase">{t("admin.stats.thisMonth")}</p>
           </div>
         </div>
       )}
@@ -611,7 +611,7 @@ function MembersTab() {
       {/* Recent signups */}
       {stats?.recentSignups?.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B] mb-2">Recent Signups</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B] mb-2">{t("admin.stats.recentSignups")}</p>
           <div className="space-y-1.5">
             {stats.recentSignups.slice(0, 5).map((m: any) => (
               <button key={m.id} onClick={() => openMember(m.id)} className="w-full flex items-center gap-3 p-2 rounded-xl bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] transition-all text-left">
@@ -637,12 +637,12 @@ function MembersTab() {
           {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }} className="neo-input text-xs w-36">
-          <option value="">All Profiles</option>
-          <option value="true">Completed</option>
-          <option value="false">Incomplete</option>
+          <option value="">{t("admin.filter.allProfiles")}</option>
+          <option value="true">{t("admin.filter.completed")}</option>
+          <option value="false">{t("admin.filter.incomplete")}</option>
         </select>
         <select value={filterRole} onChange={(e) => { setFilterRole(e.target.value); setPage(0); }} className="neo-input text-xs w-44">
-          <option value="">All Community Roles</option>
+          <option value="">{t("admin.filter.allRoles")}</option>
           {COMMUNITY_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </div>
@@ -718,8 +718,8 @@ function MembersTab() {
                     <div><p className="text-[#64748B]">Gender</p><p className="text-white">{memberDetail.gender || "Not provided"}</p></div>
                     <div><p className="text-[#64748B]">State</p><p className="text-white">{memberDetail.state || "Not provided"}</p></div>
                     <div><p className="text-[#64748B]">City</p><p className="text-white">{memberDetail.city || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">Faith Status</p><p className="text-white">{memberDetail.faithStatus?.replace(/_/g, " ") || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">Faith Journey</p><p className="text-white">{memberDetail.faithJourney?.replace(/_/g, " ") || "Not provided"}</p></div>
+                    <div><p className="text-[#64748B]">{t("admin.filter.faithStatus")}</p><p className="text-white">{memberDetail.faithStatus?.replace(/_/g, " ") || "Not provided"}</p></div>
+                    <div><p className="text-[#64748B]">{t("admin.filter.faithJourney")}</p><p className="text-white">{memberDetail.faithJourney?.replace(/_/g, " ") || "Not provided"}</p></div>
                     <div><p className="text-[#64748B]">Community Role</p><p className="text-white">{resolvedCommunityRoleLabel(memberDetail.communityRole, memberDetail.communityRoleOther) || "Not provided"}{memberDetail.communityRole && !memberDetail.communityRoleVisible ? " (hidden)" : ""}</p></div>
                     <div><p className="text-[#64748B]">Account Status</p><p className="text-white capitalize">{memberDetail.accountStatus}</p></div>
                     <div><p className="text-[#64748B]">Profile</p><p className="text-white">{memberDetail.profileCompleted ? "Complete" : "Incomplete"}</p></div>

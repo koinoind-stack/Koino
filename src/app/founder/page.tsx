@@ -40,7 +40,7 @@ export default function FounderPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-5">
-              <HeartHandshake size={12} /> Meet the Founder
+              <HeartHandshake size={12} /> <T k="page.founder.meetTitle" />
             </div>
             <h1
               id="founder-heading"
@@ -196,7 +196,7 @@ export default function FounderPage() {
             id="donation-heading"
             className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-3"
           >
-            Help Keep Koino Free
+            <T k="page.founder.helpTitle" />
           </h2>
           <p className="text-sm font-bold text-[#C9C5DA]">
             A community built on faith. Sustained by people who believe in its

@@ -134,7 +134,7 @@ export default function PartnerPageClient() {
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
           <BadgeCheck size={12} />{t("partner.badge")}</div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
-          Help Christians Grow in Faith Through Your{" "}
+          {t("page.partner.helpTitle")}{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3]">
             {t("partner.tagline")}
           </span>

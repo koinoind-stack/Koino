@@ -24,6 +24,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Smile } from "lucide-react";
 import type { Categories } from "emoji-picker-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const Picker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
@@ -78,6 +79,7 @@ export default function EmojiPickerButton({
   align = "right",
   className = "",
 }: Props) {
+  const t = useTranslation();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<EmojiTab>("all");
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -108,9 +110,9 @@ export default function EmojiPickerButton({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Add emoji"
+        aria-label={t("social.emoji.addAria")}
         aria-expanded={open}
-        title="Emoji"
+        title={t("social.emoji.title")}
         className="text-[#94A3B8] hover:text-[#C4B5FD] transition-colors p-1.5 rounded-full hover:bg-white/5"
       >
         <Smile size={18} />

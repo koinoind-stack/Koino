@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Calendar, ArrowLeft, Clock, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { T } from "@/components/crosscrafted/T";
 import { BRAND, siteUrl } from "@/lib/brand";
 import { displayArticleAuthor } from "@/lib/blog-server";
 import MarkdownRenderer from "@/components/crosscrafted/MarkdownRenderer";
@@ -203,7 +204,7 @@ export default async function BlogArticlePage({
           href="/blog"
           className="text-xs text-[#A78BFA] hover:text-white flex items-center gap-1 mb-6"
         >
-          <ArrowLeft size={12} /> Back to Blog
+          <ArrowLeft size={12} /> <T k="page.blog.back" />
         </Link>
 
         {/* Eyebrow + Title */}
@@ -287,7 +288,7 @@ export default async function BlogArticlePage({
         {/* Canonical link notice (for cross-posted articles) */}
         {post.canonicalUrl && (
           <p className="mt-6 text-[10px] text-[#64748B]">
-            Originally published at{" "}
+            <T k="page.blog.publishedAt" />{" "}
             <a
               href={post.canonicalUrl}
               className="text-[#A78BFA] hover:text-white underline"
@@ -305,7 +306,7 @@ export default async function BlogArticlePage({
         <section className="max-w-5xl mx-auto px-6 pb-16">
           <h2 className="text-sm font-bold uppercase tracking-wider text-[#94A3B8] mb-4 flex items-center gap-2">
             <span className="w-1 h-4 rounded-full bg-[#7C3AED]" />
-            Related Articles
+            <T k="apo.relatedArticles" />
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {orderedRelated.map((r) => (

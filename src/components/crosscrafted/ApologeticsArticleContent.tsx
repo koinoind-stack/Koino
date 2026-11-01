@@ -12,6 +12,7 @@ import { shareLinks } from "@/lib/share/links";
 import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
 import { bibleRefFromDisplay, bibleRefHref } from "@/lib/bible-ref";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ function readingMinutes(content: string): number {
  * comments and the universal ShareSheet.
  */
 export default function ApologeticsArticleContent({ article }: { article: ArticleData }) {
+  const t = useTranslation();
   // Universal share sheet — Task 121 (published articles only reach this
   // page; the card endpoint re-verifies publication server-side).
   const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
@@ -150,7 +152,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
   return (
     <article className="max-w-2xl mx-auto px-6 py-12">
       <Link href="/apologetics" className="text-xs text-[#A78BFA] hover:text-white flex items-center gap-1 mb-4">
-        <ArrowLeft size={12} /> Back to Apologetics
+        <ArrowLeft size={12} /> {t("apo.backTo")}
       </Link>
 
       {/* Category + difficulty badges + reading time */}
@@ -202,14 +204,14 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
           className="block bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 mb-6 hover:border-[#38BDF8]/40 transition-colors"
         >
           <p className="text-[9px] font-bold uppercase tracking-wider text-[#38BDF8] mb-1 flex items-center gap-1">
-            <BookOpen size={9} /> From the Koino Q&amp;A
+            <BookOpen size={9} /> {t("apo.fromQA")}
           </p>
           <p className="text-[12px] text-[#A09DB1] leading-relaxed line-clamp-2">
             “{article.sourceQuestion.question}”
           </p>
           {article.sourceQuestion.answeredByName && (
             <p className="text-[10px] text-[#64748B] mt-1">
-              Answered by {article.sourceQuestion.answeredByName} — read the original discussion →
+              {t("apo.answeredBy", { name: article.sourceQuestion.answeredByName })}
             </p>
           )}
         </Link>
@@ -218,7 +220,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       {/* Short Answer */}
       {article.shortAnswer && (
         <div className="bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-xl p-4 mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">Short Answer</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">{t("apo.shortAnswer")}</p>
           <p className="text-sm text-[#A09DB1] leading-relaxed">{article.shortAnswer}</p>
         </div>
       )}
@@ -234,7 +236,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       {article.bibleRefs.length > 0 && (
         <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-4 mb-6">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 flex items-center gap-1">
-            <BookOpen size={10} /> Bible References
+            <BookOpen size={10} /> {t("apo.bibleRefs")}
           </p>
           <div className="flex flex-wrap gap-2">
             {article.bibleRefs.map((ref, i) => {
@@ -289,7 +291,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       {/* Related Articles */}
       {article.relatedArticles.length > 0 && (
         <div className="mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">Related Articles</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">{t("apo.relatedArticles")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {article.relatedArticles.map((ra) => (
               <Link
@@ -360,11 +362,11 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
 
       {/* Continue exploring */}
       <div className="mt-8 p-4 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/15 rounded-2xl">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-3">Continue exploring Koino</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-3">{t("apo.continueExploring")}</p>
         <div className="flex flex-wrap gap-2">
-          <Link href="/?view=bible" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">📖 Read the Bible</Link>
-          <Link href="/?view=prayer-wall" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">🙏 Prayer Wall</Link>
-          <Link href="/?view=churches" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">⛪ Find a Church</Link>
+          <Link href="/?view=bible" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">📖 {t("apo.linkBible")}</Link>
+          <Link href="/?view=prayer-wall" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">🙏 {t("apo.linkPrayer")}</Link>
+          <Link href="/?view=churches" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">⛪ {t("apo.linkChurch")}</Link>
         </div>
       </div>
       {/* ─── UNIVERSAL SHARE SHEET ─── */}

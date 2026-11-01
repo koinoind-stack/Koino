@@ -57,7 +57,7 @@ export default function AboutPage() {
             <T k="about.cta.enter" />
           </a>
           <a href="/about/founder" className="px-8 py-3.5 border border-white/[0.08] hover:border-white/[0.15] text-[#A09DB1] hover:text-white font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all bg-white/[0.02]">
-            Meet the Founder
+            <T k="page.founder.meetTitle" />
           </a>
         </div>
       </section>

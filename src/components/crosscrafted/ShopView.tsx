@@ -965,7 +965,7 @@ export default function ShopView() {
                       value={formData.vendor}
                       onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                       className="neo-input text-sm"
-                      placeholder="Your name or shop"
+                      placeholder={t("shop.placeholder.name")}
                     />
                   </div>
                 </div>

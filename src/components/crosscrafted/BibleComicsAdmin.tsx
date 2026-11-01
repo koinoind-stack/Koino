@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import ComicArtworkUploader from "@/components/crosscrafted/ComicArtworkUploader";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -167,6 +168,7 @@ const LANGS = [
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export default function BibleComicsAdmin() {
+  const t = useTranslation();
   const [view, setView] = useState<"list" | "editor">("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewChapter, setPreviewChapter] = useState<Chapter | null>(null);
@@ -192,7 +194,7 @@ export default function BibleComicsAdmin() {
           className="w-1 h-5 rounded-full"
           style={{ background: ACCENT }}
         />
-        <h2 className="text-sm font-bold text-white">Bible Comics CMS</h2>
+        <h2 className="text-sm font-bold text-white">{t("comicsAdmin.cmsTitle")}</h2>
         <span
           className="px-2 py-0.5 rounded-full text-[10px] font-bold"
           style={{ backgroundColor: `${ACCENT}20`, color: ACCENT }}
@@ -234,6 +236,7 @@ function DashboardAndList({
   onSelect: (id: string) => void;
   refreshKey: number;
 }) {
+  const t = useTranslation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [chapters, setChapters] = useState<ChapterListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,7 +326,7 @@ function DashboardAndList({
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-px"
           style={{ background: `linear-gradient(135deg, ${ACCENT}, #9786E3)` }}
         >
-          <Plus size={14} /> New Chapter
+          <Plus size={14} /> {t("comicsAdmin.newChapter")}
         </button>
       </div>
 
@@ -353,7 +356,7 @@ function DashboardAndList({
           onChange={(e) => setBookFilter(e.target.value)}
           className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white focus:outline-none focus:border-[#F39B9B]/40"
         >
-          <option value="all">All books</option>
+          <option value="all">{t("comicsAdmin.allBooks")}</option>
           {BIBLE_BOOKS.map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
@@ -373,7 +376,7 @@ function DashboardAndList({
           </p>
           <p className="text-[10px] text-[#64748B] mt-1">
             {chapters.length === 0
-              ? "Click \"New Chapter\" to create the first one."
+              ? t("comicsAdmin.clickNewChapter")
               : "Try clearing your search or status filter."}
           </p>
         </div>
@@ -395,6 +398,7 @@ function DashboardAndList({
 // ─── Stats Dashboard ────────────────────────────────────────────────────────
 
 function StatsDashboard({ stats }: { stats: Stats }) {
+  const t = useTranslation();
   const statCards = [
     { label: "Total Chapters", value: stats.totalChapters, icon: BookOpen, color: ACCENT },
     { label: "Published", value: stats.published, icon: CheckCircle2, color: "#22C55E" },
@@ -488,7 +492,7 @@ function StatsDashboard({ stats }: { stats: Stats }) {
         <div className="flex items-center gap-1.5 mb-1">
           <Sparkles size={11} style={{ color: ACCENT }} />
           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ACCENT }}>
-            CMS Workflow
+            {t("comicsAdmin.workflow")}
           </p>
         </div>
         <p className="text-[11px] text-[#A09DB1] leading-relaxed">
@@ -505,6 +509,7 @@ function StatsDashboard({ stats }: { stats: Stats }) {
 // ─── Chapter Card ───────────────────────────────────────────────────────────
 
 function ChapterCard({ chapter, onClick }: { chapter: ChapterListItem; onClick: () => void }) {
+  const t = useTranslation();
   const status = STATUS_META[chapter.status];
   const book = BIBLE_BOOKS.find((b) => b.id === chapter.bookId);
 
@@ -565,6 +570,7 @@ function CreateChapterModal({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
+  const t = useTranslation();
   const [bookId, setBookId] = useState("genesis");
   const [chapter, setChapter] = useState(1);
   const [title, setTitle] = useState("");
@@ -619,7 +625,7 @@ function CreateChapterModal({
           <div className="flex items-center gap-2">
             <Plus size={14} style={{ color: ACCENT }} />
             <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ACCENT }}>
-              New Comic Chapter
+              {t("comicsAdmin.newComicChapter")}
             </p>
           </div>
           <button onClick={onClose}>
@@ -680,7 +686,7 @@ function CreateChapterModal({
 
           <div className="bg-[#F39B9B]/8 border border-[#F39B9B]/20 rounded-xl p-2.5">
             <p className="text-[10px] text-[#A09DB1] leading-relaxed">
-              Chapter will be created with status <b className="text-white">draft</b>. It will not be
+              {t("comicsAdmin.statusNotePre")} <b className="text-white">draft</b>. It will not be
               visible to end users until you click <b className="text-white">Publish</b> from the editor.
               comicId will be auto-generated as <code className="text-[#F39B9B]">{bookId}-{chapter}</code>.
             </p>
