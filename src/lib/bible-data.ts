@@ -12,6 +12,7 @@ export type BibleBook = {
   testament: Testament;
   chapters: number;
   category: string; // e.g. "Law", "History", "Wisdom", "Prophets", "Gospels", "Pauline", "General"
+  nameTe?: string; // Telugu display name (UI language); `name` stays canonical English
 };
 
 export type BibleVerse = {
@@ -32,78 +33,105 @@ export type BibleChapterResponse = {
 
 export const BIBLE_BOOKS: BibleBook[] = [
   // ─── OLD TESTAMENT ──────────────────────────────────────────────
-  { id: "genesis", name: "Genesis", abbr: "Ge", testament: "OT", chapters: 50, category: "Law" },
-  { id: "exodus", name: "Exodus", abbr: "Ex", testament: "OT", chapters: 40, category: "Law" },
-  { id: "leviticus", name: "Leviticus", abbr: "Le", testament: "OT", chapters: 27, category: "Law" },
-  { id: "numbers", name: "Numbers", abbr: "Nu", testament: "OT", chapters: 36, category: "Law" },
-  { id: "deuteronomy", name: "Deuteronomy", abbr: "De", testament: "OT", chapters: 34, category: "Law" },
-  { id: "joshua", name: "Joshua", abbr: "Jos", testament: "OT", chapters: 24, category: "History" },
-  { id: "judges", name: "Judges", abbr: "Jdg", testament: "OT", chapters: 21, category: "History" },
-  { id: "ruth", name: "Ruth", abbr: "Ru", testament: "OT", chapters: 4, category: "History" },
-  { id: "1samuel", name: "1 Samuel", abbr: "1Sa", testament: "OT", chapters: 31, category: "History" },
-  { id: "2samuel", name: "2 Samuel", abbr: "2Sa", testament: "OT", chapters: 24, category: "History" },
-  { id: "1kings", name: "1 Kings", abbr: "1Ki", testament: "OT", chapters: 22, category: "History" },
-  { id: "2kings", name: "2 Kings", abbr: "2Ki", testament: "OT", chapters: 25, category: "History" },
-  { id: "1chronicles", name: "1 Chronicles", abbr: "1Ch", testament: "OT", chapters: 29, category: "History" },
-  { id: "2chronicles", name: "2 Chronicles", abbr: "2Ch", testament: "OT", chapters: 36, category: "History" },
-  { id: "ezra", name: "Ezra", abbr: "Ezr", testament: "OT", chapters: 10, category: "History" },
-  { id: "nehemiah", name: "Nehemiah", abbr: "Ne", testament: "OT", chapters: 13, category: "History" },
-  { id: "esther", name: "Esther", abbr: "Es", testament: "OT", chapters: 10, category: "History" },
-  { id: "job", name: "Job", abbr: "Job", testament: "OT", chapters: 42, category: "Wisdom" },
-  { id: "psalms", name: "Psalms", abbr: "Ps", testament: "OT", chapters: 150, category: "Wisdom" },
-  { id: "proverbs", name: "Proverbs", abbr: "Pr", testament: "OT", chapters: 31, category: "Wisdom" },
-  { id: "ecclesiastes", name: "Ecclesiastes", abbr: "Ec", testament: "OT", chapters: 12, category: "Wisdom" },
-  { id: "song_of_solomon", name: "Song of Solomon", abbr: "So", testament: "OT", chapters: 8, category: "Wisdom" },
-  { id: "isaiah", name: "Isaiah", abbr: "Isa", testament: "OT", chapters: 66, category: "Major Prophets" },
-  { id: "jeremiah", name: "Jeremiah", abbr: "Jer", testament: "OT", chapters: 52, category: "Major Prophets" },
-  { id: "lamentations", name: "Lamentations", abbr: "La", testament: "OT", chapters: 5, category: "Major Prophets" },
-  { id: "ezekiel", name: "Ezekiel", abbr: "Eze", testament: "OT", chapters: 48, category: "Major Prophets" },
-  { id: "daniel", name: "Daniel", abbr: "Da", testament: "OT", chapters: 12, category: "Major Prophets" },
-  { id: "hosea", name: "Hosea", abbr: "Ho", testament: "OT", chapters: 14, category: "Minor Prophets" },
-  { id: "joel", name: "Joel", abbr: "Joe", testament: "OT", chapters: 3, category: "Minor Prophets" },
-  { id: "amos", name: "Amos", abbr: "Am", testament: "OT", chapters: 9, category: "Minor Prophets" },
-  { id: "obadiah", name: "Obadiah", abbr: "Ob", testament: "OT", chapters: 1, category: "Minor Prophets" },
-  { id: "jonah", name: "Jonah", abbr: "Jon", testament: "OT", chapters: 4, category: "Minor Prophets" },
-  { id: "micah", name: "Micah", abbr: "Mi", testament: "OT", chapters: 7, category: "Minor Prophets" },
-  { id: "nahum", name: "Nahum", abbr: "Na", testament: "OT", chapters: 3, category: "Minor Prophets" },
-  { id: "habakkuk", name: "Habakkuk", abbr: "Hab", testament: "OT", chapters: 3, category: "Minor Prophets" },
-  { id: "zephaniah", name: "Zephaniah", abbr: "Zep", testament: "OT", chapters: 3, category: "Minor Prophets" },
-  { id: "haggai", name: "Haggai", abbr: "Hag", testament: "OT", chapters: 2, category: "Minor Prophets" },
-  { id: "zechariah", name: "Zechariah", abbr: "Zec", testament: "OT", chapters: 14, category: "Minor Prophets" },
-  { id: "malachi", name: "Malachi", abbr: "Mal", testament: "OT", chapters: 4, category: "Minor Prophets" },
+  { id: "genesis", name: "Genesis", nameTe: "ఆదికాండము", abbr: "Ge", testament: "OT", chapters: 50, category: "Law" },
+  { id: "exodus", name: "Exodus", nameTe: "నిర్గమకాండము", abbr: "Ex", testament: "OT", chapters: 40, category: "Law" },
+  { id: "leviticus", name: "Leviticus", nameTe: "లేవీయులు", abbr: "Le", testament: "OT", chapters: 27, category: "Law" },
+  { id: "numbers", name: "Numbers", nameTe: "సంఖ్యాకాండము", abbr: "Nu", testament: "OT", chapters: 36, category: "Law" },
+  { id: "deuteronomy", name: "Deuteronomy", nameTe: "పునరుక్తి", abbr: "De", testament: "OT", chapters: 34, category: "Law" },
+  { id: "joshua", name: "Joshua", nameTe: "యెహోషువ", abbr: "Jos", testament: "OT", chapters: 24, category: "History" },
+  { id: "judges", name: "Judges", nameTe: "న్యాయాధిపతులు", abbr: "Jdg", testament: "OT", chapters: 21, category: "History" },
+  { id: "ruth", name: "Ruth", nameTe: "రూతు", abbr: "Ru", testament: "OT", chapters: 4, category: "History" },
+  { id: "1samuel", name: "1 Samuel", nameTe: "1 సమూయేలు", abbr: "1Sa", testament: "OT", chapters: 31, category: "History" },
+  { id: "2samuel", name: "2 Samuel", nameTe: "2 సమూయేలు", abbr: "2Sa", testament: "OT", chapters: 24, category: "History" },
+  { id: "1kings", name: "1 Kings", nameTe: "1 రాజులు", abbr: "1Ki", testament: "OT", chapters: 22, category: "History" },
+  { id: "2kings", name: "2 Kings", nameTe: "2 రాజులు", abbr: "2Ki", testament: "OT", chapters: 25, category: "History" },
+  { id: "1chronicles", name: "1 Chronicles", nameTe: "1 దినవృత్తాంతములు", abbr: "1Ch", testament: "OT", chapters: 29, category: "History" },
+  { id: "2chronicles", name: "2 Chronicles", nameTe: "2 దినవృత్తాంతములు", abbr: "2Ch", testament: "OT", chapters: 36, category: "History" },
+  { id: "ezra", name: "Ezra", nameTe: "ఎజ్రా", abbr: "Ezr", testament: "OT", chapters: 10, category: "History" },
+  { id: "nehemiah", name: "Nehemiah", nameTe: "నెహెమ్యా", abbr: "Ne", testament: "OT", chapters: 13, category: "History" },
+  { id: "esther", name: "Esther", nameTe: "ఎస్తేరు", abbr: "Es", testament: "OT", chapters: 10, category: "History" },
+  { id: "job", name: "Job", nameTe: "యోబు", abbr: "Job", testament: "OT", chapters: 42, category: "Wisdom" },
+  { id: "psalms", name: "Psalms", nameTe: "కీర్తనలు", abbr: "Ps", testament: "OT", chapters: 150, category: "Wisdom" },
+  { id: "proverbs", name: "Proverbs", nameTe: "సామెతలు", abbr: "Pr", testament: "OT", chapters: 31, category: "Wisdom" },
+  { id: "ecclesiastes", name: "Ecclesiastes", nameTe: "ప్రసంగి", abbr: "Ec", testament: "OT", chapters: 12, category: "Wisdom" },
+  { id: "song_of_solomon", name: "Song of Solomon", nameTe: "పరిశుద్ధ గీత", abbr: "So", testament: "OT", chapters: 8, category: "Wisdom" },
+  { id: "isaiah", name: "Isaiah", nameTe: "యెషయా", abbr: "Isa", testament: "OT", chapters: 66, category: "Major Prophets" },
+  { id: "jeremiah", name: "Jeremiah", nameTe: "యిర్మీయా", abbr: "Jer", testament: "OT", chapters: 52, category: "Major Prophets" },
+  { id: "lamentations", name: "Lamentations", nameTe: "విలాపవాక్యములు", abbr: "La", testament: "OT", chapters: 5, category: "Major Prophets" },
+  { id: "ezekiel", name: "Ezekiel", nameTe: "యెహెజ్కేలు", abbr: "Eze", testament: "OT", chapters: 48, category: "Major Prophets" },
+  { id: "daniel", name: "Daniel", nameTe: "దానియేలు", abbr: "Da", testament: "OT", chapters: 12, category: "Major Prophets" },
+  { id: "hosea", name: "Hosea", nameTe: "హోషేయ", abbr: "Ho", testament: "OT", chapters: 14, category: "Minor Prophets" },
+  { id: "joel", name: "Joel", nameTe: "యోయేలు", abbr: "Joe", testament: "OT", chapters: 3, category: "Minor Prophets" },
+  { id: "amos", name: "Amos", nameTe: "ఆమోసు", abbr: "Am", testament: "OT", chapters: 9, category: "Minor Prophets" },
+  { id: "obadiah", name: "Obadiah", nameTe: "ఒబద్యా", abbr: "Ob", testament: "OT", chapters: 1, category: "Minor Prophets" },
+  { id: "jonah", name: "Jonah", nameTe: "యోనా", abbr: "Jon", testament: "OT", chapters: 4, category: "Minor Prophets" },
+  { id: "micah", name: "Micah", nameTe: "మీకా", abbr: "Mi", testament: "OT", chapters: 7, category: "Minor Prophets" },
+  { id: "nahum", name: "Nahum", nameTe: "నహూము", abbr: "Na", testament: "OT", chapters: 3, category: "Minor Prophets" },
+  { id: "habakkuk", name: "Habakkuk", nameTe: "హబక్కూకు", abbr: "Hab", testament: "OT", chapters: 3, category: "Minor Prophets" },
+  { id: "zephaniah", name: "Zephaniah", nameTe: "సెఫన్యా", abbr: "Zep", testament: "OT", chapters: 3, category: "Minor Prophets" },
+  { id: "haggai", name: "Haggai", nameTe: "హగ్గయి", abbr: "Hag", testament: "OT", chapters: 2, category: "Minor Prophets" },
+  { id: "zechariah", name: "Zechariah", nameTe: "జెకర్యా", abbr: "Zec", testament: "OT", chapters: 14, category: "Minor Prophets" },
+  { id: "malachi", name: "Malachi", nameTe: "మలాకీ", abbr: "Mal", testament: "OT", chapters: 4, category: "Minor Prophets" },
 
   // ─── NEW TESTAMENT ──────────────────────────────────────────────
-  { id: "matthew", name: "Matthew", abbr: "Mt", testament: "NT", chapters: 28, category: "Gospels" },
-  { id: "mark", name: "Mark", abbr: "Mk", testament: "NT", chapters: 16, category: "Gospels" },
-  { id: "luke", name: "Luke", abbr: "Lk", testament: "NT", chapters: 24, category: "Gospels" },
-  { id: "john", name: "John", abbr: "Jn", testament: "NT", chapters: 21, category: "Gospels" },
-  { id: "acts", name: "Acts", abbr: "Ac", testament: "NT", chapters: 28, category: "History" },
-  { id: "romans", name: "Romans", abbr: "Ro", testament: "NT", chapters: 16, category: "Pauline" },
-  { id: "1corinthians", name: "1 Corinthians", abbr: "1Co", testament: "NT", chapters: 16, category: "Pauline" },
-  { id: "2corinthians", name: "2 Corinthians", abbr: "2Co", testament: "NT", chapters: 13, category: "Pauline" },
-  { id: "galatians", name: "Galatians", abbr: "Ga", testament: "NT", chapters: 6, category: "Pauline" },
-  { id: "ephesians", name: "Ephesians", abbr: "Eph", testament: "NT", chapters: 6, category: "Pauline" },
-  { id: "philippians", name: "Philippians", abbr: "Ph", testament: "NT", chapters: 4, category: "Pauline" },
-  { id: "colossians", name: "Colossians", abbr: "Col", testament: "NT", chapters: 4, category: "Pauline" },
-  { id: "1thessalonians", name: "1 Thessalonians", abbr: "1Th", testament: "NT", chapters: 5, category: "Pauline" },
-  { id: "2thessalonians", name: "2 Thessalonians", abbr: "2Th", testament: "NT", chapters: 3, category: "Pauline" },
-  { id: "1timothy", name: "1 Timothy", abbr: "1Ti", testament: "NT", chapters: 6, category: "Pauline" },
-  { id: "2timothy", name: "2 Timothy", abbr: "2Ti", testament: "NT", chapters: 4, category: "Pauline" },
-  { id: "titus", name: "Titus", abbr: "Tit", testament: "NT", chapters: 3, category: "Pauline" },
-  { id: "philemon", name: "Philemon", abbr: "Phm", testament: "NT", chapters: 1, category: "Pauline" },
-  { id: "hebrews", name: "Hebrews", abbr: "Heb", testament: "NT", chapters: 13, category: "General" },
-  { id: "james", name: "James", abbr: "Ja", testament: "NT", chapters: 5, category: "General" },
-  { id: "1peter", name: "1 Peter", abbr: "1Pe", testament: "NT", chapters: 5, category: "General" },
-  { id: "2peter", name: "2 Peter", abbr: "2Pe", testament: "NT", chapters: 3, category: "General" },
-  { id: "1john", name: "1 John", abbr: "1Jn", testament: "NT", chapters: 5, category: "General" },
-  { id: "2john", name: "2 John", abbr: "2Jn", testament: "NT", chapters: 1, category: "General" },
-  { id: "3john", name: "3 John", abbr: "3Jn", testament: "NT", chapters: 1, category: "General" },
-  { id: "jude", name: "Jude", abbr: "Jud", testament: "NT", chapters: 1, category: "General" },
-  { id: "revelation", name: "Revelation", abbr: "Re", testament: "NT", chapters: 22, category: "Prophecy" },
+  { id: "matthew", name: "Matthew", nameTe: "మత్తయి", abbr: "Mt", testament: "NT", chapters: 28, category: "Gospels" },
+  { id: "mark", name: "Mark", nameTe: "మార్కు", abbr: "Mk", testament: "NT", chapters: 16, category: "Gospels" },
+  { id: "luke", name: "Luke", nameTe: "లూకా", abbr: "Lk", testament: "NT", chapters: 24, category: "Gospels" },
+  { id: "john", name: "John", nameTe: "యోహాను", abbr: "Jn", testament: "NT", chapters: 21, category: "Gospels" },
+  { id: "acts", name: "Acts", nameTe: "అపొస్తలుల కృత్యములు", abbr: "Ac", testament: "NT", chapters: 28, category: "History" },
+  { id: "romans", name: "Romans", nameTe: "రోమాయకులు", abbr: "Ro", testament: "NT", chapters: 16, category: "Pauline" },
+  { id: "1corinthians", name: "1 Corinthians", nameTe: "1 కొరింథీయులు", abbr: "1Co", testament: "NT", chapters: 16, category: "Pauline" },
+  { id: "2corinthians", name: "2 Corinthians", nameTe: "2 కొరింథీయులు", abbr: "2Co", testament: "NT", chapters: 13, category: "Pauline" },
+  { id: "galatians", name: "Galatians", nameTe: "గలతీయులు", abbr: "Ga", testament: "NT", chapters: 6, category: "Pauline" },
+  { id: "ephesians", name: "Ephesians", nameTe: "ఎఫెసీయులు", abbr: "Eph", testament: "NT", chapters: 6, category: "Pauline" },
+  { id: "philippians", name: "Philippians", nameTe: "ఫిలిప్పీయులు", abbr: "Ph", testament: "NT", chapters: 4, category: "Pauline" },
+  { id: "colossians", name: "Colossians", nameTe: "కొలస్సయులు", abbr: "Col", testament: "NT", chapters: 4, category: "Pauline" },
+  { id: "1thessalonians", name: "1 Thessalonians", nameTe: "1 థెస్సలునీకయులు", abbr: "1Th", testament: "NT", chapters: 5, category: "Pauline" },
+  { id: "2thessalonians", name: "2 Thessalonians", nameTe: "2 థెస్సలునీకయులు", abbr: "2Th", testament: "NT", chapters: 3, category: "Pauline" },
+  { id: "1timothy", name: "1 Timothy", nameTe: "1 తిమోతికి", abbr: "1Ti", testament: "NT", chapters: 6, category: "Pauline" },
+  { id: "2timothy", name: "2 Timothy", nameTe: "2 తిమోతికి", abbr: "2Ti", testament: "NT", chapters: 4, category: "Pauline" },
+  { id: "titus", name: "Titus", nameTe: "తీతుకు", abbr: "Tit", testament: "NT", chapters: 3, category: "Pauline" },
+  { id: "philemon", name: "Philemon", nameTe: "ఫిలిమోనుకు", abbr: "Phm", testament: "NT", chapters: 1, category: "Pauline" },
+  { id: "hebrews", name: "Hebrews", nameTe: "హెబ్రీయులకు", abbr: "Heb", testament: "NT", chapters: 13, category: "General" },
+  { id: "james", name: "James", nameTe: "యాకోబు", abbr: "Ja", testament: "NT", chapters: 5, category: "General" },
+  { id: "1peter", name: "1 Peter", nameTe: "1 పేతురు", abbr: "1Pe", testament: "NT", chapters: 5, category: "General" },
+  { id: "2peter", name: "2 Peter", nameTe: "2 పేతురు", abbr: "2Pe", testament: "NT", chapters: 3, category: "General" },
+  { id: "1john", name: "1 John", nameTe: "1 యోహాను", abbr: "1Jn", testament: "NT", chapters: 5, category: "General" },
+  { id: "2john", name: "2 John", nameTe: "2 యోహాను", abbr: "2Jn", testament: "NT", chapters: 1, category: "General" },
+  { id: "3john", name: "3 John", nameTe: "3 యోహాను", abbr: "3Jn", testament: "NT", chapters: 1, category: "General" },
+  { id: "jude", name: "Jude", nameTe: "యూదా", abbr: "Jud", testament: "NT", chapters: 1, category: "General" },
+  { id: "revelation", name: "Revelation", nameTe: "ప్రకటన", abbr: "Re", testament: "NT", chapters: 22, category: "Prophecy" },
 ];
 
 export const OT_BOOKS = BIBLE_BOOKS.filter((b) => b.testament === "OT");
 export const NT_BOOKS = BIBLE_BOOKS.filter((b) => b.testament === "NT");
+
+// ─── Localized book names ────────────────────────────────────────────────────
+// UI language (Telugu etc.) vs scripture language are independent: the reader
+// text is always fetched in the selected translation (KJV/WEB), while book
+// names, categories and plans follow the UI language.
+
+export function bibleBookName(book: BibleBook, lang?: string): string {
+  return lang === "te" && (book as { nameTe?: string }).nameTe
+    ? (book as { nameTe?: string }).nameTe as string
+    : book.name;
+}
+
+const CATEGORY_KEY_MAP: Record<string, string> = {
+  "Law": "law", "History": "history", "Wisdom": "wisdom",
+  "Major Prophets": "majorProphets", "Minor Prophets": "minorProphets",
+  "Gospels": "gospels", "Pauline": "pauline", "General": "general",
+  "Prophecy": "prophecy", "Whole Bible": "wholeBible", "New Testament": "newTestament",
+};
+
+export function bibleCategoryKey(category: string): string {
+  return CATEGORY_KEY_MAP[category] ? `bible.cat.${CATEGORY_KEY_MAP[category]}` : "bible.cat.general";
+}
+
+export function bibleBookById(id: string): BibleBook | undefined {
+  return BIBLE_BOOKS.find((b) => b.id === id);
+}
+
 
 // Translations supported by bible-api.com (both public domain)
 export type Translation = "kjv" | "web";

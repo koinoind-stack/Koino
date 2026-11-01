@@ -15,9 +15,9 @@
 
 import { useMemo, useState } from "react";
 import { BookOpen, ChevronLeft, Plus, Search, X } from "lucide-react";
-import { BIBLE_BOOKS } from "@/lib/bible-data";
+import { BIBLE_BOOKS, bibleBookName } from "@/lib/bible-data";
 import { canonicalizeBibleRef } from "@/lib/bible-ref";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function BibleRefPicker({
   value,
@@ -29,6 +29,8 @@ export default function BibleRefPicker({
   max?: number;
 }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const bn = (b: (typeof BIBLE_BOOKS)[number]) => bibleBookName(b, lang);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
@@ -50,10 +52,11 @@ export default function BibleRefPicker({
     return BIBLE_BOOKS.filter(
       (b) =>
         b.name.toLowerCase().includes(q) ||
+        bn(b).toLowerCase().includes(q) ||
         b.abbr.toLowerCase().includes(q) ||
         b.id.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, lang]);
 
   const resetForm = () => {
     setSelectedBookId(null);
@@ -161,9 +164,9 @@ export default function BibleRefPicker({
                       setError(null);
                     }}
                     className="text-left text-[11px] px-2 py-1.5 rounded-lg bg-white/[0.03] hover:bg-[#7C3AED]/20 text-[#A09DB1] hover:text-white transition-colors truncate"
-                    title={t("bibleRef.bookChapterCountTitle", { name: b.name, n: b.chapters })}
+                    title={t("bibleRef.bookChapterCountTitle", { name: bn(b), n: b.chapters })}
                   >
-                    <span className="font-bold">{b.name}</span>
+                    <span className="font-bold">{bn(b)}</span>
                     <span className="text-[#64748B] ml-1">{b.abbr}</span>
                   </button>
                 ))}
@@ -196,7 +199,7 @@ export default function BibleRefPicker({
                 >
                   <ChevronLeft size={12} />
                 </button>
-                <span className="text-[11px] font-bold text-white">{selectedBook.name}</span>
+                <span className="text-[11px] font-bold text-white">{bn(selectedBook)}</span>
                 <span className="text-[9px] text-[#64748B]">
                   {t("bibleRef.chapterCount", { n: selectedBook.chapters })}
                 </span>

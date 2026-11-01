@@ -26,7 +26,10 @@ import {
   type ReadingPlan,
   type PlanProgress,
   type Translation,
+  bibleBookName,
+  bibleCategoryKey,
 } from "@/lib/bible-data";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 type Props = {
   translation: Translation;
@@ -35,6 +38,25 @@ type Props = {
 
 export default function BiblePlansView({ translation, onOpenChapter }: Props) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  // Plan content is application-owned static data — localized via the i18n
+  // dictionaries (titles existed already; descriptions/categories added by the
+  // rendered-audit pass). Readings localize book names; scripture text stays
+  // in the selected translation (KJV/WEB).
+  const PLAN_TITLE_KEY: Record<string, string> = {
+    "nt-30": "bible.plan.nt30",
+    "gospels-14": "bible.plan.gospels14",
+    "psalms-proverbs-31": "bible.plan.psalms31",
+    "bible-90": "bible.plan.bible90",
+  };
+  const PLAN_DESC_KEY: Record<string, string> = {
+    "nt-30": "bible.planDesc.nt30",
+    "gospels-14": "bible.planDesc.gospels14",
+    "psalms-proverbs-31": "bible.planDesc.psalms31",
+    "bible-90": "bible.planDesc.bible90",
+  };
+  const planTitle = (p: ReadingPlan) => (PLAN_TITLE_KEY[p.id] ? t(PLAN_TITLE_KEY[p.id]) : p.title);
+  const planDesc = (p: ReadingPlan) => (PLAN_DESC_KEY[p.id] ? t(PLAN_DESC_KEY[p.id]) : p.description);
   const [openPlanId, setOpenPlanId] = useState<string | null>(null);
   const [progressMap, setProgressMap] = useState<Record<string, PlanProgress>>({});
   const [activeDay, setActiveDay] = useState<{ planId: string; day: number } | null>(null);
@@ -52,7 +74,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
   const handleStartPlan = (plan: ReadingPlan) => {
     startPlan(plan.id);
     refreshProgress();
-    toast.success(t("bible.plans.startedToast", { title: plan.title }), {
+    toast.success(t("bible.plans.startedToast", { title: planTitle(plan) }), {
       description: t("bible.plans.startedDesc", { n: plan.duration }),
     });
     setOpenPlanId(plan.id);
@@ -159,10 +181,10 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
                   <div className="flex items-center justify-between p-3 border-b border-white/[0.04]">
                     <div>
                       <p className="text-sm font-bold text-white">
-                        {book?.name} {r.chapter}
+                        {book ? bibleBookName(book, lang) : ""} {r.chapter}
                       </p>
                       <p className="text-[10px] text-[#94A3B8]">
-                        {book?.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {book?.category}
+                        {book?.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {book ? t(bibleCategoryKey(book.category)) : ""}
                       </p>
                     </div>
                     <button
@@ -383,7 +405,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
                       className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
                       style={{ backgroundColor: `${plan.color}20`, color: plan.color }}
                     >
-                      {plan.category}
+                      {t(bibleCategoryKey(plan.category))}
                     </span>
                     {started && (
                       <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#22C55E]/15 text-[#22C55E]">
@@ -391,13 +413,13 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-sm font-bold text-white group-hover:opacity-90">{plan.title}</h3>
-                  <p className="text-[11px] text-[#94A3B8] mt-0.5 line-clamp-2">{plan.description}</p>
+                  <h3 className="text-sm font-bold text-white group-hover:opacity-90">{planTitle(plan)}</h3>
+                  <p className="text-[11px] text-[#94A3B8] mt-0.5 line-clamp-2">{planDesc(plan)}</p>
 
                   {started && (
                     <div className="mt-2">
                       <div className="flex items-center justify-between text-[10px] mb-1">
-                        <span className="text-[#94A3B8]">{completed} / {plan.duration} days</span>
+                        <span className="text-[#94A3B8]">{t("bible.plans.progressDays", { done: completed, n: plan.duration })}</span>
                         <span className="font-bold" style={{ color: plan.color }}>{pct}%</span>
                       </div>
                       <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">

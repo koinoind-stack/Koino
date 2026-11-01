@@ -40,6 +40,8 @@ import {
   toggleBookmark,
   isBookmarked,
   getBookmarks,
+  bibleBookName,
+  bibleCategoryKey,
   type BibleBook,
   type Translation,
   type Bookmark as BookmarkType,
@@ -73,6 +75,9 @@ export default function BibleView({
 }) {
   const t = useTranslation();
   const { lang, setLang } = useLanguage();
+  // Localized display name for a book (Telugu book names in te UI; canonical
+  // English name stays stored in bookmarks/share metadata for stability).
+  const bn = (bk: BibleBook) => bibleBookName(bk, lang);
   const [view, setView] = useState<View>("books");
   const [mode, setMode] = useState<BibleMode>("read");
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
@@ -295,12 +300,12 @@ export default function BibleView({
     });
     refreshBookmarks();
     toast(added ? t("bible.verseBookmarked") : t("bible.bookmarkRemoved"), {
-      description: added ? `${book.name} ${chapter}:${verse}` : undefined,
+      description: added ? `${bn(book)} ${chapter}:${verse}` : undefined,
     });
   };
 
   const handleShareVerse = (book: BibleBook, chapter: number, verse: number, text: string) => {
-    const ref = `${book.name} ${chapter}:${verse} (${translation.toUpperCase()})`;
+    const ref = `${bn(book)} ${chapter}:${verse} (${translation.toUpperCase()})`;
     const full = `"${text}" — ${ref}`;
     navigator.clipboard.writeText(full);
     toast.success(t("bible.verseCopied"), { description: ref });
@@ -320,8 +325,8 @@ export default function BibleView({
     const text = verses.map((v) => `${v.verse} ${v.text}`).join(" ");
     const ref =
       verseStart === verseEnd
-        ? `${book.name} ${chapter}:${verseStart} (${translation.toUpperCase()})`
-        : `${book.name} ${chapter}:${verseStart}-${verseEnd} (${translation.toUpperCase()})`;
+        ? `${bn(book)} ${chapter}:${verseStart} (${translation.toUpperCase()})`
+        : `${bn(book)} ${chapter}:${verseStart}-${verseEnd} (${translation.toUpperCase()})`;
     setShareReq({
       heading: ref,
       shareText: `"${text.slice(0, 2200)}"\n\n— ${ref}`,
@@ -336,10 +341,10 @@ export default function BibleView({
   // Same universal ShareSheet the verse share uses; the card is the verse
   // card for the whole chapter (the share-card API clamps long excerpts).
   const openChapterShare = (book: BibleBook, chapter: number, verses: { verse: number; text: string }[]) => {
-    const ref = `${book.name} ${chapter} (${translation.toUpperCase()})`;
+    const ref = `${bn(book)} ${chapter} (${translation.toUpperCase()})`;
     const first = verses[0]?.text?.trim() || "";
     setShareReq({
-      heading: t("bible.shareHeading", { book: book.name, chapter }),
+      heading: t("bible.shareHeading", { book: bn(book), chapter }),
       shareText: `${ref}\n\n"${first.slice(0, 160)}${first.length > 160 ? "…" : ""}"\n\n${t("bible.shareTextTail")}`,
       shareUrl: shareLinks.bible(book.id, chapter),
       cardUrl: `/api/share-card?type=verse&book=${encodeURIComponent(book.id)}&chapter=${chapter}&vs=1&ve=${Math.max(verses.length, 1)}&translation=${translation}`,
@@ -629,6 +634,8 @@ export default function BibleView({
 
 function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const bn = (bk: BibleBook) => bibleBookName(bk, lang);
   const [testament, setTestament] = useState<"OT" | "NT">("OT");
   const books = testament === "OT" ? OT_BOOKS : NT_BOOKS;
   const grouped = books.reduce<Record<string, BibleBook[]>>((acc, b) => {
@@ -662,7 +669,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
       <div className="space-y-5">
         {Object.entries(grouped).map(([category, bookList]) => (
           <div key={category}>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{category}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t(bibleCategoryKey(category))}</p>
             {/* 2 columns on mobile (full book names fit comfortably),
                 3 on small tablets, 4 on desktop */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -676,7 +683,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
                   className="p-3 rounded-xl bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:bg-[#22202F] transition-all text-left group min-h-[60px] flex flex-col justify-center"
                 >
                   <p className="text-sm font-bold text-white group-hover:scale-[1.02] transition-transform leading-tight">
-                    {book.name}
+                    {bn(book)}
                   </p>
                   <p className="text-[10px] text-[#94A3B8] mt-0.5">
                     {book.chapters} <span className="hidden sm:inline">{t("bible.chapters")}</span><span className="sm:hidden">{t("bible.chaptersShort")}</span>
@@ -704,6 +711,7 @@ function ChaptersView({
   onBack: () => void;
 }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
   return (
     <div>
       <button
@@ -717,10 +725,10 @@ function ChaptersView({
         <div className="flex items-center gap-2 mb-2">
           <BookOpen size={16} className="text-[#A78BFA]" />
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
-            {book.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {book.category}
+            {book.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {t(bibleCategoryKey(book.category))}
           </span>
         </div>
-        <h2 className="text-2xl font-extrabold text-white">{book.name}</h2>
+        <h2 className="text-2xl font-extrabold text-white">{bibleBookName(book, lang)}</h2>
         <p className="text-xs text-[#94A3B8] mt-1">{t("bible.chapterCount", { n: book.chapters })}</p>
       </div>
 
@@ -785,6 +793,8 @@ function ReaderView({
 }) {
   const transLabel = TRANSLATIONS.find((tr) => tr.id === translation)?.label || "";
   const t = useTranslation();
+  const { lang } = useLanguage();
+  const bn = (bk: BibleBook) => bibleBookName(bk, lang);
 
   // ─── Verse range selection (Task 121) ───────────────────────────────────
   // "Select" toggles tap-to-select: first tap marks the start verse, the
@@ -865,7 +875,7 @@ function ReaderView({
           {book.testament === "OT" ? t("bible.ot") : t("bible.nt")}
         </p>
         <h2 className="text-xl font-extrabold text-white">
-          {book.name} <span className="text-[#A78BFA]">{chapter}</span>
+          {bn(book)} <span className="text-[#A78BFA]">{chapter}</span>
         </h2>
       </div>
 
