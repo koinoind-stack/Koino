@@ -10,6 +10,8 @@ import {
 } from "@/lib/share/card-renderer";
 import { db } from "@/lib/db";
 import { safeParseArray } from "@/lib/marketplace";
+import { parseVersionRef } from "@/lib/bible-versions";
+import { resolveChapter } from "@/lib/bible-server";
 
 /**
  * ─── UNIVERSAL SHARE-CARD API (Task 121) ─────────────────────────────────────
@@ -91,6 +93,45 @@ async function fetchVerses(
 
 const BOOK_NAME_RE = /^[a-z0-9_]{2,20}$/;
 
+/**
+ * Resolve verse text for a unified version ref.
+ *  • koino:kjv | koino:web (or missing/legacy refs) → bible-api.com
+ *  • youversion:<id> → unified chapter endpoint (server-side YouVersion;
+ *    falls back to Koino's KJV/WEB transport inside resolveChapter for the
+ *    two public-domain translations)
+ * Returns the verses plus the abbreviation to show on the card.
+ */
+async function fetchVersesUnified(
+  versionRefRaw: string,
+  bookId: string,
+  chapter: number,
+  vs: number,
+  ve: number
+): Promise<{ verses: ApiVerse[]; bookName: string | null; abbr: string } | null> {
+  const parsed = parseVersionRef(versionRefRaw);
+  if (!parsed || parsed.provider === "koino") {
+    const translation = parsed?.id === "web" ? "web" : "kjv";
+    const r = await fetchVerses(bookId, chapter, vs, ve, translation);
+    return r ? { ...r, abbr: translation.toUpperCase() } : null;
+  }
+  const chapterData = await resolveChapter(
+    `youversion:${parsed.id}`,
+    bookId,
+    String(chapter)
+  );
+  if (!chapterData.ok) return null;
+  const verses = chapterData.data.verses
+    .filter((v) => v.verse >= vs && v.verse <= ve)
+    .map((v) => ({ verse: v.verse, text: String(v.text || "").replace(/\s+/g, " ").trim() }))
+    .filter((v) => v.text.length > 0);
+  if (!verses.length) return null;
+  return {
+    verses,
+    bookName: chapterData.data.verses[0]?.book_name || null,
+    abbr: chapterData.data.versionAbbr || String(parsed.id),
+  };
+}
+
 /* ─── handler ───────────────────────────────────────────────────────────── */
 
 export async function GET(req: NextRequest) {
@@ -123,7 +164,9 @@ export async function GET(req: NextRequest) {
         const chapter = parseInt(q("chapter"), 10);
         const vs = parseInt(q("vs"), 10);
         const veRaw = parseInt(q("ve"), 10) || vs;
-        const translation = q("translation") === "web" ? "web" : "kjv";
+        // Unified version ref ("youversion:3034" / "koino:kjv"); the legacy
+        // translation=kjv|web param remains the fallback for old links.
+        const versionParam = q("version") || `koino:${q("translation") === "web" ? "web" : "kjv"}`;
         if (
           !BOOK_NAME_RE.test(book) ||
           !Number.isFinite(chapter) || chapter < 1 || chapter > 200 ||
@@ -132,7 +175,7 @@ export async function GET(req: NextRequest) {
         ) {
           return NextResponse.json({ error: "Invalid reference" }, { status: 400 });
         }
-        const result = await fetchVerses(book, chapter, vs, veRaw, translation);
+        const result = await fetchVersesUnified(versionParam, book, chapter, vs, veRaw);
         if (!result) {
           return NextResponse.json({ error: "Verse text unavailable" }, { status: 404 });
         }
@@ -149,7 +192,7 @@ export async function GET(req: NextRequest) {
           result.bookName || BOOK_NAMES[book] || book.charAt(0).toUpperCase() + book.slice(1);
         spec = {
           format,
-          kicker: `Bible Verse • ${translation.toUpperCase()}`,
+          kicker: `Bible Verse • ${result.abbr}`,
           title: `${displayBook} ${refLabel}`,
           body,
           gradientSeed: 1,

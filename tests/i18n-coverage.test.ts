@@ -13,7 +13,7 @@ import hi from "../src/lib/i18n/hi";
 const PLACEHOLDER = /\{([^}]+)\}/g;
 const allowFormat = /^[-+·•.,:;()%\s{}"']*(FP|pts?|MRP|₹|Koino)?[-+·•.,:;()%\s{}"']*$/i;
 const allowExact =
-  /^(Koino|KJV|WEB|FP|MRP|ESV|WhatsApp|India|https?:\/\/\S+|\+91…?|@yourhandle|@yourchannel|yourwebsite\.com|facebook\.com\/yourpage|[0-9 :A.M.P.Mx\-–]+)$/i;
+  /^(Koino|KJV|WEB|FP|MRP|ESV|YouVersion|WhatsApp|India|https?:\/\/\S+|\+91…?|@yourhandle|@yourchannel|yourwebsite\.com|facebook\.com\/yourpage|[0-9 :A.M.P.Mx\-–]+)$/i;
 // Values made entirely of {placeholders} + separators (format tokens) are
 // legitimately identical in every language; two aria/unit templates are
 // allowlisted by key.

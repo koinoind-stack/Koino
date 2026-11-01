@@ -135,6 +135,8 @@ export const BIBLE_LANGUAGES: BibleLanguage[] = [
   { id: "pa", label: "Punjabi", nativeLabel: "ਪੰਜਾਬੀ", flag: "🇮🇳", supported: false },
   { id: "bn", label: "Bengali", nativeLabel: "বাংলা", flag: "🇮🇳", supported: false },
   { id: "or", label: "Odia", nativeLabel: "ଓଡ଼ିଆ", flag: "🇮🇳", supported: false },
+  { id: "ur", label: "Urdu", nativeLabel: "اردو", flag: "🇮🇳", supported: false },
+  { id: "as", label: "Assamese", nativeLabel: "অসমীয়া", flag: "🇮🇳", supported: false },
 ];
 
 // ─── READING PLANS ─────────────────────────────────────────────────────────
@@ -372,7 +374,12 @@ export type Bookmark = {
   chapter: number;
   verse: number;
   text: string;
-  translation: Translation;
+  /** Legacy field for pre-unified bookmarks ("kjv" | "web"). New bookmarks use versionRef/versionAbbr. */
+  translation?: Translation;
+  /** Unified version reference, e.g. "youversion:3034" / "koino:kjv". */
+  versionRef?: string;
+  /** Abbreviation shown in the bookmarks list, e.g. "BSB", "KJV". */
+  versionAbbr?: string;
   createdAt: number;
 };
 

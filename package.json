@@ -7,7 +7,7 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
-    "test": "node --experimental-test-module-mocks --import tsx --test tests/auth-status.test.ts tests/auth-server.test.ts tests/profile-endpoints.test.ts tests/redirect-validation.test.ts tests/post-permissions.test.ts tests/comment-block-filter.test.ts tests/security-headers.test.ts tests/db-guard.test.ts tests/i18n-coverage.test.ts",
+    "test": "node --experimental-test-module-mocks --import tsx --test tests/auth-status.test.ts tests/auth-server.test.ts tests/profile-endpoints.test.ts tests/redirect-validation.test.ts tests/post-permissions.test.ts tests/comment-block-filter.test.ts tests/security-headers.test.ts tests/db-guard.test.ts tests/i18n-coverage.test.ts tests/youversion-config.test.ts tests/youversion-provider.test.ts tests/bible-localization.test.ts",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

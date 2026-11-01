@@ -63,9 +63,14 @@ import HomeRightRail from "@/components/social/HomeRightRail";
 import type { Post } from "@/components/social/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
-import { type Translation } from "@/lib/bible-data";
-import { useSupabaseUser } from "@/lib/supabase/use-user";
+import {
+  DEFAULT_VERSION_REF,
+  VERSION_STORAGE_KEY,
+  sanitizeSavedVersionRef,
+  type VersionRef,
+} from "@/lib/bible-versions";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
 
 type View =
   | "landing"
@@ -210,6 +215,30 @@ export default function Home() {
   const t = useTranslation();
   const [view, setView] = useState<View>("landing");
   const { isAuthenticated, profileCompleted, isAdmin, username, loading: authLoading } = useSupabaseUser();
+  // Bible version for surfaces that READ the saved selection (reading-plan
+  // previews). The reader (BibleView) OWNS the selection — this only mirrors
+  // it so plans preview through the SAME version the user reads, instead of
+  // a hardcoded KJV. Re-read on every view change: switching to "bible-plans"
+  // after changing the version in the Bible hub must pick up that selection
+  // (same-tab changes do not fire 'storage' events). Cross-tab changes do,
+  // so they are mirrored live. YouVersion refs stay intact: dormant/unavailable
+  // providers surface the plans' per-reading localized load-failure notice —
+  // never a silent English substitution.
+  const [bibleVersionRef, setBibleVersionRef] = useState<VersionRef>(DEFAULT_VERSION_REF);
+  useEffect(() => {
+    try {
+      setBibleVersionRef(sanitizeSavedVersionRef(localStorage.getItem(VERSION_STORAGE_KEY)));
+    } catch {
+      // storage unavailable — keep the default Koino version
+    }
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === VERSION_STORAGE_KEY) {
+        setBibleVersionRef(sanitizeSavedVersionRef(e.newValue));
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [view]);
   const [headerVisible, setHeaderVisible] = useState(true);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const lastScrollY = useRef(0);
@@ -911,7 +940,7 @@ export default function Home() {
               )}
               {view === "bible-plans" && (
                 <BiblePlansView
-                  translation="kjv"
+                  versionRef={bibleVersionRef}
                   onOpenChapter={() => goView("bible")}
                 />
               )}

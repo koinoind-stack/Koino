@@ -19,21 +19,23 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 import {
   READING_PLANS,
   getBook,
-  fetchChapter,
   getAllPlanProgress,
   startPlan,
   togglePlanDay,
   type ReadingPlan,
   type PlanProgress,
-  type Translation,
 } from "@/lib/bible-data";
+import { fetchChapterVersioned } from "@/lib/bible-fetch";
+import type { VersionRef } from "@/lib/bible-versions";
 
 type Props = {
-  translation: Translation;
+  /** Unified version reference ("youversion:3034" / "koino:kjv") — plans read
+   *  through the SAME selected version as the reader (one experience). */
+  versionRef: VersionRef;
   onOpenChapter: (bookId: string, chapter: number) => void;
 };
 
-export default function BiblePlansView({ translation, onOpenChapter }: Props) {
+export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
   const t = useTranslation();
   const [openPlanId, setOpenPlanId] = useState<string | null>(null);
   const [progressMap, setProgressMap] = useState<Record<string, PlanProgress>>({});
@@ -79,7 +81,7 @@ export default function BiblePlansView({ translation, onOpenChapter }: Props) {
       const results = await Promise.all(
         readings.map(async (r) => {
           try {
-            const data = await fetchChapter(r.bookId, r.chapter, translation);
+            const data = await fetchChapterVersioned(versionRef, r.bookId, r.chapter);
             const text = data.verses.map((v) => `${v.verse} ${v.text.trim()}`).join(" ");
             return { ...r, text };
           } catch {
