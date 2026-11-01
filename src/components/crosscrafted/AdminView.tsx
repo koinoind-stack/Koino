@@ -321,7 +321,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
     { label: "Members", value: 0, pending: 0, icon: Users, color: "#38BDF8", tab: "members" },
     { label: "Churches", value: 0, pending: 0, icon: Building2, color: "#A855F7", tab: "churches" },
     { label: "Events", value: 0, pending: 0, icon: Calendar, color: "#EC4899", tab: "events" },
-    { label: "Bible Comics", value: 0, pending: 0, icon: BookOpen, color: "#F59E0B", tab: "bible-comics" },
+    { label: t("admin.tab.bibleComics"), value: 0, pending: 0, icon: BookOpen, color: "#F59E0B", tab: "bible-comics" },
     { label: "Questions", value: 0, pending: 0, icon: HelpCircle, color: "#38BDF8", tab: "apologetics" },
     { label: "Competitions", value: 0, pending: 0, icon: Trophy, color: "#22C55E", tab: "competitions" },
     { label: "Redemptions", value: 0, pending: 0, icon: Package, color: "#9786E3", tab: "redemptions" },
@@ -360,7 +360,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
             return { ...s, value: churches?.counts?.all ?? 0, pending: churches?.counts?.PENDING ?? 0 };
           case "Events":
             return { ...s, value: events?.counts?.all ?? 0, pending: events?.counts?.PENDING ?? 0 };
-          case "Bible Comics": {
+          case t("admin.tab.bibleComics"): {
             const c = comicsStats;
             return { ...s, value: c?.totalChapters ?? 0, pending: (c?.drafts ?? 0) + (c?.review ?? 0) };
           }
@@ -463,7 +463,7 @@ function DashboardTab({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
             <span className="text-[#22C55E] font-bold">● DB-backed:</span> Members, Churches, Events, Bible Comics, Blog, Apologetics articles & questions, Prayer Wall moderation, Trivia Competitions/Prizes/Winners, Gifts & Redemptions, Donation settings, Contact messages, Partner inquiries, Contributor applications — all persisted via Prisma admin APIs.
           </p>
           <p>
-            <span className="text-[#F59E0B] font-bold">● Still preview/mock:</span> Announcements only — it uses local state (no admin API yet). Marketplace Listings, Koino Store, Business Directory and Trivia Rewards are now fully database-backed.
+            <span className="text-[#F59E0B] font-bold">{t("admin.stillPreviewMock")}</span> Announcements only — it uses local state (no admin API yet). Marketplace Listings, Koino Store, Business Directory and Trivia Rewards are now fully database-backed.
           </p>
         </div>
       </div>
@@ -497,6 +497,22 @@ const CONTRIBUTOR_TYPES = [
   "Christian Author", "Theologian", "Ministry Leader", "Worship Leader",
   "Christian Counselor", "Other",
 ];
+
+// DB values stay English (stored on the member record); the option LABEL is
+// translated at render time via this key map.
+const CONTRIBUTOR_TYPE_KEYS: Record<string, string> = {
+  "Pastor": "admin.contributor.pastor",
+  "Elder": "admin.contributor.elder",
+  "Bible Teacher": "admin.contributor.bibleTeacher",
+  "Apologist": "admin.contributor.apologist",
+  "Evangelist": "admin.contributor.evangelist",
+  "Christian Author": "admin.contributor.christianAuthor",
+  "Theologian": "admin.contributor.theologian",
+  "Ministry Leader": "admin.contributor.ministryLeader",
+  "Worship Leader": "admin.contributor.worshipLeader",
+  "Christian Counselor": "admin.contributor.christianCounselor",
+  "Other": "admin.contributor.other",
+};
 
 const MODERATION_REASONS = [
   "Fake profile", "Spam", "Harassment", "Fraud/scam",
@@ -570,10 +586,10 @@ function MembersTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMemberDetail(data.member);
-      toast.success("Member updated");
+      toast.success(t("admin.members.updated"));
       loadMembers();
     } catch (e: any) {
-      toast.error(e.message || "Failed to update");
+      toast.error(e.message || t("admin.errors.updateFailed"));
     } finally { setSaving(false); }
   };
 
@@ -714,14 +730,14 @@ function MembersTab() {
 
                   {/* Info grid */}
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
-                    <div><p className="text-[#64748B]">Mobile</p><p className="text-white">{memberDetail.mobileNumber || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">Gender</p><p className="text-white">{memberDetail.gender || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">State</p><p className="text-white">{memberDetail.state || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">City</p><p className="text-white">{memberDetail.city || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">{t("admin.filter.faithStatus")}</p><p className="text-white">{memberDetail.faithStatus?.replace(/_/g, " ") || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">{t("admin.filter.faithJourney")}</p><p className="text-white">{memberDetail.faithJourney?.replace(/_/g, " ") || "Not provided"}</p></div>
-                    <div><p className="text-[#64748B]">Community Role</p><p className="text-white">{resolvedCommunityRoleLabel(memberDetail.communityRole, memberDetail.communityRoleOther) || "Not provided"}{memberDetail.communityRole && !memberDetail.communityRoleVisible ? " (hidden)" : ""}</p></div>
-                    <div><p className="text-[#64748B]">Account Status</p><p className="text-white capitalize">{memberDetail.accountStatus}</p></div>
+                    <div><p className="text-[#64748B]">Mobile</p><p className="text-white">{memberDetail.mobileNumber || t("admin.notProvided")}</p></div>
+                    <div><p className="text-[#64748B]">Gender</p><p className="text-white">{memberDetail.gender || t("admin.notProvided")}</p></div>
+                    <div><p className="text-[#64748B]">State</p><p className="text-white">{memberDetail.state || t("admin.notProvided")}</p></div>
+                    <div><p className="text-[#64748B]">City</p><p className="text-white">{memberDetail.city || t("admin.notProvided")}</p></div>
+                    <div><p className="text-[#64748B]">{t("admin.filter.faithStatus")}</p><p className="text-white">{memberDetail.faithStatus?.replace(/_/g, " ") || t("admin.notProvided")}</p></div>
+                    <div><p className="text-[#64748B]">{t("admin.filter.faithJourney")}</p><p className="text-white">{memberDetail.faithJourney?.replace(/_/g, " ") || t("admin.notProvided")}</p></div>
+                    <div><p className="text-[#64748B]">{t("admin.members.communityRole")}</p><p className="text-white">{resolvedCommunityRoleLabel(memberDetail.communityRole, memberDetail.communityRoleOther) || t("admin.notProvided")}{memberDetail.communityRole && !memberDetail.communityRoleVisible ? " (hidden)" : ""}</p></div>
+                    <div><p className="text-[#64748B]">{t("admin.members.accountStatus")}</p><p className="text-white capitalize">{memberDetail.accountStatus}</p></div>
                     <div><p className="text-[#64748B]">Profile</p><p className="text-white">{memberDetail.profileCompleted ? "Complete" : "Incomplete"}</p></div>
                   </div>
 
@@ -732,7 +748,7 @@ function MembersTab() {
                         <BadgeCheck size={16} className={memberDetail.verified ? "text-[#38BDF8]" : "text-[#475569]"} />
                         <div>
                           <p className="text-xs font-bold text-white">{t("admin.members.koinoVerified")}</p>
-                          <p className="text-[9px] text-[#64748B]">{memberDetail.verified ? `Verified ${memberDetail.verifiedAt ? new Date(memberDetail.verifiedAt).toLocaleDateString() : ""}` : "Not verified"}</p>
+                          <p className="text-[9px] text-[#64748B]">{memberDetail.verified ? `Verified ${memberDetail.verifiedAt ? new Date(memberDetail.verifiedAt).toLocaleDateString() : ""}` : t("admin.notVerified")}</p>
                         </div>
                       </div>
                       <button
@@ -747,21 +763,21 @@ function MembersTab() {
 
                   {/* Contributor Type */}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contributor Type</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.members.contributorType")}</p>
                     <select
                       value={memberDetail.contributorType || ""}
                       onChange={(e) => updateMember({ contributorType: e.target.value || null })}
                       disabled={saving}
                       className="neo-input text-sm"
                     >
-                      <option value="">None</option>
-                      {CONTRIBUTOR_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      <option value="">{t("admin.none")}</option>
+                      {CONTRIBUTOR_TYPES.map((ct) => <option key={ct} value={ct}>{t(CONTRIBUTOR_TYPE_KEYS[ct] ?? ct)}</option>)}
                     </select>
                   </div>
 
                   {/* Permissions */}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">Content Permissions</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.members.contentPermissions")}</p>
                     <div className="space-y-1.5">
                       {ALL_PERMISSIONS.map((perm) => {
                         const current: string[] = JSON.parse(memberDetail.permissions || "[]");
@@ -778,7 +794,7 @@ function MembersTab() {
 
                   {/* Account Status */}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">Account Status</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.members.accountStatus")}</p>
                     <div className="flex gap-2">
                       {["active", "blocked", "suspended", "deactivated"].map((s) => (
                         <button
@@ -794,10 +810,10 @@ function MembersTab() {
                     {memberDetail.moderationReason && <p className="text-[9px] text-[#EF4444] mt-1">Reason: {memberDetail.moderationReason}</p>}
                   </div>
 
-                  <p className="text-[9px] text-[#475569] text-center">Mobile and DOB are private — visible only to authorized admins.</p>
+                  <p className="text-[9px] text-[#475569] text-center">{t("admin.members.privateNote")}</p>
                 </div>
               ) : (
-                <EmptyState text="Member not found." />
+                <EmptyState text={t("admin.members.notFound")} />
               )}
             </motion.div>
           </motion.div>
@@ -864,12 +880,12 @@ function ChurchesTab() {
         body: JSON.stringify(patch),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save changes");
-      toast.success("Listing updated", { description: "Public information corrected." });
+      if (!res.ok) throw new Error(data.error || t("admin.errors.saveChanges"));
+      toast.success(t("admin.toast.listingUpdated"), { description: t("admin.toast.publicInfoCorrected") });
       setEditing(null);
       await loadChurches();
     } catch (e: any) {
-      toast.error(e.message || "Failed to save changes");
+      toast.error(e.message || t("admin.errors.saveChanges"));
     } finally {
       setSavingEdit(false);
     }
@@ -916,7 +932,7 @@ function ChurchesTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Failed to ${action} church`);
       toast.success(`Church ${action}d`, {
-        description: action === "approve" ? "Now visible publicly" : action === "reject" ? "Removed from public directory" : undefined,
+        description: action === "approve" ? t("admin.toast.nowVisible") : action === "reject" ? t("admin.toast.removedFromDirectory") : undefined,
       });
       await loadChurches();
     } catch (e: any) {
@@ -929,11 +945,11 @@ function ChurchesTab() {
     try {
       const res = await fetch(`/api/admin/churches/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete church");
-      toast.success("Church deleted");
+      if (!res.ok) throw new Error(data.error || t("admin.errors.churchDelete"));
+      toast.success(t("admin.toast.churchDeleted"));
       await loadChurches();
     } catch (e: any) {
-      toast.error(e.message || "Failed to delete church");
+      toast.error(e.message || t("admin.errors.churchDelete"));
     }
   };
 
@@ -1012,14 +1028,14 @@ function ChurchesTab() {
       {loading && (
         <div className="text-center py-8">
           <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
-          <p className="text-xs text-[#94A3B8] mt-2">Loading churches…</p>
+          <p className="text-xs text-[#94A3B8] mt-2">{t("admin.churches.loading")}</p>
         </div>
       )}
 
       {/* Error */}
       {!loading && error && (
         <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-xl p-4">
-          <p className="text-sm font-bold text-[#EF4444] mb-1">Failed to load churches</p>
+          <p className="text-sm font-bold text-[#EF4444] mb-1">{t("admin.errors.churchesLoad")}</p>
           <p className="text-xs text-[#A09DB1] mb-3 leading-relaxed break-words">{error}</p>
           {/migration|table|relation|P2021|P2022|P1003/i.test(error) && (
             <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-lg p-3 mt-2 mb-2">
@@ -1059,7 +1075,7 @@ function ChurchesTab() {
             subtitle={`${c.city || "—"}, ${c.state || "—"}${c.denomination ? ` · ${c.denomination}` : ""}${c.createdByEmail ? ` · by ${c.createdByEmail}` : ""} · ${c.followers_count} follower${c.followers_count === 1 ? "" : "s"}`}
             description={
               (dupOf
-                ? `⚠ Possible duplicate of "${dupOf.name}" (${dupOf.status.toLowerCase()}, ${dupOf.city || "no city"}) — review and keep one. `
+                ? `⚠ Possible duplicate of "${dupOf.name}" (${dupOf.status.toLowerCase()}, ${dupOf.city || t("admin.noCity")}) — review and keep one. `
                 : "") + c.description
             }
             image={c.cover_image}
@@ -1116,7 +1132,7 @@ function ChurchesTab() {
                       <button
                         onClick={() => handleAction(c.id, "unverify")}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#3B82F6] hover:bg-[#3B82F6]/25 text-[11px] font-bold transition-all"
-                        title="Remove the Koino Verified badge"
+                        title={t("admin.verified.removeTitle")}
                       >
                         <ShieldCheck size={12} /> {t("common.action.unverify")}
                       </button>
@@ -1128,7 +1144,7 @@ function ChurchesTab() {
                           }
                         }}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/25 text-[#60A5FA] hover:bg-[#3B82F6]/25 text-[11px] font-bold transition-all"
-                        title="Grant the Koino Verified badge — only after checks"
+                        title={t("admin.verified.grantTitle")}
                       >
                         <ShieldCheck size={12} /> {t("common.action.verify")}
                       </button>
@@ -1218,7 +1234,7 @@ function ChurchesTab() {
               className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[88vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-base font-bold text-white">Edit listing</h3>
+                <h3 className="text-base font-bold text-white">{t("admin.churches.editListing")}</h3>
                 <button onClick={() => setEditing(null)} className="text-[#64748B] hover:text-white p-1">
                   <X size={18} />
                 </button>
@@ -1297,7 +1313,7 @@ function ChurchEditForm({
           <input className="neo-input text-sm" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
         </div>
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Location summary</label>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.churches.locationSummary")}</label>
           <input className="neo-input text-sm" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
         </div>
       </div>
@@ -1312,12 +1328,12 @@ function ChurchEditForm({
         </div>
       </div>
       <div>
-        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contact name (public)</label>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.churches.contactName")}</label>
         <input className="neo-input text-sm" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
       </div>
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">Service times</label>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">{t("admin.churches.serviceTimes")}</label>
           <button
             type="button"
             onClick={() => setForm((f) => ({ ...f, service_times: [...f.service_times, { day: "Sunday", time: "", language: "English" }] }))}
@@ -1366,7 +1382,7 @@ function ChurchEditForm({
           disabled={saving}
           className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold disabled:opacity-60"
         >
-          {saving ? t("common.saving") : "Save changes"}
+          {saving ? t("common.saving") : t("admin.saveChanges")}
         </button>
       </div>
     </div>
@@ -1447,7 +1463,7 @@ function EventsTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Failed to ${action} event`);
       toast.success(`Event ${action}d`, {
-        description: action === "approve" ? "Now visible publicly" : action === "reject" ? "Removed from public view" : undefined,
+        description: action === "approve" ? t("admin.toast.nowVisible") : action === "reject" ? t("admin.toast.removedFromView") : undefined,
       });
       // Refresh the list — counts may have changed
       await loadEvents();
@@ -1457,15 +1473,15 @@ function EventsTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Permanently delete this event? This cannot be undone. For moderation, prefer Reject or Cancel.")) return;
+    if (!confirm(t("admin.events.deleteConfirm"))) return;
     try {
       const res = await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete event");
-      toast.success("Event deleted");
+      if (!res.ok) throw new Error(data.error || t("admin.errors.eventDelete"));
+      toast.success(t("admin.toast.eventDeleted"));
       await loadEvents();
     } catch (e: any) {
-      toast.error(e.message || "Failed to delete event");
+      toast.error(e.message || t("admin.errors.eventDelete"));
     }
   };
 
@@ -1537,7 +1553,7 @@ function EventsTab() {
         type="text"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search by title, city, organizer, submitter email…"
+        placeholder={t("admin.events.searchPlaceholder")}
         className="neo-input text-sm"
       />
 
@@ -1545,16 +1561,16 @@ function EventsTab() {
       {loading && (
         <div className="text-center py-8">
           <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
-          <p className="text-xs text-[#94A3B8] mt-2">Loading events…</p>
+          <p className="text-xs text-[#94A3B8] mt-2">{t("admin.events.loading")}</p>
         </div>
       )}
 
       {/* Error */}
       {!loading && error && (
         <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-xl p-4">
-          <p className="text-sm font-bold text-[#EF4444] mb-1">Failed to load events</p>
+          <p className="text-sm font-bold text-[#EF4444] mb-1">{t("admin.errors.eventsLoad")}</p>
           <p className="text-xs text-[#A09DB1] mb-3 leading-relaxed break-words">{error}</p>
-          {/* If this is a "table not found" / migration error, show actionable guidance */}
+          {/* If this is a t("admin.tableNotFound") / migration error, show actionable guidance */}
           {/migration|table|relation|P2021|P2022|P1003/i.test(error) && (
             <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-lg p-3 mt-2 mb-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B] mb-1">
@@ -1573,7 +1589,7 @@ npx prisma migrate deploy
 npx prisma db push`}
               </pre>
               <p className="text-[10px] text-[#64748B] mt-2">
-                After the migration succeeds, click "Try again" — the table will exist and the API will return an empty list.
+                After the migration succeeds, click t("admin.tryAgain") — the table will exist and the API will return an empty list.
               </p>
             </div>
           )}
@@ -1690,7 +1706,7 @@ npx prisma db push`}
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Optional: rejection reason (internal note, not shown to user)"
+                placeholder={t("admin.events.rejectNotePlaceholder")}
                 className="neo-input text-sm h-24 resize-none mb-4"
               />
               <div className="flex gap-2 justify-end">
@@ -1782,11 +1798,11 @@ function PrayersTab() {
       if (!res.ok) throw new Error(await res.text());
       setPrayers((ps) => ps.map((p) => (p.id === id ? { ...p, status } : p)));
       toast(
-        status === "visible" ? "Prayer restored" : status === "hidden" ? "Prayer hidden" : "Prayer removed",
-        { description: status === "visible" ? "Visible on the public wall again." : "Members can no longer see it." }
+        status === "visible" ? t("admin.prayers.restored") : status === "hidden" ? t("admin.prayers.hidden") : t("admin.prayers.removed"),
+        { description: status === "visible" ? t("admin.prayers.visibleNote") : t("admin.prayers.hiddenNote") }
       );
     } catch {
-      toast.error("Moderation action failed — please try again.");
+      toast.error(t("admin.errors.moderationFailed"));
     } finally {
       setBusy(null);
     }
@@ -1799,9 +1815,9 @@ function PrayersTab() {
       const res = await fetch(`/api/prayers/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setPrayers((ps) => ps.filter((p) => p.id !== id));
-      toast.success("Prayer permanently deleted.");
+      toast.success(t("admin.prayers.permanentlyDeleted"));
     } catch {
-      toast.error("Delete failed — please try again.");
+      toast.error(t("admin.errors.deleteFailed"));
     } finally {
       setBusy(null);
     }
@@ -1852,7 +1868,7 @@ function PrayersTab() {
         ))}
       </div>
 
-      {loading && <p className="text-xs text-[#64748B] py-4">Loading prayers…</p>}
+      {loading && <p className="text-xs text-[#64748B] py-4">{t("admin.prayers.loading")}</p>}
       {error && (
         <div className="text-center py-8">
           <p className="text-xs text-[#94A3B8] mb-2">Couldn&apos;t load prayers.</p>
@@ -1962,7 +1978,7 @@ function CompetitionsTab() {
       if (pRes.ok) setPrizes((await pRes.json()).prizes ?? []);
       if (wRes.ok) setWinners((await wRes.json()).winners ?? []);
     } catch {
-      toast.error("Failed to load competitions");
+      toast.error(t("admin.errors.competitionsLoad"));
     } finally {
       setLoading(false);
     }
@@ -1979,7 +1995,7 @@ function CompetitionsTab() {
       return;
     }
     if (new Date(form.endAt) <= new Date(form.startAt)) {
-      toast.error("End date must be after start date");
+      toast.error(t("admin.competitions.errDateOrder"));
       return;
     }
     setSaving(true);
@@ -2005,8 +2021,8 @@ function CompetitionsTab() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create competition");
-      toast.success("Competition created!", {
+      if (!res.ok) throw new Error(data.error || t("admin.errors.competitionCreate"));
+      toast.success(t("admin.competitions.created"), {
         description:
           form.status === "scheduled"
             ? "It's now visible in the Trivia > Compete tab."
@@ -2016,7 +2032,7 @@ function CompetitionsTab() {
       setShowCreate(false);
       fetchAll();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create competition");
+      toast.error(err.message || t("admin.errors.competitionCreate"));
     } finally {
       setSaving(false);
     }
@@ -2025,7 +2041,7 @@ function CompetitionsTab() {
   const createPrize = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prizeForm.name.trim()) {
-      toast.error("Prize name is required");
+      toast.error(t("admin.competitions.errPrizeName"));
       return;
     }
     try {
@@ -2040,12 +2056,12 @@ function CompetitionsTab() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create prize");
-      toast.success("Prize created!");
+      if (!res.ok) throw new Error(data.error || t("admin.errors.prizeCreate"));
+      toast.success(t("admin.competitions.prizeCreated"));
       setPrizeForm({ name: "", description: "", quantity: "1" });
       fetchAll();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create prize");
+      toast.error(err.message || t("admin.errors.prizeCreate"));
     }
   };
 
@@ -2070,18 +2086,18 @@ function CompetitionsTab() {
         body: JSON.stringify({ action }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update competition");
-      toast.success(action === "approve" ? "Competition approved — now visible to players" : `Competition ${action}d`);
+      if (!res.ok) throw new Error(data.error || t("admin.errors.competitionUpdate"));
+      toast.success(action === "approve" ? t("admin.competitions.approved") : `Competition ${action}d`);
       fetchAll();
     } catch (err: any) {
-      toast.error(err.message || "Failed to update competition");
+      toast.error(err.message || t("admin.errors.competitionUpdate"));
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <AdminSectionHeader title="Trivia Competitions" count={competitions.length} color="#22C55E" />
+        <AdminSectionHeader title={t("admin.competitions.sectionTitle")} count={competitions.length} color="#22C55E" />
         <button
           onClick={() => setShowCreate(!showCreate)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
@@ -2108,7 +2124,7 @@ function CompetitionsTab() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="neo-input text-sm"
-                placeholder="e.g. Christmas Bible Quiz 2025"
+                placeholder={t("admin.competitions.titlePlaceholder")}
                 required
               />
             </div>
@@ -2120,7 +2136,7 @@ function CompetitionsTab() {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="neo-input text-sm h-16 resize-none"
-                placeholder="What's the competition about? Short summary shown to players."
+                placeholder={t("admin.competitions.summaryPlaceholder")}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -2136,11 +2152,11 @@ function CompetitionsTab() {
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Category</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="neo-input text-sm">
-                  <option value="full_bible">Full Bible</option>
-                  <option value="new_testament">New Testament</option>
-                  <option value="old_testament">Old Testament</option>
+                  <option value="full_bible">{t("admin.competitions.cat.fullBible")}</option>
+                  <option value="new_testament">{t("admin.competitions.cat.newTestament")}</option>
+                  <option value="old_testament">{t("admin.competitions.cat.oldTestament")}</option>
                   <option value="apologetics">Apologetics</option>
-                  <option value="mixed">Mixed</option>
+                  <option value="mixed">{t("admin.competitions.cat.mixed")}</option>
                 </select>
               </div>
             </div>
@@ -2152,17 +2168,17 @@ function CompetitionsTab() {
                   <option value="intermediate">Intermediate</option>
                   <option value="skilled">Skilled</option>
                   <option value="expert">Expert</option>
-                  <option value="mixed">Mixed</option>
+                  <option value="mixed">{t("admin.competitions.cat.mixed")}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Questions per attempt</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.competitions.questionsPerAttempt")}</label>
                 <input type="number" min="1" max="50" value={form.questionCount} onChange={(e) => setForm({ ...form, questionCount: e.target.value })} className="neo-input text-sm" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Attempts allowed</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.competitions.attemptsAllowed")}</label>
                 <input type="number" min="1" value={form.attemptLimit} onChange={(e) => setForm({ ...form, attemptLimit: e.target.value })} className="neo-input text-sm" />
               </div>
               <div>
@@ -2184,7 +2200,7 @@ function CompetitionsTab() {
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Prize</label>
                 <select value={form.prizeId} onChange={(e) => setForm({ ...form, prizeId: e.target.value })} className="neo-input text-sm">
-                  <option value="">No prize</option>
+                  <option value="">{t("admin.competitions.noPrize")}</option>
                   {prizes.filter((p) => p.active !== false).map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.remainingQuantity} left)
@@ -2193,26 +2209,26 @@ function CompetitionsTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Publish as</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.competitions.publishAs")}</label>
                 <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="neo-input text-sm">
-                  <option value="scheduled">Scheduled (visible to players)</option>
+                  <option value="scheduled">{t("admin.competitions.scheduled")}</option>
                   <option value="draft">Draft (hidden)</option>
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Prize claim window (days after end)</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.competitions.claimWindow")}</label>
                 <input type="number" min="1" value={form.claimDeadlineDays} onChange={(e) => setForm({ ...form, claimDeadlineDays: e.target.value })} className="neo-input text-sm" />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Rules (shown to players before joining)</label>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.competitions.rulesLabel")}</label>
               <textarea
                 value={form.rules}
                 onChange={(e) => setForm({ ...form, rules: e.target.value })}
                 className="neo-input text-sm h-16 resize-none"
-                placeholder="Eligibility, scoring, tie-breakers…"
+                placeholder={t("admin.competitions.rulesPlaceholder")}
               />
             </div>
             <div className="flex gap-2 pt-1">
@@ -2229,7 +2245,7 @@ function CompetitionsTab() {
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #22C55E, #3B82F6)" }}
               >
-                {saving ? "Creating…" : "Create Competition"}
+                {saving ? "Creating…" : t("admin.competitions.create")}
               </button>
             </div>
           </motion.form>
@@ -2240,12 +2256,12 @@ function CompetitionsTab() {
       <div className="space-y-2">
         {loading ? (
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
-            <p className="text-xs text-[#94A3B8]">Loading competitions…</p>
+            <p className="text-xs text-[#94A3B8]">{t("admin.competitions.loading")}</p>
           </div>
         ) : competitions.length === 0 ? (
           <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
             <p className="text-xs text-[#94A3B8]">
-              No competitions yet. Click <span className="font-bold text-white">Host New</span> to create the first one — scheduled competitions appear instantly in the player-facing Trivia → Compete tab.
+              No competitions yet. Click <span className="font-bold text-white">{t("admin.competitions.hostNew")}</span> to create the first one — scheduled competitions appear instantly in the player-facing Trivia → Compete tab.
             </p>
           </div>
         ) : (
@@ -2325,7 +2341,7 @@ function CompetitionsTab() {
                   value={prizeForm.name}
                   onChange={(e) => setPrizeForm({ ...prizeForm, name: e.target.value })}
                   className="neo-input text-sm"
-                  placeholder="Prize name (e.g. ₹10,000 + Trophy)"
+                  placeholder={t("admin.competitions.prizeNamePlaceholder")}
                   required
                 />
               </div>
@@ -2351,12 +2367,12 @@ function CompetitionsTab() {
                   value={prizeForm.description}
                   onChange={(e) => setPrizeForm({ ...prizeForm, description: e.target.value })}
                   className="neo-input text-sm"
-                  placeholder="Optional description"
+                  placeholder={t("admin.competitions.descOptional")}
                 />
               </div>
             </form>
             {prizes.length === 0 ? (
-              <p className="text-[11px] text-[#94A3B8]">No prizes yet — add one above, then select it when hosting a competition.</p>
+              <p className="text-[11px] text-[#94A3B8]">{t("admin.competitions.noPrizesYet")}</p>
             ) : (
               prizes.map((p) => (
                 <div key={p.id} className="flex items-center gap-2 text-[11px]">
@@ -2460,7 +2476,7 @@ function GiftsManagement() {
       }));
       setGifts(mapped);
     } catch {
-      toast.error("Failed to load gifts");
+      toast.error(t("admin.errors.giftsLoad"));
     } finally {
       setLoading(false);
     }
@@ -2488,11 +2504,11 @@ function GiftsManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.points_required || form.images.length === 0) {
-      toast.error("Please fill in title, points, and add at least 1 image");
+      toast.error(t("admin.gifts.errRequired"));
       return;
     }
     if (form.variations.some((v) => v.name.trim() && v.options.length === 0)) {
-      toast.error("Add at least 1 option for each variation name");
+      toast.error(t("admin.gifts.errOptions"));
       return;
     }
 
@@ -2514,30 +2530,30 @@ function GiftsManagement() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ giftId: editingId, ...giftData }),
         });
-        if (!res.ok) throw new Error("Failed to update");
-        toast.success("Gift updated!", { description: "Changes are live in Trivia > Rewards." });
+        if (!res.ok) throw new Error(t("admin.errors.updateFailed"));
+        toast.success(t("admin.gifts.updated"), { description: "Changes are live in Trivia > Rewards." });
       } else {
         const res = await fetch("/api/admin/gifts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(giftData),
         });
-        if (!res.ok) throw new Error("Failed to add");
-        toast.success("Gift added!", {
+        if (!res.ok) throw new Error(t("admin.errors.addFailed"));
+        toast.success(t("admin.gifts.added"), {
           description: "It's now visible in Trivia > Rewards for players to redeem.",
         });
       }
       fetchGifts();
       resetForm();
     } catch {
-      toast.error("Failed to save gift");
+      toast.error(t("admin.errors.giftSave"));
     }
   };
 
   const handleEdit = (gift: any) => {
     if (!gift.isAdmin) {
       toast(t("admin.gifts.toast.defaultEdit"), {
-        description: "Only gifts you've added from the admin panel can be modified.",
+        description: t("admin.gifts.modifyRestriction"),
       });
       return;
     }
@@ -2571,8 +2587,8 @@ function GiftsManagement() {
   const handleRemove = async (id: string) => {
     const gift = gifts.find((g) => g.id === id);
     if (!gift?.isAdmin) {
-      toast("Default gifts can't be removed", {
-        description: "Only gifts you've added from the admin panel can be deleted.",
+      toast(t("admin.gifts.errDefaultRemove"), {
+        description: t("admin.gifts.deleteRestriction"),
       });
       return;
     }
@@ -2582,11 +2598,11 @@ function GiftsManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ giftId: id }),
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast("Gift removed", { description: "Players can no longer redeem this gift." });
+      if (!res.ok) throw new Error(t("admin.errors.deleteGeneric"));
+      toast(t("admin.gifts.removed"), { description: t("admin.gifts.redeemClosedNote") });
       fetchGifts();
     } catch {
-      toast.error("Failed to remove gift");
+      toast.error(t("admin.errors.giftRemove"));
     }
   };
 
@@ -2602,7 +2618,7 @@ function GiftsManagement() {
       });
       fetchGifts();
     } catch {
-      toast.error("Failed to update stock");
+      toast.error(t("admin.errors.stockUpdate"));
     }
   };
 
@@ -2661,7 +2677,7 @@ function GiftsManagement() {
             <div className="flex items-center gap-2 mb-2">
               <Gift size={14} className="text-[#F59E0B]" />
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#F59E0B]">
-                {editingId ? "Edit Gift" : "Add New Reward Gift"}
+                {editingId ? t("admin.gifts.edit") : t("admin.gifts.addNew")}
               </p>
             </div>
 
@@ -2674,7 +2690,7 @@ function GiftsManagement() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="neo-input text-sm"
-                placeholder="e.g. Koino Hoodie"
+                placeholder={t("admin.gifts.titlePlaceholder")}
                 required
               />
             </div>
@@ -2687,7 +2703,7 @@ function GiftsManagement() {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="neo-input text-sm h-16 resize-none"
-                placeholder="What's the gift? Sizes, colors, what's included..."
+                placeholder={t("admin.gifts.descPlaceholder")}
               />
             </div>
 
@@ -2695,7 +2711,7 @@ function GiftsManagement() {
               images={form.images}
               onChange={(images) => setForm({ ...form, images })}
               max={3}
-              label="Gift Photos *"
+              label={t("admin.gifts.photosLabel")}
             />
 
             {/* Variations (sizes, colors, etc.) */}
@@ -2740,7 +2756,7 @@ function GiftsManagement() {
                         setForm({ ...form, variations: next });
                       }}
                       className="neo-input text-xs flex-1"
-                      placeholder="Variation name (e.g. Size, Color)"
+                      placeholder={t("admin.gifts.variationNamePlaceholder")}
                     />
                     <button
                       type="button"
@@ -2777,7 +2793,7 @@ function GiftsManagement() {
                     ))}
                     <input
                       type="text"
-                      placeholder="Add option + Enter"
+                      placeholder={t("admin.gifts.addOptionHint")}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -2838,7 +2854,7 @@ function GiftsManagement() {
                       setForm({ ...form, attributes: next });
                     }}
                     className="neo-input text-xs w-[40%]"
-                    placeholder="Label (e.g. Material)"
+                    placeholder={t("admin.gifts.labelPlaceholder")}
                   />
                   <input
                     type="text"
@@ -2849,7 +2865,7 @@ function GiftsManagement() {
                       setForm({ ...form, attributes: next });
                     }}
                     className="neo-input text-xs flex-1"
-                    placeholder="Value (e.g. 100% Cotton)"
+                    placeholder={t("admin.gifts.valuePlaceholder")}
                   />
                   <button
                     type="button"
@@ -2936,7 +2952,7 @@ function GiftsManagement() {
                 type="submit"
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F59E0B] hover:bg-[#E59E0B] transition-all"
               >
-                {editingId ? "Update Gift" : t("admin.gifts.addGift")}
+                {editingId ? t("admin.gifts.update") : t("admin.gifts.addGift")}
               </button>
             </div>
           </motion.form>
@@ -3060,7 +3076,7 @@ function GiftsManagement() {
 function AnnouncementsTab() {
   const t = useTranslation();
   const [announcements, setAnnouncements] = useState<{ id: string; text: string; type: string; date: string }[]>([
-    { id: "a1", text: "Welcome to Koino! Explore churches, play trivia, and grow in faith.", type: "info", date: "2025-01-20" },
+    { id: "a1", text: t("admin.announcement.defaultText"), type: "info", date: "2025-01-20" },
   ]);
   const [text, setText] = useState("");
   const [type, setType] = useState("info");
@@ -3068,7 +3084,7 @@ function AnnouncementsTab() {
   const post = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) {
-      toast.error("Please enter announcement text");
+      toast.error(t("admin.announcement.errTextRequired"));
       return;
     }
     setAnnouncements((prev) => [
@@ -3076,12 +3092,12 @@ function AnnouncementsTab() {
       ...prev,
     ]);
     setText("");
-    toast.success("Announcement posted!", { description: "It will show as a banner across the app." });
+    toast.success(t("admin.announcement.posted"), { description: t("admin.announcement.bannerNote") });
   };
 
   const remove = (id: string) => {
     setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-    toast("Announcement removed");
+    toast(t("admin.announcement.removed"));
   };
 
   const typeColors: Record<string, string> = {
@@ -3104,7 +3120,7 @@ function AnnouncementsTab() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="neo-input text-sm h-20 resize-none"
-            placeholder="e.g. New Bible Reading Challenge starts Dec 1! Join the 30-day plan."
+            placeholder={t("admin.announcement.placeholder")}
           />
         </div>
         <div>
@@ -3218,13 +3234,13 @@ function AnalyticsTab() {
   }, []);
 
   const stats = [
-    { label: "Total Members", value: membersStats?.totalMembers ?? 0, change: membersStats ? `+${membersStats.newThisWeek ?? 0} this week` : "live", icon: Users, color: "#38BDF8" },
-    { label: "Total Churches", value: churchRows.length, change: "live", icon: Building2, color: "#A855F7" },
-    { label: "Total Events", value: eventCounts?.all ?? 0, change: "live", icon: Calendar, color: "#EC4899" },
-    { label: "Comics Published", value: comicsStats?.published ?? 0, change: `${comicsStats?.totalPanels ?? 0} panels`, icon: BookOpen, color: "#F59E0B" },
-    { label: "Apologetics Qs", value: questionRows.length, change: `${questionRows.filter((q) => q.status === "new").length} new`, icon: HelpCircle, color: "#38BDF8" },
-    { label: "Active Competitions", value: competitionRows.filter((c) => c.status === "live").length, change: `${competitionRows.filter((c) => c.status === "scheduled").length} scheduled`, icon: Trophy, color: "#22C55E" },
-    { label: "Pending Redemptions", value: redemptionCounts?.pending ?? 0, change: `${redemptionCounts?.total ?? 0} total`, icon: Package, color: "#9786E3" },
+    { label: t("admin.stats.totalMembers"), value: membersStats?.totalMembers ?? 0, change: membersStats ? `+${membersStats.newThisWeek ?? 0} this week` : "live", icon: Users, color: "#38BDF8" },
+    { label: t("admin.stats.totalChurches"), value: churchRows.length, change: "live", icon: Building2, color: "#A855F7" },
+    { label: t("admin.stats.totalEvents"), value: eventCounts?.all ?? 0, change: "live", icon: Calendar, color: "#EC4899" },
+    { label: t("admin.stats.comicsPublished"), value: comicsStats?.published ?? 0, change: `${comicsStats?.totalPanels ?? 0} panels`, icon: BookOpen, color: "#F59E0B" },
+    { label: t("admin.stats.apologeticsQs"), value: questionRows.length, change: `${questionRows.filter((q) => q.status === "new").length} new`, icon: HelpCircle, color: "#38BDF8" },
+    { label: t("admin.stats.activeCompetitions"), value: competitionRows.filter((c) => c.status === "live").length, change: `${competitionRows.filter((c) => c.status === "scheduled").length} scheduled`, icon: Trophy, color: "#22C55E" },
+    { label: t("admin.stats.pendingRedemptions"), value: redemptionCounts?.pending ?? 0, change: `${redemptionCounts?.total ?? 0} total`, icon: Package, color: "#9786E3" },
   ];
 
   return (
@@ -3250,7 +3266,7 @@ function AnalyticsTab() {
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp size={14} className="text-[#A78BFA]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">Engagement Over Time</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("admin.stats.engagementOverTime")}</p>
         </div>
         <p className="text-[11px] text-[#94A3B8] leading-relaxed">
           Needs backend support: no analytics endpoint exists yet (daily active users, quiz plays per day,
@@ -3267,7 +3283,7 @@ function AnalyticsTab() {
         {(() => {
           const top = [...churchRows].sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0)).filter((c) => (c.followers_count ?? 0) > 0).slice(0, 5);
           if (loading) return <p className="text-[11px] text-[#94A3B8]">Loading…</p>;
-          if (top.length === 0) return <p className="text-[11px] text-[#94A3B8]">No published churches with followers yet.</p>;
+          if (top.length === 0) return <p className="text-[11px] text-[#94A3B8]">{t("admin.stats.noChurchFollowers")}</p>;
           return (
             <div className="space-y-2">
               {top.map((c, i) => (
@@ -3294,7 +3310,7 @@ function AnalyticsTab() {
         {loading ? (
           <p className="text-[11px] text-[#94A3B8]">Loading…</p>
         ) : leaderboard.length === 0 ? (
-          <p className="text-[11px] text-[#94A3B8]">No players have earned Faith Points yet.</p>
+          <p className="text-[11px] text-[#94A3B8]">{t("admin.stats.noFpEarners")}</p>
         ) : (
           <div className="space-y-2">
             {leaderboard.slice(0, 5).map((p) => (
@@ -3338,7 +3354,7 @@ function RedemptionsTab() {
       setRedemptions(data.redemptions || []);
       setCounts(data.counts || { total: 0, pending: 0, contacted: 0, shipped: 0, delivered: 0 });
     } catch {
-      toast.error("Failed to load redemptions");
+      toast.error(t("admin.errors.redemptionsLoad"));
     } finally {
       setLoading(false);
     }
@@ -3357,11 +3373,11 @@ function RedemptionsTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ redemptionId, status }),
       });
-      if (!res.ok) throw new Error("Failed to update");
+      if (!res.ok) throw new Error(t("admin.errors.updateFailed"));
       toast.success(t("admin.redemptions.toast.markedAs", { status: t(`admin.redemptions.status.${status}`) }));
       load();
     } catch {
-      toast.error("Failed to update status");
+      toast.error(t("admin.errors.statusUpdate"));
     } finally {
       setUpdating(null);
     }
@@ -3470,7 +3486,7 @@ function RedemptionsTab() {
                     <div className="min-w-0">
                       <h3 className="text-sm font-bold text-white line-clamp-1">{r.giftTitle}</h3>
                       <p className="text-[10px] text-[#94A3B8] truncate">
-                        {r.userName} · {r.userEmail || "no email"}
+                        {r.userName} · {r.userEmail || t("admin.noEmail")}
                       </p>
                     </div>
                     <span

@@ -142,11 +142,12 @@ type Stats = {
 const ACCENT = "#F39B9B";
 const ACCENT_DEEP = "#1C1929";
 
-const STATUS_META: Record<Status, { label: string; color: string; bg: string; border: string }> = {
-  draft: { label: "Draft", color: "#94A3B8", bg: "rgba(148,163,184,0.10)", border: "rgba(148,163,184,0.25)" },
-  review: { label: "Review", color: "#F59E0B", bg: "rgba(245,158,11,0.10)", border: "rgba(245,158,11,0.25)" },
-  ready: { label: "Ready", color: "#38BDF8", bg: "rgba(56,189,248,0.10)", border: "rgba(56,189,248,0.25)" },
-  published: { label: "Published", color: "#22C55E", bg: "rgba(34,197,94,0.10)", border: "rgba(34,197,94,0.25)" },
+// label is an i18n KEY — translate with t() at render (module scope cannot call t()).
+const STATUS_META: Record<Status, { labelKey: string; color: string; bg: string; border: string }> = {
+  draft: { labelKey: "comicsAdmin.statDrafts", color: "#94A3B8", bg: "rgba(148,163,184,0.10)", border: "rgba(148,163,184,0.25)" },
+  review: { labelKey: "comicsAdmin.statInReview", color: "#F59E0B", bg: "rgba(245,158,11,0.10)", border: "rgba(245,158,11,0.25)" },
+  ready: { labelKey: "comicsAdmin.statReady", color: "#38BDF8", bg: "rgba(56,189,248,0.10)", border: "rgba(56,189,248,0.25)" },
+  published: { labelKey: "comicsAdmin.statPublished", color: "#22C55E", bg: "rgba(34,197,94,0.10)", border: "rgba(34,197,94,0.25)" },
 };
 
 const LANGS = [
@@ -261,7 +262,7 @@ function DashboardAndList({
         setChapters(l.chapters || []);
       }
     } catch (e: any) {
-      toast.error("Failed to load comics", { description: e.message });
+      toast.error(t("comicsAdmin.toastLoadFailed"), { description: e.message });
     } finally {
       setLoading(false);
     }
@@ -312,7 +313,7 @@ function DashboardAndList({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title, comicId, description..."
+            placeholder={t("comicsAdmin.searchPlaceholder")}
             className="bg-transparent flex-1 text-xs text-white placeholder:text-[#64748B] focus:outline-none"
           />
           {search && (
@@ -371,13 +372,13 @@ function DashboardAndList({
           <BookOpen size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {chapters.length === 0
-              ? "No comic chapters yet."
-              : "No chapters match your filters."}
+              ? t("comicsAdmin.noChaptersYet")
+              : t("comicsAdmin.noChaptersFiltered")}
           </p>
           <p className="text-[10px] text-[#64748B] mt-1">
             {chapters.length === 0
               ? t("comicsAdmin.clickNewChapter")
-              : "Try clearing your search or status filter."}
+              : t("comicsAdmin.clearFiltersHint")}
           </p>
         </div>
       ) : (
@@ -400,17 +401,17 @@ function DashboardAndList({
 function StatsDashboard({ stats }: { stats: Stats }) {
   const t = useTranslation();
   const statCards = [
-    { label: "Total Chapters", value: stats.totalChapters, icon: BookOpen, color: ACCENT },
-    { label: "Published", value: stats.published, icon: CheckCircle2, color: "#22C55E" },
-    { label: "Drafts", value: stats.drafts, icon: Edit3, color: "#94A3B8" },
-    { label: "In Review", value: stats.review, icon: Eye, color: "#F59E0B" },
+    { label: t("comicsAdmin.statTotalChapters"), value: stats.totalChapters, icon: BookOpen, color: ACCENT },
+    { label: t("comicsAdmin.statPublished"), value: stats.published, icon: CheckCircle2, color: "#22C55E" },
+    { label: t("comicsAdmin.statDrafts"), value: stats.drafts, icon: Edit3, color: "#94A3B8" },
+    { label: t("comicsAdmin.statInReview"), value: stats.review, icon: Eye, color: "#F59E0B" },
     { label: "Ready", value: stats.ready, icon: Send, color: "#38BDF8" },
-    { label: "Total Panels", value: stats.totalPanels, icon: Layers, color: "#9786E3" },
+    { label: t("comicsAdmin.statTotalPanels"), value: stats.totalPanels, icon: Layers, color: "#9786E3" },
   ];
 
   const issueCards = [
     {
-      label: "Missing artwork",
+      label: t("comicsAdmin.issueMissingArtwork"),
       chapterCount: stats.chaptersMissingArtwork,
       panelCount: stats.panelsMissingArtwork,
       icon: ImageIcon,
@@ -418,7 +419,7 @@ function StatsDashboard({ stats }: { stats: Stats }) {
       isIssue: stats.panelsMissingArtwork > 0,
     },
     {
-      label: "Missing EN translations",
+      label: t("comicsAdmin.issueMissingEnTranslations"),
       chapterCount: stats.chaptersMissingEnglishTranslation,
       panelCount: stats.panelsMissingEnglishTranslation,
       icon: Languages,
@@ -426,14 +427,14 @@ function StatsDashboard({ stats }: { stats: Stats }) {
       isIssue: stats.panelsMissingEnglishTranslation > 0,
     },
     {
-      label: "Missing EN title or narration",
+      label: t("comicsAdmin.issueMissingEnText"),
       chapterCount: stats.chaptersMissingEnglishTitle + stats.chaptersMissingEnglishNarration,
       icon: FileText,
       color: "#F59E0B",
       isIssue: stats.chaptersMissingEnglishTitle > 0 || stats.chaptersMissingEnglishNarration > 0,
     },
     {
-      label: "Missing quiz questions",
+      label: t("comicsAdmin.issueMissingQuiz"),
       chapterCount: stats.chaptersMissingQuiz,
       panelCount: 0,
       icon: Brain,
@@ -535,7 +536,7 @@ function ChapterCard({ chapter, onClick }: { chapter: ChapterListItem; onClick: 
             className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider shrink-0"
             style={{ backgroundColor: status.bg, color: status.color, border: `1px solid ${status.border}` }}
           >
-            {status.label}
+            {t(status.labelKey)}
           </span>
         </div>
         <p className="text-[10px] text-[#94A3B8] mb-1.5">
@@ -582,7 +583,7 @@ function CreateChapterModal({
 
   const submit = async () => {
     if (!title.trim()) {
-      toast.error("Title is required");
+      toast.error(t("comicsAdmin.errTitleRequired"));
       return;
     }
     if (chapter < 1 || chapter > maxChapters) {
@@ -601,7 +602,7 @@ function CreateChapterModal({
       toast.success(`Chapter created — "${data.chapter.title}"`);
       onCreated(data.chapter.id);
     } catch (e: any) {
-      toast.error("Failed to create chapter", { description: e.message });
+      toast.error(t("comicsAdmin.toastCreateFailed"), { description: e.message });
     } finally {
       setCreating(false);
     }
@@ -669,16 +670,16 @@ function CreateChapterModal({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. The Seventh Day — God Rests"
+              placeholder={t("comicsAdmin.titlePlaceholder")}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40"
             />
           </Field>
 
-          <Field label="Description (optional)">
+          <Field label={t("comicsAdmin.descOptional")}>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short summary shown on the chapter card..."
+              placeholder={t("comicsAdmin.summaryPlaceholder")}
               rows={2}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
             />
@@ -705,7 +706,7 @@ function CreateChapterModal({
               className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white disabled:opacity-50"
               style={{ background: ACCENT, color: "#1C1929" }}
             >
-              {creating ? "Creating..." : "Create Chapter"}
+              {creating ? "Creating..." : t("comicsAdmin.createChapter")}
             </button>
           </div>
         </div>
@@ -736,6 +737,7 @@ function ChapterEditor({
   onBack: () => void;
   onPreview: (ch: Chapter) => void;
 }) {
+  const t = useTranslation();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -755,7 +757,7 @@ function ChapterEditor({
       if (!res.ok) throw new Error(data.error);
       setChapter(data.chapter);
     } catch (e: any) {
-      toast.error("Failed to load chapter", { description: e.message });
+      toast.error(t("comicsAdmin.toastLoadChapterFailed"), { description: e.message });
       onBack();
     } finally {
       setLoading(false);
@@ -804,10 +806,10 @@ function ChapterEditor({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("Chapter saved");
+      toast.success(t("comicsAdmin.toastChapterSaved"));
       await load();
     } catch (e: any) {
-      toast.error("Save failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastSaveFailed"), { description: e.message });
     } finally {
       setSaving(false);
     }
@@ -828,10 +830,10 @@ function ChapterEditor({
         }
         return;
       }
-      toast.success(data.message || "Published");
+      toast.success(data.message || t("comicsAdmin.statPublished"));
       await load();
     } catch (e: any) {
-      toast.error("Publish failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastPublishFailed"), { description: e.message });
     } finally {
       setPublishing(false);
     }
@@ -846,7 +848,7 @@ function ChapterEditor({
       toast.success(data.message || "Unpublished");
       await load();
     } catch (e: any) {
-      toast.error("Unpublish failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastUnpublishFailed"), { description: e.message });
     } finally {
       setPublishing(false);
     }
@@ -858,10 +860,10 @@ function ChapterEditor({
       const res = await fetch(`/api/admin/comics/${chapterId}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success("Chapter deleted");
+      toast.success(t("comicsAdmin.toastChapterDeleted"));
       onBack();
     } catch (e: any) {
-      toast.error("Delete failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastDeleteFailed"), { description: e.message });
     } finally {
       setDeleting(false);
       setShowDelete(false);
@@ -880,7 +882,7 @@ function ChapterEditor({
     return (
       <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
         <AlertCircle size={28} className="mx-auto text-[#EF4444] mb-2" />
-        <p className="text-sm text-[#94A3B8]">Chapter not found.</p>
+        <p className="text-sm text-[#94A3B8]">{t("comicsAdmin.errChapterNotFound")}</p>
         <button
           onClick={onBack}
           className="mt-3 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-bold text-white"
@@ -892,7 +894,7 @@ function ChapterEditor({
   }
 
   const status = STATUS_META[chapter.status];
-  const validationIssues = computeValidationIssues(chapter);
+  const validationIssues = computeValidationIssues(chapter, t);
 
   return (
     <div className="space-y-4">
@@ -917,7 +919,7 @@ function ChapterEditor({
           className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
           style={{ backgroundColor: status.bg, color: status.color, border: `1px solid ${status.border}` }}
         >
-          {status.label}
+          {t(status.labelKey)}
         </span>
       </div>
 
@@ -1029,7 +1031,7 @@ function ChapterEditor({
             toast.success(`${lang.toUpperCase()} chapter title saved`);
             load();
           } catch (e: any) {
-            toast.error("Failed to save chapter title translation", { description: e.message });
+            toast.error(t("comicsAdmin.toastSaveTitleTranslationFailed"), { description: e.message });
           }
         }}
       />
@@ -1084,7 +1086,7 @@ function ChapterEditor({
             onClose={() => setShowDuplicate(false)}
             onDone={(newId) => {
               setShowDuplicate(false);
-              toast.success("Chapter duplicated — opening the new copy");
+              toast.success(t("comicsAdmin.toastDuplicated"));
               // Switch to the new chapter
               setTimeout(() => {
                 // Force a fresh mount by going back briefly then selecting
@@ -1115,11 +1117,13 @@ function ChapterEditor({
 
 // ─── Compute validation issues (mirrors server-side logic) ──────────────────
 
-function computeValidationIssues(chapter: Chapter): string[] {
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
+
+function computeValidationIssues(chapter: Chapter, t: TFn): string[] {
   const issues: string[] = [];
 
   if (!chapter.title || chapter.title.trim().length < 1) {
-    issues.push("Chapter has no title");
+    issues.push(t("comicsAdmin.errNoTitle"));
   }
 
   const book = BIBLE_BOOKS.find((b) => b.id === chapter.bookId);
@@ -1179,6 +1183,7 @@ function ChapterDetailsForm({
   onLangChange: (l: string) => void;
   onChapterTitleLangChange: (lang: string, title: string) => void;
 }) {
+  const t = useTranslation();
   const update = (patch: Partial<Chapter>) => setDraft({ ...draft, ...patch });
   const book = BIBLE_BOOKS.find((b) => b.id === draft.bookId);
   const maxChapters = book?.chapters ?? 1;
@@ -1236,7 +1241,7 @@ function ChapterDetailsForm({
             >
               <option value="draft">Draft</option>
               <option value="review">Review</option>
-              <option value="ready">Ready</option>
+              <option value="ready">{t("comicsAdmin.statReady")}</option>
               <option value="published">Published (manual)</option>
             </select>
           </Field>
@@ -1257,7 +1262,7 @@ function ChapterDetailsForm({
             value={draft.description || ""}
             onChange={(e) => update({ description: e.target.value })}
             rows={2}
-            placeholder="Short summary for the chapter card"
+            placeholder={t("comicsAdmin.summaryLabel")}
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
           />
         </Field>
@@ -1271,7 +1276,7 @@ function ChapterDetailsForm({
             images={draft.coverArtUrl ? [draft.coverArtUrl] : []}
             onChange={(imgs) => update({ coverArtUrl: imgs[0] || null })}
             max={1}
-            label="Chapter Cover"
+            label={t("comicsAdmin.chapterCover")}
           />
         </div>
 
@@ -1324,7 +1329,7 @@ function ChapterDetailsForm({
             defaultValue={chapterTitleLang}
             placeholder={
               activeTranslationLang === "en"
-                ? "Uses English title above — leave blank to inherit"
+                ? t("comicsAdmin.inheritTitleHint")
                 : `Chapter title in ${LANGS.find((l) => l.id === activeTranslationLang)?.label || activeTranslationLang}`
             }
             onBlur={(e) => {
@@ -1354,6 +1359,7 @@ function PanelsManager({
   onEditPanel: (panelId: string) => void;
   onAddPanel: () => void;
 }) {
+  const t = useTranslation();
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const deletePanel = async (panelId: string) => {
@@ -1368,7 +1374,7 @@ function PanelsManager({
       toast.success(`Panel ${panelId} deleted`);
       onReload();
     } catch (e: any) {
-      toast.error("Delete failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastDeleteFailed"), { description: e.message });
     } finally {
       setDeleting(null);
     }
@@ -1395,9 +1401,9 @@ function PanelsManager({
       {chapter.panels.length === 0 ? (
         <div className="bg-white/[0.02] border border-dashed border-white/[0.10] rounded-xl p-6 text-center">
           <Layers size={24} className="mx-auto text-[#475569] mb-2" />
-          <p className="text-xs text-[#94A3B8]">No panels yet.</p>
+          <p className="text-xs text-[#94A3B8]">{t("comicsAdmin.noPanelsYet")}</p>
           <p className="text-[10px] text-[#64748B] mt-1">
-            Click "Add Panel" to create the first one.
+            Click t("comicsAdmin.addPanel") to create the first one.
           </p>
         </div>
       ) : (
@@ -1430,17 +1436,17 @@ function PanelsManager({
                 {/* Info */}
                 <div className="p-2.5 flex-1 flex flex-col">
                   <p className="text-xs font-bold text-white line-clamp-1 mb-0.5">
-                    {en?.title || <span className="text-[#EF4444] italic">No English title</span>}
+                    {en?.title || <span className="text-[#EF4444] italic">{t("comicsAdmin.noEnglishTitle")}</span>}
                   </p>
                   <p className="text-[10px] text-[#94A3B8] line-clamp-2 mb-2">
-                    {en?.narration || <span className="text-[#EF4444] italic">No English narration</span>}
+                    {en?.narration || <span className="text-[#EF4444] italic">{t("comicsAdmin.noEnglishNarration")}</span>}
                   </p>
 
                   {/* Status indicators */}
                   <div className="flex items-center gap-1 mb-2 flex-wrap">
-                    {!hasArt && <IssuePill label="No artwork" />}
-                    {!hasEnTitle && <IssuePill label="No EN title" />}
-                    {!hasEnNarration && <IssuePill label="No EN narration" />}
+                    {!hasArt && <IssuePill label={t("comicsAdmin.noArtwork")} />}
+                    {!hasEnTitle && <IssuePill label={t("comicsAdmin.noEnTitle")} />}
+                    {!hasEnNarration && <IssuePill label={t("comicsAdmin.noEnNarration")} />}
                     {hasArt && hasEnTitle && hasEnNarration && (
                       <span className="px-1.5 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[9px] font-bold">
                         ✓ Ready
@@ -1562,6 +1568,7 @@ function PanelFormModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useTranslation();
   const [artwork, setArtwork] = useState<string>(panel?.artworkUrl || "");
   const [altText, setAltText] = useState<string>(panel?.altText || "");
   const [verseStart, setVerseStart] = useState<number>(panel?.verseStart || 1);
@@ -1577,7 +1584,7 @@ function PanelFormModal({
 
   const submit = async () => {
     if (!artwork) {
-      toast.error("Artwork is required");
+      toast.error(t("comicsAdmin.errArtworkRequired"));
       return;
     }
     if (verseStart < 1 || verseEnd < verseStart) {
@@ -1606,11 +1613,11 @@ function PanelFormModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(mode === "add" ? `Panel ${data.panel.panelId} created` : "Panel updated");
+      toast.success(mode === "add" ? `Panel ${data.panel.panelId} created` : t("comicsAdmin.toastPanelUpdated"));
       onSaved();
       onClose();
     } catch (e: any) {
-      toast.error("Save failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastSaveFailed"), { description: e.message });
     } finally {
       setSaving(false);
     }
@@ -1634,7 +1641,7 @@ function PanelFormModal({
           <div className="flex items-center gap-2">
             {mode === "add" ? <Plus size={14} style={{ color: ACCENT }} /> : <Edit3 size={14} style={{ color: ACCENT }} />}
             <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ACCENT }}>
-              {mode === "add" ? "Add Panel" : `Edit Panel ${panel?.panelId}`}
+              {mode === "add" ? t("comicsAdmin.addPanel") : `Edit Panel ${panel?.panelId}`}
             </p>
           </div>
           <button onClick={onClose}>
@@ -1656,7 +1663,7 @@ function PanelFormModal({
 
           {/* Verse range */}
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Verse Start">
+            <Field label={t("comicsAdmin.verseStart")}>
               <input
                 type="number"
                 min={1}
@@ -1665,7 +1672,7 @@ function PanelFormModal({
                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
               />
             </Field>
-            <Field label="Verse End">
+            <Field label={t("comicsAdmin.verseEnd")}>
               <input
                 type="number"
                 min={1}
@@ -1696,7 +1703,7 @@ function PanelFormModal({
               value={altText}
               onChange={(e) => setAltText(e.target.value)}
               rows={2}
-              placeholder="e.g. A wide illustration of the Garden of Eden with rivers flowing out from a central spring."
+              placeholder={t("comicsAdmin.artPromptPlaceholder")}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
             />
           </Field>
@@ -1734,7 +1741,7 @@ function PanelFormModal({
               className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white disabled:opacity-50"
               style={{ background: ACCENT, color: "#1C1929" }}
             >
-              {saving ? "Saving..." : mode === "add" ? "Create Panel" : "Save Changes"}
+              {saving ? "Saving..." : mode === "add" ? t("comicsAdmin.createPanel") : t("comicsAdmin.saveChanges")}
             </button>
           </div>
         </div>
@@ -1752,6 +1759,7 @@ function PanelTranslationManager({
   chapter: Chapter;
   onReload: () => void;
 }) {
+  const t = useTranslation();
   const [lang, setLang] = useState("en");
   const [editingPanelId, setEditingPanelId] = useState<string | null>(null);
 
@@ -1785,7 +1793,7 @@ function PanelTranslationManager({
       </div>
 
       {chapter.panels.length === 0 ? (
-        <p className="text-[11px] text-[#64748B] italic">No panels to translate yet.</p>
+        <p className="text-[11px] text-[#64748B] italic">{t("comicsAdmin.noPanelsTranslate")}</p>
       ) : (
         <div className="space-y-2">
           {chapter.panels.map((p) => {
@@ -1865,6 +1873,7 @@ function PanelTranslationForm({
   onSaved: () => void;
   onClose: () => void;
 }) {
+  const t = useTranslation();
   const [title, setTitle] = useState(existing?.title || "");
   const [narration, setNarration] = useState(existing?.narration || "");
   const [captions, setCaptions] = useState<string[]>(existing?.captions || []);
@@ -1902,7 +1911,7 @@ function PanelTranslationForm({
       onSaved();
       onClose();
     } catch (e: any) {
-      toast.error("Save failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastSaveFailed"), { description: e.message });
     } finally {
       setSaving(false);
     }
@@ -1910,7 +1919,7 @@ function PanelTranslationForm({
 
   return (
     <div className="p-3 border-t border-white/[0.06] space-y-2.5">
-      <Field label="Panel Title">
+      <Field label={t("comicsAdmin.panelTitle")}>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -1960,7 +1969,7 @@ function PanelTranslationForm({
                   addCaption();
                 }
               }}
-              placeholder="Add a caption..."
+              placeholder={t("comicsAdmin.captionPlaceholder")}
               className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40"
             />
             <button
@@ -1986,7 +1995,7 @@ function PanelTranslationForm({
           className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
           style={{ background: ACCENT, color: "#1C1929" }}
         >
-          {saving ? "Saving..." : "Save Translation"}
+          {saving ? "Saving..." : t("comicsAdmin.saveTranslation")}
         </button>
       </div>
     </div>
@@ -1996,6 +2005,7 @@ function PanelTranslationForm({
 // ─── Quiz Manager ───────────────────────────────────────────────────────────
 
 function QuizManager({ chapter, onReload }: { chapter: Chapter; onReload: () => void }) {
+  const t = useTranslation();
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -2017,7 +2027,7 @@ function QuizManager({ chapter, onReload }: { chapter: Chapter; onReload: () => 
           setSearchResults(data.searchResults || []);
         }
       } catch (e: any) {
-        toast.error("Search failed", { description: e.message });
+        toast.error(t("comicsAdmin.toastSearchFailed"), { description: e.message });
       } finally {
         setSearching(false);
       }
@@ -2046,7 +2056,7 @@ function QuizManager({ chapter, onReload }: { chapter: Chapter; onReload: () => 
       // Re-run search so isLinked flags update
       if (search) runSearch(search);
     } catch (e: any) {
-      toast.error("Link failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastLinkFailed"), { description: e.message });
     } finally {
       setLinking(null);
     }
@@ -2065,7 +2075,7 @@ function QuizManager({ chapter, onReload }: { chapter: Chapter; onReload: () => 
       onReload();
       if (search) runSearch(search);
     } catch (e: any) {
-      toast.error("Unlink failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastUnlinkFailed"), { description: e.message });
     } finally {
       setUnlinking(null);
     }
@@ -2115,7 +2125,7 @@ function QuizManager({ chapter, onReload }: { chapter: Chapter; onReload: () => 
                 onClick={() => unlinkQuestion(q.questionId)}
                 disabled={unlinking === q.questionId}
                 className="px-2 py-1 rounded-md bg-[#EF4444]/15 border border-[#EF4444]/30 text-[#EF4444] text-[10px] font-bold disabled:opacity-40"
-                title="Unlink question"
+                title={t("comicsAdmin.unlinkQuestion")}
               >
                 {unlinking === q.questionId ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />}
               </button>
@@ -2131,7 +2141,7 @@ function QuizManager({ chapter, onReload }: { chapter: Chapter; onReload: () => 
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search Trivia questions to link..."
+            placeholder={t("comicsAdmin.searchTriviaPlaceholder")}
             className="bg-transparent flex-1 text-xs text-white placeholder:text-[#64748B] focus:outline-none"
           />
           {searching && <Loader2 size={11} className="animate-spin text-[#94A3B8]" />}
@@ -2193,6 +2203,7 @@ function DuplicateModal({
   onClose: () => void;
   onDone: (newId: string) => void;
 }) {
+  const t = useTranslation();
   const [bookId, setBookId] = useState(sourceBookId);
   const [chapter, setChapter] = useState(sourceChapter + 1);
   const [title, setTitle] = useState(`${sourceTitle} (Copy)`);
@@ -2219,7 +2230,7 @@ function DuplicateModal({
       onDone(data.chapter.id);
       onClose();
     } catch (e: any) {
-      toast.error("Duplicate failed", { description: e.message });
+      toast.error(t("comicsAdmin.toastDuplicateFailed"), { description: e.message });
     } finally {
       setSubmitting(false);
     }
@@ -2285,7 +2296,7 @@ function DuplicateModal({
             </Field>
           </div>
 
-          <Field label="New Title">
+          <Field label={t("comicsAdmin.newTitleLabel")}>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -2328,6 +2339,7 @@ function ConfirmDeleteModal({
   onConfirm: () => void;
   deleting: boolean;
 }) {
+  const t = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -2376,7 +2388,7 @@ function ConfirmDeleteModal({
             disabled={deleting}
             className="flex-1 py-2.5 rounded-xl bg-[#EF4444] text-white text-xs font-bold disabled:opacity-50"
           >
-            {deleting ? "Deleting..." : "Delete Permanently"}
+            {deleting ? "Deleting..." : t("comicsAdmin.deletePermanently")}
           </button>
         </div>
       </motion.div>
@@ -2387,6 +2399,7 @@ function ConfirmDeleteModal({
 // ─── Preview Modal ─────────────────────────────────────────────────────────
 
 function PreviewModal({ chapter, onClose }: { chapter: Chapter; onClose: () => void }) {
+  const t = useTranslation();
   const [currentPanel, setCurrentPanel] = useState(0);
   const total = chapter.panels.length;
 
@@ -2406,7 +2419,7 @@ function PreviewModal({ chapter, onClose }: { chapter: Chapter; onClose: () => v
           className="bg-[#1C1929] border border-white/[0.08] rounded-2xl p-6 max-w-md text-center"
         >
           <BookOpen size={28} className="mx-auto text-[#475569] mb-2" />
-          <p className="text-sm text-[#94A3B8]">No panels to preview.</p>
+          <p className="text-sm text-[#94A3B8]">{t("comicsAdmin.noPanelsPreview")}</p>
           <button
             onClick={onClose}
             className="mt-3 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-bold text-white"
