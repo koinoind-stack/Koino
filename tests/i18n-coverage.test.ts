@@ -14,6 +14,13 @@ const PLACEHOLDER = /\{([^}]+)\}/g;
 const allowFormat = /^[-+·•.,:;()%\s{}"']*(FP|pts?|MRP|₹|Koino)?[-+·•.,:;()%\s{}"']*$/i;
 const allowExact =
   /^(Koino|KJV|WEB|FP|MRP|ESV|WhatsApp|India|https?:\/\/\S+|\+91…?|@yourhandle|@yourchannel|yourwebsite\.com|facebook\.com\/yourpage|[0-9 :A.M.P.Mx\-–]+)$/i;
+// Brand names shown as-is in every language (social platforms) — kept Latin
+// intentionally; the UI renders them untranslated by design.
+const brandKeysOk = new Set([
+  "profile.label.instagram",
+  "profile.label.youtube",
+  "profile.label.facebook",
+]);
 // Values made entirely of {placeholders} + separators (format tokens) are
 // legitimately identical in every language; two aria/unit templates are
 // allowlisted by key.
@@ -43,7 +50,7 @@ test("TE-2: placeholders preserved in te values", () => {
 
 test("TE-3: te values are translated (Telugu script or format token)", () => {
   const leftover = Object.entries(en)
-    .filter(([k, v]) => te[k] === v && /[A-Za-z]{3,}/.test(v) && !keysOk.has(k) && !isFormatToken(v) && !allowExact.test(v))
+    .filter(([k, v]) => te[k] === v && /[A-Za-z]{3,}/.test(v) && !keysOk.has(k) && !brandKeysOk.has(k) && !isFormatToken(v) && !allowExact.test(v))
     .map(([k]) => k);
   assert.deepEqual(leftover, [], `untranslated te values: ${leftover.slice(0, 10).join(", ")}`);
 });
