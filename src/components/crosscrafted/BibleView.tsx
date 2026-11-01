@@ -58,6 +58,7 @@ import {
   lookupReferenceVersioned,
   BibleFetchError,
 } from "@/lib/bible-fetch";
+import { localizedBookName } from "@/lib/bible-book-names";
 import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 import StreakBadge from "@/components/crosscrafted/StreakBadge";
 import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
@@ -700,6 +701,7 @@ export default function BibleView({
 
 function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
   const [testament, setTestament] = useState<"OT" | "NT">("OT");
   const books = testament === "OT" ? OT_BOOKS : NT_BOOKS;
   const grouped = books.reduce<Record<string, BibleBook[]>>((acc, b) => {
@@ -747,7 +749,9 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
                   className="p-3 rounded-xl bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:bg-[#22202F] transition-all text-left group min-h-[60px] flex flex-col justify-center"
                 >
                   <p className="text-sm font-bold text-white group-hover:scale-[1.02] transition-transform leading-tight">
-                    {book.name}
+                    {/* Localized book name in the UI language where a
+                        translation is available; English fallback otherwise. */}
+                    {localizedBookName(book, lang)}
                   </p>
                   <p className="text-[10px] text-[#94A3B8] mt-0.5">
                     {book.chapters} <span className="hidden sm:inline">{t("bible.chapters")}</span><span className="sm:hidden">{t("bible.chaptersShort")}</span>

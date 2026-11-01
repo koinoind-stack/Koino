@@ -135,6 +135,8 @@ export const BIBLE_LANGUAGES: BibleLanguage[] = [
   { id: "pa", label: "Punjabi", nativeLabel: "ਪੰਜਾਬੀ", flag: "🇮🇳", supported: false },
   { id: "bn", label: "Bengali", nativeLabel: "বাংলা", flag: "🇮🇳", supported: false },
   { id: "or", label: "Odia", nativeLabel: "ଓଡ଼ିଆ", flag: "🇮🇳", supported: false },
+  { id: "ur", label: "Urdu", nativeLabel: "اردو", flag: "🇮🇳", supported: false },
+  { id: "as", label: "Assamese", nativeLabel: "অসমীয়া", flag: "🇮🇳", supported: false },
 ];
 
 // ─── READING PLANS ─────────────────────────────────────────────────────────

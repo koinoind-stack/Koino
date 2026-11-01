@@ -7,7 +7,7 @@
 //
 // YouVersion's multi-language-range query is first-match-wins, so the
 // catalogue is built by querying each Koino scripture language separately
-// (English + 10 Indian languages) and merging.
+// (English + 12 Indian languages, incl. Urdu and Assamese) and merging.
 //
 // Cache: in-memory, 6-hour TTL with stale-on-error (a previous good catalogue
 // keeps serving if the API starts failing — graceful degradation).

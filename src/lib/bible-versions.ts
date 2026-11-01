@@ -65,9 +65,23 @@ export function parseVersionRef(ref: string | null | undefined): { provider: Bib
   return { provider, id };
 }
 
-// ─── Scripture languages (English + the 10 Indian languages Koino lists) ────
+/**
+ * Normalize a persisted version-ref (localStorage value) into a safe
+ * VersionRef. Anything unparsable — including values injected by tampered
+ * storage — resolves to the default Koino version instead of being passed
+ * through. Used by surfaces that READ the saved selection (e.g. the Home
+ * reading-plan previews) so they always track the user's chosen version.
+ */
+export function sanitizeSavedVersionRef(raw: string | null | undefined): VersionRef {
+  const parsed = parseVersionRef(raw);
+  return parsed ? `${parsed.provider}:${parsed.id}` : DEFAULT_VERSION_REF;
+}
+
+// ─── Scripture languages (English + the 12 Indian languages Koino lists) ────
 // Independent of the UI language selection: a reader can pick scripture in
-// any of these languages regardless of the interface language.
+// any of these languages regardless of the interface language. Urdu (ur) and
+// Assamese (as) are part of the Koino scripture catalogue like the rest —
+// the YouVersion catalogue query covers them identically.
 
 export const SCRIPTURE_LANGUAGES = BIBLE_LANGUAGES.map((l) => ({
   tag: l.id,
