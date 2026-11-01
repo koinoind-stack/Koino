@@ -17,18 +17,18 @@ export const metadata: Metadata = {
 };
 
 const PILLARS = [
-  { icon: BookOpen, title: "about.pillar.faith.title", desc: "Read the Bible, explore Bible Comics, and grow in your understanding of Scripture." },
-  { icon: Heart, title: "about.pillar.fellowship.title", desc: "Connect with churches, discover Christian events, and pray together as a community." },
-  { icon: Users, title: "about.pillar.belong.title", desc: "Find your place in the Christian community — churches, groups, businesses and more." },
+  { icon: BookOpen, title: "about.pillar.faith.title", desc: "about.pillar.faith.desc" },
+  { icon: Heart, title: "about.pillar.fellowship.title", desc: "about.pillar.fellowship.desc" },
+  { icon: Users, title: "about.pillar.belong.title", desc: "about.pillar.belong.desc" },
 ];
 
 const FEATURES = [
-  { icon: BookOpen, title: "Holy Bible", desc: "Read all 66 books in KJV and WEB. Search, bookmark, and follow reading plans." },
-  { icon: Sparkles, title: "Bible Comics", desc: "Experience Bible stories through original visual storytelling." },
-  { icon: Users, title: "Churches", desc: "Discover Christian churches by state, city, and language across India." },
-  { icon: Trophy, title: "Bible Trivia", desc: "Test your Bible knowledge, earn Faith Points, and win real prizes in competitions." },
-  { icon: Heart, title: "Prayer Wall", desc: "Share prayer requests and pray for others in the community." },
-  { icon: Store, title: "Marketplace & Business Directory", desc: "Discover Christian products and businesses across India." },
+  { icon: BookOpen, title: "about.feature.bible.title", desc: "about.feature.bible.desc" },
+  { icon: Sparkles, title: "about.feature.comics.title", desc: "about.feature.comics.desc" },
+  { icon: Users, title: "about.feature.churches.title", desc: "about.feature.churches.desc" },
+  { icon: Trophy, title: "about.feature.trivia.title", desc: "about.feature.trivia.desc" },
+  { icon: Heart, title: "about.feature.prayer.title", desc: "about.feature.prayer.desc" },
+  { icon: Store, title: "about.feature.market.title", desc: "about.feature.market.desc" },
 ];
 
 const SUPPORTED_LANGUAGES = [
@@ -138,7 +138,7 @@ export default function AboutPage() {
                 <p.icon size={24} className="text-[#F39B9B]" />
               </div>
               <h3 className="text-lg font-black text-white mb-2"><T k={p.title} /></h3>
-              <p className="text-xs text-[#A09DB1] leading-relaxed">{p.desc}</p>
+              <p className="text-xs text-[#A09DB1] leading-relaxed"><T k={p.desc} /></p>
             </div>
           ))}
         </div>
@@ -148,8 +148,7 @@ export default function AboutPage() {
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <h2 className="text-xl font-bold text-white text-center mb-2"><T k="about.featuresTitle" /></h2>
         <p className="text-xs text-[#A09DB1] text-center mb-8 max-w-xl mx-auto">
-          From Bible reading and Bible Comics to churches, events, prayer, Bible Trivia, and a Christian
-          marketplace — Koino brings the Christian experience into one place.
+          <T k="about.featuresSubtitle" />
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f) => (
@@ -157,8 +156,8 @@ export default function AboutPage() {
               <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
                 <f.icon size={18} className="text-[#A78BFA]" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-1">{f.title}</h3>
-              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{f.desc}</p>
+              <h3 className="text-sm font-bold text-white mb-1"><T k={f.title} /></h3>
+              <p className="text-[11px] text-[#A09DB1] leading-relaxed"><T k={f.desc} /></p>
             </div>
           ))}
         </div>

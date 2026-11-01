@@ -29,6 +29,19 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
+// Option VALUES are stored in the DB as-is (some legacy rows already store
+// i18n keys from an earlier wiring); labels are translated via these maps.
+const PARTNER_TYPE_KEYS: Record<string, string> = {
+  "Church": "partner.type.church",
+  "Ministry": "partner.type.ministry",
+  "Christian Business": "partner.type.christianBusiness",
+  "Event Partner": "partner.type.eventPartner",
+  "Content Partner": "partner.type.contentPartner",
+  "Sponsor": "partner.type.sponsor",
+  "Technology Partner": "partner.type.technologyPartner",
+  "Other": "partner.type.other",
+};
+
 const PARTNER_TYPES = [
   "Church",
   "Ministry",
@@ -95,6 +108,21 @@ const WORKFLOW = [
   },
 ];
 
+const EXPERTISE_KEYS: Record<string, string> = {
+  "Bible Exposition": "partner.expertise.bibleExposition",
+  "partner.area.apologetics.t": "partner.area.apologetics.t",
+  "Theology": "partner.expertise.theology",
+  "Church History": "partner.expertise.churchHistory",
+  "Pastoral Care": "partner.expertise.pastoralCare",
+  "Evangelism": "partner.expertise.evangelism",
+  "Discipleship": "partner.expertise.discipleship",
+  "Marriage & Family": "partner.expertise.marriageFamily",
+  "Youth & Children": "partner.expertise.youthChildren",
+  "Worship & Liturgy": "partner.expertise.worshipLiturgy",
+  "Missions": "partner.expertise.missions",
+  "Christian Living": "partner.expertise.christianLiving",
+};
+
 const EXPERTISE_OPTIONS = [
   "Bible Exposition",
   "partner.area.apologetics.t",
@@ -109,6 +137,15 @@ const EXPERTISE_OPTIONS = [
   "Missions",
   "Christian Living",
 ];
+
+const CONTENT_INTEREST_KEYS: Record<string, string> = {
+  "partner.area.blog.t": "partner.area.blog.t",
+  "partner.area.apologetics.t": "partner.area.apologetics.t",
+  "partner.area.studies.t": "partner.area.studies.t",
+  "partner.area.devotionals.t": "partner.area.devotionals.t",
+  "Christian Q&A": "partner.content.qa",
+  "partner.area.teaching.t": "partner.area.teaching.t",
+};
 
 const CONTENT_INTEREST_OPTIONS = [
   "partner.area.blog.t",
@@ -301,7 +338,7 @@ function PartnershipInquiryForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.partnershipType || !form.message) {
-      toast.error("Please fill in all required fields.");
+      toast.error(t("partner.toast.fillRequired"));
       return;
     }
     setLoading(true);
@@ -315,7 +352,7 @@ function PartnershipInquiryForm() {
       if (!res.ok) throw new Error(data.error);
       setSent(true);
     } catch (e: any) {
-      toast.error(e.message || "Failed to submit");
+      toast.error(e.message || t("partner.toast.submitFailed"));
     } finally {
       setLoading(false);
     }
@@ -414,9 +451,9 @@ function PartnershipInquiryForm() {
               required
             >
               <option value="">{t("partner.selectType")}</option>
-              {PARTNER_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {PARTNER_TYPES.map((pt) => (
+                <option key={pt} value={pt}>
+                  {t(PARTNER_TYPE_KEYS[pt] ?? pt)}
                 </option>
               ))}
             </select>
@@ -480,7 +517,7 @@ function ContributorApplicationForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName || !form.email || !form.whyContribute) {
-      toast.error("Please fill in all required fields.");
+      toast.error(t("partner.toast.fillRequired"));
       return;
     }
     setLoading(true);
@@ -512,7 +549,7 @@ function ContributorApplicationForm() {
       if (!res.ok) throw new Error(data.error);
       setSent(true);
     } catch (e: any) {
-      toast.error(e.message || "Failed to submit");
+      toast.error(e.message || t("partner.toast.submitFailed"));
     } finally {
       setLoading(false);
     }
@@ -671,7 +708,7 @@ function ContributorApplicationForm() {
                       : "bg-white/[0.03] border-white/[0.06] text-[#A09DB1] hover:text-white"
                   }`}
                 >
-                  {opt}
+                  {t(EXPERTISE_KEYS[opt] ?? opt)}
                 </button>
               );
             })}
@@ -730,7 +767,7 @@ function ContributorApplicationForm() {
                       : "bg-white/[0.03] border-white/[0.06] text-[#A09DB1] hover:text-white"
                   }`}
                 >
-                  {opt}
+                  {t(CONTENT_INTEREST_KEYS[opt] ?? opt)}
                 </button>
               );
             })}

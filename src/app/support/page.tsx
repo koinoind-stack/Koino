@@ -22,12 +22,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const SUPPORT_AREAS = [
-  { icon: Server, title: "support.area.technology", desc: "Servers, databases, storage, security and infrastructure." },
-  { icon: BookOpen, title: "support.area.content", desc: "Bible resources, educational content and Christian experiences." },
-  { icon: Trophy, title: "support.area.trivia", desc: "Prizes and competitions that encourage people to learn Scripture." },
-  { icon: Users, title: "support.area.community", desc: "Churches, events, prayer and Christian community features." },
-  { icon: ShieldCheck, title: "support.area.safety", desc: `Helping keep ${BRAND.name} a welcoming and safe community.` },
-  { icon: Code, title: "support.area.future", desc: "New features, mobile improvements and continued development." },
+  { icon: Server, title: "support.area.technology", desc: "support.areaDesc.technology" },
+  { icon: BookOpen, title: "support.area.content", desc: "support.areaDesc.content" },
+  { icon: Trophy, title: "support.area.trivia", desc: "support.areaDesc.trivia" },
+  { icon: Users, title: "support.area.community", desc: "support.areaDesc.community" },
+  { icon: ShieldCheck, title: "support.area.safety", desc: "support.areaDesc.safety" },
+  { icon: Code, title: "support.area.future", desc: "support.areaDesc.future" },
 ];
 
 export default async function SupportPage() {
@@ -103,7 +103,7 @@ export default async function SupportPage() {
                 <a.icon size={18} className="text-[#A78BFA]" />
               </div>
               <h3 className="text-sm font-bold text-white mb-1"><T k={a.title} /></h3>
-              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{a.desc}</p>
+              <p className="text-[11px] text-[#A09DB1] leading-relaxed"><T k={a.desc} /></p>
             </div>
           ))}
         </div>

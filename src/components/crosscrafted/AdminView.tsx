@@ -1871,7 +1871,7 @@ function PrayersTab() {
       {loading && <p className="text-xs text-[#64748B] py-4">{t("admin.prayers.loading")}</p>}
       {error && (
         <div className="text-center py-8">
-          <p className="text-xs text-[#94A3B8] mb-2">Couldn&apos;t load prayers.</p>
+          <p className="text-xs text-[#94A3B8] mb-2">{t("admin.prayers.loadFailed")}</p>
           <button onClick={load} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-[#F59E0B]">
             Retry
           </button>
@@ -1991,7 +1991,7 @@ function CompetitionsTab() {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.startAt || !form.endAt) {
-      toast.error("Please fill in title, start and end date/time");
+      toast.error(t("admin.events.errFieldsRequired"));
       return;
     }
     if (new Date(form.endAt) <= new Date(form.startAt)) {
@@ -2188,11 +2188,11 @@ function CompetitionsTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Start date & time *</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.events.startDateTime")}</label>
                 <input type="datetime-local" required value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} className="neo-input text-sm" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">End date & time *</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">{t("admin.events.endDateTime")}</label>
                 <input type="datetime-local" required value={form.endAt} onChange={(e) => setForm({ ...form, endAt: e.target.value })} className="neo-input text-sm" />
               </div>
             </div>

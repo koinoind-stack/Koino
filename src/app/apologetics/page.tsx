@@ -14,6 +14,30 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+// DB category values stay English (used in ?category= URLs and stored on
+// articles); display labels are translated via this key map.
+const CATEGORY_KEYS: Record<string, string> = {
+  "God & Existence": "apologetics.cat.godExistence",
+  "Jesus Christ": "apologetics.cat.jesusChrist",
+  "Resurrection": "apologetics.cat.resurrection",
+  "Bible": "apologetics.cat.bible",
+  "Science & Faith": "apologetics.cat.scienceFaith",
+  "Suffering & Evil": "apologetics.cat.sufferingEvil",
+  "Morality & Ethics": "apologetics.cat.moralityEthics",
+  "Other Worldviews": "apologetics.cat.otherWorldviews",
+  "Doubt & Faith": "apologetics.cat.doubtFaith",
+  "Culture & Christianity": "apologetics.cat.cultureChristianity",
+  "Salvation": "apologetics.cat.salvation",
+};
+
+// Article difficulty uses the same enum as trivia — reuse its label keys.
+const DIFFICULTY_KEYS: Record<string, string> = {
+  "beginners": "triviaView.setup.level.beginner",
+  "intermediate": "triviaView.setup.level.intermediate",
+  "skilled": "triviaView.setup.level.skilled",
+  "expert": "triviaView.setup.level.expert",
+};
+
 const CATEGORIES = [
   { name: "God & Existence", icon: "🌍" },
   { name: "Jesus Christ", icon: "✝️" },
@@ -69,7 +93,7 @@ export default async function ApologeticsPage() {
               className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all group"
             >
               <p className="text-2xl mb-2">{cat.icon}</p>
-              <p className="text-xs font-bold text-white group-hover:text-[#A78BFA] transition-colors">{cat.name}</p>
+              <p className="text-xs font-bold text-white group-hover:text-[#A78BFA] transition-colors"><T k={CATEGORY_KEYS[cat.name] ?? cat.name} /></p>
             </Link>
           ))}
         </div>
@@ -103,10 +127,10 @@ export default async function ApologeticsPage() {
               <div className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
                   {featured.category && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">{featured.category}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]"><T k={CATEGORY_KEYS[featured.category] ?? featured.category} /></span>
                   )}
                   {featured.difficulty && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]">{featured.difficulty}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]"><T k={DIFFICULTY_KEYS[featured.difficulty] ?? featured.difficulty} /></span>
                   )}
                 </div>
                 <h2 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#A78BFA] transition-colors">{featured.title}</h2>

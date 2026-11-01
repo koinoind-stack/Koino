@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { en as enDict } from "@/lib/i18n/en";
+import { te as teDict } from "@/lib/i18n/te";
 import Link from "next/link";
 import { BookOpen, Clock, PenLine, Search, Sparkles } from "lucide-react";
 
@@ -27,6 +30,15 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 9;
 
 type SearchParams = { q?: string; category?: string; page?: string };
+
+// Server-side language pick: the i18n cookie is set client-side by
+// LanguageContext; read it here so form attributes (placeholder/aria) render
+// in the user's language without hydration risk.
+async function serverT(key: string): Promise<string> {
+  const lang = (await cookies()).get("believ_lang")?.value ?? "en";
+  if (lang === "te") return teDict[key] ?? enDict[key] ?? key;
+  return enDict[key] ?? key;
+}
 
 export default async function BlogPage({
   searchParams,
@@ -131,13 +143,13 @@ export default async function BlogPage({
               type="search"
               name="q"
               defaultValue={q}
-              placeholder="Search articles…"
-              aria-label="Search articles"
+              placeholder={await serverT("blog.list.searchPlaceholder")}
+              aria-label={await serverT("blog.list.searchPlaceholder")}
               className="w-56 sm:w-72 rounded-2xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60"
             />
             <button
               type="submit"
-              aria-label="Search"
+              aria-label={await serverT("blog.list.searchButton")}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-2 text-[#726E88] hover:text-white transition-colors"
             >
               <Search size={15} />

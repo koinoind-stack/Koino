@@ -666,7 +666,7 @@ function CreateChapterModal({
             </Field>
           </div>
 
-          <Field label="Title (English)">
+          <Field label={t("comicsAdmin.titleEnglish")}>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -1248,7 +1248,7 @@ function ChapterDetailsForm({
         </div>
 
         {/* English title (chapter-level) */}
-        <Field label="Title (English — default)">
+        <Field label={t("comicsAdmin.titleEnglishDefault")}>
           <input
             value={draft.title || ""}
             onChange={(e) => update({ title: e.target.value })}
@@ -1281,12 +1281,12 @@ function ChapterDetailsForm({
         </div>
 
         {/* Admin notes */}
-        <Field label="Admin Notes (internal)">
+        <Field label={t("comicsAdmin.adminNotes")}>
           <textarea
             value={draft.adminNotes || ""}
             onChange={(e) => update({ adminNotes: e.target.value })}
             rows={2}
-            placeholder="Private notes for the editorial team (not shown to users)"
+            placeholder={t("comicsAdmin.adminNotesHint")}
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
           />
         </Field>
@@ -1658,7 +1658,7 @@ function PanelFormModal({
             chapter={chapterNum}
             panelId={panelIdValue}
             chapterId={chapterId}
-            label="Panel Artwork (required)"
+            label={t("comicsAdmin.panelArtwork")}
           />
 
           {/* Verse range */}
@@ -1698,7 +1698,7 @@ function PanelFormModal({
           </Field>
 
           {/* Alt text */}
-          <Field label="Alt Text (accessibility — used by screen readers + image fallback)">
+          <Field label={t("comicsAdmin.altText")}>
             <textarea
               value={altText}
               onChange={(e) => setAltText(e.target.value)}
@@ -1709,7 +1709,7 @@ function PanelFormModal({
           </Field>
 
           {/* Audio URL */}
-          <Field label="Audio URL (optional — leave blank for TTS fallback)">
+          <Field label={t("comicsAdmin.audioUrl")}>
             <input
               value={audioUrl}
               onChange={(e) => setAudioUrl(e.target.value)}
@@ -1719,7 +1719,7 @@ function PanelFormModal({
           </Field>
 
           {/* Video URL */}
-          <Field label="Video URL (optional — coming soon)">
+          <Field label={t("comicsAdmin.videoUrl")}>
             <input
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
@@ -1938,7 +1938,7 @@ function PanelTranslationForm({
         />
       </Field>
 
-      <Field label="Captions (speech bubbles, on-page text)">
+      <Field label={t("comicsAdmin.captions")}>
         <div className="space-y-1.5">
           {captions.length > 0 && (
             <div className="space-y-1">
