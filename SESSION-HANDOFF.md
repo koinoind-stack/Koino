@@ -62,8 +62,9 @@ The recreated suite is **not** the original 105-test suite; it is an independent
 ## 7. Git state
 
 - **Branch:** `feature/youversion-verifier-reconstruction` (new; created from `main` @ `74fdbb2`)
-- **Commits:** `295e73d` (reconstruction + tests + docs + .gitignore housekeeping) — then the handoff commit adding this file
-- **Pushed to:** `origin` (github.com/koinoind-stack/Koino) — normal push only; **`main` untouched, no force-push, no PR merged, no deployment**
+- **Commits:** `295e73d` (reconstruction + tests + docs + .gitignore housekeeping) · `4b8878e` (this handoff) · push-status commit (below)
+- **Push status:** ⚠️ **NOT PUSHED — BLOCKED.** The GitHub Personal Access Token configured for push began returning **HTTP 401 (Invalid username or token)** at delivery time (it had worked earlier for a `--dry-run` verification). Verified: (a) `git push` failed with `Authentication failed`; (b) the authoritative unauthenticated ref listing of `github.com/koinoind-stack/Koino` does **not** contain this branch; (c) an API call with the token returns 401. **`main` untouched; no force-push; no PR merged; no deployment.**
+- **Preserved locally:** both commits intact on the local branch; a git bundle (`74fdbb2..HEAD`) is provided alongside this session so the branch can also be pushed from any machine with valid credentials.
 
 ## 8. P1 status — EXPLICIT CONFIRMATION
 
