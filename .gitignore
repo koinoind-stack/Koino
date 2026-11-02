@@ -76,3 +76,7 @@ prisma/*.bak.*
 /backups/
 .aider*
 .needle*
+
+# Python bytecode (verification tooling)
+__pycache__/
+*.pyc
