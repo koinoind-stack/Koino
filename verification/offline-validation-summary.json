@@ -1,0 +1,115 @@
+{
+  "tool": "yv_catalogue_verify",
+  "tool_version": "2.5.0-reconstructed",
+  "generated_utc": "2026-11-02T12:21:26Z",
+  "mode": "offline_fasttrack_catalogues_validation",
+  "read_only": true,
+  "offline": true,
+  "api_requests_made": 0,
+  "audit_status": "provider_lists_incomplete",
+  "c11_gate": {
+    "gate": "C11",
+    "state": "CLOSED",
+    "reason": "biblica catalogue not fully valid while YOM is unresolved"
+  },
+  "cross_provider_overlap_ids": [],
+  "unresolved_missing_id": [
+    {
+      "row": 69,
+      "line": 75,
+      "abbreviation_raw": "YOM",
+      "name_raw": "Kiyombe New Testament with Psalms"
+    }
+  ],
+  "biblica_provisional_mode": {
+    "enabled": true,
+    "internal_only": true,
+    "never_activates_edition_in_koino": true,
+    "justification": "single missing_id defect (YOM), all other problem classes empty, no cross-provider overlap, Wycliffe fully valid — plan §5 G1/G2",
+    "defect_summary": "single missing_id row (row 69, line 75, YOM / Kiyombe New Testament with Psalms)"
+  },
+  "safeguards": {
+    "read_only_get_only": true,
+    "serving_permission_hardcoded_none": true,
+    "permission_to_serve_implied_false": true,
+    "licence_record_present_is_not_serve_permission": true,
+    "serveable_provisional_never_activates_edition_in_koino": true,
+    "serveable_provisional_never_equals_serveable_approved": true,
+    "sil_excluded_wins_over_everything": true,
+    "yom_never_probed_or_invented": true,
+    "fail_closed_on_unclear_terms": true,
+    "no_silent_english_substitution": true,
+    "no_machine_translation": true,
+    "koino_untouched": true
+  },
+  "limitations": [
+    "Reconstructed tool (2.5.0-reconstructed) — NOT the recovered original v2.4.1; line-for-line parity is not claimed (see verification/RECONSTRUCTION-REPORT.md).",
+    "P1 API verification has NOT run and remains unauthorized; this run made zero API requests.",
+    "The YOM row (Biblica) has no YouVersion ID; it is reported verbatim and never probed or invented.",
+    "While YOM is unresolved, audit_status stays provider_lists_incomplete and zero editions can be serveable_approved (H-gate).",
+    "Duplicate abbreviations are warnings only; the ID is the matching key.",
+    "south_asia_observations are reference-only; the full 17-ID list lives in WYCLIFFE-SOUTH-ASIA-REVIEW.md and is never scope-extending.",
+    "Offline mode: no network transport was constructed; api_requests_made is structurally zero."
+  ],
+  "catalogue_validation": {
+    "biblica": {
+      "source_file": "Biblica Fast-track Bible License - v1.txt",
+      "sha256": "25ce029bacc4910e30d2fe8b9958d0367bdd086e898ddbeb03a73e9aa668173f",
+      "stated": 69,
+      "raw_data_rows": 69,
+      "valid_id_count": 68,
+      "valid": false,
+      "count_matches_owner_statement": false,
+      "problems": {
+        "count_mismatch": 1,
+        "missing_id_rows": 1,
+        "duplicate_ids": 0,
+        "non_numeric_ids": 0,
+        "malformed_rows": 0,
+        "sil_flagged_rows": 0
+      },
+      "warnings": [
+        {
+          "code": "duplicate_abbreviations",
+          "message": "duplicate abbreviations found (the id is the matching key; abbreviations are informational)",
+          "groups": 3
+        }
+      ],
+      "provisional": {
+        "eligible": true,
+        "valid_ids_count": 68,
+        "defect": "single missing_id row (row 69, line 75, YOM / Kiyombe New Testament with Psalms)"
+      }
+    },
+    "wycliffe": {
+      "source_file": "Wycliffe Fast-track Bible License - v1.txt",
+      "sha256": "75f7f691701f8cbefd392faa5b73ae3d68df4486a8753f56e19321b2d5de7bb4",
+      "stated": 1037,
+      "raw_data_rows": 1037,
+      "valid_id_count": 1037,
+      "valid": true,
+      "count_matches_owner_statement": true,
+      "problems": {
+        "count_mismatch": 0,
+        "missing_id_rows": 0,
+        "duplicate_ids": 0,
+        "non_numeric_ids": 0,
+        "malformed_rows": 0,
+        "sil_flagged_rows": 0
+      },
+      "warnings": [
+        {
+          "code": "duplicate_abbreviations",
+          "message": "duplicate abbreviations found (the id is the matching key; abbreviations are informational)",
+          "groups": 25
+        }
+      ],
+      "provisional": {
+        "eligible": false,
+        "valid_ids_count": 1037,
+        "defect": null
+      }
+    }
+  },
+  "note": "Compact summary of the offline catalogue-validation run against the ORIGINAL supplier files (hash-verified). The full evidence JSON with all 1,106 parsed rows is retained locally, not committed (size)."
+}
