@@ -83,6 +83,7 @@ function cacheSet(key: string, value: ChapterResult): void {
 
 export function __resetBibleServerCachesForTests(): void {
   chapterCache.clear();
+  koinoCache.clear();
 }
 
 // ─── Koino fallback transport (bible-api.com, public domain) ────────────────

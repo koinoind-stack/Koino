@@ -13,11 +13,19 @@
 //
 // SECURITY: server-only. The YouVersion App Key never leaves this process;
 // errors never echo headers or auth material.
+// ABUSE GUARD: per-client rate limit (rateLimitClient) upstream of the cache
+// and both providers — normal reading is a few chapters per minute, so
+// 60/min/client is far above legitimate use while capping scraping loops and
+// runaway prefetchers before they reach YouVersion/bible-api.com quotas.
 
 import { NextResponse } from "next/server";
+import { rateLimitClient } from "@/lib/social/rate-limit";
 import { resolveChapter } from "@/lib/bible-server";
 
 export const dynamic = "force-dynamic";
+
+const RATE_LIMIT = 60;
+const RATE_WINDOW_MS = 60_000;
 
 const KIND_STATUS: Record<string, number> = {
   bad_request: 400,
@@ -32,6 +40,15 @@ const KIND_STATUS: Record<string, number> = {
 };
 
 export async function GET(request: Request) {
+  if (!rateLimitClient(request, "bible:chapter", RATE_LIMIT, RATE_WINDOW_MS)) {
+    // Same error taxonomy as resolveChapter failures so the reader renders
+    // its friendly "slow down" state instead of a generic error.
+    return NextResponse.json(
+      { error: { kind: "rate_limited", message: "Too many requests — please slow down." } },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   const url = new URL(request.url);
   const version = url.searchParams.get("version") || "koino:kjv";
   const book = url.searchParams.get("book");

@@ -1,5 +1,5 @@
 /**
- * Per-user in-memory sliding-window rate limiter (Task 50).
+ * Per-user / per-client in-memory sliding-window rate limiter (Task 50).
  *
  * ⚠️ NOTE: the store is per serverless INSTANCE. On Vercel each warm lambda
  * keeps its own map — this is a baseline guard against runaway loops/abuse,
@@ -36,4 +36,49 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
   recent.push(now);
   store.set(key, recent);
   return true;
+}
+
+/**
+ * Stable per-client identity for PUBLIC, unauthenticated endpoints (the
+ * Bible reader). Preference order:
+ *   1. `x-real-ip`      — set by the edge platform, not client-spoofable
+ *   2. LAST `x-forwarded-for` hop — the connecting client as appended by
+ *      the edge (earlier hops are client-controlled and must never be
+ *      trusted for limiting, or rotating a fake first hop defeats the limiter)
+ *   3. "unknown"        — local dev with no proxy; all such clients share
+ *      one bucket (same property as the share-card route's guard)
+ */
+export function clientKeyFromRequest(req: Request): string {
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
+  return "unknown";
+}
+
+/**
+ * Per-client limiting for public endpoints: builds `<scope>:<clientKey>` and
+ * applies the shared sliding window. FAIL-OPEN by design (same policy as the
+ * groups route's rateLimitSafe): the limiter is an abuse guard and must never
+ * break the reading path — worst case the window is skipped.
+ */
+export function rateLimitClient(
+  req: Request,
+  scope: string,
+  limit: number,
+  windowMs: number
+): boolean {
+  try {
+    return rateLimit(`${scope}:${clientKeyFromRequest(req)}`, limit, windowMs);
+  } catch {
+    return true;
+  }
+}
+
+/** Test hook: reset module state (mirrors the other __reset*ForTests hooks). */
+export function __resetRateLimitForTests(): void {
+  store.clear();
 }

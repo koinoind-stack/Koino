@@ -61,11 +61,74 @@ The recreated suite is **not** the original 105-test suite; it is an independent
 
 ## 7. Git state
 
-- **Branch:** `feature/youversion-verifier-reconstruction` (new; created from `main` @ `74fdbb2`)
-- **Commits:** `295e73d` (reconstruction + tests + docs + .gitignore housekeeping) · `4b8878e` (this handoff) · push-status commit (below)
-- **Push status:** ⚠️ **NOT PUSHED — BLOCKED.** The GitHub Personal Access Token configured for push began returning **HTTP 401 (Invalid username or token)** at delivery time (it had worked earlier for a `--dry-run` verification). Verified: (a) `git push` failed with `Authentication failed`; (b) the authoritative unauthenticated ref listing of `github.com/koinoind-stack/Koino` does **not** contain this branch; (c) an API call with the token returns 401. **`main` untouched; no force-push; no PR merged; no deployment.**
-- **Preserved locally:** both commits intact on the local branch; a git bundle (`74fdbb2..HEAD`) is provided alongside this session so the branch can also be pushed from any machine with valid credentials.
+- **Branch:** `feature/youversion-verifier-reconstruction` (created from `main` @ `74fdbb2`)
+- **Commits:** `295e73d` (reconstruction + tests + docs + .gitignore housekeeping) · `4b8878e` (this handoff) · `5f74e26` (push-blocker note)
+- **Push status (RESOLVED):** ✅ **PUSHED AND MERGED.** After delivery-time 401s (root cause: a stale `remote.origin.pushurl` carrying a dead token — removed, not replaced), the branch was pushed with a fresh fine-grained PAT and verified server-side by unauthenticated `git ls-remote` (branch tip `5f74e2675893472d760ede63163e8202434df83a`). The owner then merged it: **PR #18 → `main` merge commit `4ac4dc485bbf2085966276c5a0742bc3c9ab114d`** (parents `74fdbb2` + `5f74e26`), 2026-11-02. The temporary push token was deleted from the session immediately after the push and was to be revoked by the owner. `main` was never pushed directly; no force-push; no deploy.
+- **Preserved locally:** both commits intact on the local branch; a git bundle (`74fdbb2..HEAD`) was provided alongside this session as the push fallback (superseded by the successful push).
 
 ## 8. P1 status — EXPLICIT CONFIRMATION
 
 **P1 API verification has NOT run and remains unauthorized.** Zero API requests were made during reconstruction and testing; zero App-Key use occurred; no Koino application code, production, database or deployment surface was touched. The verifier's API mode will refuse to run without the App Key in the environment, and the owner's explicit authorization is required before any P1 execution (planned: 136 probe requests + 1 seed load, cap 200, ≥1 s interval, per `P1-PREPARATION-CONFIRMATION.md` §4).
+
+---
+
+## 9. Session update (2026-11-02) — PR #18 merge confirmed; YOM owner decision; Bible endpoint rate limiting
+
+### 9.1 Merge confirmation
+
+PR #18 merged `feature/youversion-verifier-reconstruction` into `main` successfully:
+merge commit `4ac4dc485bbf2085966276c5a0742bc3c9ab114d` (verified by local fetch —
+`main` = `4ac4dc4`, parents `74fdbb2` + `5f74e26`). The branch was later synced with
+`main` via PR #19 (`ee0e88f`); §7 above has been corrected accordingly (it previously
+recorded the delivery-time push block, now resolved).
+
+### 9.2 OWNER DECISION — Biblica YOM row stays unchanged and unresolved
+
+The owner has decided that the Biblica YOM entry ("Kiyombe New Testament with Psalms")
+**must remain exactly as supplied — a missing-ID row — and stays unresolved**, because
+it carries no YouVersion Bible ID.
+
+- The row is **preserved verbatim** by `verification/yv_catalogue_verify.py`
+  (`excluded_reason: "missing_id"`, row 69 / line 75 of the supplied Biblica file).
+- It is **excluded from every API probe list** — it has no ID, so there is nothing to
+  probe; no ID may be invented for it, and it must never be deleted or "fixed" to make
+  a gate pass.
+- **YOM must not block other work**: the other **68 valid Biblica IDs remain intact**
+  and fully usable for verification and future licensing steps; the Wycliffe list
+  (1,037 rows) is unaffected. YOM's unresolved state is a permanent, accepted condition
+  of the Biblica supplier list — not an open blocker.
+- Consequence inside the verifier (unchanged behavior, now a documented owner decision):
+  `audit_status` remains `provider_lists_incomplete` and the H-gate keeps
+  `serving_permission: "none"` until real licence verification (P1) runs — for every
+  edition, not because of YOM alone.
+
+### 9.3 Per-client rate limiting added to the public Bible endpoints
+
+`GET /api/bible/versions` and `GET /api/bible/chapter` previously had **no per-client
+rate limiting** — the only public Bible surface without an abuse guard. This session:
+
+- **Reused the existing project limiter** (`src/lib/social/rate-limit.ts`, Task 50
+  sliding window) instead of adding a new mechanism. The lib gained:
+  - `clientKeyFromRequest()` — per-client identity for public endpoints:
+    `x-real-ip` (platform-set) → LAST `x-forwarded-for` hop (edge-appended; earlier
+    hops are client-controlled and must not be trusted, or rotating a fake first hop
+    would defeat the limiter) → `"unknown"` (dev parity with the share-card guard).
+  - `rateLimitClient(req, scope, limit, windowMs)` — fail-open wrapper (same policy
+    as the groups route's `rateLimitSafe`): limiting must never break reading.
+  - `__resetRateLimitForTests()` — test hook, mirroring the other `__reset*ForTests`.
+- **`GET /api/bible/chapter`**: 60 requests/min/client, checked BEFORE the cache and
+  both providers. 429 body keeps the route's `{ error: { kind: "rate_limited", … } }`
+  taxonomy so the reader renders its friendly slow-down state; `Retry-After: 60`.
+- **`GET /api/bible/versions`**: 30 requests/min/client. 429 body `{ error: "Too many
+  requests" }` (same shape as the share-card guard); `Retry-After: 60`.
+- **Cache note**: the limiter counts every client request including cache hits (it
+  sits upstream of the chapter cache by design) — limits are far above legitimate
+  reading, so this only bites abuse loops.
+- `__resetBibleServerCachesForTests()` now also clears the transport-level
+  `koinoCache` (it previously cleared only `chapterCache`), so tests start from a
+  truly cold cache.
+- Tests: `tests/bible-routes.test.ts` (BR-0…BR-4, 9 cases — normal reading, cache
+  hits, excessive requests → 429 shapes + `Retry-After`, per-client isolation,
+  identity extraction); registered in the `npm test` file list. Full suite: **165/165
+  passed** (156 pre-existing + 9 new). No YouVersion API request was made; the App
+  Key was never accessed; `YOUVERSION_ENABLED` remains unset in code.
