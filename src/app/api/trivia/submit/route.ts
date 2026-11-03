@@ -74,6 +74,60 @@ export async function POST(req: NextRequest) {
       })),
     });
 
+    // ─── DAILY SPIN "2x FP NEXT QUIZ" REWARD (double_fp) ───
+    // The daily spin wheel stores rewardType "double_fp" (rewardValue 1) on
+    // the day it was spun. This was previously never honored (dead TODO in
+    // daily-spin/route.ts) — users won the epic reward and got nothing.
+    // Honor it here: the first EARN_POINTS quiz of that day with a positive
+    // score earns double points (base 1x + bonus 1x = 2x).
+    //
+    // Consumption is race-safe WITHOUT a schema migration: updateMany()
+    // flips rewardValue 1 → 0 with an atomic conditional UPDATE, so exactly
+    // one concurrent submit (count === 1) owns the reward. rewardType is
+    // left untouched so GET /api/gamification/daily-spin keeps rendering the
+    // won-reward card. Scoped to the spin's own day ("next quiz" = the quiz
+    // played the day you spun).
+    let doubleFpApplied = false;
+    let bonusPoints = 0;
+    if (mode === "EARN_POINTS" && result.totalPointsEarned > 0) {
+      try {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const spin = await db.dailySpin.findUnique({
+          where: { userId_spinDate: { userId: user.id, spinDate: today } },
+        });
+        if (spin && spin.rewardType === "double_fp") {
+          const consumed = await db.dailySpin.updateMany({
+            where: { id: spin.id, rewardType: "double_fp", rewardValue: 1 },
+            data: { rewardValue: 0 },
+          });
+          if (consumed.count === 1) {
+            bonusPoints = result.totalPointsEarned;
+            doubleFpApplied = true;
+            await db.$transaction([
+              db.user.update({
+                where: { id: user.id },
+                data: { totalPoints: { increment: bonusPoints } },
+              }),
+              db.triviaPointTransaction.create({
+                data: {
+                  userId: user.id,
+                  quizSessionId: result.sessionId,
+                  points: bonusPoints,
+                  reason: "DOUBLE_FP_BONUS",
+                },
+              }),
+            ]);
+            result.newTotalPoints = (result.newTotalPoints || 0) + bonusPoints;
+          }
+        }
+      } catch (e) {
+        // The reward must never break the quiz result — worst case it stays
+        // armed (rewardValue stays 1) and the next quiz consumes it.
+        console.error("[trivia/submit] double_fp handling failed:", e);
+      }
+    }
+
     // Include explanations + correct answers for the result screen
     const enrichedResults = result.questionResults.map((qr: any) => {
       const q = dbQuestions.find((q) => q.questionId === qr.questionId)!;
@@ -120,6 +174,8 @@ export async function POST(req: NextRequest) {
       questionResults: enrichedResults,
       newlyAwarded: newlyAwardedBadges,
       streak: null, // streak is recorded in background — don't block
+      doubleFpApplied,
+      bonusPoints,
     };
 
     // ─── FIRE-AND-FORGET: Record Faith Streak (non-blocking) ───

@@ -136,7 +136,8 @@ export async function POST() {
     }
     // streak_freeze and double_fp rewards are stored but need client-side handling
     // (streak_freeze: stored in DailySpin, checked by streaks logic)
-    // (double_fp: stored, checked by quiz submit — TODO: wire into submit)
+    // (double_fp: consumed by POST /api/trivia/submit — atomic rewardValue 1→0
+    // flip awards the 2x bonus; rewardType is kept so GET still renders the card)
 
     const updatedUser = await db.user.findUnique({ where: { id: userId } });
 
