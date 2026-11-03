@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   X,
   ChevronRight,
@@ -45,6 +45,7 @@ type CompetitionResult = {
 
 export default function CompetitionQuizView({ competitionId, competitionTitle, onClose, onComplete }: Props) {
   const t = useTranslation();
+  const { lang } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -60,6 +61,8 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
       try {
         const res = await fetch(`/api/trivia/competitions/${competitionId}/start`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lang }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t("competition.errors.startFailed"));
@@ -73,7 +76,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
         setLoading(false);
       }
     })();
-  }, [competitionId, t]);
+  }, [competitionId, t, lang]);
 
   const submit = useCallback(async () => {
     if (!attemptId) return;
