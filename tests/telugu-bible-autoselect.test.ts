@@ -1,18 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Telugu Bible auto-selection — regression suite (Telugu ONLY, by explicit
-// product decision; no other UI language may switch the Bible version).
+// Bible language auto-selection — BIDIRECTIONAL regression suite.
 //
 // Pins:
 //   • the registry resolver findTeluguVersion + the BIBLE_AUTOSELECT_LANGUAGE
-//     constant ("te" — the single auto-selection language);
-//   • the reader's guard ladder: Telugu-only trigger, manual-pick suppression
-//     with re-arm on re-entry, catalogue-unavailable retention, already-
-//     Telugu retention (refresh / navigation), graceful no-op when the
-//     catalogue lists no Telugu Bible;
+//     constant ("te");
+//   • the existing English default DEFAULT_VERSION_REF ("koino:kjv") is the
+//     target when the site language is English;
+//   • the reader's bidirectional guard ladder:
+//       - Telugu → auto-select the licensed Telugu Bible from the catalogue;
+//       - English → auto-select DEFAULT_VERSION_REF;
+//       - other languages → no-op (retain previous);
+//       - manual pick preserved within the same website language;
+//       - website-language change triggers a fresh auto-selection;
+//       - persisted preference respected on refresh (no auto-select on mount
+//         when a saved cc_bible_version exists);
+//       - first mount without a persisted preference → auto-select fires;
+//       - catalogue unavailable or lists no Telugu version → retain previous,
+//         no crash;
 //   • persistence through the EXISTING cc_bible_version preference only
 //     (no new storage surface; single write path shared with the selector);
-//   • NO hardcoded YouVersion id — the catalogue stays the source of truth
-//     for the concrete Telugu translation id;
+//   • NO hardcoded YouVersion id — the catalogue stays the source of truth;
 //   • the manual version selector remains fully wired.
 //
 // No network, no database: pure units + source contracts (repo convention).
@@ -81,10 +88,8 @@ function codeOf(rel: string): string {
 
 // ─── Registry units ───────────────────────────────────────────────────────────
 
-test("TB-1: Telugu is the ONE auto-selection language and is in the scripture registry", () => {
+test("TB-1: Telugu is the auto-selection language and is in the scripture registry", () => {
   assert.equal(BIBLE_AUTOSELECT_LANGUAGE, "te");
-  // The registry the selector and the resolver both use must actually list
-  // Telugu — otherwise no catalogue could ever carry a te version.
   assert.ok(
     SCRIPTURE_LANGUAGES.some((l) => l.tag === "te"),
     "SCRIPTURE_LANGUAGES must include the te tag"
@@ -120,7 +125,7 @@ test("TB-6: multiple Telugu versions resolve deterministically (first catalogue 
   assert.equal(findTeluguVersion([TE_VERSION, second]), TE_VERSION);
 });
 
-test("TB-7: the default version is not Telugu — a fresh Telugu-site reader has switching work to do", () => {
+test("TB-7: the default version is the English fallback (koino:kjv)", () => {
   assert.equal(DEFAULT_VERSION_REF, "koino:kjv");
 });
 
@@ -128,87 +133,117 @@ test("TB-7: the default version is not Telugu — a fresh Telugu-site reader has
 
 const BIBLE_VIEW = src("src/components/crosscrafted/BibleView.tsx");
 
-test("TB-8: the auto-selection trigger is guarded to Telugu ONLY", () => {
+test("TB-8: the auto-selection handles BOTH Telugu and English (bidirectional)", () => {
+  // Telugu branch: resolve from the catalogue via findTeluguVersion
   assert.ok(
-    BIBLE_VIEW.includes("if (lang !== BIBLE_AUTOSELECT_LANGUAGE) return;"),
-    "every other UI language must no-op before any switch logic runs"
+    BIBLE_VIEW.includes("lang === BIBLE_AUTOSELECT_LANGUAGE"),
+    "Telugu must be one of the auto-select branches"
   );
-  // No other locale may be special-cased anywhere in the reader.
+  // English branch: revert to the existing default
+  assert.ok(
+    BIBLE_VIEW.includes('lang === "en"'),
+    "English must be the other auto-select branch"
+  );
+  assert.ok(
+    BIBLE_VIEW.includes("targetRef = DEFAULT_VERSION_REF"),
+    "English auto-select must target the existing DEFAULT_VERSION_REF"
+  );
+  // No other locale may be special-cased as a trigger.
   assert.ok(
     !/lang\s*(===|!==)\s*["'](hi|ta|mr|kn|ml|bn|gu|ur|pa|or|as)["']/.test(BIBLE_VIEW),
     "no other language may appear as a trigger comparison"
   );
 });
 
-test("TB-9: a manual selector pick suppresses the auto-selection", () => {
+test("TB-9: a manual selector pick is remembered for the CURRENT language only", () => {
   assert.ok(
-    BIBLE_VIEW.includes("userPickedRef.current = true"),
-    "manual picks must set the suppression flag"
+    BIBLE_VIEW.includes("userPickedForLangRef.current = lang"),
+    "manual picks must record the current UI language, not a boolean"
   );
   assert.ok(
-    BIBLE_VIEW.includes("if (userPickedRef.current) return;"),
-    "the auto-selection must no-op while a manual pick is active"
+    BIBLE_VIEW.includes("userPickedForLangRef.current === lang"),
+    "auto-select must be suppressed only while the user stays in the same language"
   );
 });
 
-test("TB-10: re-selecting Telugu as the site language re-arms the auto-selection", () => {
+test("TB-10: a website-language change resets the manual-pick tracking and re-arms auto-select", () => {
   assert.ok(
-    BIBLE_VIEW.includes("userPickedRef.current = false"),
-    "the transition into Telugu must clear a stale manual suppression"
+    BIBLE_VIEW.includes("userPickedForLangRef.current = null"),
+    "a language change must clear the manual-pick tracking"
+  );
+  assert.ok(
+    BIBLE_VIEW.includes("autoSelectPendingRef.current = true"),
+    "a language change must re-arm auto-select for the new language"
   );
   assert.ok(
     BIBLE_VIEW.includes("prevLangRef.current = lang;"),
-    "the previous language must be tracked to detect the transition"
+    "the previous language must be tracked to detect transitions"
+  );
+  assert.ok(
+    BIBLE_VIEW.includes("const isLanguageChange = prevLang !== null && prevLang !== lang"),
+    "language change is detected by comparing prev and current lang"
   );
 });
 
-test("TB-11: unavailable catalogue or missing Telugu Bible → previous version retained", () => {
+test("TB-11: unavailable catalogue or missing Telugu version → previous selection retained", () => {
+  // The Telugu branch only resolves when catalog.enabled AND findTeluguVersion
+  // returns a version. If either fails, targetRef stays null and the effect
+  // bails without changing the version.
   assert.ok(
-    BIBLE_VIEW.includes("if (!catalog.enabled) return;"),
-    "disabled/failed catalogue must never switch the version"
+    BIBLE_VIEW.includes("if (targetRef === null) return;"),
+    "when no target can be resolved, the effect must retain the previous version"
   );
   assert.ok(
-    BIBLE_VIEW.includes("if (!teVersion) return;"),
-    "a catalogue without a te entry must never switch the version"
-  );
-});
-
-test("TB-12: already reading a Telugu version → no-op (refresh + navigation retention)", () => {
-  assert.ok(
-    BIBLE_VIEW.includes("if (versionRef === teRef) return;"),
-    "the exact auto-selected ref must short-circuit"
-  );
-  assert.ok(
-    BIBLE_VIEW.includes("current.languageTag === BIBLE_AUTOSELECT_LANGUAGE"),
-    "a different manual Telugu pick must be kept"
+    BIBLE_VIEW.includes("if (catalog.enabled)"),
+    "the catalogue must be checked before resolving a Telugu version"
   );
 });
 
-test("TB-13: persistence rides the EXISTING cc_bible_version preference — single write path", () => {
-  // The shared write helper persists through the existing key.
+test("TB-12: already reading the target translation → no write (refresh + navigation retention)", () => {
+  assert.ok(
+    BIBLE_VIEW.includes("if (versionRef === targetRef) return;"),
+    "if the reader is already on the target, no write should happen"
+  );
+});
+
+test("TB-13: other languages (not te, not en) → no-op, retain previous", () => {
+  assert.ok(
+    BIBLE_VIEW.includes("autoSelectPendingRef.current = false;\n      return;"),
+    "other languages must clear pending and return without changing the version"
+  );
+});
+
+test("TB-14: first mount without a persisted preference → auto-select fires; with a persisted preference → respected", () => {
+  assert.ok(
+    BIBLE_VIEW.includes("persistedLoadedRef"),
+    "a persisted-preference flag must exist to distinguish refresh from first visit"
+  );
+  assert.ok(
+    BIBLE_VIEW.includes("prevLang === null && persistedLoadedRef.current"),
+    "on first mount with a saved preference, auto-select must be skipped"
+  );
+});
+
+test("TB-15: persistence rides the EXISTING cc_bible_version preference — single write path", () => {
   assert.ok(
     BIBLE_VIEW.includes("localStorage.setItem(VERSION_STORAGE_KEY, ref);"),
     "the existing preference key must remain the only persistence target"
   );
-  // The manual selector routes through the same write helper.
   assert.ok(
     BIBLE_VIEW.includes("applyVersionRef(formatVersionRef(v));"),
     "manual selection must use the shared applyVersionRef path"
   );
-  // Exactly ONE setItem exists in the whole reader, and it uses the shared key
-  // (the regex captures the identifier, not the key's runtime value).
   const setItemCalls = [...BIBLE_VIEW.matchAll(/localStorage\.setItem\(\s*([A-Za-z_$][\w$]*)/g)].map(
     (m) => m[1]
   );
   assert.deepEqual(setItemCalls, ["VERSION_STORAGE_KEY"]);
-  // No new storage key was introduced anywhere in the reader.
   const literalKeys = [
     ...BIBLE_VIEW.matchAll(/localStorage\.setItem\(\s*["']([^"']+)["']/g),
   ].map((m) => m[1]);
   assert.deepEqual(literalKeys, [], "no new literal storage keys may be added");
 });
 
-test("TB-14: NO hardcoded YouVersion id — the catalogue owns the concrete Telugu id", () => {
+test("TB-16: NO hardcoded YouVersion id — the catalogue owns the concrete Telugu id", () => {
   for (const rel of [
     "src/components/crosscrafted/BibleView.tsx",
     "src/lib/bible-versions.ts",
@@ -225,7 +260,7 @@ test("TB-14: NO hardcoded YouVersion id — the catalogue owns the concrete Telu
   }
 });
 
-test("TB-15: the manual version selector remains fully wired", () => {
+test("TB-17: the manual version selector remains fully wired", () => {
   assert.ok(
     BIBLE_VIEW.includes("onSelect={selectVersion}"),
     "VersionMenu must keep its manual onSelect wiring"
@@ -236,7 +271,7 @@ test("TB-15: the manual version selector remains fully wired", () => {
   );
 });
 
-test("TB-16: cross-surface mirror stays on the shared preference (HomeApp follows the switch)", () => {
+test("TB-18: cross-surface mirror stays on the shared preference (HomeApp follows the switch)", () => {
   const home = src("src/components/home/HomeApp.tsx");
   assert.ok(
     home.includes("sanitizeSavedVersionRef(localStorage.getItem(VERSION_STORAGE_KEY))"),
@@ -248,7 +283,7 @@ test("TB-16: cross-surface mirror stays on the shared preference (HomeApp follow
   );
 });
 
-test("TB-17: the resolver filters by the auto-selection language, not by a copied literal", () => {
+test("TB-19: the resolver filters by the auto-selection language, not by a copied literal", () => {
   const lib = src("src/lib/bible-versions.ts");
   assert.ok(
     lib.includes("v.languageTag === BIBLE_AUTOSELECT_LANGUAGE"),

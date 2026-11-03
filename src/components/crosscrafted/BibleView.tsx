@@ -46,7 +46,6 @@ import {
   DEFAULT_VERSION_REF,
   VERSION_STORAGE_KEY,
   findTeluguVersion,
-  findVersion,
   formatVersionRef,
   parseVersionRef,
   resolveVersionOrGeneric,
@@ -96,21 +95,35 @@ export default function BibleView({
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   // Unified version selection (YouVersion primary + Koino fallback).
-  // Scripture language stays independent of the UI language for every locale
-  // EXCEPT Telugu (BIBLE_AUTOSELECT_LANGUAGE): while the site language is
-  // Telugu, the reader auto-selects the licensed Telugu Bible from the
-  // catalogue — on mount and whenever the site language changes into Telugu.
-  // The selector remains fully manual: any pick here suppresses the
-  // auto-selection until Telugu is re-selected as the site language, and no
-  // other UI language ever changes the version.
+  // Scripture language follows the UI language for TWO locales by deliberate
+  // product decision: Telugu (BIBLE_AUTOSELECT_LANGUAGE) auto-selects the
+  // licensed Telugu Bible from the catalogue, and English ("en") auto-selects
+  // the existing DEFAULT_VERSION_REF. Switching between the two languages
+  // moves the reader to the appropriate translation in BOTH directions.
+  // Every other UI language is a no-op (the reader stays on its current
+  // translation). The selector remains fully manual: any pick here is
+  // preserved for as long as the user stays in the same website language;
+  // a website-language change triggers a fresh auto-selection.
   const [versionRef, setVersionRef] = useState<VersionRef>(DEFAULT_VERSION_REF);
-  // Telugu auto-selection guards (session-scoped, never persisted):
-  //   userPickedRef — a manual selector pick wins over the auto-selection
-  //                   until the site language re-enters Telugu.
-  //   prevLangRef   — detects the transition INTO Telugu so re-selecting
-  //                   Telugu re-arms the auto-selection.
-  const userPickedRef = useRef(false);
-  const prevLangRef = useRef(lang);
+  // Bidirectional auto-selection guards (session-scoped, never persisted):
+  //   prevLangRef          — detects actual language CHANGES (and the first
+  //                         mount) so auto-select fires on transitions, not
+  //                         on every render.
+  //   autoSelectPendingRef — true while auto-select still needs to fire for
+  //                         the current language (set on language change and
+  //                         on first mount without a persisted preference;
+  //                         cleared once a target is resolved or skipped).
+  //   userPickedForLangRef — the UI language during which the user manually
+  //                         picked a version. While it equals the current
+  //                         lang, auto-select is suppressed (manual pick
+  //                         preserved). A language change resets it.
+  //   persistedLoadedRef   — true if a saved cc_bible_version was loaded on
+  //                         mount. When true, the first mount does NOT
+  //                         auto-select (the saved preference is respected).
+  const prevLangRef = useRef<string | null>(null);
+  const autoSelectPendingRef = useRef(true);
+  const userPickedForLangRef = useRef<string | null>(null);
+  const persistedLoadedRef = useRef(false);
   const [catalog, setCatalog] = useState<{ enabled: boolean; versions: BibleVersion[] }>({
     enabled: false,
     versions: KOINO_FALLBACK_VERSIONS,
@@ -146,7 +159,10 @@ export default function BibleView({
   useEffect(() => {
     try {
       const saved = localStorage.getItem(VERSION_STORAGE_KEY);
-      if (saved && parseVersionRef(saved)) setVersionRef(saved);
+      if (saved && parseVersionRef(saved)) {
+        setVersionRef(saved);
+        persistedLoadedRef.current = true;
+      }
     } catch {
       // storage unavailable — keep default
     }
@@ -177,43 +193,100 @@ export default function BibleView({
   }, []);
 
   const selectVersion = (v: BibleVersion) => {
-    userPickedRef.current = true; // a manual pick suppresses the Telugu auto-selection
+    userPickedForLangRef.current = lang; // manual pick is remembered for the CURRENT language only
     applyVersionRef(formatVersionRef(v));
     setVersionMenuOpen(false);
   };
 
-  // ─── Telugu auto-selection (Telugu ONLY — deliberate product exception) ────
-  // When the site language is Telugu, default the reader to the licensed
-  // Telugu Bible from the catalogue (resolved by languageTag — the concrete
-  // id is the catalogue's, never hardcoded). Fires on mount while the site
-  // language is Telugu and on the transition INTO Telugu. Guards, in order:
-  //   • any UI language other than Telugu → no-op (no automatic switching,
-  //     and switching AWAY from Telugu never reverts the version either);
-  //   • a manual pick in the selector wins until Telugu is re-selected;
-  //   • catalogue unavailable (YouVersion disabled / endpoint failed) or
-  //     lists no Telugu version → no-op, previous selection retained;
-  //   • already reading a Telugu version (this one or another) → no-op, so
-  //     refresh, navigation and manual Telugu-to-Telugu picks are preserved.
+  // ─── Bidirectional auto-selection (Telugu ↔ English) ──────────────────────
+  // When the site language changes, the reader auto-selects the appropriate
+  // Bible translation:
+  //   • Telugu (BIBLE_AUTOSELECT_LANGUAGE) → the licensed Telugu Bible from
+  //     the catalogue, resolved by languageTag (the concrete id is the
+  //     catalogue's, never hardcoded).
+  //   • English ("en") → the existing DEFAULT_VERSION_REF (koino:kjv), the
+  //     same default the reader initialises with.
+  //   • Any other language → no-op (the reader stays on its current
+  //     translation); auto-select is still marked as not-pending so it
+  //     doesn't retry.
+  //
+  // The effect fires on:
+  //   • an actual language CHANGE (detected via prevLangRef), which resets
+  //     the manual-pick tracking and re-arms auto-select for the new lang;
+  //   • the first mount WITHOUT a persisted preference (gives a first-time
+  //     visitor the right translation for their UI language);
+  //   • a catalogue arrival after mount (if auto-select is still pending
+  //     because the catalogue wasn't loaded yet).
+  //
+  // Guards, in order:
+  //   • a manual pick in the selector wins for as long as the user stays in
+  //     the same website language (userPickedForLangRef === lang);
+  //   • a persisted preference loaded on mount is respected (no auto-select
+  //     on refresh within the same language);
+  //   • catalogue unavailable or lists no Telugu version → retain the
+  //     previous selection without crashing (auto-select stays pending for
+  //     Telugu so it retries when the catalogue arrives);
+  //   • already reading the target translation → no write, just clear
+  //     pending.
   // Chapter fetch failures keep the existing graceful path (error text +
   // toast, previous text retained, selection intact).
   useEffect(() => {
-    const reenteredTelugu =
-      lang === BIBLE_AUTOSELECT_LANGUAGE &&
-      prevLangRef.current !== BIBLE_AUTOSELECT_LANGUAGE;
+    const prevLang = prevLangRef.current;
+    const isLanguageChange = prevLang !== null && prevLang !== lang;
     prevLangRef.current = lang;
-    if (lang !== BIBLE_AUTOSELECT_LANGUAGE) return; // Telugu ONLY
-    if (reenteredTelugu) userPickedRef.current = false; // re-selecting Telugu re-arms
-    if (userPickedRef.current) return; // manual selection always wins
-    if (!catalog.enabled) return; // catalogue unavailable → retain previous version
-    const teVersion = findTeluguVersion(catalog.versions);
-    if (!teVersion) return; // no Telugu Bible in the catalogue → retain previous version
-    const teRef = formatVersionRef(teVersion);
-    if (versionRef === teRef) return; // already reading the auto-selected Telugu Bible
-    const current = findVersion(versionRef, catalog.versions);
-    if (current && current.languageTag === BIBLE_AUTOSELECT_LANGUAGE) {
-      return; // another Telugu version is selected (manual Telugu choice) → keep it
+
+    // On a real language change, reset the per-language tracking and re-arm
+    // auto-select for the new language.
+    if (isLanguageChange) {
+      userPickedForLangRef.current = null;
+      autoSelectPendingRef.current = true;
     }
-    applyVersionRef(teRef);
+
+    // If the user manually picked a version during this language, preserve
+    // it — do not override with auto-select.
+    if (userPickedForLangRef.current === lang) {
+      autoSelectPendingRef.current = false;
+      return;
+    }
+
+    // Only fire when auto-select is pending (language change or first mount
+    // without a persisted preference).
+    if (!autoSelectPendingRef.current) return;
+
+    // First mount: if a persisted preference was loaded, respect it — do not
+    // auto-select. This preserves the user's saved choice across refreshes.
+    if (prevLang === null && persistedLoadedRef.current) {
+      autoSelectPendingRef.current = false;
+      return;
+    }
+
+    // Resolve the target translation for the current language.
+    let targetRef: VersionRef | null = null;
+    if (lang === BIBLE_AUTOSELECT_LANGUAGE) {
+      // Telugu: resolve from the live catalogue by languageTag.
+      if (catalog.enabled) {
+        const teVersion = findTeluguVersion(catalog.versions);
+        if (teVersion) targetRef = formatVersionRef(teVersion);
+      }
+      // If the catalogue is not ready or lists no Telugu version, stay
+      // pending (targetRef stays null) so the effect retries when the
+      // catalogue arrives.
+    } else if (lang === "en") {
+      // English: revert to the existing default.
+      targetRef = DEFAULT_VERSION_REF;
+    } else {
+      // Other languages: no auto-select. Mark as not-pending so it doesn't
+      // retry; the reader keeps its current translation.
+      autoSelectPendingRef.current = false;
+      return;
+    }
+
+    if (targetRef === null) return; // catalogue not ready — stay pending, retain previous
+
+    // Target resolved — clear pending and apply (or skip if already there).
+    autoSelectPendingRef.current = false;
+    if (versionRef === targetRef) return; // already reading the target
+    applyVersionRef(targetRef);
   }, [lang, catalog, versionRef, applyVersionRef]);
 
   // Load bookmarks on mount
