@@ -50,35 +50,83 @@ function getTierIndex(points: number): number {
 }
 
 /**
- * Shows a full-screen celebration animation when user crosses a tier threshold.
- * Detects tier changes by comparing previous and current points.
+ * Last tier this browser has celebrated, persisted in localStorage. Together
+ * with the `ready` gate below it guarantees a tier celebration fires at most
+ * once per tier per device — never again on a plain refresh.
  */
-export default function LevelUpAnimation({ totalPoints }: { totalPoints: number }) {
+const SEEN_TIER_KEY = "koino:levelup-seen-tier";
+
+function getSeenTier(): number {
+  if (typeof window === "undefined") return -1;
+  try {
+    const raw = window.localStorage.getItem(SEEN_TIER_KEY);
+    if (raw === null) return -1;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : -1;
+  } catch {
+    return -1; // storage disabled / private mode — in-session guard still works
+  }
+}
+
+function setSeenTier(idx: number): void {
+  try {
+    window.localStorage.setItem(SEEN_TIER_KEY, String(idx));
+  } catch {
+    // storage unavailable — the ready-gate alone still prevents reload replays
+  }
+}
+
+type LevelUpAnimationProps = {
+  totalPoints: number;
+  /** True once the user's real FP total has loaded (profile fetch done).
+   *  While false, points is the loading placeholder (0) — arming the detector
+   *  then would treat the 0 → real-total transition as a fresh level-up and
+   *  replay the celebration on every page load. */
+  ready?: boolean;
+};
+
+/**
+ * Shows a full-screen celebration animation when user crosses a tier threshold.
+ * Detects tier changes by comparing previous and current points — but only
+ * AFTER the real total has loaded and only for tiers this browser has not
+ * celebrated yet (persisted), so refreshing never replays the popup.
+ */
+export default function LevelUpAnimation({ totalPoints, ready = true }: LevelUpAnimationProps) {
   const t = useTranslation();
   const tierTitle = (tier: Tier) => t(TIER_KEYS[tier.minPoints] ?? tier.title);
   const [showCelebration, setShowCelebration] = useState(false);
   const [newTier, setNewTier] = useState<Tier | null>(null);
   const prevTierIdx = useRef<number>(-1);
-  const initialized = useRef(false);
+  const armed = useRef(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
 
   useEffect(() => {
     const currentTierIdx = getTierIndex(totalPoints);
 
-    if (!initialized.current) {
-      // First render — just set the initial tier, don't celebrate
-      prevTierIdx.current = currentTierIdx;
-      initialized.current = true;
+    if (!armed.current) {
+      // Wait for the real FP total before setting the baseline. The hook
+      // mounts with the loading placeholder (0); comparing that against the
+      // fetched total is what faked a level-up on every refresh.
+      if (!ready) return;
+      armed.current = true;
+      prevTierIdx.current = Math.max(currentTierIdx, getSeenTier());
       return;
     }
 
     if (currentTierIdx > prevTierIdx.current) {
-      // Tier increased!
+      // Tier increased — and never celebrated on this device before!
       const tier = TIERS[currentTierIdx];
       setNewTier(tier);
       setShowCelebration(true);
+      setSeenTier(currentTierIdx);
 
       // Auto-hide after 5 seconds
-      setTimeout(() => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      hideTimer.current = setTimeout(() => {
         setShowCelebration(false);
       }, 5000);
 
@@ -89,7 +137,7 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
     }
 
     prevTierIdx.current = currentTierIdx;
-  }, [totalPoints, t]);
+  }, [totalPoints, ready, t]);
 
   const shareLevelUp = () => {
     if (!newTier) return;
