@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { selectQuizQuestions } from "@/lib/trivia-server";
+import { getTriviaTePack } from "@/lib/i18n/content/trivia-te-pack";
 
 /**
  * POST /api/trivia/start
@@ -59,26 +60,38 @@ export async function POST(req: NextRequest) {
     );
 
     // Return questions WITHOUT correct answers (client doesn't know which is right).
-    // If the user requested a non-English language AND the question has a translation
-    // for that language, use the translated question + options + explanation.
+    // Translation priority per question (Telugu ONLY — every other language uses
+    // the DB-translations path or English):
+    //   (1) DB `translations` column — populated offline by an operator, wins
+    //       if present (the production source of truth when it exists).
+    //   (2) Static Telugu content pack shipped with the build
+    //       (src/lib/i18n/content/trivia-te.json) — covers the questions the
+    //       DB does not yet translate; no runtime translation, no production
+    //       DB writes. Loaded only when the requested language is Telugu.
+    //   (3) English original — honest fallback for any question missing from
+    //       both, so a Telugu quiz never 500s on a gap.
+    // The correct-answer index is NEVER changed by translation: only the
+    // option TEXT is translated, position-for-position.
+    const tePack = lang === "te" ? getTriviaTePack() : null;
     const questions = result.questions.map((q) => {
       let translated: { question?: string; options?: string[]; explanation?: string } | null = null;
       try {
         const allTranslations = JSON.parse(q.translations || "{}");
         translated = allTranslations[lang] || null;
       } catch {
-        // Malformed JSON — fall back to English
+        // Malformed JSON — fall back to the pack or English
       }
+      const packed = tePack?.[q.questionId] || null;
 
       return {
         id: q.questionId,
-        question: translated?.question || q.question,
-        options: translated?.options || JSON.parse(q.options),
+        question: translated?.question || packed?.q || q.question,
+        options: translated?.options || packed?.options || JSON.parse(q.options),
         difficulty: q.difficulty,
         category: q.category,
         basePoints: q.basePoints,
         scriptureReference: q.scriptureReference,
-        explanation: translated?.explanation || q.explanation,
+        explanation: translated?.explanation || packed?.explanation || q.explanation,
       };
     });
 
