@@ -83,10 +83,10 @@ test("TE-CORE-2: Bible reader source still carries the auto-selection effect", (
   const bv = src("src/components/crosscrafted/BibleView.tsx");
   assert.ok(bv.includes("BIBLE_AUTOSELECT_LANGUAGE"), "trigger constant still imported");
   assert.ok(bv.includes("findTeluguVersion"), "resolver still imported");
-  assert.ok(bv.includes("userPickedRef"), "manual-pick suppression guard still present");
+  assert.ok(bv.includes("userPickedForLangRef"), "manual-pick guard still present");
   assert.ok(
-    bv.includes("if (lang !== BIBLE_AUTOSELECT_LANGUAGE) return;"),
-    "Telugu-only trigger guard still in place"
+    bv.includes('lang === "en"'),
+    "bidirectional English branch still in place"
   );
 });
 
