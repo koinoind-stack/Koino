@@ -70,8 +70,8 @@ test("P2FIX-SW-1: navigation fallback may serve the cached Home shell for '/' on
 
 test("P2FIX-SW-2: cache name bumped to v2 so every v1 cache is purged on activate", () => {
   const sw = read("public/sw.js");
-  assert.match(sw, /const CACHE_NAME = "koino-v2"/);
-  assert.doesNotMatch(sw, /koino-v1/);
+  assert.match(sw, /const CACHE_NAME = "koino-v3"/);
+  assert.doesNotMatch(sw, /koino-v1|koino-v2/);
   // activate() still purges every cache it does not own.
   assert.match(sw, /caches\.keys\(\)\.then\(\(keys\) =>/);
 });

@@ -4,10 +4,12 @@
 // - private user data
 // - admin endpoints
 
+// v3: shell re-cached after the logo PNG shrank from 820KB to 34KB (launch
+// perf) — bumping the name purges the v2 cache holding the old heavy logo.
 // v2: navigation fallback can no longer serve the cached Home shell for
 // non-root URLs (the "Articles & Knowledge click bounces to Home" fix).
 // Bumping the name makes activate() purge every v1 cache immediately.
-const CACHE_NAME = "koino-v2";
+const CACHE_NAME = "koino-v3";
 const APP_SHELL = [
   "/",
   "/koino-logo.png",
