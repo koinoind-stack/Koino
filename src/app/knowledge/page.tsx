@@ -14,6 +14,7 @@ import { BRAND, siteUrl } from "@/lib/brand";
 import { getTaxonomyLanding } from "@/lib/taxonomy-server";
 import {
   CONTENT_TYPES,
+  CONTENT_TYPE_DESCRIPTIONS,
   CONTENT_TYPE_LABELS,
   CONTENT_TYPE_ROUTES,
 } from "@/lib/content-taxonomy";
@@ -71,44 +72,28 @@ export default async function KnowledgePage() {
         </div>
 
         {/* Content-type navigation — the six unified types (Plan v2 Table 3).
-           Existing public routes are linked; types without a unified public
-           route yet are shown as foundation placeholders, never dead links. */}
+           Every type has a REAL destination: Blog and Apologetics keep their
+           dedicated listings; Article, Bible Study, Devotional and Testimony
+           open the read-only /knowledge/browse listing over the existing
+           KoinoArticle model — no dead "coming soon" cards. */}
         <section aria-label="Content types" className="mb-12">
           <h2 className="text-sm font-bold text-white mb-3">By content type</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {CONTENT_TYPES.map((type) => {
-              const route = CONTENT_TYPE_ROUTES[type];
-              const card = (
-                <>
-                  <span className="text-sm font-bold text-white">
-                    {CONTENT_TYPE_LABELS[type]}
-                  </span>
-                  <span
-                    className={`text-[11px] font-bold ${
-                      route ? "text-[#A78BFA]" : "text-[#64748B]"
-                    }`}
-                  >
-                    {route ? "Browse →" : "Coming soon"}
-                  </span>
-                </>
-              );
-              return route ? (
-                <Link
-                  key={type}
-                  href={route}
-                  className="rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-[#7C3AED]/40 p-4 flex flex-col gap-1 transition-all"
-                >
-                  {card}
-                </Link>
-              ) : (
-                <div
-                  key={type}
-                  className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-4 flex flex-col gap-1 opacity-70 cursor-default"
-                >
-                  {card}
-                </div>
-              );
-            })}
+            {CONTENT_TYPES.map((type) => (
+              <Link
+                key={type}
+                href={CONTENT_TYPE_ROUTES[type]}
+                className="rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-[#7C3AED]/40 p-4 flex flex-col gap-1 transition-all"
+              >
+                <span className="text-sm font-bold text-white">
+                  {CONTENT_TYPE_LABELS[type]}
+                </span>
+                <span className="text-[11px] text-[#94A3B8]">
+                  {CONTENT_TYPE_DESCRIPTIONS[type]}
+                </span>
+                <span className="text-[11px] font-bold text-[#A78BFA]">Browse →</span>
+              </Link>
+            ))}
           </div>
         </section>
 
@@ -117,10 +102,12 @@ export default async function KnowledgePage() {
           <h2 className="text-sm font-bold text-white mb-3">By category</h2>
           {categories.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.02] p-10 text-center">
-              <p className="text-sm font-bold text-white mb-1">The taxonomy is not seeded yet.</p>
+              <p className="text-sm font-bold text-white mb-1">Category navigation is warming up.</p>
               <p className="text-xs text-[#94A3B8]">
-                Categories and topics appear here once an admin seeds them in the
-                Admin → Taxonomy panel.
+                Categories and topics appear here as soon as the unified taxonomy is
+                seeded on this environment — a one-time admin action (Admin →
+                Taxonomy, or the seed script). Every content type above already works
+                without it.
               </p>
             </div>
           ) : (

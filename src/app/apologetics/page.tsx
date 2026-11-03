@@ -196,6 +196,17 @@ export default async function ApologeticsPage() {
           <Link href="/contact?subject=Apologetics+Question" className="inline-block px-6 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all">
             <T k="apologetics.page.ask.cta" />
           </Link>
+          {/* Questions & Answers — the member Q&A lives in the app (deep link,
+              also used by share links and notifications). From here it is one
+              hop away, so removing the standalone sidebar entry loses nothing. */}
+          <div className="mt-4">
+            <Link
+              href="/?view=apologetics"
+              className="inline-block px-6 py-3 rounded-xl border border-[#7C3AED]/40 text-[#A78BFA] hover:text-white hover:border-[#7C3AED]/70 text-xs font-extrabold uppercase tracking-wider transition-all"
+            >
+              Questions &amp; Answers →
+            </Link>
+          </div>
         </div>
       </section>
 

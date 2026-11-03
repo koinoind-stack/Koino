@@ -42,11 +42,34 @@ export function isContentType(value: unknown): value is ContentType {
   );
 }
 
-/** Public routes that already exist per content type (Phase 2 foundation).
- *  Types without a unified public route yet surface as "coming soon". */
-export const CONTENT_TYPE_ROUTES: Partial<Record<ContentType, string>> = {
+/** Public routes per content type. Every type has a real destination —
+ *  the /knowledge landing never shows a dead "coming soon" card.
+ *    BLOG          → /blog (existing BlogPost listing)
+ *    APOLOGETICS   → /apologetics (existing KoinoArticle listing + Q&A)
+ *    everything
+ *    else          → /knowledge/browse?type=<TYPE> — a read-only listing over
+ *                    the EXISTING KoinoArticle unified model (status published,
+ *                    schedule-aware). Renders an honest empty state until
+ *                    content of that type is published; no parallel content
+ *                    system is created. */
+export const CONTENT_TYPE_ROUTES: Record<ContentType, string> = {
   BLOG: "/blog",
+  ARTICLE: "/knowledge/browse?type=ARTICLE",
+  BIBLE_STUDY: "/knowledge/browse?type=BIBLE_STUDY",
+  DEVOTIONAL: "/knowledge/browse?type=DEVOTIONAL",
+  TESTIMONY: "/knowledge/browse?type=TESTIMONY",
   APOLOGETICS: "/apologetics",
+};
+
+/** One-line description per content type, shown on the /knowledge landing
+ *  cards. Plain-English, user-facing. */
+export const CONTENT_TYPE_DESCRIPTIONS: Record<ContentType, string> = {
+  BLOG: "Community articles and updates from Koino writers.",
+  ARTICLE: "General knowledge and feature articles.",
+  BIBLE_STUDY: "Structured studies through books, passages and themes.",
+  DEVOTIONAL: "Short reflections to feed your daily walk.",
+  TESTIMONY: "Real stories of what God has done.",
+  APOLOGETICS: "Bible-grounded answers and Questions & Answers.",
 };
 
 // ─── (b) Slug rules — shared by admin taxonomy APIs and the seed ─────────────

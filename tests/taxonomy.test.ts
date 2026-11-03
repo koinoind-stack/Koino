@@ -239,8 +239,18 @@ test("P2-TYPE-3: isContentType accepts exactly the six and rejects everything el
 test("P2-TYPE-4: existing public routes are wired; unified-only types are not dead links", () => {
   assert.equal(contentTaxonomy.CONTENT_TYPE_ROUTES.BLOG, "/blog");
   assert.equal(contentTaxonomy.CONTENT_TYPE_ROUTES.APOLOGETICS, "/apologetics");
-  assert.equal(contentTaxonomy.CONTENT_TYPE_ROUTES.TESTIMONY, undefined);
-  assert.equal(contentTaxonomy.CONTENT_TYPE_ROUTES.BIBLE_STUDY, undefined);
+  // Phase 2 follow-up (post-PR #22): every type now resolves to a REAL
+  // destination — the unified-only types open /knowledge/browse?type=<TYPE>
+  // (read-only listing over the existing KoinoArticle model), so the landing
+  // never shows a dead "Coming soon" card. Full contract: navigation suite.
+  assert.equal(
+    contentTaxonomy.CONTENT_TYPE_ROUTES.TESTIMONY,
+    "/knowledge/browse?type=TESTIMONY"
+  );
+  assert.equal(
+    contentTaxonomy.CONTENT_TYPE_ROUTES.BIBLE_STUDY,
+    "/knowledge/browse?type=BIBLE_STUDY"
+  );
 });
 
 // ─── 6. Pure unit tests — slugs ─────────────────────────────────────────────
