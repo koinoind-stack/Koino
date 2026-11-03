@@ -213,14 +213,30 @@ test("TB-13: other languages (not te, not en) → no-op, retain previous", () =>
   );
 });
 
-test("TB-14: first mount without a persisted preference → auto-select fires; with a persisted preference → respected", () => {
+test("TB-14: first mount — persisted pref respected ONLY if in the current UI language; overridden if in a different language", () => {
   assert.ok(
     BIBLE_VIEW.includes("persistedLoadedRef"),
     "a persisted-preference flag must exist to distinguish refresh from first visit"
   );
   assert.ok(
     BIBLE_VIEW.includes("prevLang === null && persistedLoadedRef.current"),
-    "on first mount with a saved preference, auto-select must be skipped"
+    "on first mount with a saved preference, the language-match check must run"
+  );
+  assert.ok(
+    BIBLE_VIEW.includes("inferredLang === lang"),
+    "the saved pref's language must be compared to the current UI language"
+  );
+  assert.ok(
+    BIBLE_VIEW.includes("userPickedForLangRef.current = lang"),
+    "when the saved pref matches the current language, it must be respected (treated as a manual pick)"
+  );
+  // The critical fix: a saved pref in a DIFFERENT language must NOT block
+  // auto-select. This covers the BibleView remount scenario (user switches
+  // language, then navigates to the Bible view — BibleView mounts fresh with
+  // the old saved pref, but the new language should win).
+  assert.ok(
+    BIBLE_VIEW.includes("Saved pref is in a different language"),
+    "when the saved pref is in a different language, auto-select must fall through"
   );
 });
 

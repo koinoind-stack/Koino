@@ -46,6 +46,7 @@ import {
   DEFAULT_VERSION_REF,
   VERSION_STORAGE_KEY,
   findTeluguVersion,
+  findVersion,
   formatVersionRef,
   parseVersionRef,
   resolveVersionOrGeneric,
@@ -253,11 +254,37 @@ export default function BibleView({
     // without a persisted preference).
     if (!autoSelectPendingRef.current) return;
 
-    // First mount: if a persisted preference was loaded, respect it — do not
-    // auto-select. This preserves the user's saved choice across refreshes.
+    // First mount (prevLang === null): BibleView unmounts/remounts when the
+    // user navigates between SPA views, so this fires every time they open
+    // the Bible — not just on page refresh. We must distinguish:
+    //   (a) the saved pref is in the CURRENT UI language → respect it (the
+    //       user explicitly chose this version for this language, or refreshed
+    //       the page without changing language);
+    //   (b) the saved pref is in a DIFFERENT language → auto-select must fire
+    //       (e.g., user was on English with KJV saved, switched to Telugu,
+    //       then opened the Bible — the English KJV pref should NOT block the
+    //       Telugu auto-select).
+    // To tell the difference we need the catalogue (to look up the saved
+    // ref's languageTag). If the catalogue isn't loaded yet, stay pending and
+    // retry when it arrives.
     if (prevLang === null && persistedLoadedRef.current) {
-      autoSelectPendingRef.current = false;
-      return;
+      if (catalog.enabled) {
+        const saved = findVersion(versionRef, catalog.versions);
+        const savedLang = saved?.languageTag ?? null;
+        // Treat the English default as English even if not in the catalogue.
+        const inferredLang =
+          savedLang ?? (versionRef === DEFAULT_VERSION_REF ? "en" : null);
+        if (inferredLang === lang) {
+          // Saved pref is in the current UI language → respect it.
+          userPickedForLangRef.current = lang;
+          autoSelectPendingRef.current = false;
+          return;
+        }
+        // Saved pref is in a different language → fall through to auto-select.
+      } else {
+        // Catalogue not loaded yet — stay pending, retain previous.
+        return;
+      }
     }
 
     // Resolve the target translation for the current language.
