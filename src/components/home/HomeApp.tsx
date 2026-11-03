@@ -15,6 +15,7 @@ import {
   Home as HomeIcon,
   HeartHandshake,
   ListChecks,
+  Library,
   Grid,
   X,
   Shield,
@@ -96,6 +97,7 @@ type View =
   | "trivia"
   | "prayer-wall"
   | "apologetics"
+  | "knowledge" // Articles & Knowledge (Phase 2) → /knowledge (public App Router page)
   | "shop"
   | "list-church"
   | "list-business" // kept for backward-compat route (the ListYourEntity form)
@@ -136,6 +138,7 @@ const SIDEBAR_CATEGORIES: {
     labelKey: "side.cat.grow",
     icon: Sparkles,
     links: [
+      { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
       { id: "comic", icon: Sparkles, labelKey: "side.comics" },
       { id: "trivia", icon: Award, labelKey: "side.trivia" },
       { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
@@ -204,6 +207,7 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] =
   { id: "trivia", icon: Award, labelKey: "nav.trivia" },
   { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
   { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
+  { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
   { id: "shop", icon: Store, labelKey: "side.marketplace" },
   { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
   { id: "blog", icon: FileText, labelKey: "side.blog" },
@@ -619,7 +623,7 @@ export default function Home() {
     // Fire-and-forget analytics if available, then perform a full route
     // navigation. Mirrors navigate() cleanup so the More sheet closes
     // immediately on mobile.
-    if (v === "blog" || v === "support" || v === "memorials" || v === "videos") {
+    if (v === "blog" || v === "support" || v === "memorials" || v === "videos" || v === "knowledge") {
       setShowMoreSheet(false);
       setHeaderVisible(true);
       try {
@@ -631,6 +635,7 @@ export default function Home() {
               v === "blog" ? "blog_nav_click" :
               v === "memorials" ? "memorials_nav_click" :
               v === "videos" ? "videos_nav_click" :
+              v === "knowledge" ? "knowledge_nav_click" :
               "support_koino_nav_click",
             source: "sidebar",
           }),

@@ -155,6 +155,10 @@ model User {
   reviewedBlogPosts   BlogPost[] @relation("BlogPostReviewer")
   publishedBlogPosts  BlogPost[] @relation("BlogPostPublisher")
 
+  // Articles & Knowledge Phase 2 — unified-model authorship (additive,
+  // nullable until the Phase 3 author resolution backfill)
+  authoredKoinoArticles KoinoArticle[] @relation("KoinoArticleAuthor")
+
   // Matrimony (Task 74 Stage B) — one private profile per member
   matrimonyProfile    MatrimonyProfile?
   matrimonyAuditLogs  MatrimonyAuditLog[] @relation("MatrimonyAuditActor")
@@ -412,6 +416,12 @@ model Post {
   // so a later republication restores the discussion.
   article      BlogPost?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
   articleId    String?         @unique
+  // Articles & Knowledge Phase 2 (Plan v2 §2.6): second wrapper FK pointing at
+  // the unified KoinoArticle model. Populated during the Phase 3 migration
+  // (one wrapper per article — @unique); the legacy `articleId` column above
+  // is kept in parallel until the optional Phase 9 retirement.
+  unifiedArticle KoinoArticle? @relation("UnifiedArticleFeedWrapper", fields: [unifiedArticleId], references: [id], onDelete: SetNull)
+  unifiedArticleId String?     @unique
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -1406,17 +1416,120 @@ model KoinoArticle {
   seoDescription  String?
   canonicalUrl    String?
   viewCount       Int      @default(0)
+  // ─── Articles & Knowledge Phase 2 (Plan v2 §2.6) — additive, nullable ────
+  // Real authorship for any member (port of BlogPost.authorUserId); nullable
+  // until the Phase 3 backfill resolves legacy display-name authors.
+  authorUserId    String?
+  // Server-computed reading time (port of BlogPost.readingMinutes); nullable
+  // until the Phase 3 backfill computes it for existing rows.
+  readingMinutes  Int?
+  // ISO 639-1 code, default "en" — feed language signal for Phase 8.
+  language        String   @default("en")
+  // Canonical DB-managed category reference. The legacy `category` string
+  // column above is RETAINED in parallel until the optional Phase 9.
+  categoryId      String?
+  // Import marker for the Phase 3 BlogPost→KoinoArticle backfill: idempotent
+  // (unique), cleanly rollbackable, and a full audit trail of imported rows.
+  legacyBlogPostId String? @unique
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   series          ArticleSeries? @relation(fields: [seriesId], references: [id])
   author          Contributor?   @relation(fields: [authorId], references: [id])
+  authorUser      User?          @relation("KoinoArticleAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  taxonomyCategory Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topics          ArticleTopic[]
+  unifiedFeedWrappers Post[]    @relation("UnifiedArticleFeedWrapper")
 
   @@index([status, contentType, publishedAt])
   @@index([category])
   @@index([status])
   @@index([slug])
   @@index([sourceQuestionId])
+  @@index([categoryId])
+  @@index([authorUserId])
+}
+
+// ─── Articles & Knowledge Phase 2 — DB-managed taxonomy (Plan v2 §2.3/2.4) ──
+// Categories and topics are DATABASE tables managed through the admin
+// Taxonomy panel — the static registries in src/lib/* are demoted to seed
+// data + validation enums only (Plan v2 §2.5).
+
+// Broad editorial section used for browsing and filters. Seeded with the six
+// canonical sections (Apologetics, Bible Study, Christian Living, Church and
+// Ministry, Community, Prayer and Encouragement) — renamable/extendable by
+// admins without code changes.
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique // URL + SEO slug, admin-editable
+  description String?
+  iconKey     String?  // lucide icon name (crosscrafted-data.ts icon pattern)
+  imageUrl    String?
+  isActive    Boolean  @default(true) // soft deactivation — pickers hide, URLs survive
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topics   Topic[]
+  articles KoinoArticle[]
+
+  @@index([isActive, sortOrder])
+}
+
+// Admin-created subject (e.g. "Problem of Evil") — many per article via the
+// ArticleTopic join. legacyKey preserves the six existing SPA topic ids
+// exactly, so UserQuestion.category values and SPA deep links keep working
+// with zero question data migration.
+model Topic {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique // URL + SEO slug, admin-editable
+  legacyKey        String?  @unique // six legacy APOLOGETICS_TOPICS ids; null for new topics
+  parentCategoryId String
+  description      String?
+  iconKey          String?
+  imageUrl         String?
+  color            String?  // hex color preserved from the SPA topic registry
+  isActive         Boolean  @default(true) // soft deactivation — pickers hide, associations survive
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  parentCategory Category     @relation(fields: [parentCategoryId], references: [id], onDelete: Restrict)
+  articles       ArticleTopic[]
+
+  @@index([parentCategoryId])
+  @@index([isActive, sortOrder])
+}
+
+// Many-to-many article ↔ topic association (one article may carry multiple
+// topics). Both sides cascade: deleting an article or a topic removes the
+// association rows only — never the content on the other side.
+model ArticleTopic {
+  id        String   @id @default(cuid())
+  articleId String
+  topicId   String
+  createdAt DateTime @default(now())
+
+  article KoinoArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  topic   Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, topicId])
+  @@index([topicId])
+}
+
+// 301 map for the rare blog/apologetics slug collisions discovered by the
+// Phase 3 migration scan (Plan v2 Table 7). Written by the migration, served
+// by the read-cutover phase (Phase 4).
+model SlugRedirect {
+  id        String   @id @default(cuid())
+  fromSlug  String   @unique
+  toSlug    String
+  createdAt DateTime @default(now())
+
+  @@index([toSlug])
 }
 
 model ArticleSeries {

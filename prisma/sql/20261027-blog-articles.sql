@@ -1,3 +1,16 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- HISTORICAL REFERENCE FILE — DO NOT EXECUTE (Plan v2 defect 18 annotation).
+-- Name misnomer: despite the "20261027-blog-articles.sql" filename, this file
+-- ONLY covers the Task 73 BlogPost workflow columns + Post.articleId wrapper
+-- FK — not the wider 20261027 batch it was once grouped with. It has already
+-- been applied to production via the tracked Prisma migration for Task 73;
+-- it is kept verbatim as an audit trail. DO NOT rename (external references)
+-- and DO NOT re-run (the UPDATE below is not idempotent-safe against later
+-- workflow edits).
+-- Current schema of record: prisma/schema.prisma. Phase 2 taxonomy migration:
+-- prisma/migrations/20261103000000_unified_taxonomy/migration.sql.
+-- ─────────────────────────────────────────────────────────────────────────────
+
 -- AlterTable
 ALTER TABLE "Post" ADD COLUMN     "articleId" TEXT;
 
