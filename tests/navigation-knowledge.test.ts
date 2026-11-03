@@ -167,12 +167,18 @@ test("P2FIX-CT-2: labels and descriptions cover all six types (landing card cont
 });
 
 test("P2FIX-CT-3: the /knowledge landing has no dead 'Coming soon' card", () => {
+  // Localized page chrome (Phase: Telugu support) lives in the client
+  // component; the server page keeps DB reads + metadata. The card grid
+  // contract follows the chrome.
   const page = read("src/app/knowledge/page.tsx");
+  const client = read("src/components/crosscrafted/KnowledgeHubContent.tsx");
   assert.doesNotMatch(page, /Coming soon/);
-  assert.match(page, /CONTENT_TYPE_ROUTES\[type\]/);
-  assert.match(page, /CONTENT_TYPE_DESCRIPTIONS\[type\]/);
+  assert.doesNotMatch(client, /Coming soon/);
+  assert.match(client, /CONTENT_TYPE_ROUTES\[type\]/);
+  // Descriptions render localized (dictionary-driven), not the English lib map.
+  assert.match(client, /KNOWLEDGE_TYPE_KEYS\[type\]\.desc/);
   // Card grid renders ALL six types as links.
-  assert.match(page, /CONTENT_TYPES\.map\(\(type\) =>/);
+  assert.match(client, /CONTENT_TYPES\.map\(\(type\) =>/);
 });
 
 test("P2FIX-CT-4: /knowledge/browse is a read-only listing over the existing KoinoArticle model", () => {
@@ -196,12 +202,13 @@ test("P2FIX-CT-4: /knowledge/browse is a read-only listing over the existing Koi
 
 test("P2FIX-CT-5: browse detail links stay inside existing surfaces", () => {
   const page = read("src/app/knowledge/browse/page.tsx");
-  // Blog and Apologetics never render here — they redirect to their
-  // canonical listings; the remaining types only link out via an explicit
-  // canonicalUrl (no invented detail system).
+  const client = read("src/components/crosscrafted/KnowledgeBrowseContent.tsx");
+  // Blog and Apologetics never render here — they redirect (server-side) to
+  // their canonical listings; the remaining types only link out via an
+  // explicit canonicalUrl (no invented detail system).
   assert.match(page, /redirect\("\/apologetics"\)/);
-  assert.match(page, /const href = a\.canonicalUrl \|\| null/);
-  assert.doesNotMatch(page, /\/apologetics\/\$\{a\.slug\}/);
+  assert.match(client, /const href = a\.canonicalUrl \|\| null/);
+  assert.doesNotMatch(client, /\/apologetics\/\$\{a\.slug\}/);
 });
 
 // ─── 4. Apologetics Q&A accessibility ───────────────────────────────────────
