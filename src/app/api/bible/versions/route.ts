@@ -12,8 +12,12 @@
 //
 // SECURITY: the App Key stays on the server; this endpoint exposes version
 // metadata only (names, abbreviations, language tags, public copyright text).
+// ABUSE GUARD: per-client rate limit (rateLimitClient) — the public reader
+// only needs the catalogue on mount, so 30/min/client is far above normal
+// reading while capping catalogue-freshening loops and scrapers.
 
 import { NextResponse } from "next/server";
+import { rateLimitClient } from "@/lib/social/rate-limit";
 import { getYouVersionCatalog } from "@/lib/youversion/catalog";
 import { getYouVersionConfig } from "@/lib/youversion/config";
 import {
@@ -24,7 +28,17 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+const RATE_LIMIT = 30;
+const RATE_WINDOW_MS = 60_000;
+
+export async function GET(request: Request) {
+  if (!rateLimitClient(request, "bible:versions", RATE_LIMIT, RATE_WINDOW_MS)) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   const cfg = getYouVersionConfig();
   const youVersionVersions = await getYouVersionCatalog();
 
