@@ -14,12 +14,10 @@ import {
   Sparkles,
   Home as HomeIcon,
   HeartHandshake,
-  ListChecks,
   Library,
   Grid,
   X,
   Shield,
-  FileText,
   HandHeart,
   Bell,
   CircleUser,
@@ -138,10 +136,15 @@ const SIDEBAR_CATEGORIES: {
     labelKey: "side.cat.grow",
     icon: Sparkles,
     links: [
+      // Articles & Knowledge is the SINGLE written-content destination
+      // (Phase 2 follow-up): Blog and Apologetics are reached from inside
+      // /knowledge (their public routes /blog and /apologetics still exist
+      // and keep working). The standalone "apologetics" sidebar entry was
+      // removed — Apologetics Q&A stays reachable via /apologetics and the
+      // ?view=apologetics deep link (share links + notifications).
       { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
       { id: "comic", icon: Sparkles, labelKey: "side.comics" },
       { id: "trivia", icon: Award, labelKey: "side.trivia" },
-      { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
       { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
     ],
   },
@@ -175,7 +178,9 @@ const SIDEBAR_CATEGORIES: {
     labelKey: "side.cat.more",
     icon: Grid,
     links: [
-      { id: "blog", icon: FileText, labelKey: "side.blog" },
+      // "blog" intentionally removed: Blog is a content type inside
+      // Articles & Knowledge (Grow), not a separate destination. The admin
+      // CMS keeps its own Blog management tab inside the Admin view.
       { id: "support", icon: HandHeart, labelKey: "side.support" },
       { id: "admin", icon: Shield, labelKey: "nav.admin" },
     ],
@@ -206,11 +211,12 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] =
   { id: "events", icon: Calendar, labelKey: "side.events" },
   { id: "trivia", icon: Award, labelKey: "nav.trivia" },
   { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
-  { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
+  // "apologetics" and "blog" intentionally removed from the mobile More
+  // sheet — written content is unified under Articles & Knowledge, matching
+  // the desktop sidebar. Their routes and deep links are unchanged.
   { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
   { id: "shop", icon: Store, labelKey: "side.marketplace" },
   { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
-  { id: "blog", icon: FileText, labelKey: "side.blog" },
   { id: "support", icon: HandHeart, labelKey: "side.support" },
   { id: "admin", icon: Shield, labelKey: "nav.admin" },
 ];
@@ -494,6 +500,14 @@ export default function Home() {
       return;
     }
     if (!deepView) return;
+
+    // Articles & Knowledge is a public App Router page, not a rendered SPA
+    // view — /?view=knowledge deep links (shares, old bookmarks) go straight
+    // there instead of silently falling through as an unknown view.
+    if (deepView === "knowledge") {
+      window.location.replace("/knowledge");
+      return;
+    }
 
     // Part 5: Bible passage deep links from video pages — and, since Task 121,
     // shared verse links carry an optional &verse= that scrolls to the verse.
