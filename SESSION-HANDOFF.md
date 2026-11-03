@@ -200,7 +200,8 @@ PR #20 (`feature/bible-endpoint-rate-limit` → `main`) was merged by the owner:
   test file* (never loaded against the network). No direct push to `main`, no
   force-push.
 - **Push status:** commits are ready on the local branch (`3a4b9d6` fixes+tests,
-  plus the handoff-doc commit on top — tip of `feature/phase1-security-visibility`).
+  `707e429` handoff doc, plus this session's re-verification record — tip of
+  `feature/phase1-security-visibility`).
   The sandbox holds **no GitHub
   credentials** (the previous session's temporary token was deleted after use,
   per protocol), so `git push` could not authenticate and was NOT executed;
@@ -210,3 +211,28 @@ PR #20 (`feature/bible-endpoint-rate-limit` → `main`) was merged by the owner:
   for the owner to push from their side (or to restore credentials for), after
   which the PR can be opened. Phase 2 does not start until the owner approves
   the Phase 1 gate.
+
+### 10.3 Owner-gate re-verification (2026-11-03, Phase 1 delivery session)
+
+Before delivery, ALL quality gates were re-run fresh against the branch tip
+(`707e429`) — not trusted from the earlier session's records:
+
+| Gate | Result |
+|---|---|
+| Full test suite (`npm test`) | **193/193 passed**, 0 failed, 0 skipped (165 pre-existing + 28 new `tests/blog-visibility-gate.test.ts`) |
+| TypeScript (`npx tsc --noEmit`) | **0 errors in changed files**; 3 pre-existing errors in untouched files (`examples/websocket/frontend.tsx`, `examples/websocket/server.ts`, `scripts/translate-missing-i18n.ts` — none is part of the Next build) |
+| Lint (`npm run lint`) | **0 errors in changed files**; 2 pre-existing errors in untouched `src/components/crosscrafted/ComicView.tsx` (lines 707/752, `require()` imports) + 78 pre-existing warnings |
+| Production build (`npm run build`) | **exit 0** — ✓ compiled successfully, ✓ 107/107 static pages. (One earlier run showed transient `noto_sans_telugu` Google-Fonts fetch warnings from the sandbox network; a clean run had 0 such lines and exit 0.) |
+| Off-limits scan of the full diff (`git diff 426e0f8..HEAD --name-only`) | **CLEAN** — no `youversion/*`, `bible-*`, `proxy.ts`, `.env*`, Prisma schema/migrations, or any Bible/YouVersion surface in the diff (15 files: 13 code/test files + package.json test-registration line + this handoff) |
+| Branch parentage | `git rev-parse 3a4b9d6^` = `426e0f85ffea315c0fef2b087f466ba0700bdf54` — branch cut exactly from verified `main` |
+
+- **Push attempt (this session):** `git push -u origin feature/phase1-security-visibility`
+  → `fatal: could not read Username for 'https://github.com'` (terminal prompts
+  disabled). No credentials exist in the sandbox; none were requested. The
+  delivery bundle was regenerated at the final tip and verified
+  (`git bundle verify` + test-clone) before handoff.
+- **Scope confirmation:** the implemented fixes are exactly the eight of
+  Plan v2 Ch. 6 §6.1 listed in §10.2 — no Phase 2 work (taxonomy, DB schema,
+  contributor invitations, dashboards, serializer unification, feed
+  re-ordering) was started. The feed change is confined to the visibility
+  gate inside article serialization (2 lines); ordering is untouched.
