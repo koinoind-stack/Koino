@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import { GeistSans } from "geist/font/sans";
 // Indic UI fonts — Devanagari (Hindi) and Telugu script renderers so the
 // translated interface uses proper, consistently-shaped glyphs on every
 // platform instead of falling back to whatever the OS happens to provide.
 //
-// ALL three fonts are loaded LOCALLY (next/font/local + the geist npm package
-// which itself wraps next/font/local). The previous next/font/google imports
-// fetched font CSS/woff2 from Google Fonts at build time — a build-time network
-// dependency that intermittently broke Vercel production builds with
-// "module-not-found" errors on the noto_sans_devanagari CSS file. Local fonts
-// eliminate that flake entirely: no build-time network fetch, no DNS failure,
-// no intermittent deploy breakage.
+// ALL fonts are loaded LOCALLY: no build-time network fetch (the previous
+// next/font/google imports intermittently broke Vercel production builds
+// with "module-not-found" errors on the noto_sans_devanagari CSS file).
+//
+// PERF (launch audit): the Devanagari/Telugu faces are NOT loaded through
+// next/font/local anymore — that preloaded BOTH full TTFs (628KB + 868KB)
+// on every page for every visitor, including English-only readers. They are
+// now plain self-hosted WOFF2 subsets (216KB + 244KB) declared in
+// globals.css with `unicode-range`, so the browser downloads a face ONLY
+// when the page actually renders that script: 0 bytes for English visits,
+// one face for Hindi or Telugu visits. The original TTFs stay in
+// public/fonts — the server-side share-card renderer reads them from disk.
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -20,20 +24,6 @@ import ServiceWorkerRegister from "./register-sw";
 import { BRAND, SITE_TITLE, siteUrl } from "@/lib/brand";
 
 const geistSans = GeistSans;
-
-const notoDevanagari = localFont({
-  src: "../../public/fonts/NotoSansDevanagari.ttf",
-  variable: "--font-devanagari",
-  weight: "100 900",
-  display: "swap",
-});
-
-const notoTelugu = localFont({
-  src: "../../public/fonts/NotoSansTelugu.ttf",
-  variable: "--font-telugu",
-  weight: "100 900",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.url),
@@ -79,7 +69,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} antialiased bg-[#12101A] text-white`}>
+      <body className={`${geistSans.variable} antialiased bg-[#12101A] text-white`}>
         <Providers>
           {children}
           <Toaster />
