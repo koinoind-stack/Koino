@@ -94,7 +94,7 @@ type SubmitResult = {
 };
 
 export default function TriviaView() {
-  const { user, isAuthenticated, points: userPoints } = useSupabaseUser();
+  const { user, isAuthenticated, points: userPoints, loading: userLoading } = useSupabaseUser();
   const t = useTranslation();
   const api = useTriviaApi();
 
@@ -430,7 +430,7 @@ export default function TriviaView() {
       <AnimatePresence mode="wait">
         {activeTab === "play" && (
           <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <LevelUpAnimation totalPoints={userPoints || 0} />
+            <LevelUpAnimation totalPoints={userPoints || 0} ready={!userLoading} />
             {gameState === "setup" && (
               <div className="space-y-5">
                 <StreakBadge activity="trivia_play" />
