@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import { getTriviaTePack } from "@/lib/i18n/content/trivia-te-pack";
 
 /**
  * POST /api/trivia/competitions/[id]/start
@@ -31,6 +32,19 @@ export async function POST(
     }
 
     const { id: competitionId } = await params;
+
+    // Optional UI language for question content (Telugu ONLY — every other
+    // language keeps the DB-translations → English behavior, mirroring
+    // /api/trivia/start). The client sends `lang` from useLanguage().
+    let lang = "en";
+    try {
+      const body = await req.json();
+      if (body && typeof body.lang === "string") lang = body.lang;
+    } catch {
+      // no body / malformed body — default to English
+    }
+    const validLangs = ["en", "hi", "bn", "te", "mr", "ta", "gu", "ur", "kn", "or", "ml", "pa", "as"];
+    if (!validLangs.includes(lang)) lang = "en";
 
     // ─── 1. Validate competition exists + is live ───
     const competition = await db.triviaCompetition.findUnique({
@@ -109,7 +123,14 @@ export async function POST(
     });
 
     // ─── 5. Return questions WITHOUT correct answers ───
-    // Parse options from JSON string, strip correctAnswer + explanation
+    // Translation priority per question (Telugu ONLY — mirrors /api/trivia/start):
+    //   (1) DB `translations` column — operator-populated, wins if present;
+    //   (2) static Telugu content pack shipped with the build (loaded only
+    //       when lang === "te");
+    //   (3) English original — honest fallback so a Telugu quiz never 500s.
+    // The correct-answer index is NEVER changed by translation: only the
+    // option TEXT is translated, position-for-position.
+    const tePack = lang === "te" ? getTriviaTePack() : null;
     const questionsForClient = selected.map((q, idx) => {
       let options: string[] = [];
       try {
@@ -117,11 +138,19 @@ export async function POST(
       } catch {
         options = [];
       }
+      let translated: { question?: string; options?: string[]; explanation?: string } | null = null;
+      try {
+        const allTranslations = JSON.parse(q.translations || "{}");
+        translated = allTranslations[lang] || null;
+      } catch {
+        // Malformed JSON — fall back to the pack or English
+      }
+      const packed = tePack?.[q.questionId] || null;
       return {
         index: idx,
         questionId: q.questionId,
-        question: q.question,
-        options,
+        question: translated?.question || packed?.q || q.question,
+        options: translated?.options || packed?.options || options,
         category: q.category,
         difficulty: q.difficulty,
       };
