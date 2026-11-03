@@ -7,10 +7,12 @@
 //     served through bible-api.com (KJV, WEB). Used only when YouVersion is
 //     disabled, fails, or cannot serve an equivalent version.
 //
-// Scripture language is decoupled from the Koino UI language: the selector
-// lists English + Indian-language versions and the user picks freely — e.g.
-// browse Koino in Telugu while reading the English KJV, or browse in English
-// while reading a licensed Telugu Bible.
+// Scripture language stays decoupled from the Koino UI language for every
+// locale EXCEPT one deliberate exception: when the site language is Telugu,
+// the reader auto-selects the licensed Telugu Bible (see
+// BIBLE_AUTOSELECT_LANGUAGE + findTeluguVersion below). The selector always
+// remains fully manual — the auto-selection only defaults the reader; it is
+// suppressed by any manual pick and never fires for another UI language.
 //
 // SECURITY: this module must never import the YouVersion config (which holds
 // the App Key). It contains data + pure helpers only, safe for client bundles.
@@ -49,6 +51,32 @@ export type VersionRef = string;
 
 export const DEFAULT_VERSION_REF: VersionRef = "koino:kjv";
 export const VERSION_STORAGE_KEY = "cc_bible_version";
+
+/**
+ * The ONE UI language whose Bible version is auto-selected (Telugu only,
+ * by explicit product decision). Every other UI language — including the
+ * remaining Indian languages — keeps the fully manual selection: the UI
+ * language never changes the Bible version for them.
+ */
+export const BIBLE_AUTOSELECT_LANGUAGE = "te";
+
+/**
+ * The licensed Telugu Bible from the catalogue, for the Telugu
+ * auto-selection. The concrete id is owned by the live catalogue (IRV
+ * Telugu today) and is resolved by language tag on purpose: never hardcode
+ * a numeric YouVersion id here, so catalogue updates are picked up without
+ * code changes.
+ *
+ * Returns null when no selectable Telugu version exists (catalogue disabled
+ * or lists none) — callers must retain the user's previous selection.
+ */
+export function findTeluguVersion(versions: BibleVersion[]): BibleVersion | null {
+  return (
+    versions.find(
+      (v) => v.languageTag === BIBLE_AUTOSELECT_LANGUAGE && !v.coveredByYouVersion
+    ) || null
+  );
+}
 
 export function formatVersionRef(v: Pick<BibleVersion, "provider" | "id">): VersionRef {
   return `${v.provider}:${v.id}`;
