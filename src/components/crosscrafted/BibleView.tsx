@@ -42,8 +42,11 @@ import {
   type Bookmark as BookmarkType,
 } from "@/lib/bible-data";
 import {
+  BIBLE_AUTOSELECT_LANGUAGE,
   DEFAULT_VERSION_REF,
   VERSION_STORAGE_KEY,
+  findTeluguVersion,
+  findVersion,
   formatVersionRef,
   parseVersionRef,
   resolveVersionOrGeneric,
@@ -93,9 +96,21 @@ export default function BibleView({
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   // Unified version selection (YouVersion primary + Koino fallback).
-  // Scripture language is INDEPENDENT of the UI language: the user picks the
-  // Bible version in the selector; the interface language never changes it.
+  // Scripture language stays independent of the UI language for every locale
+  // EXCEPT Telugu (BIBLE_AUTOSELECT_LANGUAGE): while the site language is
+  // Telugu, the reader auto-selects the licensed Telugu Bible from the
+  // catalogue — on mount and whenever the site language changes into Telugu.
+  // The selector remains fully manual: any pick here suppresses the
+  // auto-selection until Telugu is re-selected as the site language, and no
+  // other UI language ever changes the version.
   const [versionRef, setVersionRef] = useState<VersionRef>(DEFAULT_VERSION_REF);
+  // Telugu auto-selection guards (session-scoped, never persisted):
+  //   userPickedRef — a manual selector pick wins over the auto-selection
+  //                   until the site language re-enters Telugu.
+  //   prevLangRef   — detects the transition INTO Telugu so re-selecting
+  //                   Telugu re-arms the auto-selection.
+  const userPickedRef = useRef(false);
+  const prevLangRef = useRef(lang);
   const [catalog, setCatalog] = useState<{ enabled: boolean; versions: BibleVersion[] }>({
     enabled: false,
     versions: KOINO_FALLBACK_VERSIONS,
@@ -148,16 +163,58 @@ export default function BibleView({
     };
   }, []);
 
-  const selectVersion = (v: BibleVersion) => {
-    const ref = formatVersionRef(v);
+  // Single persistence write path for the version selection: React state +
+  // the EXISTING localStorage preference (VERSION_STORAGE_KEY — the same key
+  // the reading-plan previews and cross-tab mirror read). Used by the manual
+  // selector and by the Telugu auto-selection alike; no new storage surface.
+  const applyVersionRef = useCallback((ref: VersionRef) => {
     setVersionRef(ref);
     try {
       localStorage.setItem(VERSION_STORAGE_KEY, ref);
     } catch {
       // storage unavailable — selection persists for this session only
     }
+  }, []);
+
+  const selectVersion = (v: BibleVersion) => {
+    userPickedRef.current = true; // a manual pick suppresses the Telugu auto-selection
+    applyVersionRef(formatVersionRef(v));
     setVersionMenuOpen(false);
   };
+
+  // ─── Telugu auto-selection (Telugu ONLY — deliberate product exception) ────
+  // When the site language is Telugu, default the reader to the licensed
+  // Telugu Bible from the catalogue (resolved by languageTag — the concrete
+  // id is the catalogue's, never hardcoded). Fires on mount while the site
+  // language is Telugu and on the transition INTO Telugu. Guards, in order:
+  //   • any UI language other than Telugu → no-op (no automatic switching,
+  //     and switching AWAY from Telugu never reverts the version either);
+  //   • a manual pick in the selector wins until Telugu is re-selected;
+  //   • catalogue unavailable (YouVersion disabled / endpoint failed) or
+  //     lists no Telugu version → no-op, previous selection retained;
+  //   • already reading a Telugu version (this one or another) → no-op, so
+  //     refresh, navigation and manual Telugu-to-Telugu picks are preserved.
+  // Chapter fetch failures keep the existing graceful path (error text +
+  // toast, previous text retained, selection intact).
+  useEffect(() => {
+    const reenteredTelugu =
+      lang === BIBLE_AUTOSELECT_LANGUAGE &&
+      prevLangRef.current !== BIBLE_AUTOSELECT_LANGUAGE;
+    prevLangRef.current = lang;
+    if (lang !== BIBLE_AUTOSELECT_LANGUAGE) return; // Telugu ONLY
+    if (reenteredTelugu) userPickedRef.current = false; // re-selecting Telugu re-arms
+    if (userPickedRef.current) return; // manual selection always wins
+    if (!catalog.enabled) return; // catalogue unavailable → retain previous version
+    const teVersion = findTeluguVersion(catalog.versions);
+    if (!teVersion) return; // no Telugu Bible in the catalogue → retain previous version
+    const teRef = formatVersionRef(teVersion);
+    if (versionRef === teRef) return; // already reading the auto-selected Telugu Bible
+    const current = findVersion(versionRef, catalog.versions);
+    if (current && current.languageTag === BIBLE_AUTOSELECT_LANGUAGE) {
+      return; // another Telugu version is selected (manual Telugu choice) → keep it
+    }
+    applyVersionRef(teRef);
+  }, [lang, catalog, versionRef, applyVersionRef]);
 
   // Load bookmarks on mount
   useEffect(() => {
