@@ -209,6 +209,7 @@ export const en: Record<string, string> = {
   "admin.tab.contactMessages": "Contact Messages",
   "admin.tab.partnerInquiries": "Partner Inquiries",
   "admin.tab.contributors": "Contributors",
+  "admin.tab.taxonomy": "Taxonomy",
   "admin.tab.blog": "Blog & Articles",
 
   // ─── Trivia view ───
@@ -2817,6 +2818,7 @@ export const en: Record<string, string> = {
   "side.marketplace": "Marketplace",
   "side.businessDirectory": "Business Directory",
   "side.cat.more": "More",
+  "side.knowledge": "Articles & Knowledge",
   "side.blog": "Blog",
   "side.support": "Support",
   "side.appHome": "App Home",
