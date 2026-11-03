@@ -236,3 +236,66 @@ Before delivery, ALL quality gates were re-run fresh against the branch tip
   contributor invitations, dashboards, serializer unification, feed
   re-ordering) was started. The feed change is confined to the visibility
   gate inside article serialization (2 lines); ordering is untouched.
+
+## 11. Session update (2026-11-03) — Articles & Knowledge Phase 2 implemented
+
+Branch `feature/articles-knowledge-phase2` (from `main` @ `1dbd489`, the PR #21
+merge). Scope: Plan v2 §5.3 (Taxonomy & Content-Type Foundations) + the owner's
+Phase 2 instruction. Nothing merged, nothing deployed.
+
+### 11.1 What was built
+
+- **Schema (additive only):** `Category`, `Topic` (+ `legacyKey` @unique),
+  `ArticleTopic` (pair-unique join), `SlugRedirect`; `KoinoArticle` gains
+  `authorUserId`, `readingMinutes`, `language` (default "en"), `categoryId`,
+  `legacyBlogPostId` (@unique); `Post` gains `unifiedArticleId` (@unique,
+  named relation `UnifiedArticleFeedWrapper`). No drops, no type changes.
+- **Migration:** `prisma/migrations/20261103000000_unified_taxonomy/migration.sql`
+  (hand-written, additive-only). NOT run against any database — the owner runs
+  `prisma migrate deploy`, then `npx tsx prisma/scripts/seed-taxonomy.ts`
+  (idempotent upserts; six canonical categories; 12 topics incl. the six
+  preserved SPA legacy keys with their colors).
+- **Libs:** `src/lib/content-taxonomy.ts` (seed data + validation enums +
+  defaults ONLY — demoted per Plan §2.5); `src/lib/taxonomy-server.ts` (the
+  single runtime source: active pickers, legacy-key bridge for
+  `UserQuestion.category`, transactional article-topic replace-sets, slug
+  helpers, batch reorder).
+- **Admin APIs** (`/api/admin/taxonomy/*`): categories GET/POST, categories
+  `[id]` PATCH/DELETE (delete blocked with 409 when in use), categories
+  `reorder`; topics GET/POST (legacyKey not settable via API), topics `[id]`
+  PATCH/DELETE (legacy-keyed topics never hard-deleted; 409 when in use),
+  topics `reorder`; `articles/[id]/topics` GET/PUT (inactive topics cannot be
+  newly assigned). All carry the strict 401/403 guard (Phase 1 fix 12a
+  semantics); zod-validated.
+- **Admin UI:** `TaxonomyTab.tsx` wired into `AdminView` (tab "Taxonomy") —
+  create/edit/deactivate/reorder for both entities, usage counts, legacy-key
+  badges.
+- **Public foundation:** Grow sidebar gains "Articles & Knowledge"
+  (`side.knowledge`) → new public page `/knowledge` (force-dynamic) with
+  six content-type cards (BLOG/APOLOGETICS link to existing routes; others
+  honest "Coming soon") and DB-driven category→topic navigation with a
+  graceful empty state. `/blog` and `/apologetics` untouched.
+- **Defect 18:** `prisma/sql/20261027-blog-articles.sql` annotated
+  (historical, name misnomer, do-not-execute).
+- **Tests:** new `tests/taxonomy.test.ts` — 30 cases (content types, slugs,
+  seed integrity, picker/deactivation semantics, association guards, reorder,
+  authz matrix, schema/migration/wiring/i18n contracts).
+
+### 11.2 Verification actually run on this tree
+
+| Check | Result |
+| --- | --- |
+| `npm test` (full) | 224/224 passed (194 prior + 30 new), 0 failed |
+| `npx tsc --noEmit` | 0 errors in Phase 2 files; only the 3 pre-existing errors in `examples/` + `scripts/translate-missing-i18n.ts` (untouched, identical at main) |
+| `npx eslint` on changed files | 0 errors; 4 pre-existing unused-eslint-disable warnings at untouched lines |
+| `prisma validate` | valid (dummy DATABASE_URL; sandbox has none) |
+| `npm run build` | exit 0 — 111 static pages incl. `/knowledge` |
+
+### 11.3 What Phase 2 deliberately does NOT do
+
+No data migration (Phase 3 backfill), no read cutover of /blog //apologetics
+(Phase 4), no unified write path (Phase 5), no hub merge (Phase 6), no
+contributor invitations (Phase 7), no feed changes (Phase 8). Existing
+content, IDs, engagement, routes and the Q&A pipeline are untouched;
+`BlogPost` and `KoinoArticle` rows are exactly as before. Migration not run
+against any database; production untouched.
