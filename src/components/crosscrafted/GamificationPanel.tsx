@@ -16,7 +16,7 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 
 type DailyChallenge = {
   id: string;
@@ -54,6 +54,7 @@ type Badge = {
 
 export default function GamificationPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"daily" | "spin" | "badges">("daily");
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -71,16 +72,17 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
   // Badge state
   const [badges, setBadges] = useState<Badge[]>([]);
 
-  // Fetch daily challenge
+  // Fetch daily challenge (lang dep: refetches on language switch so the
+  // question text re-renders in the active language)
   const fetchChallenge = useCallback(async () => {
     try {
-      const res = await fetch("/api/gamification/daily-challenge");
+      const res = await fetch(`/api/gamification/daily-challenge?lang=${encodeURIComponent(lang)}`);
       if (res.status === 401) return;
       const data = await res.json();
       setChallenge(data.challenge || null);
     } catch {}
     setLoading(false);
-  }, []);
+  }, [lang]);
 
   // Fetch spin data
   const fetchSpin = useCallback(async () => {
@@ -113,7 +115,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, fetchChallenge, fetchSpin, fetchBadges]);
+  }, [isAuthenticated, lang, fetchChallenge, fetchSpin, fetchBadges]);
 
   // Submit daily challenge
   const submitChallenge = async () => {
@@ -123,7 +125,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
       const res = await fetch("/api/gamification/daily-challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedAnswer }),
+        body: JSON.stringify({ selectedAnswer, lang }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
