@@ -2,26 +2,57 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
+import { getTriviaTePack } from "@/lib/i18n/content/trivia-te-pack";
 
 /**
- * GET /api/gamification/daily-challenge
+ * GET /api/gamification/daily-challenge?lang=te
  * Returns today's challenge question (without correct answer).
  * Auto-creates a challenge if one doesn't exist for today.
  *
  * POST /api/gamification/daily-challenge
- * Body: { selectedAnswer: number }
+ * Body: { selectedAnswer: number, lang?: string }
  * Submits the daily challenge answer. Server verifies and awards 2x FP.
  */
+
+// Same language allowlist as /api/trivia/start — invalid values → English.
+const VALID_LANGS = ["en", "hi", "bn", "te", "mr", "ta", "gu", "ur", "kn", "or", "ml", "pa", "as"];
+
+function sanitizeLang(raw: unknown): string {
+  return typeof raw === "string" && VALID_LANGS.includes(raw) ? raw : "en";
+}
+
+// Translation priority (Telugu ONLY — mirrors /api/trivia/start):
+//   (1) DB `translations` column — operator-populated, wins if present;
+//   (2) static Telugu content pack shipped with the build (loaded only when
+//       lang === "te");
+//   (3) English original — honest fallback so a Telugu challenge never 500s.
+// The correct-answer INDEX is never changed by translation: only option TEXT
+// is translated, position-for-position, so index-based grading stays valid.
+function translationFor(lang: string, q: { questionId: string; translations?: string }) {
+  const tePack = lang === "te" ? getTriviaTePack() : null;
+  let translated: { question?: string; options?: string[]; explanation?: string } | null = null;
+  try {
+    const allTranslations = JSON.parse(q.translations || "{}");
+    translated = allTranslations[lang] || null;
+  } catch {
+    // Malformed translations JSON — fall back to the pack or English
+  }
+  const packed = tePack?.[q.questionId] || null;
+  return { translated, packed };
+}
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser();
     const userId = authUser?.id;
+
+    // Optional UI language for question content (query param — this is a GET).
+    const lang = sanitizeLang(req.nextUrl.searchParams.get("lang"));
 
     const today = todayStr();
 
@@ -77,15 +108,24 @@ export async function GET() {
         id: challenge.id,
         date: challenge.challengeDate,
         multiplier: challenge.multiplier,
-        question: {
-          id: question.questionId,
-          question: question.question,
-          options: JSON.parse(question.options),
-          difficulty: question.difficulty,
-          category: question.category,
-          basePoints: question.basePoints,
-          scriptureReference: question.scriptureReference,
-        },
+        question: (() => {
+          const { translated, packed } = translationFor(lang, question);
+          let options: string[] = [];
+          try {
+            options = JSON.parse(question.options);
+          } catch {
+            options = [];
+          }
+          return {
+            id: question.questionId,
+            question: translated?.question || packed?.q || question.question,
+            options: translated?.options || packed?.options || options,
+            difficulty: question.difficulty,
+            category: question.category,
+            basePoints: question.basePoints,
+            scriptureReference: question.scriptureReference,
+          };
+        })(),
         userAttempt: userAttempt
           ? {
               isCorrect: userAttempt.isCorrect,
@@ -112,6 +152,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { selectedAnswer } = body;
+    // Optional UI language for the returned explanation (Telugu ONLY).
+    const lang = sanitizeLang(body?.lang);
 
     if (typeof selectedAnswer !== "number") {
       return NextResponse.json({ error: "Missing selectedAnswer" }, { status: 400 });
@@ -192,11 +234,13 @@ export async function POST(req: NextRequest) {
 
     const updatedUser = await db.user.findUnique({ where: { id: userId } });
 
+    const { translated, packed } = translationFor(lang, question);
+
     return NextResponse.json({
       isCorrect,
       pointsAwarded,
       correctAnswer: question.correctAnswer,
-      explanation: question.explanation,
+      explanation: translated?.explanation || packed?.explanation || question.explanation,
       scriptureReference: question.scriptureReference,
       newTotalPoints: updatedUser?.totalPoints || 0,
     });
