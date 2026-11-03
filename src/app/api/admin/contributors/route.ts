@@ -3,10 +3,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 
-async function requireAdmin() {
+/**
+ * Phase 1 security fix 12a: this route's copy-pasted guard used to merge
+ * unauthenticated and unauthorized callers into a single bare 403. It now
+ * follows the shared 401/403 semantics every other admin guard uses
+ * (401 "Authentication required" / 403 "Admin access required"). The
+ * structural dedupe (importing the one shared helper) lands in Phase 5 —
+ * deliberately NOT bundled into this security patch.
+ */
+async function requireAdmin(): Promise<
+  | { user: NonNullable<Awaited<ReturnType<typeof getAuthUser>>>; response: null }
+  | { user: null; response: NextResponse }
+> {
   const user = await getAuthUser();
-  if (!user || user.role !== "admin") return null;
-  return user;
+  if (!user) {
+    return {
+      user: null,
+      response: NextResponse.json({ error: "Authentication required" }, { status: 401 }),
+    };
+  }
+  if (user.role !== "admin") {
+    return {
+      user: null,
+      response: NextResponse.json({ error: "Admin access required" }, { status: 403 }),
+    };
+  }
+  return { user, response: null };
 }
 
 /**
@@ -15,8 +37,9 @@ async function requireAdmin() {
  */
 export async function GET(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+    const admin = auth.user;
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
@@ -51,8 +74,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+    const admin = auth.user;
 
     const body = await req.json();
 

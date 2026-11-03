@@ -6,7 +6,8 @@ import { Calendar, ArrowLeft, Clock, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { BRAND, siteUrl } from "@/lib/brand";
-import { displayArticleAuthor } from "@/lib/blog-server";
+import { displayArticleAuthor, publicBlogPostWhere } from "@/lib/blog-server";
+import { isPubliclyVisible } from "@/lib/blog";
 import MarkdownRenderer from "@/components/crosscrafted/MarkdownRenderer";
 import ArticleShareBar from "@/components/blog/ArticleShareBar";
 
@@ -27,15 +28,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await db.blogPost.findUnique({ where: { slug } });
 
-  // Dual public-visibility gate for SEO (Task 73): legacy boolean + workflow
-  // status + schedule — unpublished content must never be indexed.
-  const now = new Date();
-  if (
-    !post ||
-    !post.published ||
-    post.status !== "published" ||
-    (post.publishedAt && post.publishedAt > now)
-  ) {
+  // Shared public-visibility gate for SEO (Task 73 + Phase 1 security fix 2):
+  // legacy boolean + workflow status + publishedAt + scheduledAt —
+  // unpublished or future-scheduled content must never be indexed.
+  if (!post || !isPubliclyVisible(post)) {
     return { title: "Article Not Found — Koino Blog" };
   }
 
@@ -83,16 +79,10 @@ export default async function BlogArticlePage({
     },
   });
 
-  // Visibility gate — drafts, pending submissions, rejected/archived and
-  // future-scheduled posts are NOT publicly visible (dual gate). Call
-  // notFound() so the response is a clean 404.
-  const now = new Date();
-  if (
-    !post ||
-    !post.published ||
-    post.status !== "published" ||
-    (post.publishedAt && post.publishedAt > now)
-  ) {
+  // Shared visibility gate (Phase 1 security fix 2) — drafts, pending
+  // submissions, rejected/archived and future-scheduled posts are NOT
+  // publicly visible. Call notFound() so the response is a clean 404.
+  if (!post || !isPubliclyVisible(post)) {
     notFound();
   }
 
@@ -120,12 +110,10 @@ export default async function BlogArticlePage({
   }
 
   // Fetch related posts — admin-picked first; if none were chosen, fall back
-  // to the latest published posts in the same category (Task 73).
-  const relatedVisibility = {
-    published: true,
-    status: "published",
-    OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
-  };
+  // to the latest published posts in the same category (Task 73). Related
+  // cards use the SAME shared gate (Phase 1 security fix 2) — a related card
+  // must never link to a post the public surfaces would 404.
+  const relatedVisibility = publicBlogPostWhere();
   const relatedSelect = {
     id: true,
     title: true,

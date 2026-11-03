@@ -114,6 +114,9 @@ export type VisibilityPost = {
   published: boolean;
   status: string;
   publishedAt: Date | null;
+  /** Phase 1 (security fix 2): future-scheduledAt posts are NOT public.
+   *  Optional so legacy callers that predate the column stay type-safe. */
+  scheduledAt?: Date | null;
 };
 
 /**
@@ -121,8 +124,13 @@ export type VisibilityPost = {
  *   1. legacy boolean gate (existing pages/APIs depend on it)
  *   2. workflow status === "published"
  *   3. publishedAt is null or in the past
+ *   4. scheduledAt is null or in the past (Phase 1 security fix 2 — the
+ *      admin "schedule this post" hint must never be a lie: a post with a
+ *      future scheduledAt is hidden on EVERY public surface)
  * Every public surface (blog page, article page, sitemap, feed wrapper,
- * related-post queries, search) must use this — never trust one field alone.
+ * share-card, related-post queries, search) must use this — never trust one
+ * field alone. For Prisma queries use the matching publicBlogPostWhere()
+ * builder in src/lib/blog-server.ts (same four legs as a where-clause).
  */
 export function isPubliclyVisible(
   post: VisibilityPost,
@@ -131,6 +139,7 @@ export function isPubliclyVisible(
   if (!post.published) return false;
   if (post.status !== "published") return false;
   if (post.publishedAt && post.publishedAt.getTime() > now.getTime()) return false;
+  if (post.scheduledAt && post.scheduledAt.getTime() > now.getTime()) return false;
   return true;
 }
 

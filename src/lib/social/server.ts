@@ -229,6 +229,7 @@ export const postSelect = {
       status: true,
       published: true,
       publishedAt: true,
+      scheduledAt: true, // Phase 1 security fix 2: gate must see the schedule hold
     },
   },
   editedAt: true,
@@ -319,6 +320,7 @@ export async function serializePosts(
         published: r.article.published,
         status: r.article.status,
         publishedAt: r.article.publishedAt,
+        scheduledAt: r.article.scheduledAt,
       })
         ? {
             id: r.article.id,

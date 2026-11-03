@@ -8,7 +8,7 @@ import {
   estimateReadingMinutes,
   BLOG_LIMITS,
 } from "@/lib/blog";
-import { getUniqueBlogSlug } from "@/lib/blog-server";
+import { getUniqueBlogSlug, syncArticleFeedWrapper } from "@/lib/blog-server";
 
 /**
  * GET  /api/blog/articles        — the signed-in member's own articles
@@ -158,6 +158,14 @@ export async function POST(req: NextRequest) {
       readingMinutes,
     },
   });
+
+  // Phase 1 security fix 4: an admin instant-publish must reach the home
+  // feed immediately — the same wrapper sync every other publish transition
+  // runs. Without this the article sat on /blog but out of the feed until a
+  // later edit or moderation action re-synced it.
+  if (wantPublish) {
+    await syncArticleFeedWrapper(article);
+  }
 
   return NextResponse.json({ article }, { status: 201 });
 }
