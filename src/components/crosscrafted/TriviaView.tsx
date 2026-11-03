@@ -307,8 +307,12 @@ export default function TriviaView() {
 
         // Show FP toast (non-blocking)
         if (result.totalPointsEarned > 0) {
-          toast.success(t("triviaView.fpEarnedToast", { n: result.totalPointsEarned }), {
-            description: t("triviaView.verifiedBalance", { n: result.newTotalPoints }),
+          const totalWithBonus =
+            result.totalPointsEarned + (result.doubleFpApplied ? result.bonusPoints || 0 : 0);
+          toast.success(t("triviaView.fpEarnedToast", { n: totalWithBonus }), {
+            description: result.doubleFpApplied
+              ? t("triviaView.doubleFpApplied", { n: result.bonusPoints || 0 })
+              : t("triviaView.verifiedBalance", { n: result.newTotalPoints }),
           });
         } else {
           toast(t("triviaView.zeroFp"), {
