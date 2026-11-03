@@ -132,3 +132,107 @@ rate limiting** — the only public Bible surface without an abuse guard. This s
   identity extraction); registered in the `npm test` file list. Full suite: **165/165
   passed** (156 pre-existing + 9 new). No YouVersion API request was made; the App
   Key was never accessed; `YOUVERSION_ENABLED` remains unset in code.
+
+---
+
+## 10. Session update (2026-11-03) — PR #20 merged; Articles & Knowledge Phase 1 implemented
+
+### 10.1 PR #20 merge recorded (housekeeping)
+
+PR #20 (`feature/bible-endpoint-rate-limit` → `main`) was merged by the owner:
+**`main` merge commit `426e0f85ffea315c0fef2b087f466ba0700bdf54`** (parents `4ac4dc4`
++ `6e0575d`). All Articles & Knowledge audit/plan work uses `426e0f8` as its basis.
+
+### 10.2 Articles & Knowledge — audit + Plan v2 delivered, Phase 1 implemented
+
+- **Audit** (read-only, basis `426e0f8`): two parallel content platforms
+  (`BlogPost` Task-73 workflow vs `KoinoArticle`+`UserQuestion` apologetics),
+  18 findings catalogued — delivered as
+  `Koino-Articles-Knowledge-Codebase-Audit.{md,docx,pdf}`.
+- **Plan v2** (approved by the owner): unified article model evolved additively
+  from `KoinoArticle`, DB-managed taxonomy (topics/categories admin-managed,
+  apologetics topic ids preserved), contributor invitation system, feed-wrapper-first
+  distribution, corrected roadmap **Phases 1–9** (no Phase 0), security/visibility
+  fixes isolated in Phase 1 — delivered as
+  `Koino-Articles-Knowledge-Implementation-Plan-v2.{md,docx,pdf}`.
+- **Phase 1 (this session) — Security & Visibility Stabilization**, branch
+  `feature/phase1-security-visibility` (created from `main` @ `426e0f8`), the
+  eight approved fixes of Plan v2 Ch. 6 §6.1:
+  1. `/api/blog/latest` — `status` leg added via the shared gate (pending/
+     changes_requested/rejected rows with a stale legacy `published` boolean no
+     longer render on the landing page).
+  2. `scheduledAt` hold — future-scheduled posts are hidden on EVERY public
+     BlogPost surface: in-memory gate (`isPubliclyVisible`), new Prisma
+     where-builder `publicBlogPostWhere()` in `blog-server.ts`, `/blog`,
+     `/blog/[slug]` (page + metadata + related queries), `sitemap.ts`, and the
+     social-feed article serialization (2 lines — the visibility gate only; the
+     feed ordering algorithm is untouched).
+  3. `/api/share-card` blog branch — ad-hoc `published + scheduledAt` check
+     replaced with the ONE shared gate (drafts/pending can no longer get share
+     images). During the `/blog` refactor a latent defect was also closed: a
+     search query used to overwrite the gate's `publishedAt` OR-leg (spread key
+     collision); search legs now ride under `AND`.
+  4. Admin instant-publish (`POST /api/blog/articles` + `publishNow`) now calls
+     `syncArticleFeedWrapper` — the article reaches the home feed on create.
+  5. Admin hard delete (`DELETE /api/admin/blog/[id]`) removes the feed wrapper
+     Post in the SAME `$transaction` — no orphaned excerpt-only feed post.
+  6. (12a) `/api/admin/contributors` — 401 (unauthenticated) vs 403
+     (unauthorized) no longer collapse into a bare 403; structural dedupe of
+     the copy-pasted guards stays deferred to Phase 5 by design.
+  7. (13a) `/api/admin/upload` — non-admin uploads now require the
+     `CAN_UPLOAD_IMAGES` permission on the `Contributor` record (fail-closed on
+     malformed permissions JSON).
+  8. (14) `/api/contributor/apply` — `userId` resolved from the server session;
+     client-supplied values are ignored (forged attribution link impossible).
+- **Tests:** new `tests/blog-visibility-gate.test.ts` — 28 regression cases
+  (gate matrix, where-builder, latest/share-card surfaces, wrapper sync,
+  transactional delete, 401/403, upload permission, apply spoof, surface-wiring
+  contract). Registered in `npm test`. **Full suite: 193/193 passed** (165
+  pre-existing + 28 new). `npx tsc --noEmit`: 0 errors in changed files (3
+  pre-existing errors in untouched `examples/websocket/*` + `scripts/translate-
+  missing-i18n.ts`, not part of the Next build). `npm run lint`: same 2
+  pre-existing errors as baseline (untouched `ComicView.tsx`), 0 in changed
+  files. `npm run build` (`next build`): ✓ compiled successfully, 107 routes.
+- **Boundaries held:** zero changes to the YouVersion integration, Bible
+  reader/APIs (`bible-*`, `youversion/*`), `proxy.ts`, `.env*`, Prisma schema or
+  migrations; no production DB or env touch; no taxonomy/DB work started; feed
+  algorithm untouched; YouVersion/Bible modules only *stubbed inside the new
+  test file* (never loaded against the network). No direct push to `main`, no
+  force-push.
+- **Push status:** commits are ready on the local branch (`3a4b9d6` fixes+tests,
+  `707e429` handoff doc, plus this session's re-verification record — tip of
+  `feature/phase1-security-visibility`).
+  The sandbox holds **no GitHub
+  credentials** (the previous session's temporary token was deleted after use,
+  per protocol), so `git push` could not authenticate and was NOT executed;
+  no PAT was requested in chat or handled. Delivery follows the established
+  fallback: a verified git bundle (`426e0f8..feature/phase1-security-visibility`)
+  accompanies this session
+  for the owner to push from their side (or to restore credentials for), after
+  which the PR can be opened. Phase 2 does not start until the owner approves
+  the Phase 1 gate.
+
+### 10.3 Owner-gate re-verification (2026-11-03, Phase 1 delivery session)
+
+Before delivery, ALL quality gates were re-run fresh against the branch tip
+(`707e429`) — not trusted from the earlier session's records:
+
+| Gate | Result |
+|---|---|
+| Full test suite (`npm test`) | **193/193 passed**, 0 failed, 0 skipped (165 pre-existing + 28 new `tests/blog-visibility-gate.test.ts`) |
+| TypeScript (`npx tsc --noEmit`) | **0 errors in changed files**; 3 pre-existing errors in untouched files (`examples/websocket/frontend.tsx`, `examples/websocket/server.ts`, `scripts/translate-missing-i18n.ts` — none is part of the Next build) |
+| Lint (`npm run lint`) | **0 errors in changed files**; 2 pre-existing errors in untouched `src/components/crosscrafted/ComicView.tsx` (lines 707/752, `require()` imports) + 78 pre-existing warnings |
+| Production build (`npm run build`) | **exit 0** — ✓ compiled successfully, ✓ 107/107 static pages. (One earlier run showed transient `noto_sans_telugu` Google-Fonts fetch warnings from the sandbox network; a clean run had 0 such lines and exit 0.) |
+| Off-limits scan of the full diff (`git diff 426e0f8..HEAD --name-only`) | **CLEAN** — no `youversion/*`, `bible-*`, `proxy.ts`, `.env*`, Prisma schema/migrations, or any Bible/YouVersion surface in the diff (15 files: 13 code/test files + package.json test-registration line + this handoff) |
+| Branch parentage | `git rev-parse 3a4b9d6^` = `426e0f85ffea315c0fef2b087f466ba0700bdf54` — branch cut exactly from verified `main` |
+
+- **Push attempt (this session):** `git push -u origin feature/phase1-security-visibility`
+  → `fatal: could not read Username for 'https://github.com'` (terminal prompts
+  disabled). No credentials exist in the sandbox; none were requested. The
+  delivery bundle was regenerated at the final tip and verified
+  (`git bundle verify` + test-clone) before handoff.
+- **Scope confirmation:** the implemented fixes are exactly the eight of
+  Plan v2 Ch. 6 §6.1 listed in §10.2 — no Phase 2 work (taxonomy, DB schema,
+  contributor invitations, dashboards, serializer unification, feed
+  re-ordering) was started. The feed change is confined to the visibility
+  gate inside article serialization (2 lines); ordering is untouched.

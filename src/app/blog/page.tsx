@@ -6,7 +6,7 @@ import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
 import { T } from "@/components/crosscrafted/T";
 import { BRAND, siteUrl } from "@/lib/brand";
 import { db } from "@/lib/db";
-import { displayArticleAuthor } from "@/lib/blog-server";
+import { displayArticleAuthor, publicBlogPostWhere } from "@/lib/blog-server";
 import { BLOG_CATEGORIES } from "@/lib/blog";
 
 export const metadata: Metadata = {
@@ -37,22 +37,28 @@ export default async function BlogPage({
   const page = Math.max(1, parseInt(pageRaw || "1", 10) || 1);
   const filtersActive = Boolean(q.trim() || category);
 
-  // Dual public-visibility gate (Task 73): legacy boolean + workflow status +
-  // schedule. Never shows drafts, pending submissions or rejected articles.
-  const visibility = {
-    published: true,
-    status: "published",
-    OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
-  };
+  // Shared public-visibility gate (Task 73 + Phase 1 security fixes 1+2):
+  // legacy boolean + workflow status + publishedAt schedule + scheduledAt
+  // hold — one builder shared with /api/blog/latest, the sitemap and the
+  // share-card, so no surface can drift back to a partial filter.
+  const visibility = publicBlogPostWhere();
 
   const where = {
     ...visibility,
     ...(category ? { category } : {}),
+    // Search legs are APPENDED to the gate's AND (never spread over it) so
+    // they can neither overwrite the schedule legs nor be lost — the old
+    // code's `OR` spread did exactly that and dropped the gate on search.
     ...(q.trim()
       ? {
-          OR: [
-            { title: { contains: q.trim(), mode: "insensitive" as const } },
-            { excerpt: { contains: q.trim(), mode: "insensitive" as const } },
+          AND: [
+            ...visibility.AND,
+            {
+              OR: [
+                { title: { contains: q.trim(), mode: "insensitive" as const } },
+                { excerpt: { contains: q.trim(), mode: "insensitive" as const } },
+              ],
+            },
           ],
         }
       : {}),

@@ -1065,23 +1065,35 @@ function BlogEditorModal({
             {postId && (
               <div className="mr-auto">
                 {confirmDelete ? (
-                  <div className="flex items-center gap-1.5">
-                    <AlertCircle size={12} className="text-[#EF4444]" />
-                    <span className="text-[11px] text-[#94A3B8]">Delete permanently?</span>
-                    <button
-                      onClick={remove}
-                      disabled={deleting}
-                      className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-[11px] font-bold rounded-lg px-2 py-1 disabled:opacity-50"
-                    >
-                      {deleting ? <Loader2 size={11} className="animate-spin" /> : "Yes, delete"}
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                      className="text-[#94A3B8] hover:text-white text-[11px] font-bold px-2 py-1"
-                    >
-                      Cancel
-                    </button>
+                  <div className="rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/[0.06] p-3 max-w-sm">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <AlertCircle size={12} className="text-[#EF4444] shrink-0" />
+                      <span className="text-[11px] font-bold text-[#EF4444]">
+                        Delete &quot;{form.title.trim() || "this article"}&quot; permanently?
+                      </span>
+                    </div>
+                    <ul className="text-[11px] leading-relaxed text-[#94A3B8] space-y-1 list-disc pl-4 mb-3">
+                      <li>The article will be permanently deleted.</li>
+                      <li>Its feed post will also be deleted.</li>
+                      <li>All associated likes, comments, replies, bookmarks and notifications will be permanently lost.</li>
+                      <li>This action cannot be undone.</li>
+                    </ul>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={remove}
+                        disabled={deleting}
+                        className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-[11px] font-bold rounded-lg px-2 py-1 disabled:opacity-50"
+                      >
+                        {deleting ? <Loader2 size={11} className="animate-spin" /> : "Yes, delete permanently"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={deleting}
+                        className="text-[#94A3B8] hover:text-white text-[11px] font-bold px-2 py-1"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button

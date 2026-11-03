@@ -9,6 +9,7 @@ import {
   type CardFormat,
 } from "@/lib/share/card-renderer";
 import { db } from "@/lib/db";
+import { isPubliclyVisible } from "@/lib/blog";
 import { safeParseArray } from "@/lib/marketplace";
 import { parseVersionRef } from "@/lib/bible-versions";
 import { resolveChapter } from "@/lib/bible-server";
@@ -25,7 +26,11 @@ import { resolveChapter } from "@/lib/bible-server";
  *  • comic-panel / comic-chapter → chapter must be status="published" + active
  *  • post      → Post.published must be true; group posts require a public group
  *  • video     → Video.status must be "published"
- *  • article   → apologetics: KoinoArticle published; blog: BlogPost published+scheduled
+ *  • article   → apologetics: KoinoArticle published; blog: full BlogPost
+ *                public-visibility gate (published + status + publishedAt +
+ *                scheduledAt — Phase 1 security fix 3, shared with /blog and
+ *                /api/blog/latest so a share image can never exist for a post
+ *                those surfaces hide)
  *  • event     → Event.status = "PUBLISHED" and (no group OR public group event)
  *  • group     → Group.visibility must be "public"
  *  • memorial  → status "published" AND visibility "public"
@@ -337,10 +342,12 @@ export async function GET(req: NextRequest) {
         }
         if (kind === "blog") {
           const post = await db.blogPost.findUnique({ where: { slug } });
-          const visible =
-            post &&
-            post.published &&
-            (!post.scheduledAt || post.scheduledAt.getTime() <= Date.now());
+          // Phase 1 security fix 3: the ad-hoc `published + scheduledAt` check
+          // missed `status` and `publishedAt` — drafts and pending posts with a
+          // stale legacy boolean could get a share image. Use the ONE shared
+          // gate (isPubliclyVisible) so the share-card surface can never
+          // diverge from /blog and /api/blog/latest again.
+          const visible = post ? isPubliclyVisible(post) : false;
           if (!visible) {
             return NextResponse.json({ error: "Not available for sharing" }, { status: 404 });
           }

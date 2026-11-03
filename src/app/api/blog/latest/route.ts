@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { publicBlogPostWhere } from "@/lib/blog-server";
 
 // Single PrismaClient instance at module scope — same pattern as the other
 // public read endpoints (/api/articles, /api/blog/page.tsx).
@@ -14,8 +15,12 @@ import { db } from "@/lib/db";
  * Returns ONLY the public-safe fields needed by cards:
  *   id, title, slug, excerpt, featuredImage, category, author, publishedAt
  *
- * Never returns draft content. Future-scheduled posts (publishedAt > now)
- * are also excluded — the publishedAt filter handles that.
+ * Never returns non-public content. The full shared visibility gate applies
+ * (Phase 1 security fixes 1+2): legacy `published` boolean AND workflow
+ * `status === "published"` AND `publishedAt` in the past (or null) AND
+ * `scheduledAt` in the past (or null) — a row in a pending/changes_requested/
+ * rejected state, or one whose admin set a future schedule, can never appear
+ * here while hidden from /blog.
  *
  * Ordering mirrors /blog/page.tsx: featured first, then by publishedAt desc.
  */
@@ -25,11 +30,7 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "3"), 10);
 
     const posts = await db.blogPost.findMany({
-      where: {
-        published: true,
-        // Only posts whose publishedAt is in the past (or null = immediately visible).
-        OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
-      },
+      where: publicBlogPostWhere(),
       select: {
         id: true,
         title: true,

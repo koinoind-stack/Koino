@@ -22,6 +22,31 @@ import {
   BLOG_LIMITS,
 } from "@/lib/blog";
 
+// ─── Public-visibility gate (Prisma where-builder) ────────────────────────
+/**
+ * The public-visibility gate as a Prisma `where` clause — the query-side
+ * twin of `isPubliclyVisible()` in src/lib/blog.ts. ALL four legs must hold:
+ *   1. legacy boolean gate      published: true
+ *   2. workflow status          status: "published"
+ *   3. publish schedule         publishedAt is null or in the past
+ *   4. schedule hold (Phase 1)  scheduledAt is null or in the past
+ *
+ * Phase 1 (security fixes 1–3): this builder is the SINGLE source of the
+ * public BlogPost filter. /api/blog/latest, /blog, /blog/[slug] related
+ * queries and the sitemap must use it — never a hand-rolled subset, because
+ * a missing leg makes drafts or scheduled posts publicly visible.
+ */
+export function publicBlogPostWhere(now: Date = new Date()) {
+  return {
+    published: true as const,
+    status: "published" as const,
+    AND: [
+      { OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] },
+      { OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }] },
+    ],
+  };
+}
+
 // ─── Serialization shapes ───────────────────────────────────────────────────
 
 /** Author fields safe for public display. */
@@ -154,8 +179,10 @@ function buildFeedCaption(post: {
 
 /**
  * Create / refresh / hide the single feed wrapper Post for an article.
- * Called after every moderation transition and after editing a live article
- * (so the feed card reflects the current excerpt/cover without duplicates).
+ * Called after every moderation transition, after editing a live article
+ * (so the feed card reflects the current excerpt/cover without duplicates),
+ * and on admin instant-publish create (Phase 1 security fix 4 — the feed
+ * must learn about a publishNow article immediately, not after a later edit).
  */
 export async function syncArticleFeedWrapper(post: {
   id: string;
@@ -165,6 +192,7 @@ export async function syncArticleFeedWrapper(post: {
   published: boolean;
   status: string;
   publishedAt: Date | null;
+  scheduledAt?: Date | null;
   authorId: string | null;
 }): Promise<void> {
   try {
