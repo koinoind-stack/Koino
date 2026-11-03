@@ -4,7 +4,10 @@
 // - private user data
 // - admin endpoints
 
-const CACHE_NAME = "koino-v1";
+// v2: navigation fallback can no longer serve the cached Home shell for
+// non-root URLs (the "Articles & Knowledge click bounces to Home" fix).
+// Bumping the name makes activate() purge every v1 cache immediately.
+const CACHE_NAME = "koino-v2";
 const APP_SHELL = [
   "/",
   "/koino-logo.png",
@@ -39,10 +42,21 @@ self.addEventListener("fetch", (event) => {
   // Never cache auth endpoints
   if (url.pathname.startsWith("/auth/")) return;
 
-  // For navigation requests, try network first, fall back to cached shell
+  // For navigation requests, try network first. The cached app shell is an
+  // OFFLINE fallback for the app root ("/") ONLY — it must never be served
+  // as the response for a DIFFERENT URL (e.g. /knowledge, /blog): the shell
+  // renders the Home feed for signed-in users, so a flaky network made
+  // "click Articles & Knowledge" land the member back on Home while the
+  // URL bar still showed /knowledge. Non-root navigations get their exact
+  // cached copy when one exists, else a real network error — never a
+  // masquerading Home page.
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("/"))
+      fetch(event.request).catch(() =>
+        url.pathname === "/"
+          ? caches.match("/")
+          : caches.match(event.request).then((cached) => cached || Response.error())
+      )
     );
     return;
   }
