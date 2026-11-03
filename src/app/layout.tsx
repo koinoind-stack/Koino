@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import localFont from "next/font/local";
+import { GeistSans } from "geist/font/sans";
 // Indic UI fonts — Devanagari (Hindi) and Telugu script renderers so the
 // translated interface uses proper, consistently-shaped glyphs on every
 // platform instead of falling back to whatever the OS happens to provide.
-import { Noto_Sans_Devanagari } from "next/font/google";
-import { Noto_Sans_Telugu } from "next/font/google";
+//
+// ALL three fonts are loaded LOCALLY (next/font/local + the geist npm package
+// which itself wraps next/font/local). The previous next/font/google imports
+// fetched font CSS/woff2 from Google Fonts at build time — a build-time network
+// dependency that intermittently broke Vercel production builds with
+// "module-not-found" errors on the noto_sans_devanagari CSS file. Local fonts
+// eliminate that flake entirely: no build-time network fetch, no DNS failure,
+// no intermittent deploy breakage.
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -12,21 +19,20 @@ import { Providers } from "@/components/crosscrafted/Providers";
 import ServiceWorkerRegister from "./register-sw";
 import { BRAND, SITE_TITLE, siteUrl } from "@/lib/brand";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const geistSans = GeistSans;
 
-const notoDevanagari = Noto_Sans_Devanagari({
+const notoDevanagari = localFont({
+  src: "../../public/fonts/NotoSansDevanagari.ttf",
   variable: "--font-devanagari",
-  subsets: ["devanagari"],
-  weight: ["400", "500", "600", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
-const notoTelugu = Noto_Sans_Telugu({
+const notoTelugu = localFont({
+  src: "../../public/fonts/NotoSansTelugu.ttf",
   variable: "--font-telugu",
-  subsets: ["telugu"],
-  weight: ["400", "500", "600", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -73,7 +79,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} geist_a71539c9-module__T19VSG__variable antialiased bg-[#12101A] text-white`}>
+      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} antialiased bg-[#12101A] text-white`}>
         <Providers>
           {children}
           <Toaster />
