@@ -663,10 +663,13 @@ test("P2-WIRE-3: AdminView registers the Taxonomy tab; HomeApp adds the Grow ent
 test("P2-WIRE-4: the /knowledge landing rides the DB taxonomy and the shared type registry", async () => {
   const fs = await import("node:fs");
   const page = fs.readFileSync("src/app/knowledge/page.tsx", "utf8");
+  const client = fs.readFileSync("src/components/crosscrafted/KnowledgeHubContent.tsx", "utf8");
   assert.ok(page.includes('export const dynamic = "force-dynamic"'), "public DB read is force-dynamic");
   assert.ok(page.includes("getTaxonomyLanding"), "reads the shared taxonomy server");
-  assert.ok(page.includes("CONTENT_TYPE_ROUTES"), "type navigation uses the shared route map");
   assert.ok(page.includes("PublicPageLayout"), "uses the public layout");
+  // Localized chrome (Telugu support) is client-side; the shared route map
+  // moved with it.
+  assert.ok(client.includes("CONTENT_TYPE_ROUTES"), "type navigation uses the shared route map");
   // The actual route values are pinned in P2-TYPE-4 (BLOG → /blog,
   // APOLOGETICS → /apologetics) — the page renders them via the map.
 });
