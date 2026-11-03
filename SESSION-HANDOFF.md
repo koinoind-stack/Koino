@@ -299,3 +299,76 @@ contributor invitations (Phase 7), no feed changes (Phase 8). Existing
 content, IDs, engagement, routes and the Q&A pipeline are untouched;
 `BlogPost` and `KoinoArticle` rows are exactly as before. Migration not run
 against any database; production untouched.
+
+---
+
+## 12. Phase 2 follow-up — navigation unification & knowledge surfacing
+
+Branch `fix/articles-knowledge-nav` (from a4d9edb, PR #22 merge). Driver: five
+production observations after the Phase 2 deploy (member clicks on the Grow
+"Articles & Knowledge" entry landed back on Home; standalone Blog/Apologetics
+nav duplication; "taxonomy is not seeded yet" on /knowledge; Coming-soon cards;
+TaxonomyTab access check).
+
+### 12.1 Root cause of the Home bounce (verified, not guessed)
+
+Every layer of the deployed click path was inspected and is CORRECT at a4d9edb:
+server route (200 + content), client bundle (minified `goView` contains the
+`"knowledge"===e` branch → `window.location.href="/knowledge"`), SPA machinery,
+middleware/redirect absence, PublicPageLayout. The ONE mechanism able to render
+the signed-in Home feed under the /knowledge URL is the service worker's
+navigation fallback (`fetch(request).catch(() => caches.match("/"))`): on any
+network failure it serves the cached Home app shell for whatever URL was being
+opened — intermittent, network-dependent, invisible when direct visits succeed.
+Fix: the cached shell is now an offline fallback for `"/"` ONLY; every other
+navigation gets its exact cached copy or a real network error. `CACHE_NAME`
+bumped to `koino-v2` so activate() purges all v1 caches.
+
+### 12.2 Changes
+
+- `public/sw.js` — navigation fallback restricted to the app root; v2 cache.
+- `src/components/home/HomeApp.tsx` — Grow keeps knowledge as the single
+  written-content entry (standalone `apologetics` removed); More keeps
+  support+admin (standalone `blog` removed); mobile More sheet matches;
+  `/?view=knowledge` deep links now redirect to `/knowledge`. Routes,
+  pseudo-view handling, `?view=apologetics` Q&A deep links: unchanged.
+- `src/lib/content-taxonomy.ts` — `CONTENT_TYPE_ROUTES` now covers all six
+  types (BLOG→/blog, APOLOGETICS→/apologetics, others→`/knowledge/browse`);
+  added `CONTENT_TYPE_DESCRIPTIONS`.
+- `src/app/knowledge/browse/page.tsx` (new) — read-only listing over the
+  EXISTING `KoinoArticle` model: status "published" + scheduledAt hold,
+  optional DB category/topic filters (slug + isActive), pagination, honest
+  empty state, all taxonomy reads failure-tolerant (unmigrated DB renders the
+  empty state, never a 500). BLOG/APOLOGETICS redirect to their canonical
+  listings. No parallel content system; no new detail pages (Phase 3/4 scope).
+- `src/app/knowledge/page.tsx` — every content-type card is a real link
+  (no "Coming soon"); descriptions; taxonomy empty-state copy now accurate.
+- `src/app/apologetics/page.tsx` — "Questions & Answers" button linking the
+  member Q&A (`/?view=apologetics`) so removing the sidebar entry loses
+  nothing.
+- `package.json` — `db:seed-taxonomy` script; navigation suite registered.
+- `tests/navigation-knowledge.test.ts` (new, 18 cases) + `tests/taxonomy.test.ts`
+  P2-TYPE-4 updated to pin the new route contract.
+
+### 12.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npm test` (full) | 242/242 passed (224 prior + 18 new), 0 failed |
+| `npx tsc --noEmit` | 0 errors in touched files; only the 3 pre-existing errors (examples/, scripts/) |
+| `npx eslint` changed files | 0 errors; the 2 HomeApp warnings proven pre-existing at a4d9edb |
+| `prisma validate` | valid |
+| `npm run build` | exit 0; `/knowledge` + `/knowledge/browse` in the manifest |
+| Standalone boot (dummy DB) | /knowledge 200, /knowledge/browse?type=ARTICLE 200 + empty state, type=BLOG 307→/blog; /blog + /apologetics 500 only because the DB is a placeholder (200 on live) |
+| Live www.koino.in (a4d9edb) | /knowledge 200 + renders + refresh OK; /blog 200; /apologetics 200; no console/page errors; deployed bundle forensics confirm correct nav wiring |
+
+### 12.4 Deployment prerequisites for the owner (NOT executed here)
+
+Production DB has NOT been migrated/seeded by this work. Prerequisites, in
+order, on a machine with repo + production `DATABASE_URL`:
+1. Backup.
+2. `npx prisma migrate deploy` (applies 20261103000000_unified_taxonomy; additive only).
+3. `npm run db:seed-taxonomy` (= `npx tsx prisma/scripts/seed-taxonomy.ts`; idempotent upsert-by-slug, safe to re-run).
+4. Redeploy / verify: /knowledge shows categories instead of the warming-up notice.
+The migration is additive (new tables + nullable columns); no existing rows are
+rewritten or deleted.
