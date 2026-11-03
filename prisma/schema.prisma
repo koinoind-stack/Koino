@@ -402,7 +402,14 @@ model Post {
   // Blog & Articles (Task 73): set when this post is the feed card of a
   // published blog article (card renders a "Read Article" banner). @unique:
   // exactly one feed wrapper per article — prevents duplicate feed entries.
-  // SetNull: deleting the article keeps the post and its engagement history.
+  // SetNull only covers DIRECT article deletion (a stray wrapper would be
+  // kept with articleId nulled). The admin hard-delete workflow
+  // (DELETE /api/admin/blog/[id]) deliberately deletes the wrapper Post
+  // FIRST, in the same transaction as the article — the wrapper's likes,
+  // comments, replies, bookmarks and notifications are then removed by
+  // their own onDelete: Cascade rules (owner-approved semantics).
+  // Unpublishing keeps the wrapper and its engagement (published: false)
+  // so a later republication restores the discussion.
   article      BlogPost?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
   articleId    String?         @unique
 

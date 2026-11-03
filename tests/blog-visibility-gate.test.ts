@@ -731,3 +731,48 @@ test("P1-WIRE-1: /blog, /blog/[slug], sitemap.ts and the social feed ride the sh
     "feed serialization must pass scheduledAt into the visibility gate"
   );
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// OWNER-APPROVED DELETION SEMANTICS — admin UI confirmation guard
+// (source contract: BlogTab.tsx is a client component with no component-test
+// renderer in this suite; the durable guard is the same source-contract style
+// as P1-WIRE-1. The DELETE endpoint + transaction semantics are covered by
+// P1-DELETE-1/2 above; this test pins the UI confirmation in front of them.)
+// ════════════════════════════════════════════════════════════════════════════
+
+test("P1-UI-DELETE-CONFIRM: hard delete requires the explicit consequence warning", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf8");
+
+  const src = read("src/components/crosscrafted/admin/BlogTab.tsx");
+
+  // The DELETE request itself is unchanged (same endpoint, same method).
+  const deleteCalls = src.match(/fetch\(`\/api\/admin\/blog\/\$\{postId\}`, \{ method: "DELETE" \}\)/g) ?? [];
+  assert.equal(deleteCalls.length, 1, "exactly one DELETE call against /api/admin/blog/[id]");
+
+  // Two-step confirmation: the initial Delete button only ARMS the warning
+  // (setConfirmDelete(true)) — it must never call remove() directly.
+  assert.ok(
+    src.includes('onClick={() => setConfirmDelete(true)}'),
+    "the Delete button must first arm the confirmation state"
+  );
+  const removeWiring = (src.match(/onClick=\{remove\}/g) ?? []).length;
+  assert.equal(removeWiring, 1, "remove() must be wired to exactly one control — the explicit confirm button");
+
+  // The warning must spell out ALL owner-approved consequences.
+  for (const phrase of [
+    "The article will be permanently deleted.",
+    "Its feed post will also be deleted.",
+    "All associated likes, comments, replies, bookmarks and notifications will be permanently lost.",
+    "This action cannot be undone.",
+  ]) {
+    assert.ok(src.includes(phrase), `confirmation warning must state: "${phrase}"`);
+  }
+
+  // The explicit confirmation control exists (labeled confirm, not a bare yes).
+  assert.ok(
+    src.includes("Yes, delete permanently"),
+    "the confirm button must be explicitly labeled"
+  );
+});
