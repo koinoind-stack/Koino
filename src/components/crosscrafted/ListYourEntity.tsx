@@ -19,7 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { INDIAN_STATES, LANGUAGES, BUSINESS_CATEGORIES, type ServiceTime } from "@/lib/crosscrafted-data";
+import { INDIAN_STATES, LANGUAGES, BUSINESS_CATEGORIES, CHURCH_TYPES, type ServiceTime } from "@/lib/crosscrafted-data";
 import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
@@ -60,6 +60,7 @@ export default function ListYourEntity({ variant }: Props) {
     contact_email: string;
     contact_phone: string;
     denomination: string;
+    type: string;
     businessCategory: string;
     languages: string[];
     images: string[];
@@ -75,6 +76,7 @@ export default function ListYourEntity({ variant }: Props) {
     contact_email: "",
     contact_phone: "",
     denomination: "",
+    type: "Church",
     businessCategory: "",
     languages: [],
     images: [],
@@ -141,6 +143,7 @@ export default function ListYourEntity({ variant }: Props) {
             name: formData.name,
             description: formData.description,
             denomination: formData.denomination,
+            type: formData.type,
             state: formData.state,
             city: formData.city,
             location: formData.location,
@@ -249,6 +252,7 @@ export default function ListYourEntity({ variant }: Props) {
               contact_email: "",
               contact_phone: "",
               denomination: "",
+              type: "Church",
               businessCategory: "",
               languages: [],
               images: [],
@@ -330,18 +334,34 @@ export default function ListYourEntity({ variant }: Props) {
         </div>
 
         {variant === "church" && (
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-              {t("churches.denomination")}
-            </label>
-            <input
-              type="text"
-              value={formData.denomination}
-              onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
-              className="neo-input text-sm"
-              placeholder={t("list.form.denominationPlaceholder")}
-              maxLength={200}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                {t("churches.denomination")}
+              </label>
+              <input
+                type="text"
+                value={formData.denomination}
+                onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
+                className="neo-input text-sm"
+                placeholder={t("list.form.denominationPlaceholder")}
+                maxLength={200}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                {t("churches.type")}
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="neo-input text-sm"
+              >
+                {CHURCH_TYPES.map((tp) => (
+                  <option key={tp} value={tp}>{tp}</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 

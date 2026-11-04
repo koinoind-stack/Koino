@@ -378,8 +378,13 @@ export const en: Record<string, string> = {
   "churches.contact": "Contact",
   "churches.empty": "No churches found.",
   "churches.denomination": "Denomination",
+  "churches.type": "Type",
   "churches.languages": "Languages",
   "churches.listYourChurch": "List Your Church",
+  "churches.editListing": "Edit listing",
+  "churches.updateListing": "Save changes",
+  "churches.editSuccess": "Listing updated",
+  "churches.editSuccessDesc": "Your changes are live now.",
   "churches.viewDetails": "View Details",
   "churches.share": "Share",
 

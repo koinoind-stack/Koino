@@ -7,6 +7,14 @@ export type ServiceTime = {
   day: string; // e.g. "Sunday", "Wednesday"
 };
 
+/** Listing kind — fixed set used by the admin + user forms and the APIs. */
+export const CHURCH_TYPES = ["Church", "Ministry", "Fellowship", "Prayer Hall", "Other"] as const;
+export type ChurchType = (typeof CHURCH_TYPES)[number];
+
+export function isChurchType(v: unknown): v is ChurchType {
+  return typeof v === "string" && (CHURCH_TYPES as readonly string[]).includes(v);
+}
+
 export type Church = {
   id: string;
   name: string;
@@ -24,11 +32,16 @@ export type Church = {
   featured?: boolean;
   verified?: boolean; // admin-confirmed real congregation (badge)
   denomination: string;
+  type?: ChurchType | string; // listing kind (CHURCH_TYPES) — "Church" when unset
   address?: string | null;
   website?: string | null;
   contactName?: string | null; // shown publicly only when the listing provided it
   whatsapp_number?: string;
   // Admin-only fields (populated by /api/admin/churches, never by public /api/churches)
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  // True when the signed-in viewer created this listing (public API computes it)
+  is_owner?: boolean;
   rejectionReason?: string | null;
   reviewedBy?: string | null;
   reviewedAt?: string | null;
@@ -238,7 +251,7 @@ export function getCitiesForState(state: string): string[] {
 }
 
 export const LANGUAGES = [
-  "Hindi", "English", "Tamil", "Telugu", "Malayalam",
+  "English", "Hindi", "Telugu", "Tamil", "Malayalam",
   "Kannada", "Marathi", "Gujarati", "Punjabi", "Bengali", "Odia",
 ];
 
