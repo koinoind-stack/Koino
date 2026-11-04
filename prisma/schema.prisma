@@ -114,6 +114,10 @@ model User {
   competitionAttempts TriviaCompetitionAttempt[]
   triviaWins          TriviaWinner[]
 
+  // Comic Bible reading sync (server-side progress + story bookmarks)
+  comicReadingProgress ComicReadingProgress[]
+  comicBookmarks       ComicBookmark[]
+
   // Streak + rewards
   userStreak          UserStreak?
   userRewards         UserReward[]
@@ -674,6 +678,15 @@ model ComicChapter {
   title           String             // English default title
   coverArtUrl     String?            // optional chapter cover image
   sortOrder       Int      @default(0)
+  // Story experience flags (Comic Bible redesign).
+  kidsFriendly    Boolean  @default(false) // surfaced in the "For Kids" library tab
+  // Optional suggested age band for kids-friendly stories.
+  //   "3-5" | "6-8" | "9-12" — null = no age guidance (story may not be kids).
+  kidsAgeGroup    String?
+  // Reader pagination mode configured by admins:
+  //   "individual" — each panel is one page; desktop shows a two-page spread
+  //   "spread"     — panels are pre-composed two-page spreads; one per view
+  pageMode        String   @default("individual") // "individual" | "spread"
   // Publishing workflow state.
   // draft    — admin started but not finished
   // review   — ready for someone else to QA
@@ -689,6 +702,8 @@ model ComicChapter {
   panels          ComicPanel[]
   translations    ComicChapterTranslation[]
   quizLinks       ComicChapterQuiz[]
+  readingProgress ComicReadingProgress[]
+  bookmarks       ComicBookmark[]
 
   @@unique([bookId, chapter]) // one comic per book+chapter
   @@index([bookId])
@@ -724,6 +739,11 @@ model ComicPanelTranslation {
   title           String?            // Panel title in this language
   narration       String?            // Narration / story text
   captions        String   @default("[]") // JSON array of caption strings (speech bubbles, etc.)
+  // Per-language publish state. Only "published" rows are ever served to
+  // readers — the public API never silently shows a draft or missing
+  // language's content. Existing rows default to "published" so the redesign
+  // does not hide already-live content (see migration 20261104000000).
+  status          String   @default("published") // "draft" | "published"
 
   panel           ComicPanel @relation(fields: [panelId], references: [panelId], onDelete: Cascade)
 
@@ -736,6 +756,19 @@ model ComicChapterTranslation {
   comicChapterId  String
   lang            String
   title           String?            // Chapter title in this language
+  // Per-language publish state ("draft" rows are never served publicly).
+  status          String   @default("published") // "draft" | "published"
+  // Story-experience sections, localized (Comic Bible redesign §7).
+  introduction    String?            // Story introduction
+  lesson          String?            // "What We Learn"
+  prayer          String?            // Short prayer
+  // Key Bible verse — stored STRUCTURED so the verse text is always fetched
+  // live from the existing Bible translation system (never invented or
+  // duplicated). Null = story has no key verse.
+  keyVerseBook    String?            // Koino book slug, e.g. "1samuel"
+  keyVerseChapter Int?
+  keyVerseStart   Int?
+  keyVerseEnd     Int?
 
   comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
 
@@ -760,6 +793,54 @@ model ComicChapterQuiz {
   comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
 
   @@unique([comicChapterId, questionId]) // one link per chapter+question
+  @@index([comicChapterId])
+}
+
+// ─── COMIC READING PROGRESS (server-side sync) ───────────────────────────────
+// Mirrors the localStorage progress store (cc_comic_progress) for AUTHENTICATED
+// users so reading state survives devices and browsers. The public reader
+// always keeps writing local progress first (offline-safe) and fire-and-forget
+// syncs here. RESUME POLICY: the reader resumes from the HIGHEST of local and
+// server progress — progress never regresses.
+// @@unique([userId, comicChapterId]) guarantees ONE row per user per story:
+// every write is an UPSERT, duplicate records are impossible by construction.
+model ComicReadingProgress {
+  id             String   @id @default(cuid())
+  userId         String
+  comicChapterId String
+  lastPanel      Int      @default(0) // highest page (1-based) the user has seen
+  totalPanels    Int      @default(0) // snapshot for completion math on the library
+  completed      Boolean  @default(false) // lastPanel >= totalPanels > 0
+  startedAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comicChapter  ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comicChapterId])
+  @@index([userId])
+  @@index([comicChapterId])
+}
+
+// ─── COMIC BOOKMARKS (server-side sync) ──────────────────────────────────
+// "Bookmark stories": one row per user per story holds the bookmarked page
+// numbers (JSON array of 1-based page indexes, same shape as the reader's
+// local cc_comic_bookmarks store). A row EXISTING means the story is
+// bookmarked in the member's library; pages let the reader restore exact
+// bookmarks across devices. Upserted from the reader's bookmark toggle.
+model ComicBookmark {
+  id             String   @id @default(cuid())
+  userId         String
+  comicChapterId String
+  pages          String   @default("[]") // JSON array of bookmarked page numbers
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comicChapter  ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comicChapterId])
+  @@index([userId])
   @@index([comicChapterId])
 }
 
