@@ -1,0 +1,110 @@
+import type { Metadata } from "next";
+
+import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
+import { Sparkles } from "lucide-react";
+import { db } from "@/lib/db";
+
+export const metadata: Metadata = {
+  title: "Meet the Founder — Koino",
+  description: "Meet the founder of Koino. Learn why Koino was built and the vision behind the platform.",
+  openGraph: {
+    title: "Meet the Founder — Koino",
+    description: "Meet the founder of Koino.",
+    siteName: "Koino",
+    type: "website",
+  },
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function FounderPage() {
+  // Read founder profile from DB — falls back to placeholder if not yet configured
+  const founder = await db.founderProfile.findFirst({
+    where: { published: true },
+  });
+
+  return (
+    <PublicPageLayout>
+      <div className="max-w-3xl mx-auto px-6 py-12">
+        {founder ? (
+          // ─── Real founder profile from DB ───
+          <div className="space-y-8">
+            <div className="text-center">
+              {founder.profilePhoto && (
+                <img
+                  src={founder.profilePhoto}
+                  alt={founder.founderName}
+                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-2 border-[#F97316]/30"
+                />
+              )}
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-3">
+                <Sparkles size={12} fill="currentColor" /> Meet the Founder
+              </div>
+              <h1 className="text-2xl font-black text-white mb-1">{founder.founderName}</h1>
+              {founder.shortIntro && (
+                <p className="text-sm text-[#A09DB1]">{founder.shortIntro}</p>
+              )}
+            </div>
+
+            {founder.whyIBuiltKoino && (
+              <div>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.why" /></h2>
+                <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.whyIBuiltKoino}</p>
+              </div>
+            )}
+
+            {founder.vision && (
+              <div>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.vision" /></h2>
+                <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.vision}</p>
+              </div>
+            )}
+
+            {founder.mission && (
+              <div>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.mission" /></h2>
+                <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.mission}</p>
+              </div>
+            )}
+
+            {founder.founderMessage && (
+              <div>
+                <h2 className="text-lg font-bold text-white mb-3"><T k="founderPage.message" /></h2>
+                <p className="text-sm text-[#A09DB1] leading-relaxed whitespace-pre-wrap">{founder.founderMessage}</p>
+              </div>
+            )}
+
+            {founder.email && (
+              <div className="text-center pt-4">
+                <a
+                  href={`mailto:${founder.email}`}
+                  className="px-6 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+                >
+                  <T k="founderPage.contact" />
+                </a>
+              </div>
+            )}
+          </div>
+        ) : (
+          // ─── Placeholder (no founder profile published yet) ───
+          <div className="text-center py-16">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#F97316] to-[#2563EB] flex items-center justify-center">
+              <Sparkles size={28} className="text-white" />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-3">
+              <Sparkles size={12} fill="currentColor" /> Meet the Founder
+            </div>
+            <h1 className="text-2xl font-black text-white mb-2">Meet the Founder</h1>
+            <p className="text-sm text-[#A09DB1] leading-relaxed max-w-md mx-auto mb-6">
+              <T k="founderPage.placeholder" />
+            </p>
+            <a href="/about" className="text-[#60A5FA] text-xs font-bold hover:text-white transition-colors">
+              <T k="founderPage.back" />
+            </a>
+          </div>
+        )}
+      </div>
+    </PublicPageLayout>
+  );
+}

@@ -1,0 +1,183 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { BRAND } from "@/lib/brand";
+// Eager English seed — the base dictionary is loaded synchronously so the
+// server render (and first client paint) shows real English copy instead of
+// raw translation keys ("landing.badge"). Non-en users see a brief flash of
+// English while their dictionary lazy-loads, which is far better than a
+// flash of raw keys. Both SSR and the first client render agree on English,
+// so hydration stays consistent.
+import enDictionary from "./en";
+
+export type LanguageCode =
+  | "en"  // English (default)
+  | "hi"  // Hindi
+  | "bn"  // Bengali
+  | "te"  // Telugu
+  | "mr"  // Marathi
+  | "ta"  // Tamil
+  | "gu"  // Gujarati
+  | "ur"  // Urdu
+  | "kn"  // Kannada
+  | "or"  // Odia
+  | "ml"  // Malayalam
+  | "pa"  // Punjabi
+  | "as"; // Assamese
+
+export const LANGUAGES: { code: LanguageCode; name: string; nativeName: string; flag: string }[] = [
+  { code: "en", name: "English",     nativeName: "English",     flag: "🇬🇧" },
+  { code: "hi", name: "Hindi",       nativeName: "हिन्दी",       flag: "🇮🇳" },
+  { code: "bn", name: "Bengali",     nativeName: "বাংলা",        flag: "🇮🇳" },
+  { code: "te", name: "Telugu",      nativeName: "తెలుగు",       flag: "🇮🇳" },
+  { code: "mr", name: "Marathi",     nativeName: "मराठी",         flag: "🇮🇳" },
+  { code: "ta", name: "Tamil",       nativeName: "தமிழ்",         flag: "🇮🇳" },
+  { code: "gu", name: "Gujarati",    nativeName: "ગુજરાતી",       flag: "🇮🇳" },
+  { code: "ur", name: "Urdu",        nativeName: "اردو",          flag: "🇮🇳" },
+  { code: "kn", name: "Kannada",     nativeName: "ಕನ್ನಡ",         flag: "🇮🇳" },
+  { code: "or", name: "Odia",        nativeName: "ଓଡ଼ିଆ",         flag: "🇮🇳" },
+  { code: "ml", name: "Malayalam",   nativeName: "മലയാളം",        flag: "🇮🇳" },
+  { code: "pa", name: "Punjabi",     nativeName: "ਪੰਜਾਬੀ",         flag: "🇮🇳" },
+  { code: "as", name: "Assamese",    nativeName: "অসমীয়া",       flag: "🇮🇳" },
+];
+
+const COOKIE_NAME = "believ_lang";
+const DEFAULT_LANG: LanguageCode = "en";
+
+type LanguageContextValue = {
+  lang: LanguageCode;
+  setLang: (lang: LanguageCode) => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+};
+
+const LanguageContext = createContext<LanguageContextValue>({
+  lang: DEFAULT_LANG,
+  setLang: () => {},
+  t: (key) => key,
+});
+
+// Lazy-loaded translation modules. Each language file exports a flat
+// dictionary of key → translated string.
+const translationLoaders: Record<LanguageCode, () => Promise<Record<string, string>>> = {
+  en: () => import("./en").then((m) => m.default),
+  hi: () => import("./hi").then((m) => m.default),
+  bn: () => import("./bn").then((m) => m.default),
+  te: () => import("./te").then((m) => m.default),
+  mr: () => import("./mr").then((m) => m.default),
+  ta: () => import("./ta").then((m) => m.default),
+  gu: () => import("./gu").then((m) => m.default),
+  ur: () => import("./ur").then((m) => m.default),
+  kn: () => import("./kn").then((m) => m.default),
+  or: () => import("./or").then((m) => m.default),
+  ml: () => import("./ml").then((m) => m.default),
+  pa: () => import("./pa").then((m) => m.default),
+  as: () => import("./as").then((m) => m.default),
+};
+
+// Cache loaded translations in memory so we don't re-fetch on every render.
+// English is seeded eagerly (imported above) so t() never returns raw keys
+// on the server render or the first client paint.
+const translationCache: Partial<Record<LanguageCode, Record<string, string>>> = {
+  en: enDictionary,
+};
+
+/** Detect the user's preferred language from cookie or browser. */
+function detectLanguage(): LanguageCode {
+  // 1. Cookie (set by LanguageSwitcher)
+  if (typeof document !== "undefined") {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]+)`));
+    if (match) {
+      const code = match[1] as LanguageCode;
+      if (translationLoaders[code]) return code;
+    }
+  }
+  // 2. Browser language
+  if (typeof navigator !== "undefined") {
+    const browserLang = navigator.language.split("-")[0].toLowerCase() as LanguageCode;
+    if (translationLoaders[browserLang]) return browserLang;
+  }
+  // 3. Default
+  return DEFAULT_LANG;
+}
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<LanguageCode>(DEFAULT_LANG);
+  // Seed with the eager English dictionary so SSR/first paint shows real copy.
+  const [dict, setDict] = useState<Record<string, string>>(enDictionary);
+
+  // Initial load — detect language + load its translation file
+  useEffect(() => {
+    const detected = detectLanguage();
+    setLangState(detected);
+  }, []);
+
+  // Keep <html lang> and <html dir> in sync with the selected language.
+  // Urdu is the only RTL language — Hindi, Telugu and every other supported
+  // language are LTR. Runs after hydration, so it never causes a mismatch.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ur" ? "rtl" : "ltr";
+  }, [lang]);
+
+  // Load translation file whenever lang changes
+  useEffect(() => {
+    let cancelled = false;
+    if (translationCache[lang]) {
+      setDict(translationCache[lang]!);
+      return;
+    }
+    translationLoaders[lang]().then((loaded) => {
+      if (cancelled) return;
+      translationCache[lang] = loaded;
+      setDict(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
+
+  const setLang = useCallback((next: LanguageCode) => {
+    setLangState(next);
+    // Persist for 1 year
+    document.cookie = `${COOKIE_NAME}=${next}; path=/; max-age=31536000; SameSite=Lax`;
+  }, []);
+
+  /**
+   * Translate a key. Supports {var} interpolation + automatic brand vars.
+   *
+   * BRAND SAFETY (Task 51): translation files are generated assets that
+   * contain the literal word "Koino". Rather than editing all 13 files on a
+   * future rebrand, t() word-boundary-rewrites the stored brand name into
+   * BRAND.name at RENDER time — so a rebrand needs ZERO translation-file
+   * edits. {brand} and {tagline} vars are also always available.
+   */
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) => {
+      let str = dict[key] ?? translationCache.en?.[key] ?? key;
+      if (str && str !== key) {
+        str = str.replace(/\bKoino\b/g, BRAND.name);
+      }
+      const allVars = { brand: BRAND.name, tagline: BRAND.tagline, ...(vars || {}) };
+      Object.entries(allVars).forEach(([k, v]) => {
+        str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+      });
+      return str;
+    },
+    [dict]
+  );
+
+  return (
+    <LanguageContext.Provider value={{ lang, setLang, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export function useLanguage() {
+  return useContext(LanguageContext);
+}
+
+export function useTranslation() {
+  return useContext(LanguageContext).t;
+}

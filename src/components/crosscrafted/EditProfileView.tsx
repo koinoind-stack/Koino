@@ -1,0 +1,521 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import {
+  ArrowLeft,
+  Camera,
+  Trash2,
+  Loader2,
+  Check,
+  AlertTriangle,
+  Globe,
+  Instagram,
+  Youtube,
+  Facebook,
+  Twitter,
+} from "lucide-react";
+import { toast } from "sonner";
+import { api, type SocialUser } from "@/components/social/types";
+import { notifyProfileUpdated } from "@/lib/supabase/use-user";
+import { COMMUNITY_ROLES, COMMUNITY_ROLE_OTHER, COMMUNITY_ROLE_OTHER_MAX } from "@/lib/community-roles";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import EmojiPickerButton, { insertAtCursor } from "@/components/social/EmojiPicker";
+
+type ProfileData = {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  username: string | null;
+  bio: string | null;
+  state: string | null;
+  city: string | null;
+  gender: string | null;
+  dateOfBirth: string | null;
+  usernameChangedAt: string | null;
+  website: string | null;
+  instagram: string | null;
+  youtube: string | null;
+  facebook: string | null;
+  twitter: string | null;
+  communityRole: string | null;
+  communityRoleOther: string | null;
+  communityRoleVisible: boolean;
+};
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
+  "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+  "Uttarakhand", "West Bengal", "Jammu & Kashmir", "Ladakh",
+  "Puducherry", "Chandigarh", "Andaman & Nicobar", "Dadra & Nagar Haveli and Daman & Diu", "Lakshadweep",
+];
+
+const COOLDOWN_DAYS = 30;
+
+/**
+ * Full-screen Edit Profile: photo upload/preview/change/remove, username
+ * with availability check + 30-day cooldown, bio with counter, location,
+ * gender, DOB. Server-authoritative — the API is the only writer.
+ */
+export default function EditProfileView({ onDone }: { onDone: () => void }) {
+  const t = useTranslation();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // form fields
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [username, setUsername] = useState("");
+  const [state_, setState] = useState("");
+  const [city, setCity] = useState("");
+  const [gender, setGender] = useState("");
+  const [dob, setDob] = useState("");
+
+  // social / website links (stored server-side as normalized https URLs)
+  const [website, setWebsite] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [twitter, setTwitter] = useState("");
+
+  // community role (optional, self-reported — never implies verification)
+  const [communityRole, setCommunityRole] = useState("");
+  const [communityRoleOther, setCommunityRoleOther] = useState("");
+  const [communityRoleVisible, setCommunityRoleVisible] = useState(true);
+
+  // avatar
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const bioRef = useRef<HTMLTextAreaElement>(null);
+
+  // username availability (debounced)
+  const [availState, setAvailState] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
+  const usernameChanged = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api<ProfileData>("/api/profile");
+        setProfile(data);
+        setName(data.name || "");
+        setBio(data.bio || "");
+        setUsername(data.username || "");
+        setState(data.state || "");
+        setCity(data.city || "");
+        setGender(data.gender || "");
+        setDob(data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : "");
+        setWebsite(data.website || "");
+        setInstagram(data.instagram || "");
+        setYoutube(data.youtube || "");
+        setFacebook(data.facebook || "");
+        setTwitter(data.twitter || "");
+        setCommunityRole(data.communityRole || "");
+        setCommunityRoleOther(data.communityRoleOther || "");
+        setCommunityRoleVisible(data.communityRoleVisible !== false);
+        if (data.usernameChangedAt) {
+          const next = new Date(
+            new Date(data.usernameChangedAt).getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+          );
+          setCooldownUntil(next.toISOString());
+        }
+      } catch (err) {
+        toast.error((err as Error).message);
+        onDone();
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [onDone]);
+
+  // Username availability debounce
+  useEffect(() => {
+    const handle = username.trim().toLowerCase();
+    const original = (profile?.username || "").toLowerCase();
+    if (!handle) return setAvailState("idle");
+    if (handle === original) return setAvailState("idle");
+    usernameChanged.current = true;
+    if (!/^[a-z0-9_]{3,20}$/.test(handle)) return setAvailState("invalid");
+    setAvailState("checking");
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/profile/check-username?username=${encodeURIComponent(handle)}`,
+        );
+        const data = await res.json();
+        setAvailState(data.available ? "available" : "taken");
+      } catch {
+        setAvailState("idle");
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [username, profile?.username]);
+
+  function pickAvatar(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error(t("profile.image.typeError"));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t("profile.image.sizeError"));
+      return;
+    }
+    setAvatarFile(file);
+    setAvatarRemoved(false);
+    setAvatarPreview(URL.createObjectURL(file));
+  }
+
+  async function removeAvatar() {
+    if (!confirm(t("profile.confirm.removePhoto"))) return;
+    try {
+      if (profile?.image) {
+        // Only hit the server when there is an existing photo to remove.
+        await api("/api/profile/upload-avatar", { method: "DELETE" });
+      }
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setAvatarRemoved(true);
+      toast.success(t("profile.toast.photoRemoved"));
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function uploadAvatar(): Promise<string | null> {
+    if (!avatarFile) return null;
+    const form = new FormData();
+    form.append("file", avatarFile);
+    const res = await fetch("/api/profile/upload-avatar", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("profile.error.photoUpload"));
+    return data.url;
+  }
+
+  async function save() {
+    if (saving) return;
+    if (availState === "taken") {
+      toast.error(t("profile.error.usernameTaken"));
+      return;
+    }
+    if (availState === "invalid") {
+      toast.error(t("profile.error.usernameInvalid"));
+      return;
+    }
+    setSaving(true);
+    try {
+      // 1. Avatar (upload or remove) — before the profile patch so the new
+      // photo URL can ride along.
+      let imageUrl: string | null | undefined = undefined;
+      if (avatarRemoved) imageUrl = null;
+      else if (avatarFile) imageUrl = await uploadAvatar();
+
+      // 2. Profile fields.
+      const body: Record<string, unknown> = {};
+      if (name.trim() !== (profile?.name || "")) body.name = name.trim();
+      if (bio.trim() !== (profile?.bio || "")) body.bio = bio.trim();
+      const handle = username.trim().toLowerCase();
+      if (handle && handle !== (profile?.username || "").toLowerCase()) body.username = handle;
+      if (state_ !== (profile?.state || "")) body.state = state_;
+      if (city.trim() !== (profile?.city || "")) body.city = city.trim();
+      if (gender !== (profile?.gender || "")) body.gender = gender || null;
+      const currentDob = profile?.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
+      if (dob !== currentDob) body.dateOfBirth = dob || null;
+      if (imageUrl !== undefined) body.image = imageUrl;
+      if (website.trim() !== (profile?.website || "")) body.website = website.trim();
+      if (instagram.trim() !== (profile?.instagram || "")) body.instagram = instagram.trim();
+      if (youtube.trim() !== (profile?.youtube || "")) body.youtube = youtube.trim();
+      if (facebook.trim() !== (profile?.facebook || "")) body.facebook = facebook.trim();
+      if (twitter.trim() !== (profile?.twitter || "")) body.twitter = twitter.trim();
+      if (communityRole !== (profile?.communityRole || "")) body.communityRole = communityRole || null;
+      if (communityRole === COMMUNITY_ROLE_OTHER && communityRoleOther.trim() !== (profile?.communityRoleOther || "")) {
+        body.communityRoleOther = communityRoleOther.trim();
+      }
+      if (communityRoleVisible !== (profile?.communityRoleVisible !== false)) body.communityRoleVisible = communityRoleVisible;
+
+      if (Object.keys(body).length > 0) {
+        await api("/api/profile", { method: "PATCH", body: JSON.stringify(body) });
+      }
+
+      // 3. Notify every consumer (header identity, onboarding gates, etc.)
+      // so edits are visible app-wide instantly.
+      notifyProfileUpdated();
+      toast.success(t("profile.toast.updated"));
+      onDone();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const cooldownActive = cooldownUntil ? new Date(cooldownUntil).getTime() > Date.now() : false;
+  const avatarShown: string | null = avatarRemoved
+    ? null
+    : avatarPreview || profile?.image || null;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
+      {/* header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={onDone} className="p-2 rounded-full hover:bg-white/5">
+          <ArrowLeft size={18} className="text-[#94A3B8]" />
+        </button>
+        <h1 className="text-lg font-extrabold text-white">{t("profile.title")}</h1>
+      </div>
+
+      {/* avatar */}
+      <div className="flex flex-col items-center gap-3 mb-8">
+        <div className="relative">
+          {avatarShown ? (
+            <Image src={avatarShown} alt="" width={96} height={96} className="w-24 h-24 rounded-full object-cover" unoptimized />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-3xl font-black">
+              {(name || profile?.username || profile?.email || "?").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-[#2563EB] flex items-center justify-center text-white shadow-lg"
+          >
+            <Camera size={16} />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && pickAvatar(e.target.files[0])}
+          />
+        </div>
+        <div className="flex items-center gap-4 text-xs font-bold">
+          <button onClick={() => fileRef.current?.click()} className="text-[#2563EB] hover:text-white">
+            {t("profile.changePhoto")}
+          </button>
+          {avatarShown && (
+            <button onClick={removeAvatar} className="text-[#EF4444]/80 hover:text-[#EF4444] flex items-center gap-1">
+              <Trash2 size={12} /> {t("common.remove")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* fields */}
+      <div className="space-y-5">
+        <Field label={t("profile.displayName")}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={100}
+            placeholder={t("profile.namePlaceholder")}
+            className={inputCls}
+          />
+        </Field>
+
+        <Field label={t("profile.username")}>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] text-sm font-bold">@</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+              maxLength={20}
+              placeholder={t("profile.usernamePlaceholder")}
+              className={`${inputCls} pl-8`}
+            />
+            {availState === "checking" && (
+              <Loader2 size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748B] animate-spin" />
+            )}
+            {availState === "available" && (
+              <Check size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-green-400" />
+            )}
+            {(availState === "taken" || availState === "invalid") && (
+              <AlertTriangle size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-red-400" />
+            )}
+          </div>
+          <p className={`text-[11px] mt-1.5 ${availState === "available" ? "text-green-400" : availState === "taken" || availState === "invalid" ? "text-red-400" : "text-[#64748B]"}`}>
+            {availState === "available" && t("profile.usernameAvailable", { username })}
+            {availState === "taken" && t("profile.error.usernameTaken")}
+            {availState === "invalid" && t("profile.usernameRules")}
+            {availState === "idle" && t("profile.usernameCooldownHint")}
+          </p>
+          {cooldownActive && cooldownUntil && (
+            <p className="text-[11px] mt-1 text-amber-400">
+              {t("profile.usernameNextChange", { date: new Date(cooldownUntil).toLocaleDateString() })}
+            </p>
+          )}
+        </Field>
+
+        <Field label={`${t("profile.bio")} (${bio.length}/500)`}>
+          <textarea
+            ref={bioRef}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={500}
+            rows={3}
+            placeholder={t("profile.bioPlaceholder")}
+            className={`${inputCls} resize-none`}
+          />
+          <div className="flex items-center mt-1.5">
+            <EmojiPickerButton
+              align="left"
+              onPick={(e) => insertAtCursor(bioRef.current, e, setBio, 500)}
+            />
+          </div>
+        </Field>
+
+        <Field label={t("profile.social")}>
+          <div className="space-y-2.5">
+            <LinkInput icon={Globe} label={t("profile.link.website")} value={website} onChange={setWebsite} placeholder={t("profile.placeholder.website")} />
+            <LinkInput icon={Instagram} label="Instagram" value={instagram} onChange={setInstagram} placeholder={t("profile.placeholder.handle")} />
+            <LinkInput icon={Youtube} label="YouTube" value={youtube} onChange={setYoutube} placeholder={t("profile.placeholder.channel")} />
+            <LinkInput icon={Facebook} label="Facebook" value={facebook} onChange={setFacebook} placeholder={t("profile.placeholder.facebook")} />
+            <LinkInput icon={Twitter} label={t("profile.link.twitter")} value={twitter} onChange={setTwitter} placeholder={t("profile.placeholder.handle")} />
+          </div>
+          <p className="text-[11px] mt-1.5 text-[#64748B]">
+            {t("profile.socialHint")}
+          </p>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="State">
+            <select value={state_} onChange={(e) => { setState(e.target.value); setCity(""); }} className={inputCls}>
+              <option value="">{t("common.selectState")}</option>
+              {INDIAN_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="City">
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              maxLength={100}
+              placeholder="City"
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Gender">
+            <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
+              <option value="">{t("onboarding.gender.preferNot")}</option>
+              <option value="male">{t("onboarding.gender.male")}</option>
+              <option value="female">{t("onboarding.gender.female")}</option>
+              <option value="prefer_not_to_say">{t("onboarding.gender.preferNot")}</option>
+            </select>
+          </Field>
+          <Field label="Date of birth">
+            <input
+              type="date"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              max={new Date().toISOString().slice(0, 10)}
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <Field label={t("profile.communityRole")}>
+          <select
+            value={communityRole}
+            onChange={(e) => setCommunityRole(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">{t("onboarding.role.selectPlaceholder")}</option>
+            {COMMUNITY_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+          {communityRole === COMMUNITY_ROLE_OTHER && (
+            <input
+              value={communityRoleOther}
+              onChange={(e) => setCommunityRoleOther(e.target.value)}
+              maxLength={COMMUNITY_ROLE_OTHER_MAX}
+              placeholder={t("onboarding.role.otherPlaceholder")}
+              className={`${inputCls} mt-2`}
+            />
+          )}
+          <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={communityRoleVisible}
+              onChange={(e) => setCommunityRoleVisible(e.target.checked)}
+              className="w-3.5 h-3.5 accent-[#2563EB]"
+            />
+            <span className="text-[11px] text-[#64748B] font-semibold">
+              {t("onboarding.role.visibleLabel")}
+            </span>
+          </label>
+          <p className="text-[11px] mt-1.5 text-[#64748B]">
+            {t("profile.roleDisclaimer")}
+          </p>
+        </Field>
+      </div>
+
+      <button
+        onClick={save}
+        disabled={saving || availState === "taken" || availState === "invalid"}
+        className="w-full mt-8 py-3.5 rounded-2xl bg-[#2563EB] text-white font-extrabold disabled:opacity-40 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
+      >
+        {saving ? t("profile.saving") : t("profile.save")}
+      </button>
+    </div>
+  );
+}
+
+const inputCls =
+  "w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#2563EB]";
+
+function LinkInput({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative">
+      <Icon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={200}
+        placeholder={placeholder}
+        aria-label={label}
+        className={`${inputCls} pl-10`}
+      />
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}

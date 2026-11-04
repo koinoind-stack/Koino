@@ -1,0 +1,1015 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Brain,
+  Heart,
+  MessageCircle,
+  Loader2,
+  X,
+  AlertCircle,
+  Headphones,
+  Video,
+  Zap,
+  Share2,
+  Download,
+  ArrowLeft,
+  CheckCircle2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useLanguage, useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
+import { getBook, getComicProgress, saveComicProgress } from "@/lib/bible-data";
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+import Image from "next/image";
+
+// ─── Types ────────────────────────────────────────────────────────────────
+
+type ComicPanel = {
+  panelId: string;
+  sortOrder: number;
+  artworkUrl: string;
+  altText: string | null;
+  verseStart: number;
+  verseEnd: number;
+  bookId: string;
+  chapter: number;
+  audioUrl: string | null;
+  videoUrl: string | null;
+  title: string | null;
+  narration: string | null;
+  captions: string[];
+  isFallback: boolean;
+  hasTranslation: boolean;
+};
+
+type ComicChapter = {
+  id: string;
+  comicId: string;
+  bookId: string;
+  chapter: number;
+  title: string;
+  coverArtUrl: string | null;
+  sortOrder: number;
+  panels: ComicPanel[];
+  titleIsFallback: boolean;
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────
+
+type Props = {
+  bookId: string;
+  chapter: number;
+  onNavigateChapter: (bookId: string, chapter: number) => void;
+  onReadChapter: (bookId: string, chapter: number) => void;
+  onPray: (prayerPrompt: string) => void;
+  onDiscuss: (topic: string) => void;
+  onBackToLibrary?: () => void;
+};
+
+export default function ComicView({ bookId, chapter, onNavigateChapter, onReadChapter, onPray, onDiscuss, onBackToLibrary }: Props) {
+  const { lang } = useLanguage();
+  const t = useTranslation();
+  const { isAuthenticated } = useSupabaseUser();
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // Universal share sheet state (chapter + per-panel requests).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
+  const [chapterData, setChapterData] = useState<ComicChapter | null>(null);
+
+  // Quiz state
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [quizLoading, setQuizLoading] = useState(false);
+
+  // TTS state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Reading progress — highest panel actually seen (1-based). Persisted to
+  // cc_comic_progress via saveComicProgress; powers Continue Reading in the
+  // Comics library and the reading progress bar in this header.
+  const [seenPanel, setSeenPanel] = useState(0);
+  const lastSavedRef = useRef(0);
+
+  // Load comic chapter
+  const loadComic = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/comic/${bookId}/${chapter}?lang=${lang}`);
+      const text = await res.text();
+      if (!text) {
+        throw new Error(t("comics.error.emptyResponse"));
+      }
+      const data = JSON.parse(text);
+      if (!res.ok) throw new Error(data.error || t("comics.error.loadFailed"));
+      setChapterData(data.chapter);
+    } catch (e: any) {
+      setError(e.message || t("comics.error.loadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }, [bookId, chapter, lang, t]);
+
+  useEffect(() => {
+    loadComic();
+  }, [loadComic]);
+
+  // ─── Reading progress: restore + resume ─────────────────────────────────
+
+  useEffect(() => {
+    if (!chapterData) return;
+    const total = chapterData.panels.length;
+    if (total === 0) return;
+    // A fresh chapter open always starts at the top — the window may carry
+    // scroll from the library view, which would instantly mark lower panels
+    // as "seen" and inflate progress. (Resume scroll below overrides this
+    // for in-progress chapters.)
+    window.scrollTo({ top: 0 });
+    const prog = getComicProgress(bookId, chapter);
+    if (prog && prog.lastPanel > 0) {
+      setSeenPanel((prev) => Math.max(prev, Math.min(prog.lastPanel, total)));
+      lastSavedRef.current = Math.max(lastSavedRef.current, Math.min(prog.lastPanel, total));
+      // Resume: scroll the first unseen panel into view once content settles.
+      if (!prog.completed && prog.lastPanel < total) {
+        const t = setTimeout(() => {
+          document
+            .getElementById(`comic-panel-${prog.lastPanel + 1}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 800);
+        return () => clearTimeout(t);
+      }
+    } else {
+      // First open — record that this chapter has been started.
+      saveComicProgress(bookId, chapter, 0, total);
+    }
+  }, [chapterData, bookId, chapter]);
+
+  // Observe which panels the user actually sees; persist the highest one.
+  useEffect(() => {
+    if (!chapterData || chapterData.panels.length === 0) return;
+    const total = chapterData.panels.length;
+    const els = Array.from(document.querySelectorAll<HTMLElement>("[data-comic-panel]"));
+    if (els.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let maxSeen = 0;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const n = Number((entry.target as HTMLElement).dataset.comicPanel || 0);
+            if (n > maxSeen) maxSeen = n;
+          }
+        }
+        if (maxSeen > lastSavedRef.current) {
+          lastSavedRef.current = maxSeen;
+          setSeenPanel(maxSeen);
+          saveComicProgress(bookId, chapter, maxSeen, total);
+        }
+      },
+      { threshold: 0.5, rootMargin: "0px 0px -8% 0px" }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [chapterData, bookId, chapter]);
+
+  // ─── Listen (TTS) ─────────────────────────────────────────────────────────
+
+  const handleListen = () => {
+    if (!chapterData) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    // Combine all panel narrations into one speech
+    const fullNarration = chapterData.panels
+      .map((p, i) => `${t("comics.ttsPanelTemplate", { i: i + 1, title: p.title || "" })} ${p.narration || ""}`)
+      .join(" ");
+
+    const utterance = new SpeechSynthesisUtterance(fullNarration);
+    utterance.rate = 0.9;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+    toast(t("comics.audioNarration"), {
+      description: t("comics.audioNarrationDesc"),
+    });
+  };
+
+  // ─── Share (universal share sheet) ──────────────────────────────────
+
+  const openChapterShare = () => {
+    if (!chapterData) return;
+    setShareReq({
+      heading: t("comics.shareChapterHeading", { title: chapterData.title }),
+      shareText: t("comics.shareText", { title: chapterData.title }),
+      shareUrl: shareLinks.comic(chapterData.bookId, chapterData.chapter),
+      cardUrl: `/api/share-card?type=comic-chapter&book=${encodeURIComponent(chapterData.bookId)}&chapter=${chapterData.chapter}&lang=${lang}`,
+      formats: ["portrait", "square"],
+      fileName: `koino-comic-${bookId}-${chapter}.png`,
+    });
+  };
+
+  const openPanelShare = (panel: ComicPanel, verseRef: string) => {
+    setShareReq({
+      heading: t("comics.sharePanelHeading", { title: panel.title || verseRef }),
+      shareText: t("comics.sharePanelText", { title: panel.title || verseRef, ref: verseRef }),
+      shareUrl: shareLinks.comic(bookId, chapter),
+      cardUrl: `/api/share-card?type=comic-panel&panel=${encodeURIComponent(panel.panelId)}&lang=${lang}`,
+      formats: ["square", "story"],
+      imageUrl: panel.artworkUrl || undefined,
+      imageLabel: t("comics.originalIllustration"),
+      fileName: `koino-comic-panel-${panel.panelId}.png`,
+    });
+  };
+
+  // ─── Quiz ────────────────────────────────────────────────────────────────
+
+  const startQuiz = async () => {
+    if (!chapterData) return;
+    if (!isAuthenticated) {
+      toast.error(t("comics.quizSignInRequired"));
+      return;
+    }
+    setShowQuiz(true);
+    setQuizLoading(true);
+    try {
+      const res = await fetch(
+        `/api/comic/quiz/${chapterData.id}?lang=${lang}&mode=EARN_POINTS`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setQuizQuestions(data.questions || []);
+    } catch (e: any) {
+      toast.error(t("comics.quizLoadFailed"), { description: e.message });
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={32} className="text-[#F97316] animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !chapterData) {
+    return (
+      <div className="text-center py-20">
+        <AlertCircle size={32} className="mx-auto text-[#EF4444] mb-3" />
+        <p className="text-sm text-[#94A3B8]">{error || t("comics.error.notFound")}</p>
+        <button onClick={loadComic} className="mt-4 px-4 py-2 rounded-xl bg-[#2563EB] text-white text-xs font-bold">
+          {t("comics.retry")}
+        </button>
+      </div>
+    );
+  }
+
+  // Proper book name from the Bible books data (fixes naive capitalization
+  // for books like "1 Samuel" / "Song of Solomon").
+  const bookName = getBook(bookId)?.name || bookId.charAt(0).toUpperCase() + bookId.slice(1);
+  const panels = chapterData.panels;
+  const totalPanels = panels.length;
+  const progressPct = totalPanels > 0 ? Math.min(100, Math.round((seenPanel / totalPanels) * 100)) : 0;
+  const chapterCompleted = totalPanels > 0 && seenPanel >= totalPanels;
+
+  // Get prayer prompt from first panel's captions
+  const prayerPrompt = panels[0]?.captions?.[0] ||
+    t("comics.prayerFallback", { title: chapterData.title });
+
+  return (
+    <div className="max-w-[1200px] mx-auto px-4 py-5 pb-28 md:pb-5">
+      {/* ─── HEADER ─── */}
+      <div className="text-center mb-6">
+        {onBackToLibrary && (
+          <button
+            onClick={onBackToLibrary}
+            aria-label={t("comics.backToLibraryAria")}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.08] border border-white/[0.14] text-white/90 hover:bg-white/[0.14] hover:text-white active:scale-[0.97] text-xs font-bold transition-all mb-4 min-h-[40px]"
+          >
+            <ArrowLeft size={15} /> {t("comics.backToLibrary")}
+          </button>
+        )}
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F97316] mb-2">
+          {t("comics.eyebrow")}
+        </p>
+        <h1 className="text-3xl font-black text-white mb-1">
+          {bookName} {chapter}
+        </h1>
+        <p className="text-lg text-[#A09DB1] font-semibold mb-2">
+          {chapterData.title}
+        </p>
+        {onBackToLibrary && (
+          <button
+            onClick={onBackToLibrary}
+            aria-label={t("comics.allComicsAria")}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B87A3] hover:text-white transition-colors mb-2"
+          >
+            <ArrowLeft size={11} /> {t("comics.allComics")}
+          </button>
+        )}
+        <p className="text-xs text-[#64748B]">
+          {t("comics.tagline")}
+        </p>
+
+        {/* ─── Reading progress (panels actually seen) ─── */}
+        {totalPanels > 0 && (
+          <div className="max-w-md mx-auto mt-4">
+            {chapterCompleted && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-black mb-2">
+                <CheckCircle2 size={11} /> {t("comics.chapterCompleted")}
+              </span>
+            )}
+            <div className="flex items-center justify-between text-[9px] font-bold text-[#64748B] mb-1">
+              <span>
+                {chapterCompleted
+                  ? t("comics.allPanelsRead")
+                  : t("comics.panelOf", { n: Math.min(seenPanel + 1, totalPanels), total: totalPanels })}
+              </span>
+              <span>{progressPct}%</span>
+            </div>
+            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#F97316] transition-all duration-500"
+                style={{ width: `${Math.max(4, progressPct)}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── COMIC PANEL GRID (3×2 on desktop, stacked on mobile) ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {panels.map((panel, idx) => (
+          <div
+            key={panel.panelId}
+            id={`comic-panel-${idx + 1}`}
+            data-comic-panel={idx + 1}
+            className="scroll-mt-24"
+          >
+            <ComicPanelCard
+              panel={panel}
+              index={idx + 1}
+              bookName={bookName}
+              chapterNum={chapter}
+              onReadVerse={onReadChapter}
+              bookId={bookId}
+              chapter={chapter}
+              onShare={(p, ref) => openPanelShare(p, ref)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* ─── BOTTOM ACTION BAR ─── */}
+      <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+          <ActionButton icon={BookOpen} label={t("bible.read")} sublabel={t("comics.readSub")} onClick={() => onReadChapter(bookId, chapter)} />
+          <ActionButton icon={isSpeaking ? X : Headphones} label={isSpeaking ? t("bible.stop") : t("bible.listen")} sublabel={t("comics.audioNarration")} onClick={handleListen} />
+          {/* P5: real comic→video link — published library videos for THIS
+              passage (VideoBibleRef). Renders nothing when none exist, so the
+              action bar only ever offers what is actually available. */}
+          <ChapterVideoAction bookId={bookId} chapter={chapter} />
+          <ActionButton icon={Brain} label={t("bible.quiz")} sublabel={t("comics.quizSub")} onClick={startQuiz} />
+          <ActionButton icon={Zap} label={t("bible.earnFp")} sublabel={t("comics.earnFpSub")} onClick={() => toast(t("comics.earnFpToast"))} dimmed />
+          <ActionButton icon={Heart} label={t("bible.pray")} sublabel={t("comics.praySub")} onClick={() => onPray(prayerPrompt)} />
+          <ActionButton icon={MessageCircle} label={t("bible.discuss")} sublabel={t("comics.discussSub")} onClick={() => onDiscuss(t("comics.discussPrompt", { book: bookName, chapter }))} dimmed />
+        </div>
+      </div>
+
+      {/* ─── CHAPTER NAVIGATION ─── */}
+      <ChapterNavigation bookId={bookId} chapter={chapter} onNavigate={onNavigateChapter} />
+
+      {/* ─── SHARE / DOWNLOAD ─── */}
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={openChapterShare}
+          className="flex-1 py-2.5 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#2563EB]/25 transition-all"
+        >
+          <Share2 size={14} /> {t("comics.shareChapter")}
+        </button>
+      </div>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
+
+      {/* ─── QUIZ MODAL ─── */}
+      <AnimatePresence>
+        {showQuiz && (
+          <ComicQuizModal
+            chapterId={chapterData.id}
+            questions={quizQuestions}
+            loading={quizLoading}
+            lang={lang}
+            onClose={() => {
+              setShowQuiz(false);
+              setQuizQuestions([]);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Comic Panel Card ───────────────────────────────────────────────────────
+
+function ComicPanelCard({
+  panel,
+  index,
+  bookName,
+  chapterNum,
+  onReadVerse,
+  bookId,
+  chapter,
+  onShare,
+}: {
+  panel: ComicPanel;
+  index: number;
+  bookName: string;
+  chapterNum: number;
+  onReadVerse: (bookId: string, chapter: number) => void;
+  bookId: string;
+  chapter: number;
+  onShare?: (panel: ComicPanel, verseRef: string) => void;
+}) {
+  const t = useTranslation();
+  const narration = (panel.narration || "").trim();
+
+  // Inline expand/collapse for long narration. State lives inside this card,
+  // so every panel expands and collapses independently.
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const narrationRef = useRef<HTMLParagraphElement | null>(null);
+  const narrationBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // Detect whether the 3-line preview actually truncates the narration.
+  // With the line clamp applied, scrollHeight reflects the full (hidden)
+  // content height while clientHeight reflects the clamped box — content
+  // taller than the box means the preview is cut off. Re-measured after
+  // fonts settle and whenever the card's layout box changes (sidebar
+  // toggle, orientation change, mobile browser UI show/hide) so the
+  // control appears/disappears correctly at every breakpoint.
+  useEffect(() => {
+    if (expanded) return; // expanded shows the full text — keep state stable
+    const measure = () => {
+      const el = narrationRef.current;
+      if (!el) return;
+      setIsTruncated(el.scrollHeight - el.clientHeight > 2);
+    };
+    measure();
+    const t1 = window.setTimeout(measure, 300);
+    const t2 = window.setTimeout(measure, 1200);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && narrationBoxRef.current) {
+      ro = new ResizeObserver(measure);
+      ro.observe(narrationBoxRef.current);
+    }
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [expanded, narration]);
+
+  // Single-verse panels read "Genesis 1:31", not "Genesis 1:31-31".
+  const verseRef =
+    panel.verseStart === panel.verseEnd
+      ? `${bookName} ${chapterNum}:${panel.verseStart}`
+      : `${bookName} ${chapterNum}:${panel.verseStart}-${panel.verseEnd}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden flex flex-col"
+    >
+      {/* ─── ARTWORK with overlays ─── */}
+      <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
+        <img
+          src={panel.artworkUrl}
+          alt={panel.altText || panel.title || t("comics.panelAlt", { n: index, book: bookName, ch: chapterNum })}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+
+        {/* Top gradient (for overlay legibility) */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 via-black/30 to-transparent pointer-events-none" />
+
+        {/* Bottom gradient (for verse reference legibility) */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+
+        {/* Panel number + title OVERLAID on top of artwork (top-left).
+            right-12 keeps long titles clear of the panel share button. */}
+        <div className="absolute top-3 left-3 right-12 flex items-start gap-2">
+          <span
+            className="shrink-0 w-7 h-7 rounded-full bg-[#F97316] text-slate-950 text-xs font-black flex items-center justify-center shadow-lg"
+            aria-label={t("comics.panelAria", { n: index })}
+          >
+            {index}
+          </span>
+          <h3 className="text-sm font-bold text-white leading-tight drop-shadow-md line-clamp-2">
+            {panel.title}
+          </h3>
+        </div>
+
+        {/* Verse reference OVERLAID near bottom-right of artwork */}
+        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold">
+          {verseRef}
+        </div>
+
+        {/* Share this panel — visible on desktop and touch (not hover-only) */}
+        {onShare && (
+          <button
+            type="button"
+            onClick={() => onShare(panel, verseRef)}
+            aria-label={t("comics.sharePanelAria", { n: index })}
+            title={t("comics.sharePanelTitle")}
+            className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white/85 hover:text-white hover:bg-black/80 border border-white/10 transition-all"
+          >
+            <Share2 size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* ─── Narration below artwork ───
+          Collapsed: 3-line readable preview. When the stored narration is
+          longer than the preview, a "Read Full Story ↓" control expands the
+          panel inline to reveal the complete saved text ("Show Less ↑"
+          collapses it again). The card grows in the page flow — nothing is
+          clipped or covered — and expanding never touches reading progress. */}
+      <div className="p-3 flex-1" ref={narrationBoxRef}>
+        {narration ? (
+          <p
+            id={`narration-${panel.panelId}`}
+            ref={narrationRef}
+            className={`text-[12px] text-[#A09DB1] leading-relaxed ${
+              expanded ? "" : "line-clamp-3"
+            }`}
+          >
+            {narration}
+          </p>
+        ) : null}
+        {narration && (expanded || isTruncated) ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-controls={`narration-${panel.panelId}`}
+            className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#2563EB]/15 border border-[#2563EB]/25 text-[#60A5FA] text-[11px] font-bold hover:bg-[#2563EB]/25 hover:text-white transition-all"
+          >
+            {expanded ? t("comics.showLess") : t("comics.readFullStory")}
+            {expanded ? (
+              <ChevronUp size={12} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={12} aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Action Button ──────────────────────────────────────────────────────────
+
+function ActionButton({
+  icon: Icon,
+  label,
+  sublabel,
+  onClick,
+  dimmed = false,
+}: {
+  icon: typeof BookOpen;
+  label: string;
+  sublabel: string;
+  onClick: () => void;
+  dimmed?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all ${
+        dimmed
+          ? "bg-white/[0.02] border-white/[0.04] text-[#475569] cursor-default"
+          : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white hover:bg-white/[0.06]"
+      }`}
+    >
+      <Icon size={18} />
+      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+      <span className="text-[8px] text-[#64748B] hidden lg:block">{sublabel}</span>
+    </button>
+  );
+}
+
+// ─── Chapter Video Action (P5) ──────────────────────────────────────────────
+// The comic page's "Watch" action: opens published library videos linked to
+// the passage being comic-ified (admin-curated via VideoBibleRef — the SAME
+// records the Watch hub and Bible reader use; nothing is duplicated or stored
+// on the comic side). One video → straight to its watch page; several → the
+// passage-scoped library list; none/unavailable → renders nothing at all so
+// the bar never offers a dead or fake action.
+
+function ChapterVideoAction({ bookId, chapter }: { bookId: string; chapter: number }) {
+  const t = useTranslation();
+  const [videos, setVideos] = useState<Array<{ id: string; slug: string; title: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    setVideos([]);
+    fetch(`/api/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}&take=2`, {
+      cache: "no-store",
+      signal: ctrl.signal,
+    })
+      .then((r) => (r.ok ? r.json() : { videos: [] }))
+      .then((d) => {
+        if (!cancelled) setVideos(d.videos || []);
+      })
+      .catch(() => {}); // network hiccup → button simply stays hidden
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [bookId, chapter]);
+
+  if (videos.length === 0) return null;
+
+  function open() {
+    if (videos.length === 1) {
+      window.location.href = `/videos/${videos[0].slug}`;
+    } else {
+      window.location.href = `/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}`;
+    }
+  }
+
+  return (
+    <ActionButton
+      icon={Video}
+      label={t("bible.watch")}
+      sublabel={videos.length === 1 ? t("comics.watchOne") : t("comics.watchMany")}
+      onClick={open}
+    />
+  );
+}
+
+// ─── Chapter Navigation ──────────────────────────────────────────────────────
+
+function ChapterNavigation({
+  bookId,
+  chapter,
+  onNavigate,
+}: {
+  bookId: string;
+  chapter: number;
+  onNavigate: (bookId: string, chapter: number) => void;
+}) {
+  const t = useTranslation();
+  const [availableChapters, setAvailableChapters] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/comic/list")
+      .then((r) => r.json())
+      .then((data) => {
+        const set = new Set<string>();
+        (data.chapters || []).forEach((ch: any) => {
+          set.add(`${ch.bookId}-${ch.chapter}`);
+        });
+        setAvailableChapters(set);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const getAdjacentChapter = (direction: "prev" | "next") => {
+    const books = require("@/lib/bible-data").BIBLE_BOOKS as typeof import("@/lib/bible-data").BIBLE_BOOKS;
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return null;
+
+    let nextChapter: number;
+    let nextBookId: string = bookId;
+
+    if (direction === "next") {
+      if (chapter < book.chapters) {
+        nextChapter = chapter + 1;
+      } else {
+        const idx = books.findIndex((b) => b.id === bookId);
+        if (idx < books.length - 1) {
+          nextBookId = books[idx + 1].id;
+          nextChapter = 1;
+        } else {
+          return null;
+        }
+      }
+    } else {
+      if (chapter > 1) {
+        nextChapter = chapter - 1;
+      } else {
+        const idx = books.findIndex((b) => b.id === bookId);
+        if (idx > 0) {
+          nextBookId = books[idx - 1].id;
+          nextChapter = books[idx - 1].chapters;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    return { bookId: nextBookId, chapter: nextChapter };
+  };
+
+  const prevChapter = getAdjacentChapter("prev");
+  const nextChapter = getAdjacentChapter("next");
+
+  const hasPrevComic = prevChapter ? availableChapters.has(`${prevChapter.bookId}-${prevChapter.chapter}`) : false;
+  const hasNextComic = nextChapter ? availableChapters.has(`${nextChapter.bookId}-${nextChapter.chapter}`) : false;
+
+  if (loading) return null;
+
+  const formatLabel = (bid: string, ch: number) => {
+    const books = require("@/lib/bible-data").BIBLE_BOOKS as typeof import("@/lib/bible-data").BIBLE_BOOKS;
+    const book = books.find((b) => b.id === bid);
+    return `${book?.name || bid} ${ch}`;
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-white/[0.04]">
+      {prevChapter ? (
+        <button
+          onClick={() => {
+            if (hasPrevComic) {
+              onNavigate(prevChapter.bookId, prevChapter.chapter);
+            } else {
+              toast(t("comics.comingSoonToast"), {
+                description: t("comics.comingSoonDesc", { ref: formatLabel(prevChapter.bookId, prevChapter.chapter) }),
+              });
+            }
+          }}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+            hasPrevComic
+              ? "bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white"
+              : "bg-white/[0.02] border border-white/[0.04] text-[#475569] cursor-not-allowed"
+          }`}
+        >
+          <ChevronLeft size={14} />
+          <span className="hidden sm:inline">{formatLabel(prevChapter.bookId, prevChapter.chapter)}</span>
+          <span className="sm:hidden">{t("bible.prev")}</span>
+          {!hasPrevComic && <span className="text-[8px] text-[#F5B84A] ml-1">{t("comics.soonBadge")}</span>}
+        </button>
+      ) : (
+        <div />
+      )}
+
+      {nextChapter ? (
+        <button
+          onClick={() => {
+            if (hasNextComic) {
+              onNavigate(nextChapter.bookId, nextChapter.chapter);
+            } else {
+              toast(t("comics.comingSoonToast"), {
+                description: t("comics.comingSoonDesc", { ref: formatLabel(nextChapter.bookId, nextChapter.chapter) }),
+              });
+            }
+          }}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+            hasNextComic
+              ? "bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white"
+              : "bg-white/[0.02] border border-white/[0.04] text-[#475569] cursor-not-allowed"
+          }`}
+        >
+          {!hasNextComic && <span className="text-[8px] text-[#F5B84A] mr-1">{t("comics.soonBadge")}</span>}
+          <span className="hidden sm:inline">{formatLabel(nextChapter.bookId, nextChapter.chapter)}</span>
+          <span className="sm:hidden">{t("common.next")}</span>
+          <ChevronRight size={14} />
+        </button>
+      ) : (
+        <div />
+      )}
+    </div>
+  );
+}
+
+// ─── Comic Quiz Modal ─────────────────────────────────────────────────────────
+
+function ComicQuizModal({
+  chapterId,
+  questions,
+  loading,
+  lang,
+  onClose,
+}: {
+  chapterId: string;
+  questions: any[];
+  loading: boolean;
+  lang: string;
+  onClose: () => void;
+}) {
+  const { isAuthenticated } = useSupabaseUser();
+  const t = useTranslation();
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [results, setResults] = useState<any>(null);
+
+  const handleAnswer = (questionId: string, selectedAnswer: number) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: selectedAnswer }));
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const answerArray = Object.entries(answers).map(([questionId, selectedAnswer]) => ({
+        questionId,
+        selectedAnswer,
+      }));
+      const res = await fetch(`/api/comic/quiz/${chapterId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "EARN_POINTS", answers: answerArray }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setResults(data);
+    } catch (e: any) {
+      toast.error(t("comics.quizSubmitFailed"), { description: e.message });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[70] p-4"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <Loader2 size={32} className="text-[#F97316] animate-spin" />
+      </motion.div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[70] p-4"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div className="bg-[#13294A] border border-white/[0.08] rounded-2xl p-6 max-w-sm text-center">
+          <Brain size={28} className="mx-auto text-[#475569] mb-2" />
+          <p className="text-sm text-[#94A3B8]">{t("comics.quizEmpty")}</p>
+          <button onClick={onClose} className="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] text-xs font-bold text-[#94A3B8]">
+            {t("common.close")}
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Results screen
+  if (results) {
+    const correctCount = results.correctCount || 0;
+    const totalQ = results.totalQuestions || questions.length;
+    const pointsEarned = results.totalPointsEarned || 0;
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[70] p-4"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 50, opacity: 0 }}
+          className="bg-[#13294A] border border-[#F5B84A]/20 rounded-2xl p-6 max-w-md w-full"
+        >
+          <h2 className="text-xl font-extrabold text-white mb-2">{t("triviaView.results.title")}</h2>
+          <p className="text-sm text-[#A09DB1] mb-4">
+            {t("triviaView.results.correct", { count: correctCount, total: totalQ })}
+            {pointsEarned > 0 && <span className="text-[#F5B84A] font-bold"> {t("comics.fpEarnedSuffix", { n: pointsEarned })}</span>}
+          </p>
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+            {results.questionResults?.map((qr: any, i: number) => (
+              <div
+                key={i}
+                className={`p-2 rounded-lg border text-xs ${
+                  qr.correct ? "bg-[#22C55E]/10 border-[#22C55E]/20" : "bg-[#EF4444]/10 border-[#EF4444]/20"
+                }`}
+              >
+                <p className="font-bold text-white">{qr.questionId}</p>
+                <p className="text-[#94A3B8]">{qr.correct ? t("comics.answerCorrect") : t("comics.answerIncorrect")}</p>
+              </div>
+            ))}
+          </div>
+          <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl bg-[#F5B84A] text-slate-950 text-sm font-bold">
+            {t("common.done")}
+          </button>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // Quiz question screen
+  const q = questions[currentQ];
+  const isAnswered = answers[q.id] !== undefined;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-end md:items-center justify-center z-[70] p-0 md:p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-md max-h-[85vh] overflow-y-auto p-5"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#F5B84A]">
+            {t("comics.quizProgress", { n: currentQ + 1, t: questions.length })}
+          </p>
+          <button onClick={onClose}>
+            <X size={18} className="text-[#64748B]" />
+          </button>
+        </div>
+
+        <p className="text-sm font-bold text-white mb-3">{q.question}</p>
+        <div className="space-y-2">
+          {q.options.map((opt: string, idx: number) => (
+            <button
+              key={idx}
+              onClick={() => handleAnswer(q.id, idx)}
+              className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
+                answers[q.id] === idx
+                  ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-white"
+                  : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          {currentQ > 0 && (
+            <button
+              onClick={() => setCurrentQ(currentQ - 1)}
+              className="px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-bold text-[#94A3B8]"
+            >
+              {t("common.back")}
+            </button>
+          )}
+          {currentQ < questions.length - 1 ? (
+            <button
+              onClick={() => setCurrentQ(currentQ + 1)}
+              disabled={!isAnswered}
+              className="flex-1 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-bold disabled:opacity-30"
+            >
+              {t("common.next")}
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || Object.keys(answers).length < questions.length}
+              className="flex-1 py-2.5 rounded-xl bg-[#F5B84A] text-slate-950 text-sm font-bold disabled:opacity-30"
+            >
+              {submitting ? t("comics.submitting") : t("comics.submitQuiz")}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}

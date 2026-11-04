@@ -1,0 +1,736 @@
+"use client";
+
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  MapPin,
+  Phone,
+  Globe,
+  Clock,
+  Plus,
+  X,
+  Star,
+  BadgeCheck,
+  Building2,
+  MessageCircle,
+  ExternalLink,
+  ImageOff,
+  Filter,
+  Share2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import {
+  BUSINESS_CATEGORIES,
+  INDIAN_STATES,
+  getCitiesForState,
+  CHURCH_GRADIENTS,
+  type Business,
+} from "@/lib/crosscrafted-data";
+
+// Card shape returned by /api/businesses (DB-backed; contacts in detail only).
+type ApiBusiness = {
+  id: string; name: string; description: string; category: string;
+  state: string; city: string; cover_image: string | null; images: string[];
+  cover_gradient: number; verified: boolean; featured: boolean;
+  hours: string | null; services: string[]; ownerName: string; createdAt: string;
+};
+
+function mapApiToBusiness(c: ApiBusiness): Business {
+  return {
+    id: c.id, name: c.name, description: c.description, category: c.category,
+    country: "India", state: c.state, city: c.city, languages: [],
+    cover_image: c.cover_image ?? undefined, cover_gradient: c.cover_gradient,
+    hours: c.hours ?? undefined, services: c.services,
+    verified: c.verified, featured: c.featured, status: "approved",
+    createdAt: c.createdAt,
+  };
+}
+
+import { shareLinks } from "@/lib/share/links";
+import ShareSheet, { type ShareRequest } from "@/components/share/ShareSheet";
+
+type SortOption = "recommended" | "newest" | "name";
+
+type Props = {
+  /** Called when the user taps "+ List Your Business". Parent opens the
+      existing ListYourEntity variant="business" form. */
+  onListBusiness?: () => void;
+};
+
+export default function BusinessDirectoryView({ onListBusiness }: Props) {
+  const t = useTranslation();
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const firstLoad = useRef(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterState, setFilterState] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("recommended");
+  const [openBusiness, setOpenBusiness] = useState<Business | null>(null);
+  // Universal share sheet — Task 121 (approved listings only; the card
+  // endpoint re-verifies the listing status server-side).
+  const [shareReq, setShareReq] = useState<ShareRequest | null>(null);
+
+  const loadBusinesses = useCallback(async (cursor?: string | null) => {
+    if (cursor) setLoadingMore(true); else setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (filterCategory) params.set("category", filterCategory);
+      if (filterState) params.set("state", filterState);
+      if (filterCity) params.set("city", filterCity);
+      if (sortBy === "newest") params.set("sort", "newest");
+      else if (sortBy === "name") params.set("sort", "name");
+      // "recommended" = server default (featured first)
+      if (cursor) params.set("cursor", cursor);
+      const res = await fetch(`/api/businesses?${params.toString()}`, { cache: "no-store" });
+      const data = await res.json();
+      const mapped: Business[] = ((data.businesses || []) as ApiBusiness[]).map(mapApiToBusiness);
+      if (cursor) {
+        setBusinesses((prev) => [...prev, ...mapped.filter((m) => !prev.some((b) => b.id === m.id))]);
+      } else {
+        setBusinesses(mapped);
+      }
+      setNextCursor(data.nextCursor || null);
+    } catch {
+      toast.error(t("biz.error.load"));
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [searchQuery, filterCategory, filterState, filterCity, sortBy]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadBusinesses(null), firstLoad.current ? 0 : 350);
+    firstLoad.current = false;
+    return () => clearTimeout(t);
+  }, [loadBusinesses]);
+
+  // Server returns only APPROVED businesses, already filtered and sorted.
+  const filtered = businesses;
+
+  const featured = useMemo(() => filtered.filter((b) => b.featured), [filtered]);
+
+  // Open detail immediately, then hydrate contact details (privacy: contacts
+  // are only served by the detail endpoint for approved businesses).
+  const openDetail = (b: Business) => {
+    setOpenBusiness(b);
+    fetch(`/api/businesses/${b.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const row = d?.business;
+        if (!row) return;
+        setOpenBusiness((cur) =>
+          cur && cur.id === b.id
+            ? {
+                ...cur,
+                whatsapp_number: row.whatsappNumber ?? cur.whatsapp_number,
+                phone: row.phone ?? cur.phone,
+                email: row.email ?? cur.email,
+                website: row.website ?? cur.website,
+                address: row.address ?? cur.address,
+              }
+            : cur
+        );
+      })
+      .catch(() => {});
+  };
+
+  const activeFilters = [filterCategory, filterState, filterCity, searchQuery].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setFilterCategory("");
+    setFilterState("");
+    setFilterCity("");
+    setSearchQuery("");
+    setSortBy("recommended");
+  };
+
+  return (
+    <div className="max-w-[680px] mx-auto px-4 py-5 pb-28 md:pb-5">
+      {/* ─── HEADER ─── */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-xl font-bold text-white">{t("side.businessDirectory")}</h1>
+          <p className="text-xs text-[#94A3B8] mt-0.5">
+            {t("biz.headerSubtitle")}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            if (onListBusiness) {
+              onListBusiness();
+            } else {
+              toast("Open 'List Business' to submit your business.");
+            }
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold text-white transition-all hover:-translate-y-px"
+          style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
+        >
+          <Plus size={13} /> {t("biz.listYourBusiness")}
+        </button>
+      </div>
+
+      {/* ─── SEARCH ─── */}
+      <div className="relative mb-3">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+        <input
+          type="text"
+          placeholder={t("biz.searchPlaceholder")}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="neo-input text-sm pl-9"
+        />
+      </div>
+
+      {/* ─── QUICK FILTER ROW (Category + Sort + Filter toggle) ─── */}
+      <div className="flex gap-2 mb-3">
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="neo-input text-xs py-2 flex-1"
+        >
+          <option value="">{t("biz.filter.allCategories")}</option>
+          {BUSINESS_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="neo-input text-xs py-2 w-32"
+        >
+          <option value="recommended">{t("biz.sort.recommended")}</option>
+          <option value="newest">{t("common.sort.newest")}</option>
+          <option value="name">{t("common.sort.nameAZ")}</option>
+        </select>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all border flex items-center gap-1.5 ${
+            activeFilters > 0
+              ? "bg-[#3B82F6]/15 border-[#3B82F6]/30 text-[#3B82F6]"
+              : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
+          }`}
+        >
+          <Filter size={12} />
+          {activeFilters > 0 && (
+            <span className="w-4 h-4 rounded-full bg-[#3B82F6] text-white text-[9px] flex items-center justify-center font-bold">
+              {activeFilters}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ─── STATE / CITY FILTER ROW ─── */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <MapPin size={10} className="inline mr-0.5" /> State
+                </label>
+                <select
+                  value={filterState}
+                  onChange={(e) => {
+                    setFilterState(e.target.value);
+                    setFilterCity("");
+                  }}
+                  className="neo-input text-sm"
+                >
+                  <option value="">{t("common.allStates")}</option>
+                  {INDIAN_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <MapPin size={10} className="inline mr-0.5" /> City
+                </label>
+                <select
+                  value={filterCity}
+                  onChange={(e) => setFilterCity(e.target.value)}
+                  disabled={!filterState}
+                  className="neo-input text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">{filterState ? t("common.allCities") : t("common.selectStateFirst")}</option>
+                  {filterState && getCitiesForState(filterState).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {activeFilters > 0 && (
+              <button
+                onClick={clearFilters}
+                className="mt-3 text-xs text-[#94A3B8] hover:text-white transition-colors"
+              >
+                {t("common.clearFilters")}
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── FEATURED BUSINESSES ─── */}
+      {featured.length > 0 && filterCategory === "" && filterState === "" && filterCity === "" && !searchQuery && (
+        <div className="mb-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F97316] mb-2">
+            {t("biz.featuredHeading")}
+          </p>
+          <div className="space-y-3">
+            {featured.map((b, i) => (
+              <BusinessCard
+                key={b.id}
+                business={b}
+                index={i}
+                onClick={() => openDetail(b)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── ALL BUSINESSES ─── */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[11px] text-[#94A3B8]">
+          {filtered.length} business{filtered.length === 1 ? "" : "es"}
+          {filterState && ` in ${filterState}`}
+          {filterCity && `, ${filterCity}`}
+        </p>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-7 h-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && (
+      <div className="space-y-3">
+        {filtered.map((b, i) => (
+          <BusinessCard
+            key={b.id}
+            business={b}
+            index={i}
+            onClick={() => openDetail(b)}
+          />
+        ))}
+      </div>
+      )}
+
+      {!loading && nextCursor && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => loadBusinesses(nextCursor)}
+            disabled={loadingMore}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white disabled:opacity-50"
+          >
+            {loadingMore ? t("common.loading") : t("biz.showMore")}
+          </button>
+        </div>
+      )}
+
+      {/* ─── EMPTY STATE ─── */}
+      {!loading && filtered.length === 0 && (
+        <div className="text-center py-16">
+          <Building2 size={40} className="mx-auto text-[#475569] mb-3" />
+          <p className="text-sm text-[#475569] mb-1">{t("biz.empty")}</p>
+          <p className="text-[11px] text-[#64748B] mb-4">
+            {t("biz.emptyHint")}
+          </p>
+          {activeFilters > 0 && (
+            <button
+              onClick={clearFilters}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+              style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
+            >
+              {t("biz.clearFilters")}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ─── BUSINESS DETAIL MODAL ─── */}
+      <AnimatePresence>
+        {openBusiness && (
+          <BusinessDetailModal
+            business={openBusiness}
+            onClose={() => setOpenBusiness(null)}
+            onShare={(b) =>
+              setShareReq({
+                heading: t("biz.shareHeading", { name: b.name }),
+                shareText: `${b.name}${b.category ? ` — ${b.category}` : ""}${b.city ? `, ${b.city}` : ""} · ${t("biz.shareTextSuffix")}`,
+                shareUrl: shareLinks.businessDirectory(),
+                cardUrl: `/api/share-card?type=business&id=${encodeURIComponent(b.id)}`,
+                formats: ["square"],
+                fileName: `koino-business-${b.id}.png`,
+              })
+            }
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ─── UNIVERSAL SHARE SHEET ─── */}
+      <ShareSheet request={shareReq} onClose={() => setShareReq(null)} />
+    </div>
+  );
+}
+
+// ─── BUSINESS CARD ──────────────────────────────────────────────────────────
+
+function BusinessCard({
+  business,
+  index,
+  onClick,
+}: {
+  business: Business;
+  index: number;
+  onClick: () => void;
+}) {
+  const t = useTranslation();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.04, 0.3) }}
+      onClick={onClick}
+      className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] transition-all group"
+    >
+      {/* Cover image — 16:9 with fallback */}
+      <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
+        {business.cover_image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={business.cover_image}
+            alt={business.name}
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+            onError={(e) => {
+              const img = e.currentTarget;
+              img.style.display = "none";
+              const fallback = img.nextElementSibling as HTMLElement | null;
+              if (fallback) fallback.style.display = "flex";
+            }}
+          />
+        ) : null}
+        <div
+          className="w-full h-full flex flex-col items-center justify-center gap-1 text-center px-2"
+          style={{
+            background: CHURCH_GRADIENTS[business.cover_gradient % CHURCH_GRADIENTS.length],
+            display: business.cover_image ? "none" : "flex",
+          }}
+        >
+          <Building2 size={28} className="text-white/60" />
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Koino</p>
+          <p className="text-[9px] text-white/40 leading-tight">{t("common.imageUnavailable")}</p>
+        </div>
+
+        {/* Top gradient for legibility */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+
+        {/* Verified badge */}
+        {business.verified && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#22C55E]/90 text-white text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+            <BadgeCheck size={10} /> {t("common.verifiedBadge")}
+          </span>
+        )}
+        {business.featured && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#F5B84A]/90 text-slate-950 text-[9px] font-bold uppercase tracking-wider">
+            {t("common.featured")}
+          </span>
+        )}
+
+        {/* Category badge — bottom-left */}
+        <div className="absolute bottom-2 left-2 right-2">
+          <span className="inline-block px-2 py-0.5 rounded-md bg-[#3B82F6]/90 text-white text-[9px] font-bold uppercase tracking-wider">
+            {business.category}
+          </span>
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="text-sm font-bold text-white leading-tight line-clamp-1">{business.name}</h3>
+          {business.rating ? (
+            <div className="flex items-center gap-0.5 shrink-0">
+              <Star size={11} className="text-[#F5B84A]" fill="currentColor" />
+              <span className="text-[10px] font-bold text-white">{business.rating.toFixed(1)}</span>
+              {business.reviews ? (
+                <span className="text-[9px] text-[#94A3B8]">({business.reviews})</span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <p className="text-[11px] text-[#94A3B8] flex items-center gap-1 mb-1.5">
+          <MapPin size={10} className="shrink-0" />
+          {business.city}{business.city && business.state ? ", " : ""}{business.state}
+        </p>
+
+        <p className="text-[11px] text-[#A09DB1] leading-relaxed line-clamp-2 mb-2">
+          {business.description}
+        </p>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {business.whatsapp_number && (
+              <span className="flex items-center gap-0.5 text-[10px] text-[#25D366] font-bold">
+                <MessageCircle size={10} /> {t("common.whatsappLabel")}
+              </span>
+            )}
+            {business.website && (
+              <span className="flex items-center gap-0.5 text-[10px] text-[#22D3EE] font-bold">
+                <Globe size={10} /> {t("biz.websiteLabel")}
+              </span>
+            )}
+            {business.phone && (
+              <span className="flex items-center gap-0.5 text-[10px] text-[#94A3B8] font-bold">
+                <Phone size={10} /> {t("biz.call")}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-bold text-[#3B82F6] uppercase tracking-wider">
+            {t("home.biz.viewBusiness")} →
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── BUSINESS DETAIL MODAL ──────────────────────────────────────────────────
+
+function BusinessDetailModal({
+  business,
+  onClose,
+  onShare,
+}: {
+  business: Business;
+  onClose: () => void;
+  onShare?: (business: Business) => void;
+}) {
+  const t = useTranslation();
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-end md:items-center justify-center z-[60] p-0 md:p-6"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: "spring", damping: 30, stiffness: 350 }}
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+      >
+        {/* Cover image */}
+        <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
+          {business.cover_image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={business.cover_image}
+              alt={business.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const img = e.currentTarget;
+                img.style.display = "none";
+                const fallback = img.nextElementSibling as HTMLElement | null;
+                if (fallback) fallback.style.display = "flex";
+              }}
+            />
+          ) : null}
+          <div
+            className="w-full h-full flex flex-col items-center justify-center gap-1 text-center px-2"
+            style={{
+              background: CHURCH_GRADIENTS[business.cover_gradient % CHURCH_GRADIENTS.length],
+              display: business.cover_image ? "none" : "flex",
+            }}
+          >
+            <Building2 size={32} className="text-white/60" />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Koino</p>
+            <p className="text-[9px] text-white/40 leading-tight">{t("common.imageUnavailable")}</p>
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent pointer-events-none" />
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
+          >
+            <X size={18} />
+          </button>
+
+          {/* Title overlay */}
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded-md bg-[#3B82F6]/90 text-white text-[10px] font-bold uppercase tracking-wider">
+                {business.category}
+              </span>
+              {business.verified && (
+                <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/90 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                  <BadgeCheck size={10} /> {t("common.verifiedBadge")}
+                </span>
+              )}
+              {business.featured && (
+                <span className="px-2 py-0.5 rounded-md bg-[#F5B84A]/90 text-slate-950 text-[10px] font-bold uppercase tracking-wider">
+                  {t("common.featured")}
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl font-extrabold text-white leading-tight">{business.name}</h2>
+            {business.rating ? (
+              <div className="flex items-center gap-1 mt-1">
+                <Star size={12} className="text-[#F5B84A]" fill="currentColor" />
+                <span className="text-[11px] font-bold text-white">{business.rating.toFixed(1)}</span>
+                {business.reviews ? (
+                  <span className="text-[10px] text-[#94A3B8]">{t("common.reviews", { count: business.reviews })}</span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Location */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("common.location")}</p>
+            <p className="text-xs text-white flex items-center gap-1">
+              <MapPin size={11} /> {business.city}{business.city && business.state ? ", " : ""}{business.state}
+            </p>
+            {business.address && (
+              <p className="text-[10px] text-[#94A3B8] mt-1">{business.address}</p>
+            )}
+          </div>
+
+          {/* About */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">About</p>
+            <p className="text-sm text-[#A09DB1] leading-relaxed">{business.description}</p>
+          </div>
+
+          {/* Services */}
+          {business.services && business.services.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t("biz.services")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {business.services.map((s) => (
+                  <span
+                    key={s}
+                    className="px-2.5 py-1 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/20 text-[#3B82F6] text-[11px] font-semibold"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hours */}
+          {business.hours && (
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1 flex items-center gap-1">
+                <Clock size={10} /> {t("biz.hours")}
+              </p>
+              <p className="text-xs text-white">{business.hours}</p>
+            </div>
+          )}
+
+          {/* Languages */}
+          {business.languages.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Languages</p>
+              <div className="flex flex-wrap gap-2">
+                {business.languages.map((lang) => (
+                  <span
+                    key={lang}
+                    className="px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[11px] font-semibold"
+                  >
+                    {lang}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contact — only render buttons for info the business actually provided */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("churches.contact")}</p>
+
+            {onShare && (business.status ?? "approved") === "approved" && (
+              <button
+                onClick={() => onShare(business)}
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] hover:bg-[#2563EB]/25 transition-all"
+              >
+                <Share2 size={16} /> {t("biz.share")}
+              </button>
+            )}
+
+            {business.whatsapp_number && (
+              <a
+                href={`https://wa.me/${business.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                  t("biz.whatsappPrefill", { name: business.name })
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FB855] text-white transition-all hover:-translate-y-px"
+              >
+                <MessageCircle size={16} /> {t("common.whatsappLabel")}
+              </a>
+            )}
+
+            {business.phone && (
+              <a
+                href={`tel:${business.phone.replace(/[^0-9+]/g, "")}`}
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#3B82F6] hover:bg-[#3B82F6]/25 transition-all"
+              >
+                <Phone size={16} /> {t("biz.callNumber", { phone: business.phone })}
+              </a>
+            )}
+
+            {business.website && (
+              <a
+                href={business.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#22D3EE]/15 border border-[#22D3EE]/30 text-[#22D3EE] hover:bg-[#22D3EE]/25 transition-all"
+              >
+                <Globe size={16} /> {t("biz.visitWebsite")}
+                <ExternalLink size={12} className="opacity-80" />
+              </a>
+            )}
+
+            {business.email && (
+              <a
+                href={`mailto:${business.email}`}
+                className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white transition-all"
+              >
+                {business.email}
+              </a>
+            )}
+          </div>
+
+          {/* Helper text — Koino does NOT verify products/services, only the listing */}
+          {business.verified && (
+            <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
+              <BadgeCheck size={9} className="inline mr-0.5" />
+              {t("biz.verifiedDisclaimer")}
+            </p>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}

@@ -1,0 +1,167 @@
+import type { Metadata } from "next";
+
+import PublicPageLayout from "@/components/crosscrafted/PublicPageLayout";
+import { T } from "@/components/crosscrafted/T";
+import DonationMethods from "@/components/crosscrafted/DonationMethods";
+import DonationCard from "@/components/founder/DonationCard";
+import { Heart, Server, BookOpen, Trophy, Users, ShieldCheck, Code } from "lucide-react";
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
+
+export const metadata: Metadata = {
+  title: `Support ${BRAND.name} — Help Keep ${BRAND.name} Free`,
+  description: `${BRAND.name} is free to use. Your support helps keep it that way. Give via UPI, QR code, or direct bank transfer.`,
+  openGraph: {
+    title: `Support ${BRAND.name} — Help Keep ${BRAND.name} Free`,
+    description: `${BRAND.name} is free to use. Your support helps keep it that way.`,
+    siteName: `${BRAND.name}`,
+  },
+};
+
+export const dynamic = "force-dynamic";
+
+const SUPPORT_AREAS = [
+  { icon: Server, title: "support.area.technology", desc: "Servers, databases, storage, security and infrastructure." },
+  { icon: BookOpen, title: "support.area.content", desc: "Bible resources, educational content and Christian experiences." },
+  { icon: Trophy, title: "support.area.trivia", desc: "Prizes and competitions that encourage people to learn Scripture." },
+  { icon: Users, title: "support.area.community", desc: "Churches, events, prayer and Christian community features." },
+  { icon: ShieldCheck, title: "support.area.safety", desc: `Helping keep ${BRAND.name} a welcoming and safe community.` },
+  { icon: Code, title: "support.area.future", desc: "New features, mobile improvements and continued development." },
+];
+
+export default async function SupportPage() {
+  // Server-side fetch of the donation settings singleton.
+  // Falls back to a fully-null payload (acceptingDonations=true) if the row
+  // is missing — in that case the founder DonationCard below (same
+  // single-source UPI + QR payment mode as /founder) is the give method.
+  const row = await db.donationSettings.findUnique({
+    where: { id: "default" },
+  });
+
+  const settings = {
+    upiId: row?.upiId ?? null,
+    qrCodeUrl: row?.qrCodeUrl ?? null,
+    accountName: row?.accountName ?? null,
+    accountNumber: row?.accountNumber ?? null,
+    ifsc: row?.ifsc ?? null,
+    bankName: row?.bankName ?? null,
+    branch: row?.branch ?? null,
+    donationMessage: row?.donationMessage ?? null,
+    acceptingDonations: row?.acceptingDonations ?? true,
+  };
+
+  // Admin has configured at least one donation-method card (UPI ID, QR image,
+  // or a complete bank-transfer set — same rule DonationMethods applies).
+  // When false, DonationMethods would only render its "not configured" empty
+  // state, so it is skipped entirely and the founder card covers giving.
+  const hasAdminCards = Boolean(
+    row?.upiId ||
+      row?.qrCodeUrl ||
+      (row?.accountName && row?.accountNumber && row?.ifsc && row?.bankName)
+  );
+
+  return (
+    <PublicPageLayout>
+      {/* Hero */}
+      <section className="py-16 px-6 max-w-3xl mx-auto text-center">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-6">
+          <Heart size={12} fill="currentColor" /> <T k="support.badge" />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-black text-white mb-4">Help Keep Koino Free</h1>
+        <p className="text-base text-[#A09DB1] leading-relaxed mb-4">
+          Koino is built to be a free Christian community platform for people everywhere.
+          Your support helps us keep the platform running, build new features, support Christian
+          communities, create Bible content, provide prizes and continue improving Koino for everyone.
+        </p>
+        <p className="text-sm font-bold text-[#F97316] mb-8">
+          Koino is free to use. Your support helps keep it that way.
+        </p>
+
+        <div className="flex flex-wrap justify-center gap-4">
+          <Link
+            href="#give"
+            className="px-8 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center gap-2"
+          >
+            <Heart size={16} /> <T k="support.give" />
+          </Link>
+          <Link
+            href="/partner"
+            className="px-8 py-3.5 border border-white/[0.08] hover:border-white/[0.15] text-[#A09DB1] hover:text-white font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all bg-white/[0.02]"
+          >
+            <T k="support.partner" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Support areas */}
+      <section className="py-8 px-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {SUPPORT_AREAS.map((a) => (
+            <div key={a.title} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
+              <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center mb-3">
+                <a.icon size={18} className="text-[#60A5FA]" />
+              </div>
+              <h3 className="text-sm font-bold text-white mb-1"><T k={a.title} /></h3>
+              <p className="text-[11px] text-[#A09DB1] leading-relaxed">{a.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Give to Koino — donation methods */}
+      <section id="give" className="py-8 px-6 max-w-4xl mx-auto">
+        <div className="text-center mb-6">
+          <h2 className="text-base font-bold text-white mb-2"><T k="support.giveTitle" /></h2>
+          <p className="text-xs text-[#A09DB1]">
+            <T k="support.giveSub" />
+          </p>
+        </div>
+
+        {/* Optional admin-set callout / thank-you message */}
+        {settings.acceptingDonations && settings.donationMessage && (
+          <div className="mb-5 rounded-2xl border border-[#F97316]/20 bg-[#F97316]/8 px-4 py-3 text-center">
+            <p className="text-xs text-white leading-relaxed whitespace-pre-line">
+              {settings.donationMessage}
+            </p>
+          </div>
+        )}
+
+        {!settings.acceptingDonations ? (
+          <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-6 text-center">
+            <p className="text-sm text-[#A09DB1]">
+              <T k="support.paused" />
+            </p>
+          </div>
+        ) : hasAdminCards ? (
+          /* Admin-configured methods (admin UPI ID / QR image / bank transfer) */
+          <DonationMethods settings={settings} />
+        ) : null}
+      </section>
+
+      {/* Working UPI payment mode — the same single-source Donate card (with
+          live Scan & Pay QR and PNG download) as the founder page. Always
+          shown while donations are accepting, so /support offers a real way
+          to give even before any admin DonationSettings are configured. */}
+      {settings.acceptingDonations && <DonationCard />}
+
+      {/* Thank-you footer */}
+      {settings.acceptingDonations && (
+        <p className="text-center text-sm font-semibold text-white pb-16 px-6 -mt-4">
+          <T k="support.thanks" />
+        </p>
+      )}
+
+      {/* Payment honesty note — Koino does NOT process online payments */}
+      <section className="pb-16 pt-4 px-6 max-w-2xl mx-auto">
+        <div className="rounded-2xl border border-[#F5B84A]/20 bg-[#F5B84A]/8 p-4">
+          <p className="text-[11px] text-[#A09DB1] leading-relaxed text-center">
+            <span className="text-[#F5B84A] font-bold">Note:</span> Koino does
+            not process online payments. The methods above are for direct
+            transfers. We do not collect card details or bank credentials.
+          </p>
+        </div>
+      </section>
+    </PublicPageLayout>
+  );
+}
