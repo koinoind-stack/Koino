@@ -18,8 +18,33 @@ import { createServerClient } from "@supabase/ssr";
  *     "Member" even though the profile was saved correctly.
  *
  * It performs NO redirects and NO route protection — purely cookie hygiene.
+ *
+ * ── Share-link rewrite (perf) ───────────────────────────────────────────────
+ * Plain / is a static prerender (edge-cached, served in tens of ms). Only
+ * share-param URLs are rewritten to /share, the dynamic renderer that keeps
+ * the real Open Graph metadata for WhatsApp/Facebook previews. The browser
+ * URL is untouched; deep links work exactly as before.
  */
+
+/** Query keys that identify a share link rendered by /share. */
+const SHARE_PARAM_KEYS = ["comic", "post", "group", "event"] as const;
+
+function isShareUrl(url: URL): boolean {
+  if (url.pathname !== "/") return false;
+  if (url.searchParams.get("view") === "bible") return true;
+  return SHARE_PARAM_KEYS.some((key) => url.searchParams.has(key));
+}
+
 export async function proxy(request: NextRequest) {
+  // Share links need the dynamic renderer for their OG metadata — rewrite
+  // BEFORE the session work (share previews are public; skipping the refresh
+  // here costs nothing, and every /api/* call still gets it).
+  if (isShareUrl(request.nextUrl)) {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = "/share";
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
   // Defensive pass-through when Supabase env is not configured — a missing
   // config must degrade to "no session refresh", never to a site-wide 500.
   if (

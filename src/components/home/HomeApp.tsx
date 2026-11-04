@@ -29,36 +29,55 @@ import {
   ChevronDown,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
-import ChurchesView from "@/components/crosscrafted/ChurchesView";
-import TriviaView from "@/components/crosscrafted/TriviaView";
-import PrayerWallView from "@/components/crosscrafted/PrayerWallView";
-import EventsView from "@/components/crosscrafted/EventsView";
-import ApologeticsView from "@/components/crosscrafted/ApologeticsView";
-import ShopView from "@/components/crosscrafted/ShopView";
-import ListYourEntity from "@/components/crosscrafted/ListYourEntity";
-import BibleView from "@/components/crosscrafted/BibleView";
-import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
-import AdminView from "@/components/crosscrafted/AdminView";
 import HeaderUserSection from "@/components/crosscrafted/HeaderUserSection";
 import LanguageSwitcher from "@/components/crosscrafted/LanguageSwitcher";
-import ComicView from "@/components/crosscrafted/ComicView";
-import ComicLibraryView from "@/components/crosscrafted/ComicLibraryView";
-import BusinessDirectoryView from "@/components/crosscrafted/BusinessDirectoryView";
 import AppHomeView from "@/components/crosscrafted/AppHomeView";
 import OnboardingView from "@/components/crosscrafted/OnboardingView";
 import EditProfileView from "@/components/crosscrafted/EditProfileView";
-import MatrimonyView from "@/components/matrimony/MatrimonyView";
 import FeedView from "@/components/social/FeedView";
-import GroupsView from "@/components/social/GroupsView";
-import GroupDetailView from "@/components/social/GroupDetailView";
-import ExploreView from "@/components/social/ExploreView";
-import ReelsView from "@/components/social/ReelsView";
-import WatchView from "@/components/social/WatchView";
-import ComposerView from "@/components/social/ComposerView";
-import SocialProfileView from "@/components/social/SocialProfileView";
-import NotificationsView from "@/components/social/NotificationsView";
-import PostDetail from "@/components/social/PostDetail";
 import HomeRightRail from "@/components/social/HomeRightRail";
+import dynamic from "next/dynamic";
+
+/**
+ * PERF: route-level code splitting. Only views that can be the FIRST thing a
+ * visitor sees (landing hero, onboarding, feed, dashboard, profile forms,
+ * header chrome) ship in the entry bundle. The other 23 views — trivia,
+ * comics, bible reader, shop, admin, the social surfaces… — load on demand as
+ * their own chunks, cutting first-load JS on / substantially. next/dynamic
+ * keeps SSR: a deep link that opens straight into one of these views still
+ * renders it server-side, so nothing breaks and nothing flashes empty.
+ */
+function ViewLoader() {
+  return (
+    <div className="flex items-center justify-center py-16" role="status">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#7C3AED]/30 border-t-[#7C3AED]" />
+    </div>
+  );
+}
+
+const ChurchesView = dynamic(() => import("@/components/crosscrafted/ChurchesView"), { loading: ViewLoader });
+const TriviaView = dynamic(() => import("@/components/crosscrafted/TriviaView"), { loading: ViewLoader });
+const PrayerWallView = dynamic(() => import("@/components/crosscrafted/PrayerWallView"), { loading: ViewLoader });
+const EventsView = dynamic(() => import("@/components/crosscrafted/EventsView"), { loading: ViewLoader });
+const ApologeticsView = dynamic(() => import("@/components/crosscrafted/ApologeticsView"), { loading: ViewLoader });
+const ShopView = dynamic(() => import("@/components/crosscrafted/ShopView"), { loading: ViewLoader });
+const ListYourEntity = dynamic(() => import("@/components/crosscrafted/ListYourEntity"), { loading: ViewLoader });
+const BibleView = dynamic(() => import("@/components/crosscrafted/BibleView"), { loading: ViewLoader });
+const BiblePlansView = dynamic(() => import("@/components/crosscrafted/BiblePlansView"), { loading: ViewLoader });
+const AdminView = dynamic(() => import("@/components/crosscrafted/AdminView"), { loading: ViewLoader });
+const ComicView = dynamic(() => import("@/components/crosscrafted/ComicView"), { loading: ViewLoader });
+const ComicLibraryView = dynamic(() => import("@/components/crosscrafted/ComicLibraryView"), { loading: ViewLoader });
+const BusinessDirectoryView = dynamic(() => import("@/components/crosscrafted/BusinessDirectoryView"), { loading: ViewLoader });
+const MatrimonyView = dynamic(() => import("@/components/matrimony/MatrimonyView"), { loading: ViewLoader });
+const GroupsView = dynamic(() => import("@/components/social/GroupsView"), { loading: ViewLoader });
+const GroupDetailView = dynamic(() => import("@/components/social/GroupDetailView"), { loading: ViewLoader });
+const ExploreView = dynamic(() => import("@/components/social/ExploreView"), { loading: ViewLoader });
+const ReelsView = dynamic(() => import("@/components/social/ReelsView"), { loading: ViewLoader });
+const WatchView = dynamic(() => import("@/components/social/WatchView"), { loading: ViewLoader });
+const ComposerView = dynamic(() => import("@/components/social/ComposerView"), { loading: ViewLoader });
+const SocialProfileView = dynamic(() => import("@/components/social/SocialProfileView"), { loading: ViewLoader });
+const NotificationsView = dynamic(() => import("@/components/social/NotificationsView"), { loading: ViewLoader });
+const PostDetail = dynamic(() => import("@/components/social/PostDetail"), { loading: ViewLoader });
 import type { Post } from "@/components/social/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
