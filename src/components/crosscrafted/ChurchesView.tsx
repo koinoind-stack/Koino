@@ -46,7 +46,7 @@ type Props = {
   onListChurch?: () => void;
 };
 
-type DiscoverTab = "discover" | "my-churches";
+type DiscoverTab = "discover" | "my-churches" | "my-listings";
 
 export default function ChurchesView({ initialOpenChurchId, onListChurch }: Props) {
   const t = useTranslation();
@@ -69,6 +69,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   const [filterDenomination, setFilterDenomination] = useState("");
   const [filterLanguage, setFilterLanguage] = useState("");
   const [filterServiceDay, setFilterServiceDay] = useState("");
+  const [filterType, setFilterType] = useState("");
   const [sortBy, setSortBy] = useState<"featured" | "name" | "newest">("featured");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -120,6 +121,15 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   // PATCHes the owner's listing instead of creating a new one. Owners reach
   // it through the "Edit listing" button shown on their detail view.
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // ─── MY LISTINGS — the signed-in owner's own submissions (any status) ───
+  // Loaded lazily when the "My Listings" tab is first opened, and refreshed
+  // after every successful owner edit so the review state stays truthful.
+  // PENDING / REJECTED listings never appear in the public list above.
+  const [myListings, setMyListings] = useState<Church[]>([]);
+  const [myListingsLoading, setMyListingsLoading] = useState(false);
+  const [myListingsLoaded, setMyListingsLoaded] = useState(false);
+  const [myListingsError, setMyListingsError] = useState<string | null>(null);
 
   const openEdit = (c: Church) => {
     setEditingId(c.id);
@@ -204,6 +214,35 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   useEffect(() => {
     loadChurches();
   }, []);
+
+  // Owner's own listings (any status) — for the "My Listings" tab. `force`
+  // re-fetches (used after an owner edit / explicit retry).
+  const loadMyListings = async (force = false) => {
+    if (!isAuthenticated) {
+      setMyListings([]);
+      setMyListingsLoaded(true);
+      return;
+    }
+    if (myListingsLoaded && !force) return;
+    setMyListingsLoading(true);
+    setMyListingsError(null);
+    try {
+      const res = await fetch("/api/churches/mine", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || t("churches.mine.loadFailed"));
+      setMyListings(data.churches || []);
+      setMyListingsLoaded(true);
+    } catch (e: any) {
+      setMyListingsError(e.message || t("churches.mine.loadFailed"));
+    } finally {
+      setMyListingsLoading(false);
+    }
+  };
+
+  // Fetch as soon as the tab is opened first (and on auth state change).
+  useEffect(() => {
+    if (discoverTab === "my-listings" && !myListingsLoaded) loadMyListings();
+  }, [discoverTab, myListingsLoaded, isAuthenticated]);
 
   // Hydrate REAL follow state from the DB (auth only).
   useEffect(() => {
@@ -305,6 +344,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       if (filterState && c.state !== filterState) return false;
       if (cityQ && !(c.city || "").toLowerCase().includes(cityQ)) return false;
       if (filterDenomination && c.denomination !== filterDenomination) return false;
+      if (filterType && (c.type || "Church") !== filterType) return false;
       if (filterLanguage && !c.languages.includes(filterLanguage)) return false;
       if (filterServiceDay && !c.service_times.some((s) => s.day === filterServiceDay)) return false;
       if (q) {
@@ -317,9 +357,9 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     else if (sortBy === "newest") list.sort((a, b) => b.id.localeCompare(a.id)); // cuid ~ time-ordered
     // "featured" keeps the server order (featured first, then newest, then name)
     return list;
-  }, [churches, filterState, filterCity, filterDenomination, filterLanguage, filterServiceDay, searchQuery, sortBy]);
+  }, [churches, filterState, filterCity, filterDenomination, filterType, filterLanguage, filterServiceDay, searchQuery, sortBy]);
 
-  const activeFilters = [filterState, filterCity, filterDenomination, filterLanguage, filterServiceDay, searchQuery].filter(Boolean).length;
+  const activeFilters = [filterState, filterCity, filterDenomination, filterType, filterLanguage, filterServiceDay, searchQuery].filter(Boolean).length;
 
   // ─── REAL follow toggle — server-persisted, optimistic with rollback ───
   const toggleFollow = async (id: string) => {
@@ -477,6 +517,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         setChurches((cs) => cs.map((c) => (c.id === editTargetId ? { ...c, ...edited } : c)));
         setOpenChurch((prev) => (prev && prev.id === editTargetId ? { ...prev, ...edited } : prev));
         loadChurches();
+        loadMyListings(true); // keep the My Listings review state fresh
         toast.success(t("churches.editSuccess"), { description: t("churches.editSuccessDesc") });
       } else {
         toast.success(t("churches.submit.success"), {
@@ -534,7 +575,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         </div>
       </div>
 
-      {/* ─── DISCOVER / MY CHURCHES TAB ─── */}
+      {/* ─── DISCOVER / MY CHURCHES / MY LISTINGS TAB ─── */}
       <div className="mb-5">
         <div className="flex p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
           <button
@@ -556,6 +597,16 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             }`}
           >
             <Heart size={13} /> {t("churches.tab.myChurches")}
+          </button>
+          <button
+            onClick={() => setDiscoverTab("my-listings")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
+              discoverTab === "my-listings"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
+                : "text-[#94A3B8] hover:text-white"
+            }`}
+          >
+            <Building2 size={13} /> {t("churches.tab.myListings")}
           </button>
         </div>
       </div>
@@ -616,6 +667,23 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <Building2 size={10} className="inline mr-0.5" /> {t("churches.type")}
+                </label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="neo-input text-sm"
+                >
+                  <option value="">{t("churches.filter.allTypes")}</option>
+                  {CHURCH_TYPES.map((tp) => (
+                    <option key={tp} value={tp}>
+                      {tp}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
                   <Building2 size={10} className="inline mr-0.5" /> {t("churches.denomination")}
                 </label>
                 <select
@@ -672,6 +740,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   setFilterState("");
                   setFilterCity("");
                   setFilterDenomination("");
+                  setFilterType("");
                   setFilterLanguage("");
                   setFilterServiceDay("");
                   setSearchQuery("");
@@ -767,6 +836,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 setFilterState("");
                 setFilterCity("");
                 setFilterDenomination("");
+                setFilterType("");
                 setFilterLanguage("");
                 setFilterServiceDay("");
                 setSearchQuery("");
@@ -931,6 +1001,24 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
           }}
           onToggleFollow={toggleFollow}
           isAuthenticated={isAuthenticated}
+          onListChurch={onListChurch}
+          setShowCreateModal={setShowCreateModal}
+        />
+      )}
+
+      {/* ─── MY LISTINGS TAB ─── */}
+      {discoverTab === "my-listings" && (
+        <MyListingsView
+          listings={myListings}
+          loading={myListingsLoading}
+          error={myListingsError}
+          isAuthenticated={isAuthenticated}
+          onOpenChurch={(c) => {
+            setOpenChurch(c);
+            setActiveImageIdx(0);
+          }}
+          onEdit={openEdit}
+          onRetry={() => loadMyListings(true)}
           onListChurch={onListChurch}
           setShowCreateModal={setShowCreateModal}
         />
@@ -1752,6 +1840,183 @@ function MyChurchesView({
           </div>
         </motion.div>
       ))}
+    </div>
+  );
+}
+
+// ─── My Listings — the signed-in owner's own submissions (any status) ──────
+// Owners open this tab to see where each listing stands in review
+// (PENDING / PUBLISHED / REJECTED / CANCELLED), open it in the public
+// detail view, or edit it via the shared form modal (PATCH). This is the
+// owner side of "when user list church there need to be option for them to
+// edit or update something" — the server re-checks ownership on every save.
+function MyListingsView({
+  listings,
+  loading,
+  error,
+  isAuthenticated,
+  onOpenChurch,
+  onEdit,
+  onRetry,
+  onListChurch,
+  setShowCreateModal,
+}: {
+  listings: Church[];
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+  onOpenChurch: (c: Church) => void;
+  onEdit: (c: Church) => void;
+  onRetry: () => void;
+  onListChurch?: () => void;
+  setShowCreateModal: (v: boolean) => void;
+}) {
+  const t = useTranslation();
+
+  const statusBadge = (status: string) => {
+    if (status === "PUBLISHED") {
+      return { label: t("churches.mine.statusLive"), cls: "bg-[#22C55E]/15 border-[#22C55E]/30 text-[#4ADE80]" };
+    }
+    if (status === "PENDING") {
+      return { label: t("churches.mine.statusPending"), cls: "bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#FBBF24]" };
+    }
+    if (status === "REJECTED") {
+      return { label: t("churches.mine.statusRejected"), cls: "bg-[#EF4444]/15 border-[#EF4444]/30 text-[#F87171]" };
+    }
+    return { label: t("churches.mine.statusCancelled"), cls: "bg-white/[0.06] border-white/[0.12] text-[#94A3B8]" };
+  };
+
+  // Auth gate — anonymous visitors can't own listings
+  if (!isAuthenticated) {
+    return (
+      <div className="text-center py-16">
+        <Building2 size={32} className="mx-auto text-[#475569] mb-3" />
+        <p className="text-sm text-[#94A3B8] mb-1">{t("churches.mine.signInPrompt")}</p>
+        <p className="text-[11px] text-[#64748B] mb-4">{t("churches.mine.signInHint")}</p>
+        <a
+          href="/api/auth/signin"
+          className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
+        >
+          {t("signin.submit.signin")}
+        </a>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
+        <p className="text-xs text-[#94A3B8]">{t("churches.loading")}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-2xl p-5 text-center">
+        <p className="text-sm font-bold text-[#EF4444] mb-3">{error}</p>
+        <button
+          onClick={onRetry}
+          className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
+        >
+          {t("common.retry")}
+        </button>
+      </div>
+    );
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <Building2 size={32} className="mx-auto text-[#475569] mb-3" />
+        <p className="text-sm text-[#94A3B8] mb-1">{t("churches.mine.empty")}</p>
+        <p className="text-[11px] text-[#64748B] mb-4">{t("churches.mine.emptyHint")}</p>
+        <button
+          onClick={() => onListChurch ? onListChurch() : setShowCreateModal(true)}
+          className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
+        >
+          {t("churches.listYourChurch")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-[#94A3B8]">
+        {t("churches.mine.count", { count: listings.length })}
+      </p>
+      {listings.map((church) => {
+        const badge = statusBadge(church.status);
+        return (
+          <motion.div
+            key={church.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => onOpenChurch(church)}
+            className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929]"
+          >
+            <div className="flex gap-3 p-3">
+              {/* Thumbnail */}
+              <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-[#0f0f1a]">
+                {church.cover_image ? (
+                  <img
+                    src={church.cover_image}
+                    alt={church.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full"
+                    style={{ background: CHURCH_GRADIENTS[(church.cover_gradient || 0) % CHURCH_GRADIENTS.length] }}
+                  />
+                )}
+              </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-sm font-bold text-white leading-tight truncate">{church.name}</h3>
+                  {church.type && church.type !== "Church" && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.12] text-white/80 text-[9px] font-bold uppercase tracking-wide shrink-0">
+                      {church.type}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">
+                  {church.city ? `${church.city}, ` : ""}{church.state}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                  {church.status === "REJECTED" && church.rejectionReason && (
+                    <span className="text-[10px] text-[#F87171] truncate max-w-[200px]">
+                      {church.rejectionReason}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* Edit */}
+              <div className="flex items-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(church);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-white/[0.06] text-[#94A3B8] border border-white/[0.06] hover:bg-white/[0.1] hover:text-white transition-all"
+                >
+                  <span className="flex items-center gap-1">
+                    <Pencil size={11} /> {t("churches.editListing")}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
