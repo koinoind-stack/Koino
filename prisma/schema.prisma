@@ -674,6 +674,12 @@ model ComicChapter {
   title           String             // English default title
   coverArtUrl     String?            // optional chapter cover image
   sortOrder       Int      @default(0)
+  // Story experience flags (Comic Bible redesign).
+  kidsFriendly    Boolean  @default(false) // surfaced in the "For Kids" library tab
+  // Reader pagination mode configured by admins:
+  //   "individual" — each panel is one page; desktop shows a two-page spread
+  //   "spread"     — panels are pre-composed two-page spreads; one per view
+  pageMode        String   @default("individual") // "individual" | "spread"
   // Publishing workflow state.
   // draft    — admin started but not finished
   // review   — ready for someone else to QA
@@ -724,6 +730,11 @@ model ComicPanelTranslation {
   title           String?            // Panel title in this language
   narration       String?            // Narration / story text
   captions        String   @default("[]") // JSON array of caption strings (speech bubbles, etc.)
+  // Per-language publish state. Only "published" rows are ever served to
+  // readers — the public API never silently shows a draft or missing
+  // language's content. Existing rows default to "published" so the redesign
+  // does not hide already-live content (see migration 20261104000000).
+  status          String   @default("published") // "draft" | "published"
 
   panel           ComicPanel @relation(fields: [panelId], references: [panelId], onDelete: Cascade)
 
@@ -736,6 +747,19 @@ model ComicChapterTranslation {
   comicChapterId  String
   lang            String
   title           String?            // Chapter title in this language
+  // Per-language publish state ("draft" rows are never served publicly).
+  status          String   @default("published") // "draft" | "published"
+  // Story-experience sections, localized (Comic Bible redesign §7).
+  introduction    String?            // Story introduction
+  lesson          String?            // "What We Learn"
+  prayer          String?            // Short prayer
+  // Key Bible verse — stored STRUCTURED so the verse text is always fetched
+  // live from the existing Bible translation system (never invented or
+  // duplicated). Null = story has no key verse.
+  keyVerseBook    String?            // Koino book slug, e.g. "1samuel"
+  keyVerseChapter Int?
+  keyVerseStart   Int?
+  keyVerseEnd     Int?
 
   comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
 

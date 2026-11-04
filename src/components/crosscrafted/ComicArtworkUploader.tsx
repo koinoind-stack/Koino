@@ -17,6 +17,8 @@ type Props = {
   panelId: string;
   /** Optional ComicChapter.id — when provided, the API will also persist the URL to DB */
   chapterId?: string;
+  /** Upload target: "panel" (default) = page artwork; "cover" = story cover */
+  target?: "panel" | "cover";
   label?: string;
 };
 
@@ -46,6 +48,7 @@ export default function ComicArtworkUploader({
   chapter,
   panelId,
   chapterId,
+  target = "panel",
   label = "Artwork",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -116,7 +119,8 @@ export default function ComicArtworkUploader({
       formData.append("file", file);
       formData.append("bookId", bookId);
       formData.append("chapter", String(chapter));
-      formData.append("panelId", panelId);
+      formData.append("panelId", target === "cover" ? "cover" : panelId);
+      formData.append("target", target);
       if (chapterId) formData.append("chapterId", chapterId);
 
       const res = await fetch("/api/admin/comics/upload", {

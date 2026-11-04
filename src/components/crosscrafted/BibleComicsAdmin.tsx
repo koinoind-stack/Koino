@@ -30,9 +30,11 @@ import {
   FileText,
   Wand2,
   CheckCircle,
+  ChevronUp,
+  ChevronDown,
+  Table2,
 } from "lucide-react";
 import { toast } from "sonner";
-import ImagePicker from "@/components/crosscrafted/ImagePicker";
 import ComicArtworkUploader from "@/components/crosscrafted/ComicArtworkUploader";
 import { BIBLE_BOOKS } from "@/lib/bible-data";
 
@@ -46,6 +48,7 @@ type PanelTranslation = {
   title: string;
   narration: string;
   captions: string[];
+  status?: string; // "draft" | "published"
 };
 
 type Panel = {
@@ -63,10 +66,25 @@ type Panel = {
   translations: PanelTranslation[];
 };
 
+type KeyVerseDraft = {
+  book: string;
+  chapter: number;
+  start: number;
+  end: number;
+};
+
 type ChapterTranslation = {
   id: string;
   lang: string;
   title: string;
+  status?: string; // "draft" | "published"
+  introduction?: string;
+  lesson?: string;
+  prayer?: string;
+  keyVerseBook?: string;
+  keyVerseChapter?: number | null;
+  keyVerseStart?: number | null;
+  keyVerseEnd?: number | null;
 };
 
 type QuizLink = {
@@ -92,6 +110,8 @@ type Chapter = {
   status: Status;
   coverArtUrl: string | null;
   sortOrder: number;
+  kidsFriendly: boolean;
+  pageMode: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -241,6 +261,7 @@ function DashboardAndList({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [bookFilter, setBookFilter] = useState<string>("all");
   const [showCreate, setShowCreate] = useState(false);
+  const [showTranslations, setShowTranslations] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -319,6 +340,16 @@ function DashboardAndList({
           )}
         </div>
         <button
+          onClick={() => setShowTranslations((v) => !v)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+            showTranslations
+              ? "bg-[#F39B9B] border-[#F39B9B] text-slate-950"
+              : "bg-white/[0.04] border-white/[0.06] text-white hover:bg-white/[0.08]"
+          }`}
+        >
+          <Table2 size={14} /> Translations
+        </button>
+        <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-px"
           style={{ background: `linear-gradient(135deg, ${ACCENT}, #9786E3)` }}
@@ -326,6 +357,9 @@ function DashboardAndList({
           <Plus size={14} /> New Chapter
         </button>
       </div>
+
+      {/* Translation completion matrix (stories × languages) */}
+      {showTranslations && <TranslationStatusMatrix />}
 
       {/* Filters */}
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -388,6 +422,142 @@ function DashboardAndList({
       <AnimatePresence>
         {showCreate && <CreateChapterModal onClose={() => setShowCreate(false)} onCreated={onCreated} />}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Translation completion matrix (stories × languages) ───────────────────
+
+const MATRIX_LANGS = ["en", "hi", "bn", "te", "mr", "ta", "gu", "ur", "kn", "or", "ml", "pa", "as"];
+
+function TranslationStatusMatrix() {
+  const [stories, setStories] = useState<
+    Array<{
+      id: string;
+      comicId: string;
+      bookId: string;
+      chapter: number;
+      title: string;
+      status: string;
+      kidsFriendly: boolean;
+      panelCount: number;
+      languages: Record<string, { status: string; panelsDone: number; panelTotal: number; chapterTitleDone: boolean }>;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetch("/api/admin/comics/translation-status")
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Failed to load translation status");
+        return data;
+      })
+      .then((d) => {
+        if (!cancelled) setStories(d.stories || []);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 size={20} className="animate-spin text-[#F39B9B]" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-xl p-3 text-xs text-[#EF4444]">{error}</div>
+    );
+  }
+  if (stories.length === 0) {
+    return (
+      <div className="bg-white/[0.02] border border-dashed border-white/[0.10] rounded-xl p-5 text-center text-xs text-[#94A3B8]">
+        No stories yet — create a chapter to start translating.
+      </div>
+    );
+  }
+
+  const cellMeta: Record<string, { bg: string; color: string; label: string }> = {
+    published: { bg: "rgba(34,197,94,0.15)", color: "#22C55E", label: "Published" },
+    draft: { bg: "rgba(245,158,11,0.12)", color: "#F59E0B", label: "Draft" },
+    missing: { bg: "rgba(148,163,184,0.07)", color: "#64748B", label: "Coming Soon" },
+  };
+
+  return (
+    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Languages size={14} style={{ color: ACCENT }} />
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ACCENT }}>
+          Translation Completion
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left" style={{ minWidth: 760 }}>
+          <thead>
+            <tr>
+              <th className="text-[9px] font-black uppercase tracking-wider text-[#64748B] pb-2 pr-3">Story</th>
+              {MATRIX_LANGS.map((l) => (
+                <th key={l} className="text-[9px] font-black uppercase tracking-wider text-[#64748B] pb-2 px-1 text-center">
+                  {l.toUpperCase()}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {stories.map((s) => (
+              <tr key={s.id} className="border-t border-white/[0.04]">
+                <td className="py-2 pr-3">
+                  <p className="text-[11px] font-bold text-white line-clamp-1">{s.title}</p>
+                  <p className="text-[9px] text-[#64748B]">
+                    {s.comicId} · {s.panelCount} pages{s.kidsFriendly ? " · Kids" : ""}
+                  </p>
+                </td>
+                {MATRIX_LANGS.map((l) => {
+                  const cell = s.languages[l] || { status: "missing", panelsDone: 0, panelTotal: s.panelCount, chapterTitleDone: false };
+                  const meta = cellMeta[cell.status] || cellMeta.missing;
+                  return (
+                    <td key={l} className="py-2 px-1 text-center">
+                      <span
+                        title={`${l.toUpperCase()}: ${meta.label} (${cell.panelsDone}/${cell.panelTotal} pages${cell.chapterTitleDone ? ", title done" : ""})`}
+                        className="inline-block px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase"
+                        style={{ backgroundColor: meta.bg, color: meta.color }}
+                      >
+                        {cell.status === "published" ? "✓" : cell.status === "draft" ? "D" : "–"}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center gap-4 mt-3 flex-wrap">
+        {[
+          { meta: cellMeta.published, label: "Published — live in the reader" },
+          { meta: cellMeta.draft, label: "Draft / partial — not visible yet" },
+          { meta: cellMeta.missing, label: "No translation — “coming soon”" },
+        ].map(({ meta, label }, i) => (
+          <span key={i} className="flex items-center gap-1.5 text-[9px] font-bold text-[#94A3B8]">
+            <span className="w-3 h-3 rounded" style={{ backgroundColor: meta.bg, border: `1px solid ${meta.color}55` }} />
+            {label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -770,6 +940,8 @@ function ChapterEditor({
         adminNotes: chapter.adminNotes,
         coverArtUrl: chapter.coverArtUrl,
         sortOrder: chapter.sortOrder,
+        kidsFriendly: chapter.kidsFriendly,
+        pageMode: chapter.pageMode,
         bookId: chapter.bookId,
         chapter: chapter.chapter,
         status: chapter.status,
@@ -782,6 +954,8 @@ function ChapterEditor({
     adminNotes: chapter.adminNotes,
     coverArtUrl: chapter.coverArtUrl,
     sortOrder: chapter.sortOrder,
+    kidsFriendly: chapter.kidsFriendly,
+    pageMode: chapter.pageMode,
     bookId: chapter.bookId,
     chapter: chapter.chapter,
     status: chapter.status,
@@ -1010,20 +1184,21 @@ function ChapterEditor({
         chapter={chapter}
         activeTranslationLang={activeTranslationLang}
         onLangChange={setActiveTranslationLang}
-        onChapterTitleLangChange={async (lang, title) => {
-          // Save immediately (auto-save) — the admin doesn't need to click "Save" for translations
+        onChapterTranslationSave={async (lang, payload) => {
+          // Auto-save the whole story translation for this language
+          // (title, status, story sections, key verse ref) in one upsert.
           try {
             const res = await fetch(`/api/admin/comics/${chapterId}/translations`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ type: "chapter", lang, title }),
+              body: JSON.stringify({ type: "chapter", lang, ...payload }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            toast.success(`${lang.toUpperCase()} chapter title saved`);
+            toast.success(`${lang.toUpperCase()} story translation saved`);
             load();
           } catch (e: any) {
-            toast.error("Failed to save chapter title translation", { description: e.message });
+            toast.error("Failed to save story translation", { description: e.message });
           }
         }}
       />
@@ -1164,22 +1339,33 @@ function ChapterDetailsForm({
   chapter,
   activeTranslationLang,
   onLangChange,
-  onChapterTitleLangChange,
+  onChapterTranslationSave,
 }: {
   draft: Partial<Chapter>;
   setDraft: (d: Partial<Chapter>) => void;
   chapter: Chapter;
   activeTranslationLang: string;
   onLangChange: (l: string) => void;
-  onChapterTitleLangChange: (lang: string, title: string) => void;
+  onChapterTranslationSave: (
+    lang: string,
+    payload: {
+      title: string;
+      status: string;
+      introduction: string;
+      lesson: string;
+      prayer: string;
+      keyVerse: KeyVerseDraft | null;
+    }
+  ) => void;
 }) {
   const update = (patch: Partial<Chapter>) => setDraft({ ...draft, ...patch });
   const book = BIBLE_BOOKS.find((b) => b.id === draft.bookId);
   const maxChapters = book?.chapters ?? 1;
 
-  // Chapter-level title translation for the active language
-  const chapterTitleLang =
-    chapter.chapterTranslations.find((t) => t.lang === activeTranslationLang)?.title || "";
+  // Story translation for the active language (auto-saved on blur / change)
+  const chapterTranslation = chapter.chapterTranslations.find((t) => t.lang === activeTranslationLang);
+  const chapterTitleLang = chapterTranslation?.title || "";
+  const translationStatus = chapterTranslation?.status === "published" ? "published" : "draft";
 
   return (
     <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
@@ -1236,6 +1422,37 @@ function ChapterDetailsForm({
           </Field>
         </div>
 
+        {/* Story experience flags */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <label className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!draft.kidsFriendly}
+              onChange={(e) => update({ kidsFriendly: e.target.checked })}
+              className="w-4 h-4 accent-[#22C55E]"
+            />
+            <span className="text-xs font-bold text-white">
+              Kids Friendly
+              <span className="block text-[9px] font-semibold text-[#64748B]">
+                Shows in the &quot;For Kids&quot; library tab
+              </span>
+            </span>
+          </label>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+              Page Mode (reader layout)
+            </label>
+            <select
+              value={draft.pageMode || "individual"}
+              onChange={(e) => update({ pageMode: e.target.value })}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+            >
+              <option value="individual">Individual pages — desktop shows two-page spreads</option>
+              <option value="spread">Pre-composed spreads — one image per view</option>
+            </select>
+          </div>
+        </div>
+
         {/* English title (chapter-level) */}
         <Field label="Title (English — default)">
           <input
@@ -1256,16 +1473,20 @@ function ChapterDetailsForm({
           />
         </Field>
 
-        {/* Cover art */}
+        {/* Cover art — real upload to Supabase Storage (target=cover) */}
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
             Cover Art (optional)
           </label>
-          <ImagePicker
-            images={draft.coverArtUrl ? [draft.coverArtUrl] : []}
-            onChange={(imgs) => update({ coverArtUrl: imgs[0] || null })}
-            max={1}
-            label="Chapter Cover"
+          <ComicArtworkUploader
+            artworkUrl={draft.coverArtUrl || null}
+            onChange={(url) => update({ coverArtUrl: url })}
+            bookId={draft.bookId || chapter.bookId}
+            chapter={draft.chapter || chapter.chapter}
+            panelId="cover"
+            chapterId={chapter.id}
+            target="cover"
+            label="Story Cover"
           />
         </div>
 
@@ -1290,47 +1511,247 @@ function ChapterDetailsForm({
           />
         </Field>
 
-        {/* Chapter title translation (active lang) */}
+        {/* ─── Story translation (per language, auto-saved) ─── */}
         <div className="pt-2 border-t border-white/[0.06]">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Languages size={11} className="text-[#94A3B8]" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              Chapter Title Translation
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-            {LANGS.map((l) => (
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Languages size={11} className="text-[#94A3B8]" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                Story Translation
+              </p>
+            </div>
+            {/* Per-language publish status — draft rows are never served */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold uppercase text-[#64748B]">Publish state</span>
               <button
-                key={l.id}
-                onClick={() => onLangChange(l.id)}
-                className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${
-                  activeTranslationLang === l.id
-                    ? "bg-[#F39B9B] text-slate-950"
-                    : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
+                onClick={() =>
+                  onChapterTranslationSave(activeTranslationLang, {
+                    title: chapterTitleLang,
+                    status: translationStatus === "published" ? "draft" : "published",
+                    introduction: chapterTranslation?.introduction || "",
+                    lesson: chapterTranslation?.lesson || "",
+                    prayer: chapterTranslation?.prayer || "",
+                    keyVerse:
+                      chapterTranslation?.keyVerseBook && chapterTranslation?.keyVerseChapter && chapterTranslation?.keyVerseStart
+                        ? {
+                            book: chapterTranslation.keyVerseBook,
+                            chapter: chapterTranslation.keyVerseChapter,
+                            start: chapterTranslation.keyVerseStart,
+                            end: chapterTranslation.keyVerseEnd ?? chapterTranslation.keyVerseStart,
+                          }
+                        : null,
+                  })
+                }
+                className={`px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all ${
+                  translationStatus === "published"
+                    ? "bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E]"
+                    : "bg-[#94A3B8]/10 border border-[#94A3B8]/25 text-[#94A3B8]"
                 }`}
               >
-                {l.flag} {l.id.toUpperCase()}
+                {translationStatus === "published" ? "✓ Published — click to unpublish" : "Draft — click to publish"}
               </button>
-            ))}
+            </div>
           </div>
-          <input
+
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+            {LANGS.map((l) => {
+              const hasRow = chapter.chapterTranslations.some((t) => t.lang === l.id);
+              const isPublished = chapter.chapterTranslations.some((t) => t.lang === l.id && t.status === "published");
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => onLangChange(l.id)}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all relative ${
+                    activeTranslationLang === l.id
+                      ? "bg-[#F39B9B] text-slate-950"
+                      : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
+                  }`}
+                >
+                  {l.flag} {l.id.toUpperCase()}
+                  {isPublished ? (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#22C55E]" />
+                  ) : hasRow ? (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#F59E0B]" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-[#64748B] mb-2">
+            Dot: <span className="text-[#22C55E] font-bold">green = published</span>,{" "}
+            <span className="text-[#F59E0B] font-bold">amber = draft</span>. Draft languages show
+            &quot;coming soon&quot; to readers — never another language&apos;s text.
+          </p>
+
+          <StoryTranslationFields
             key={activeTranslationLang}
-            defaultValue={chapterTitleLang}
-            placeholder={
-              activeTranslationLang === "en"
-                ? "Uses English title above — leave blank to inherit"
-                : `Chapter title in ${LANGS.find((l) => l.id === activeTranslationLang)?.label || activeTranslationLang}`
-            }
-            onBlur={(e) => {
-              const val = e.target.value.trim();
-              if (val !== chapterTitleLang) {
-                onChapterTitleLangChange(activeTranslationLang, val);
-              }
-            }}
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40"
+            lang={activeTranslationLang}
+            langLabel={LANGS.find((l) => l.id === activeTranslationLang)?.label || activeTranslationLang}
+            translation={chapterTranslation}
+            onTranslationSave={onChapterTranslationSave}
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Story translation fields (title / sections / key verse) ────────────────
+
+function StoryTranslationFields({
+  lang,
+  langLabel,
+  translation,
+  onTranslationSave,
+}: {
+  lang: string;
+  langLabel: string;
+  translation: ChapterTranslation | undefined;
+  onTranslationSave: (
+    lang: string,
+    payload: {
+      title: string;
+      status: string;
+      introduction: string;
+      lesson: string;
+      prayer: string;
+      keyVerse: KeyVerseDraft | null;
+    }
+  ) => void;
+}) {
+  // Local draft state per language (component remounts via key=lang)
+  const [title, setTitle] = useState(translation?.title || "");
+  const [introduction, setIntroduction] = useState(translation?.introduction || "");
+  const [lesson, setLesson] = useState(translation?.lesson || "");
+  const [prayer, setPrayer] = useState(translation?.prayer || "");
+  const [kvBook, setKvBook] = useState(translation?.keyVerseBook || "");
+  const [kvChapter, setKvChapter] = useState<string>(
+    translation?.keyVerseChapter ? String(translation.keyVerseChapter) : ""
+  );
+  const [kvStart, setKvStart] = useState<string>(
+    translation?.keyVerseStart ? String(translation.keyVerseStart) : ""
+  );
+  const [kvEnd, setKvEnd] = useState<string>(
+    translation?.keyVerseEnd ? String(translation.keyVerseEnd) : ""
+  );
+
+  const status = translation?.status === "published" ? "published" : "draft";
+
+  const buildPayload = () => ({
+    title: title.trim(),
+    status,
+    introduction: introduction.trim(),
+    lesson: lesson.trim(),
+    prayer: prayer.trim(),
+    keyVerse:
+      kvBook && kvChapter && kvStart
+        ? {
+            book: kvBook,
+            chapter: parseInt(kvChapter, 10) || 1,
+            start: parseInt(kvStart, 10) || 1,
+            end: kvEnd ? parseInt(kvEnd, 10) || parseInt(kvStart, 10) || 1 : parseInt(kvStart, 10) || 1,
+          }
+        : null,
+  });
+
+  const save = () => onTranslationSave(lang, buildPayload());
+
+  return (
+    <div className="space-y-2.5">
+      <Field label={`Story title (${langLabel})`}>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={save}
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+        />
+      </Field>
+      <Field label={`Story introduction (${langLabel})`}>
+        <textarea
+          value={introduction}
+          onChange={(e) => setIntroduction(e.target.value)}
+          onBlur={save}
+          rows={3}
+          placeholder="Short introduction shown above the reader"
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
+        />
+      </Field>
+      <Field label={`What We Learn (${langLabel})`}>
+        <textarea
+          value={lesson}
+          onChange={(e) => setLesson(e.target.value)}
+          onBlur={save}
+          rows={3}
+          placeholder="Key takeaway for readers"
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
+        />
+      </Field>
+      <Field label={`Short prayer (${langLabel})`}>
+        <textarea
+          value={prayer}
+          onChange={(e) => setPrayer(e.target.value)}
+          onBlur={save}
+          rows={2}
+          placeholder="A short prayer in this language"
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#F39B9B]/40 resize-none"
+        />
+      </Field>
+
+      {/* Key verse — structured reference; TEXT is fetched live from the
+          Bible translation system in the reader (never authored here). */}
+      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+          Key Bible Verse reference ({langLabel}) — text is fetched from the Bible system
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <select
+            value={kvBook}
+            onChange={(e) => {
+              setKvBook(e.target.value);
+              setKvChapter("");
+            }}
+            onBlur={save}
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+          >
+            <option value="">Book…</option>
+            {BIBLE_BOOKS.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1}
+            value={kvChapter}
+            onChange={(e) => setKvChapter(e.target.value)}
+            onBlur={save}
+            placeholder="Ch."
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+          />
+          <input
+            type="number"
+            min={1}
+            value={kvStart}
+            onChange={(e) => setKvStart(e.target.value)}
+            onBlur={save}
+            placeholder="From v."
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+          />
+          <input
+            type="number"
+            min={1}
+            value={kvEnd}
+            onChange={(e) => setKvEnd(e.target.value)}
+            onBlur={save}
+            placeholder="To v."
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+          />
+        </div>
+      </div>
+      <p className="text-[9px] text-[#64748B]">
+        Fields auto-save when you click away. Empty key-verse fields clear the reference.
+      </p>
     </div>
   );
 }
@@ -1349,6 +1770,33 @@ function PanelsManager({
   onAddPanel: () => void;
 }) {
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+
+  // Move a panel one slot up/down and persist the new reading order.
+  const movePanel = async (panelId: string, direction: -1 | 1) => {
+    const ids = chapter.panels.map((p) => p.panelId);
+    const idx = ids.indexOf(panelId);
+    const target = idx + direction;
+    if (idx === -1 || target < 0 || target >= ids.length) return;
+    const next = [...ids];
+    next[idx] = next[target];
+    next[target] = panelId;
+    setReordering(true);
+    try {
+      const res = await fetch(`/api/admin/comics/${chapter.id}/panels/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedPanelIds: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onReload();
+    } catch (e: any) {
+      toast.error("Reorder failed", { description: e.message });
+    } finally {
+      setReordering(false);
+    }
+  };
 
   const deletePanel = async (panelId: string) => {
     if (!confirm(`Delete panel ${panelId}? This cannot be undone.`)) return;
@@ -1447,6 +1895,24 @@ function PanelsManager({
 
                   {/* Actions */}
                   <div className="flex gap-1 mt-auto">
+                    <button
+                      onClick={() => movePanel(p.panelId, -1)}
+                      disabled={reordering || p === chapter.panels[0]}
+                      aria-label={`Move ${p.panelId} earlier`}
+                      title="Move earlier in reading order"
+                      className="px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold disabled:opacity-30"
+                    >
+                      <ChevronUp size={11} />
+                    </button>
+                    <button
+                      onClick={() => movePanel(p.panelId, 1)}
+                      disabled={reordering || p === chapter.panels[chapter.panels.length - 1]}
+                      aria-label={`Move ${p.panelId} later`}
+                      title="Move later in reading order"
+                      className="px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold disabled:opacity-30"
+                    >
+                      <ChevronDown size={11} />
+                    </button>
                     <button
                       onClick={() => onEditPanel(p.panelId)}
                       className="flex-1 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[10px] font-bold text-white hover:bg-white/[0.08] flex items-center justify-center gap-1"
@@ -1863,6 +2329,7 @@ function PanelTranslationForm({
   const [narration, setNarration] = useState(existing?.narration || "");
   const [captions, setCaptions] = useState<string[]>(existing?.captions || []);
   const [newCaption, setNewCaption] = useState("");
+  const [status, setStatus] = useState<string>(existing?.status === "published" ? "published" : "draft");
   const [saving, setSaving] = useState(false);
 
   const addCaption = () => {
@@ -1888,6 +2355,7 @@ function PanelTranslationForm({
           title,
           narration,
           captions,
+          status,
         }),
       });
       const data = await res.json();
@@ -1904,6 +2372,17 @@ function PanelTranslationForm({
 
   return (
     <div className="p-3 border-t border-white/[0.06] space-y-2.5">
+      <Field label="Publish State (draft languages show “coming soon” to readers)">
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40"
+        >
+          <option value="draft">Draft — not visible to readers</option>
+          <option value="published">Published — live in the reader</option>
+        </select>
+      </Field>
+
       <Field label="Panel Title">
         <input
           value={title}

@@ -29,6 +29,8 @@ export async function GET() {
         description: true,
         coverArtUrl: true,
         sortOrder: true,
+        kidsFriendly: true,
+        pageMode: true,
         _count: { select: { panels: true } },
       },
     });
@@ -42,6 +44,8 @@ export async function GET() {
       description: ch.description,
       coverArtUrl: ch.coverArtUrl,
       sortOrder: ch.sortOrder,
+      kidsFriendly: ch.kidsFriendly,
+      pageMode: ch.pageMode,
       panelCount: ch._count.panels,
     }));
 

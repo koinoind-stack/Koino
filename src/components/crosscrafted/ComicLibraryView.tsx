@@ -47,10 +47,12 @@ type ComicChapterSummary = {
   description: string | null;
   coverArtUrl: string | null;
   sortOrder: number;
+  kidsFriendly: boolean;
+  pageMode: string;
   panelCount: number;
 };
 
-type TestamentFilter = "all" | "OT" | "NT";
+type TestamentFilter = "all" | "OT" | "NT" | "kids";
 
 // sessionStorage key for the library's filter state (survives reader round-trips)
 const FILTERS_KEY = "cc_comic_library_filters";
@@ -175,6 +177,10 @@ export default function ComicLibraryView({
       chapters.filter((ch) => getBook(ch.bookId)?.testament === "NT").length,
     [chapters]
   );
+  const kidsCount = useMemo(
+    () => chapters.filter((ch) => ch.kidsFriendly).length,
+    [chapters]
+  );
 
   // Most recent in-progress chapter (for the Continue Reading strip)
   const continueEntry = useMemo(() => {
@@ -189,12 +195,16 @@ export default function ComicLibraryView({
     return best;
   }, [chapters, progress]);
 
-  // Filtered chapter list: testament × book × search query
+  // Filtered chapter list: testament × kids × book × search query
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return chapters.filter((ch) => {
       const book = getBook(ch.bookId);
-      if (testament !== "all" && book?.testament !== testament) return false;
+      if (testament === "kids") {
+        if (!ch.kidsFriendly) return false;
+      } else if (testament !== "all" && book?.testament !== testament) {
+        return false;
+      }
       if (selectedBookId && ch.bookId !== selectedBookId) return false;
       if (q) {
         const haystack = [
@@ -217,6 +227,12 @@ export default function ComicLibraryView({
   const hasAnyComic = chapters.length > 0;
   const bookHasComics = selectedBookId ? (countByBook.get(selectedBookId) || 0) > 0 : true;
   const filtersActive = testament !== "all" || !!selectedBookId || query.trim().length > 0;
+
+  // Featured story for the hero — first story with cover artwork, else first.
+  const featured = useMemo(
+    () => chapters.find((ch) => ch.coverArtUrl) || chapters[0] || null,
+    [chapters]
+  );
 
   const statusFor = (ch: ComicChapterSummary): "new" | "progress" | "done" => {
     const prog = progress[`${ch.bookId}-${ch.chapter}`];
@@ -259,18 +275,11 @@ export default function ComicLibraryView({
 
   return (
     <div className="min-w-0">
-      {/* ─── Heading + subtitle ─── */}
-      <div className="mb-5">
-        <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#F39B9B] flex items-center justify-center shadow-lg shadow-[#7C3AED]/20">
-            <Sparkles size={15} className="text-white" />
-          </span>
-          <h2 className="text-xl font-black text-white tracking-tight">{t("feature.comics.title")}</h2>
-        </div>
-        <p className="text-xs text-[#A09DB1] mt-1.5 ml-10">
-          {t("comics.subtitle")}
-        </p>
-      </div>
+      {/* ─── HERO — Koino Comic Bible ─── */}
+      <ComicHero
+        featured={featured}
+        onOpen={(bookId, chapter) => onOpenComic(bookId, chapter)}
+      />
 
       {/* ─── Continue Reading strip ─── */}
       {continueEntry && (
@@ -305,13 +314,14 @@ export default function ComicLibraryView({
         )}
       </div>
 
-      {/* ─── Testament filter ─── */}
+      {/* ─── Story tabs (All / OT / NT / For Kids) ─── */}
       <div className="flex p-1 bg-white/[0.04] border border-white/[0.06] rounded-xl mb-3">
         {(
           [
-            { id: "all", label: t("common.all"), count: chapters.length },
+            { id: "all", label: t("comics2.allStories"), count: chapters.length },
             { id: "OT", label: t("bible.ot"), count: otCount },
             { id: "NT", label: t("bible.nt"), count: ntCount },
+            { id: "kids", label: t("comics2.forKids"), count: kidsCount },
           ] as { id: TestamentFilter; label: string; count: number }[]
         ).map((opt) => (
           <button
@@ -422,6 +432,64 @@ export default function ComicLibraryView({
   );
 }
 
+// ─── Comic Hero — Koino Comic Bible ───────────────────────────────────────────
+// Cinematic dashboard hero: gold comic-book typography on deep navy, with the
+// featured story's cover artwork as the backdrop when one exists.
+
+function ComicHero({
+  featured,
+  onOpen,
+}: {
+  featured: ComicChapterSummary | null;
+  onOpen: (bookId: string, chapter: number) => void;
+}) {
+  const t = useTranslation();
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#14121F] mb-5">
+      {/* Featured artwork backdrop */}
+      {featured?.coverArtUrl ? (
+         
+        <img
+          src={featured.coverArtUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+          loading="eager"
+          decoding="async"
+        />
+      ) : null}
+      {/* Legibility gradients (always on, even over artwork) */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0B0A12]/95 via-[#0B0A12]/80 to-[#0B0A12]/40" />
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0B0A12] to-transparent" />
+
+      <div className="relative p-5 sm:p-7">
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#F39B9B] mb-1.5">
+          {t("comics.eyebrow")}
+        </p>
+        <h1 className="text-2xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-[#FDE68A] via-[#F59E0B] to-[#FBBF24] bg-clip-text text-transparent drop-shadow-sm">
+          {t("comics2.heroTitle")}
+        </h1>
+        <p className="text-sm sm:text-base font-extrabold text-white mt-1">{t("comics2.heroSubtitle")}</p>
+        <p className="text-[11px] sm:text-xs text-[#A09DB1] mt-1 max-w-md leading-relaxed">
+          {t("comics2.heroDesc")}
+        </p>
+
+        {featured && (
+          <button
+            onClick={() => onOpen(featured.bookId, featured.chapter)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white text-xs font-black shadow-lg shadow-[#7C3AED]/30 hover:opacity-90 active:scale-[0.98] transition-all min-h-[40px]"
+          >
+            <PlayCircle size={15} />
+            {t("comics2.heroCta")}
+            <span className="hidden sm:inline font-bold text-white/85">· {featured.title}</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Continue Reading strip ──────────────────────────────────────────────────
 
 function ContinueReadingStrip({
@@ -452,7 +520,7 @@ function ContinueReadingStrip({
         {/* Cover thumbnail */}
         <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-[#0f0f1a] border border-white/[0.06]">
           {chapter.coverArtUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               src={chapter.coverArtUrl}
               alt=""
@@ -605,7 +673,7 @@ function ComicChapterCard({
       {/* Cover */}
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
         {chapter.coverArtUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <img
             src={chapter.coverArtUrl}
             alt={t("comics.coverAlt", { title: chapter.title, book: bookName, ch: chapter.chapter })}
@@ -640,6 +708,15 @@ function ComicChapterCard({
             </span>
           )}
         </div>
+
+        {/* Kids-friendly badge (top-right) */}
+        {chapter.kidsFriendly && (
+          <div className="absolute top-2 right-2">
+            <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/90 text-slate-950 text-[9px] font-black uppercase">
+              {t("comics.kidsBadge")}
+            </span>
+          </div>
+        )}
 
         {/* In-progress thin bar along the cover bottom */}
         {status === "progress" && (
