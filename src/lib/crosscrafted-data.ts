@@ -37,7 +37,7 @@ export type Church = {
   website?: string | null;
   contactName?: string | null; // shown publicly only when the listing provided it
   whatsapp_number?: string;
-  // Admin-only fields (populated by /api/admin/churches, never by public /api/churches)
+  // Listing contact details — public (owner-published, like whatsapp_number)
   contactPhone?: string | null;
   contactEmail?: string | null;
   // True when the signed-in viewer created this listing (public API computes it)

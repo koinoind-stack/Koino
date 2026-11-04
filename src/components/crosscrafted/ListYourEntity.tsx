@@ -512,6 +512,7 @@ export default function ListYourEntity({ variant }: Props) {
               onChange={(images) => setFormData({ ...formData, images })}
               max={5}
               label={t("churches.form.photos")}
+              uploadUrl="/api/churches/upload-image"
             />
 
             {/* WhatsApp */}
