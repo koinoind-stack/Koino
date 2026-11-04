@@ -355,3 +355,30 @@ test("CBM-29: placeholders are preserved in Telugu reader/library keys", () => {
 test("CBM-30: this suite is wired into npm test", () => {
   assert.match(pkg, /tests\/comic-bible-multilingual\.test\.ts/);
 });
+
+// ─── CBM-26: publish validation requires a PUBLISHED English row ────────────
+// Regression guard (QA audit 2026-11-04): the publish validator previously
+// matched any English row regardless of publish status, so a story whose
+// English panel text was saved as DRAFT could go live — readers then saw
+// pages with narration: null, hasTranslation: false and isFallback: false
+// (silent content loss, no fallback flag). The validator must only accept
+// the published EN row and must point admins at the draft row explicitly.
+test("CBM-26: publish validation requires a PUBLISHED English translation row", () => {
+  const publishApi = src("app", "api", "admin", "comics", "[id]", "publish", "route.ts");
+  assert.match(
+    publishApi,
+    /translations\.find\(\(t\) => t\.lang === "en" && t\.status === "published"\)/,
+    "validator must select the published English row, not any English row"
+  );
+  assert.match(
+    publishApi,
+    /still a draft/,
+    "validator must tell the admin when an English row exists but is still draft"
+  );
+  // The reader contract this protects: isFallback only turns true when the
+  // published English row exists — so publish must never succeed without one.
+  assert.match(
+    src("app", "api", "comic", "[bookId]", "[chapter]", "route.ts"),
+    /isFallback: !panelTranslation && !!englishPanelTranslation && lang !== "en"/,
+  );
+});

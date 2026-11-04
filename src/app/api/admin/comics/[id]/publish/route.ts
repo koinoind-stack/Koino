@@ -22,7 +22,11 @@ async function requireAdmin() {
  *   1. Chapter has a title (non-empty)
  *   2. At least 1 panel exists
  *   3. Every panel has artworkUrl
- *   4. Every panel has an English translation (title + narration)
+ *   4. Every panel has a PUBLISHED English translation (title + narration).
+ *      A draft-only EN row does NOT satisfy this rule — publishing a story
+ *      whose English text is still draft would serve pages with no narration
+ *      and no fallback flag (readers see silent gaps). Re-save the English
+ *      translation with status "published" first.
  *   5. Every panel has a valid verse range (verseStart >= 1, verseStart <= verseEnd)
  *   6. Chapter number is valid for the bookId (<= book.chapters)
  */
@@ -35,7 +39,7 @@ function validateChapterForPublish(
       artworkUrl: string;
       verseStart: number;
       verseEnd: number;
-      translations: Array<{ lang: string; title: string | null; narration: string | null }>;
+      translations: Array<{ lang: string; title: string | null; narration: string | null; status: string }>;
     }>;
   },
   bookMaxChapters: number
@@ -68,9 +72,14 @@ function validateChapterForPublish(
         `Panel has verseEnd (${panel.verseEnd}) < verseStart (${panel.verseStart})`
       );
     }
-    const en = panel.translations.find((t) => t.lang === "en");
+    const en = panel.translations.find((t) => t.lang === "en" && t.status === "published");
+    const enDraft = panel.translations.find((t) => t.lang === "en" && t.status === "draft");
     if (!en) {
-      errors.push(`Panel is missing English translation`);
+      errors.push(
+        enDraft
+          ? `Panel's English translation is still a draft — publish it before publishing the story`
+          : `Panel is missing English translation`
+      );
     } else {
       if (!en.title || en.title.trim().length < 1) {
         errors.push(`Panel is missing English title`);
@@ -140,6 +149,7 @@ export async function POST(
             lang: t.lang,
             title: t.title,
             narration: t.narration,
+            status: t.status,
           })),
         })),
       },
