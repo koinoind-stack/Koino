@@ -83,6 +83,7 @@ export async function GET(
         coverArtUrl: chapter.coverArtUrl,
         sortOrder: chapter.sortOrder,
         kidsFriendly: chapter.kidsFriendly,
+        kidsAgeGroup: chapter.kidsAgeGroup,
         pageMode: chapter.pageMode,
         isActive: chapter.isActive,
         createdAt: chapter.createdAt.toISOString(),
@@ -237,6 +238,19 @@ export async function PATCH(
     }
     if (typeof body.kidsFriendly === "boolean") {
       data.kidsFriendly = body.kidsFriendly;
+    }
+    if (body.kidsAgeGroup !== undefined) {
+      if (
+        body.kidsAgeGroup !== null &&
+        body.kidsAgeGroup !== "" &&
+        !["3-5", "6-8", "9-12"].includes(body.kidsAgeGroup)
+      ) {
+        return NextResponse.json(
+          { error: 'kidsAgeGroup must be null/empty or one of: "3-5", "6-8", "9-12"' },
+          { status: 400 }
+        );
+      }
+      data.kidsAgeGroup = body.kidsAgeGroup ? body.kidsAgeGroup : null;
     }
     if (body.pageMode !== undefined) {
       if (body.pageMode !== "individual" && body.pageMode !== "spread") {

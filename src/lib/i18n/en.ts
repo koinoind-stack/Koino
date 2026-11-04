@@ -1208,6 +1208,10 @@ export const en: Record<string, string> = {
   "comics2.heroCta": "Start Reading",
   "comics2.allStories": "All Stories",
   "comics2.forKids": "For Kids",
+  "comics2.agesChip": "Ages {ages}",
+  "comics2.bookmarkAddAria": "Bookmark this story",
+  "comics2.bookmarkRemoveAria": "Remove bookmark",
+  "comics2.bookmarkSignIn": "Sign in to bookmark stories across your devices",
 
   // ─── comicsReader — professional comic reader (redesign) ───
   "comicsReader.library": "Library",
@@ -1240,6 +1244,10 @@ export const en: Record<string, string> = {
   "comicsReader.prayThis": "Pray This",
   "comicsReader.readInBible": "Open in Bible Reader",
   "comicsReader.relatedHeading": "Related Bible Stories",
+  "comicsReader.narrationPause": "Pause narration",
+  "comicsReader.narrationResume": "Resume narration",
+  "comicsReader.resetProgressAria": "Reset reading progress",
+  "comicsReader.resetProgressDone": "Reading progress reset",
 
   // ─── competition ───
   "competition.errors.startFailed": "Failed to start",

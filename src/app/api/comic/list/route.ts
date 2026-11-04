@@ -30,6 +30,7 @@ export async function GET() {
         coverArtUrl: true,
         sortOrder: true,
         kidsFriendly: true,
+        kidsAgeGroup: true,
         pageMode: true,
         _count: { select: { panels: true } },
       },
@@ -45,6 +46,7 @@ export async function GET() {
       coverArtUrl: ch.coverArtUrl,
       sortOrder: ch.sortOrder,
       kidsFriendly: ch.kidsFriendly,
+      kidsAgeGroup: ch.kidsAgeGroup,
       pageMode: ch.pageMode,
       panelCount: ch._count.panels,
     }));

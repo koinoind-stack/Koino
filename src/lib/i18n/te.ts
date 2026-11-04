@@ -1125,6 +1125,10 @@ export const te: Record<string, string> = {
   "comics2.heroCta": "చదవడం ప్రారంభించండి",
   "comics2.allStories": "అన్ని కథలు",
   "comics2.forKids": "పిల్లల కోసం",
+  "comics2.agesChip": "వయసు {ages}",
+  "comics2.bookmarkAddAria": "ఈ కథను బుక్‌మార్క్ చేయండి",
+  "comics2.bookmarkRemoveAria": "బుక్‌మార్క్ తీసివేయండి",
+  "comics2.bookmarkSignIn": "మీ అన్ని పరికరాల్లో బుక్‌మార్క్‌లు అందుకోవడానికి సైన్ ఇన్ చేయండి",
 
   // ─── comicsReader — కామిక్ రీడర్ ───
   "comicsReader.library": "లైబ్రరీ",
@@ -1157,6 +1161,10 @@ export const te: Record<string, string> = {
   "comicsReader.prayThis": "ఇలా ప్రార్థించండి",
   "comicsReader.readInBible": "బైబిల్ రీడర్‌లో తెరవండి",
   "comicsReader.relatedHeading": "సంబంధిత బైబిల్ కథలు",
+  "comicsReader.narrationPause": "వివరణ పాజ్ చేయండి",
+  "comicsReader.narrationResume": "వివరణ కొనసాగించండి",
+  "comicsReader.resetProgressAria": "చదివే పురోగతిని రీసెట్ చేయండి",
+  "comicsReader.resetProgressDone": "చదివే పురోగతి రీసెట్ అయింది",
   "competition.errors.startFailed": "ప్రారంభించడం విఫలమైంది",
   "competition.errors.startFailedQuiz": "క్విజ్‌ను ప్రారంభించడం విఫలమైంది",
   "competition.errors.submitFailed": "సమర్పించడం విఫలమైంది",

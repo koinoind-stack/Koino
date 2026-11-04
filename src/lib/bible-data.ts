@@ -529,6 +529,21 @@ export function saveComicProgress(
   return next;
 }
 
+/**
+ * Reset one story's local reading progress ("Reset progress if desired" —
+ * Comic Bible spec Part 2 §4). Server-side progress is reset separately by
+ * the reader when the member is signed in (see @/lib/comic-sync).
+ */
+export function resetComicProgress(bookId: string, chapter: number): void {
+  const all = getAllComicProgress();
+  delete all[`${bookId}-${chapter}`];
+  try {
+    localStorage.setItem(COMIC_PROGRESS_KEY, JSON.stringify(all));
+  } catch {
+    /* storage unavailable — nothing to reset locally */
+  }
+}
+
 // ─── HELPERS ───────────────────────────────────────────────────────────────
 
 export function getBook(bookId: string): BibleBook | undefined {

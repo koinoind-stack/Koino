@@ -45,11 +45,27 @@ import {
   ZoomOut,
   Video,
   Zap,
+  RotateCcw,
+  Pause,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage, useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
-import { getBook, getComicProgress, saveComicProgress, BIBLE_BOOKS } from "@/lib/bible-data";
+import {
+  getBook,
+  getComicProgress,
+  saveComicProgress,
+  resetComicProgress,
+  BIBLE_BOOKS,
+  type ComicProgress,
+} from "@/lib/bible-data";
+import {
+  fetchServerComicBookmarks,
+  fetchServerComicProgress,
+  pushComicBookmarks,
+  pushComicProgress,
+  resetServerComicProgress,
+} from "@/lib/comic-sync";
 import { fetchVersionCatalog, fetchChapterVersioned } from "@/lib/bible-fetch";
 import { formatVersionRef } from "@/lib/bible-versions";
 import {
@@ -191,9 +207,17 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [quizLoading, setQuizLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isNarrationPaused, setIsNarrationPaused] = useState(false);
 
   const readerRef = useRef<HTMLDivElement | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  // ── Server reading sync (signed-in members; spec Part 2 §4) ──
+  // The server progress map is fetched once per session and cached here;
+  // localStorage stays the offline-safe primary store and every push is
+  // fire-and-forget — a slow network can never delay reading.
+  const serverProgressRef = useRef<Record<string, ComicProgress> | null>(null);
+  const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const comicKey = `${bookId}-${chapter}`;
 
@@ -235,6 +259,29 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     setBookmarks(loadBookmarks());
   }, []);
 
+  // ── Signed-in: merge server bookmarks once (resume across devices) ──
+  // Union of local + server page marks; a server row with no page marks
+  // (story-level bookmark made in the library) adds nothing here but the
+  // library still shows the story as bookmarked.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    fetchServerComicBookmarks().then((marks) => {
+      if (cancelled || !marks) return;
+      setBookmarks((prev) => {
+        const merged = { ...prev };
+        for (const [key, pages] of Object.entries(marks)) {
+          const set = new Set([...(merged[key] || []), ...pages]);
+          merged[key] = Array.from(set).sort((a, b) => a - b);
+        }
+        return merged;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
   // ── Page management ──
   const totalPanels = chapterData?.panels.length || 0;
   const spreadMode = isWide && chapterData?.pageMode !== "spread"; // 2 pages per view
@@ -266,25 +313,63 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
   }, [clampPage]);
 
   // ── Resume from the last read page (progress) + mark started ──
+  // Signed-in members resume from the HIGHEST of local and server progress —
+  // the server fetch is one cached, timeout-guarded, fail-silent call per
+  // session, and is what makes "resume on another device when signed in"
+  // work (spec Part 2 §4). Guests keep pure local behavior.
   const resumedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!chapterData || totalPanels === 0) return;
     if (resumedRef.current === comicKey) return;
     resumedRef.current = comicKey;
-    const prog = getComicProgress(bookId, chapter);
-    if (prog && prog.lastPanel > 0 && !prog.completed) {
-      setPage(clampPage(Math.min(prog.lastPanel, totalPanels)));
-    } else {
-      saveComicProgress(bookId, chapter, 0, totalPanels);
-    }
-  }, [chapterData, totalPanels, comicKey, bookId, chapter, clampPage]);
+    let cancelled = false;
+    (async () => {
+      const localProg = getComicProgress(bookId, chapter);
+      let serverProg: ComicProgress | null = null;
+      if (isAuthenticated) {
+        if (!serverProgressRef.current) {
+          serverProgressRef.current = (await fetchServerComicProgress()) || {};
+        }
+        serverProg = serverProgressRef.current[comicKey] || null;
+      }
+      if (cancelled) return;
+      const candidates = [localProg, serverProg].filter(
+        (p): p is ComicProgress => !!p && p.lastPanel > 0 && !p.completed
+      );
+      const best = candidates.sort((a, b) => b.lastPanel - a.lastPanel)[0];
+      if (best) {
+        setPage(clampPage(Math.min(best.lastPanel, totalPanels)));
+      } else {
+        saveComicProgress(bookId, chapter, 0, totalPanels);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterData, totalPanels, comicKey, bookId, chapter, clampPage, isAuthenticated]);
 
   // ── Persist page-based reading progress ──
+  // Local write is immediate; the server push is fire-and-forget (and the
+  // in-session cache is kept fresh so later stories resume correctly).
   useEffect(() => {
     if (!chapterData || totalPanels === 0) return;
     const highestSeen = Math.min(totalPanels, page + pagesPerView - 1);
     saveComicProgress(bookId, chapter, highestSeen, totalPanels);
-  }, [page, pagesPerView, totalPanels, chapterData, bookId, chapter]);
+    if (isAuthenticated) {
+      pushComicProgress(bookId, chapter, highestSeen, totalPanels);
+      if (serverProgressRef.current) {
+        serverProgressRef.current[comicKey] = {
+          bookId,
+          chapter,
+          lastPanel: highestSeen,
+          totalPanels,
+          completed: highestSeen >= totalPanels,
+          startedAt: serverProgressRef.current[comicKey]?.startedAt || Date.now(),
+          updatedAt: Date.now(),
+        };
+      }
+    }
+  }, [page, pagesPerView, totalPanels, chapterData, bookId, chapter, isAuthenticated, comicKey]);
 
   const goNext = useCallback(() => {
     setPage((p) => {
@@ -366,16 +451,30 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
       const next = { ...prev };
       const list = new Set(next[comicKey] || []);
       visiblePages.forEach((p) => (list.has(p) ? list.delete(p) : list.add(p)));
-      next[comicKey] = Array.from(list).sort((a, b) => a - b);
+      const pages = Array.from(list).sort((a, b) => a - b);
+      next[comicKey] = pages;
       try {
         localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(next));
       } catch {
         /* storage unavailable */
       }
+      // Signed-in: keep the server row in step (empty list = un-bookmarked).
+      if (isAuthenticated) pushComicBookmarks(bookId, chapter, pages);
       return next;
     });
     if (isBookmarked) toast(t("comicsReader.bookmarkRemovedToast"));
     else toast(t("comicsReader.bookmarkedToast", { n: visiblePages.join(", ") }));
+  };
+
+  // ── Reset reading progress (spec Part 2 §4) ──
+  // Clears local AND server progress for this story and returns to page 1.
+  const resetProgress = () => {
+    stopNarration();
+    resetComicProgress(bookId, chapter);
+    if (isAuthenticated) resetServerComicProgress(bookId, chapter);
+    if (serverProgressRef.current) delete serverProgressRef.current[comicKey];
+    setPage(1);
+    toast.success(t("comicsReader.resetProgressDone"));
   };
 
   // ── Text size ──
@@ -438,14 +537,84 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     };
   }, [kv?.book, kv?.chapter, kv?.start, kv?.end, contentLang]);  
 
-  // ── TTS (kept from the original reader) ──
+  // ── Narration audio (spec Part 2 §5) ──
+  // When the CMS provides professional narration clips (panel.audioUrl) they
+  // play story-level, in page order, with play/pause/resume. Otherwise the
+  // browser TTS fallback narrates the story text. Either way the audio
+  // button is ALWAYS functional — it is never a placeholder.
+  const narrationAudioUrls = useMemo(() => {
+    if (!chapterData) return [];
+    return chapterData.panels
+      .map((p) => p.audioUrl)
+      .filter((u): u is string => !!u);
+  }, [chapterData]);
+
+  const stopNarration = useCallback(() => {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      /* speech unavailable */
+    }
+    if (narrationAudioRef.current) {
+      narrationAudioRef.current.pause();
+      narrationAudioRef.current = null;
+    }
+    setIsSpeaking(false);
+    setIsNarrationPaused(false);
+  }, []);
+
   const handleListen = () => {
     if (!chapterData) return;
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+      if (isNarrationPaused) {
+        // Resume.
+        if (narrationAudioRef.current) {
+          void narrationAudioRef.current.play().catch(() => stopNarration());
+        } else {
+          try {
+            window.speechSynthesis.resume();
+          } catch {
+            /* speech unavailable */
+          }
+        }
+        setIsNarrationPaused(false);
+        return;
+      }
+      // Pause (spec: play, pause and resume).
+      if (narrationAudioRef.current) narrationAudioRef.current.pause();
+      else {
+        try {
+          window.speechSynthesis.pause();
+        } catch {
+          /* speech unavailable */
+        }
+      }
+      setIsNarrationPaused(true);
       return;
     }
+
+    setIsNarrationPaused(false);
+    if (narrationAudioUrls.length > 0) {
+      // Professional narration clips — played sequentially in page order.
+      const playAt = (i: number) => {
+        const url = narrationAudioUrls[i];
+        if (!url) {
+          stopNarration();
+          return;
+        }
+        const el = new Audio(url);
+        narrationAudioRef.current = el;
+        el.onended = () => playAt(i + 1);
+        el.onerror = () => stopNarration();
+        void el.play().catch(() => stopNarration());
+      };
+      playAt(0);
+      setIsSpeaking(true);
+      toast(t("comics.audioNarration"), { description: t("comics.audioNarrationDesc") });
+      return;
+    }
+
+    // Browser TTS fallback (kept from the original reader).
     const fullNarration = chapterData.panels
       .map((p, i) => `${t("comics.ttsPanelTemplate", { i: i + 1, title: p.title || "" })} ${p.narration || ""}`)
       .join(" ");
@@ -457,6 +626,11 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
     setIsSpeaking(true);
     toast(t("comics.audioNarration"), { description: t("comics.audioNarrationDesc") });
   };
+
+  // Stop narration when the story or language changes, and on unmount.
+  useEffect(() => {
+    stopNarration();
+  }, [bookId, chapter, contentLang, stopNarration]);
 
   // ── Share (kept from the original reader) ──
   const openChapterShare = () => {
@@ -678,6 +852,16 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
           <BookMarked size={14} />
         </button>
 
+        {/* Reset reading progress (spec Part 2 §4) */}
+        <button
+          onClick={resetProgress}
+          aria-label={t("comicsReader.resetProgressAria")}
+          title={t("comicsReader.resetProgressAria")}
+          className="p-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-[#94A3B8] hover:text-white transition-all min-h-[40px] min-w-[40px] inline-flex items-center justify-center"
+        >
+          <RotateCcw size={14} />
+        </button>
+
         {/* Fullscreen */}
         <button
           onClick={toggleFullscreen}
@@ -854,7 +1038,7 @@ export default function ComicView({ bookId, chapter, onNavigateChapter, onReadCh
       <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 mt-5">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
           <ActionButton icon={BookOpen} label={t("bible.read")} sublabel={t("comics.readSub")} onClick={() => onReadChapter(bookId, chapter)} />
-          <ActionButton icon={isSpeaking ? X : Headphones} label={isSpeaking ? t("bible.stop") : t("bible.listen")} sublabel={t("comics.audioNarration")} onClick={handleListen} />
+          <ActionButton icon={isSpeaking ? (isNarrationPaused ? Headphones : Pause) : Headphones} label={isSpeaking ? (isNarrationPaused ? t("comicsReader.narrationResume") : t("comicsReader.narrationPause")) : t("bible.listen")} sublabel={t("comics.audioNarration")} onClick={handleListen} />
           <ChapterVideoAction bookId={bookId} chapter={chapter} />
           <ActionButton icon={Brain} label={t("bible.quiz")} sublabel={t("comics.quizSub")} onClick={startQuiz} />
           <ActionButton icon={Zap} label={t("bible.earnFp")} sublabel={t("comics.earnFpSub")} onClick={() => toast(t("comics.earnFpToast"))} dimmed />

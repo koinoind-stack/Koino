@@ -29,14 +29,22 @@ import {
   PlayCircle,
   AlertCircle,
   Loader2,
+  Bookmark,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   BIBLE_BOOKS,
   getBook,
   getAllComicProgress,
   type ComicProgress,
 } from "@/lib/bible-data";
+import {
+  fetchServerComicBookmarks,
+  fetchServerComicProgress,
+  pushComicBookmarks,
+} from "@/lib/comic-sync";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
 
 type ComicChapterSummary = {
   id: string;
@@ -48,6 +56,7 @@ type ComicChapterSummary = {
   coverArtUrl: string | null;
   sortOrder: number;
   kidsFriendly: boolean;
+  kidsAgeGroup: string | null;
   pageMode: string;
   panelCount: number;
 };
@@ -67,6 +76,7 @@ export default function ComicLibraryView({
   onOpenComic: (bookId: string, chapter: number) => void;
 }) {
   const t = useTranslation();
+  const { isAuthenticated } = useSupabaseUser();
   const [chapters, setChapters] = useState<ComicChapterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +131,86 @@ export default function ComicLibraryView({
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, []);
+
+  // ── Server reading sync (signed-in members; spec Part 2 §4) ──
+  // Server-side progress is what makes completion status + Continue Reading
+  // follow the member across devices. Merged with the "highest progress
+  // wins" policy — progress never regresses. Guests keep pure local state.
+  const [serverProgress, setServerProgress] = useState<Record<string, ComicProgress> | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setServerProgress(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () =>
+      fetchServerComicProgress().then((p) => {
+        if (!cancelled) setServerProgress(p);
+      });
+    load();
+    window.addEventListener("focus", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", load);
+    };
+  }, [isAuthenticated]);
+
+  const mergedProgress = useMemo(() => {
+    if (!serverProgress) return progress;
+    const merged = { ...progress };
+    for (const [key, sp] of Object.entries(serverProgress)) {
+      const lp = merged[key];
+      if (!lp) {
+        merged[key] = sp;
+      } else if (sp.lastPanel > lp.lastPanel) {
+        merged[key] = {
+          ...lp,
+          lastPanel: sp.lastPanel,
+          totalPanels: sp.totalPanels || lp.totalPanels,
+          completed: sp.completed || lp.completed,
+          updatedAt: Math.max(lp.updatedAt, sp.updatedAt),
+        };
+      } else if (sp.completed && !lp.completed) {
+        merged[key] = { ...lp, completed: true, updatedAt: Math.max(lp.updatedAt, sp.updatedAt) };
+      }
+    }
+    return merged;
+  }, [progress, serverProgress]);
+
+  // ── Story bookmarks (server-side; spec Part 2 §4 "Bookmark stories") ──
+  // Keyed "${bookId}-${chapter}" → bookmarked page numbers (may be empty for
+  // a story-level bookmark). A key existing means the story is bookmarked.
+  const [bookmarks, setBookmarks] = useState<Record<string, number[]>>({});
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setBookmarks({});
+      return;
+    }
+    let cancelled = false;
+    fetchServerComicBookmarks().then((b) => {
+      if (!cancelled && b) setBookmarks(b);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  const toggleStoryBookmark = (ch: ComicChapterSummary) => {
+    if (!isAuthenticated) {
+      toast.error(t("comics2.bookmarkSignIn"));
+      return;
+    }
+    const key = `${ch.bookId}-${ch.chapter}`;
+    const isOn = Object.prototype.hasOwnProperty.call(bookmarks, key);
+    setBookmarks((prev) => {
+      const next = { ...prev };
+      if (isOn) delete next[key];
+      else next[key] = [];
+      return next;
+    });
+    // ON → story-level row (empty page list still creates it); OFF → removes it.
+    pushComicBookmarks(ch.bookId, ch.chapter, [], { storyLevel: !isOn });
+  };
 
   // Load published chapters from the existing public API
   useEffect(() => {
@@ -186,14 +276,14 @@ export default function ComicLibraryView({
   const continueEntry = useMemo(() => {
     let best: { chapter: ComicChapterSummary; prog: ComicProgress } | null = null;
     for (const ch of chapters) {
-      const prog = progress[`${ch.bookId}-${ch.chapter}`];
+      const prog = mergedProgress[`${ch.bookId}-${ch.chapter}`];
       if (!prog || prog.completed) continue;
       if (!best || prog.updatedAt > best.prog.updatedAt) {
         best = { chapter: ch, prog };
       }
     }
     return best;
-  }, [chapters, progress]);
+  }, [chapters, mergedProgress]);
 
   // Filtered chapter list: testament × kids × book × search query
   const filtered = useMemo(() => {
@@ -235,7 +325,7 @@ export default function ComicLibraryView({
   );
 
   const statusFor = (ch: ComicChapterSummary): "new" | "progress" | "done" => {
-    const prog = progress[`${ch.bookId}-${ch.chapter}`];
+    const prog = mergedProgress[`${ch.bookId}-${ch.chapter}`];
     if (!prog) return "new";
     return prog.completed ? "done" : "progress";
   };
@@ -412,7 +502,7 @@ export default function ComicLibraryView({
             {filtered.map((ch, idx) => {
               const book = getBook(ch.bookId);
               const status = statusFor(ch);
-              const prog = progress[`${ch.bookId}-${ch.chapter}`];
+              const prog = mergedProgress[`${ch.bookId}-${ch.chapter}`];
               return (
                 <ComicChapterCard
                   key={ch.id}
@@ -421,6 +511,8 @@ export default function ComicLibraryView({
                   index={idx}
                   status={status}
                   prog={prog || null}
+                  bookmarked={Object.prototype.hasOwnProperty.call(bookmarks, `${ch.bookId}-${ch.chapter}`)}
+                  onToggleBookmark={() => toggleStoryBookmark(ch)}
                   onOpen={() => onOpenComic(ch.bookId, ch.chapter)}
                 />
               );
@@ -648,6 +740,8 @@ function ComicChapterCard({
   index,
   status,
   prog,
+  bookmarked,
+  onToggleBookmark,
   onOpen,
 }: {
   chapter: ComicChapterSummary;
@@ -655,6 +749,8 @@ function ComicChapterCard({
   index: number;
   status: "new" | "progress" | "done";
   prog: ComicProgress | null;
+  bookmarked: boolean;
+  onToggleBookmark: () => void;
   onOpen: () => void;
 }) {
   const t = useTranslation();
@@ -662,12 +758,22 @@ function ComicChapterCard({
   const pct = prog && total > 0 ? Math.min(100, Math.round((prog.lastPanel / total) * 100)) : 0;
 
   return (
-    <motion.button
+    // div (not button): the card hosts a nested bookmark control — buttons
+    // cannot nest. Keyboard + click behavior is preserved explicitly.
+    <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.3) }}
       onClick={onOpen}
-      className="group bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group cursor-pointer bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED]/60"
       aria-label={t("comics.cardAria", { title: chapter.title, book: bookName, ch: chapter.chapter })}
     >
       {/* Cover */}
@@ -709,14 +815,35 @@ function ComicChapterCard({
           )}
         </div>
 
-        {/* Kids-friendly badge (top-right) */}
-        {chapter.kidsFriendly && (
-          <div className="absolute top-2 right-2">
+        {/* Top-right: kids badge + age band + story bookmark */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          {chapter.kidsFriendly && (
             <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/90 text-slate-950 text-[9px] font-black uppercase">
               {t("comics.kidsBadge")}
             </span>
-          </div>
-        )}
+          )}
+          {chapter.kidsFriendly && chapter.kidsAgeGroup && (
+            <span className="px-1.5 py-0.5 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#22C55E] text-[9px] font-black">
+              {t("comics2.agesChip", { ages: chapter.kidsAgeGroup })}
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // don't open the story — just toggle the bookmark
+              onToggleBookmark();
+            }}
+            aria-label={bookmarked ? t("comics2.bookmarkRemoveAria") : t("comics2.bookmarkAddAria")}
+            aria-pressed={bookmarked}
+            title={bookmarked ? t("comics2.bookmarkRemoveAria") : t("comics2.bookmarkAddAria")}
+            className={`p-1.5 rounded-full border backdrop-blur-sm transition-all ${
+              bookmarked
+                ? "bg-[#F59E0B] border-[#F59E0B] text-slate-950"
+                : "bg-black/60 border-white/20 text-white/80 hover:text-white hover:border-white/50"
+            }`}
+          >
+            <Bookmark size={11} fill={bookmarked ? "currentColor" : "none"} />
+          </button>
+        </div>
 
         {/* In-progress thin bar along the cover bottom */}
         {status === "progress" && (
@@ -776,6 +903,6 @@ function ComicChapterCard({
           className="text-[#94A3B8] group-hover:text-white group-hover:translate-x-0.5 transition-all"
         />
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

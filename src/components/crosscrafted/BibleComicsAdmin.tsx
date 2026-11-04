@@ -111,6 +111,7 @@ type Chapter = {
   coverArtUrl: string | null;
   sortOrder: number;
   kidsFriendly: boolean;
+  kidsAgeGroup: string | null;
   pageMode: string;
   isActive: boolean;
   createdAt: string;
@@ -941,6 +942,7 @@ function ChapterEditor({
         coverArtUrl: chapter.coverArtUrl,
         sortOrder: chapter.sortOrder,
         kidsFriendly: chapter.kidsFriendly,
+        kidsAgeGroup: chapter.kidsAgeGroup,
         pageMode: chapter.pageMode,
         bookId: chapter.bookId,
         chapter: chapter.chapter,
@@ -955,6 +957,7 @@ function ChapterEditor({
     coverArtUrl: chapter.coverArtUrl,
     sortOrder: chapter.sortOrder,
     kidsFriendly: chapter.kidsFriendly,
+    kidsAgeGroup: chapter.kidsAgeGroup,
     pageMode: chapter.pageMode,
     bookId: chapter.bookId,
     chapter: chapter.chapter,
@@ -1423,12 +1426,19 @@ function ChapterDetailsForm({
         </div>
 
         {/* Story experience flags */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <label className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 cursor-pointer">
             <input
               type="checkbox"
               checked={!!draft.kidsFriendly}
-              onChange={(e) => update({ kidsFriendly: e.target.checked })}
+              onChange={(e) =>
+                update({
+                  kidsFriendly: e.target.checked,
+                  // Clearing the flag also clears the age band — a story can
+                  // never carry a kids age group without being kids-friendly.
+                  kidsAgeGroup: e.target.checked ? draft.kidsAgeGroup || "" : "",
+                })
+              }
               className="w-4 h-4 accent-[#22C55E]"
             />
             <span className="text-xs font-bold text-white">
@@ -1438,6 +1448,22 @@ function ChapterDetailsForm({
               </span>
             </span>
           </label>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+              Kids Age Group
+            </label>
+            <select
+              value={draft.kidsAgeGroup || ""}
+              onChange={(e) => update({ kidsAgeGroup: e.target.value })}
+              disabled={!draft.kidsFriendly}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-[#F39B9B]/40 disabled:opacity-40"
+            >
+              <option value="">No age guidance</option>
+              <option value="3-5">Ages 3–5</option>
+              <option value="6-8">Ages 6–8</option>
+              <option value="9-12">Ages 9–12</option>
+            </select>
+          </div>
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
               Page Mode (reader layout)
