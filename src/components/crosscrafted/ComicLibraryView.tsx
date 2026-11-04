@@ -36,7 +36,7 @@ import {
   getAllComicProgress,
   type ComicProgress,
 } from "@/lib/bible-data";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useLanguage, useTranslation } from "@/lib/i18n/LanguageContext";
 
 type ComicChapterSummary = {
   id: string;
@@ -65,6 +65,10 @@ export default function ComicLibraryView({
   onOpenComic: (bookId: string, chapter: number) => void;
 }) {
   const t = useTranslation();
+  // Comic chapter titles are translated content (ComicChapterTranslation) —
+  // refetch the list whenever the site language changes so library cards,
+  // book chapter counts and the Continue Reading strip follow the UI language.
+  const { lang } = useLanguage();
   const [chapters, setChapters] = useState<ComicChapterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +131,7 @@ export default function ComicLibraryView({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/comic/list");
+        const res = await fetch(`/api/comic/list?lang=${lang}`);
         const text = await res.text();
         if (!text) throw new Error(t("comics.error.emptyResponse"));
         const data = JSON.parse(text);
@@ -154,7 +158,7 @@ export default function ComicLibraryView({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [lang]);
 
   // ─── Derived data ────────────────────────────────────────────────────────
 
