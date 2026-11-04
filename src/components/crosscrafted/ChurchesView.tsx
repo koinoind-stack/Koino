@@ -25,6 +25,7 @@ import {
   ArrowUpDown,
   ExternalLink,
   Pencil,
+  Mail,
 } from "lucide-react";
 import {
   INDIAN_STATES,
@@ -102,6 +103,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     type: string;
     images: string[];
     whatsapp_number: string;
+    contact_phone: string;
+    contact_email: string;
     service_times: ServiceTime[];
   }>({
     name: "",
@@ -114,6 +117,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     type: "Church",
     images: [],
     whatsapp_number: "",
+    contact_phone: "",
+    contact_email: "",
     service_times: [{ language: "English", day: "Sunday", time: "" }],
   });
 
@@ -144,6 +149,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       type: (c.type as string) || "Church",
       images: c.images && c.images.length > 0 ? c.images : c.cover_image ? [c.cover_image] : [],
       whatsapp_number: c.whatsapp_number || "",
+      contact_phone: c.contactPhone || "",
+      contact_email: c.contactEmail || "",
       service_times: c.service_times && c.service_times.length > 0
         ? c.service_times
         : [{ language: "English", day: "Sunday", time: "" }],
@@ -168,6 +175,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       type: "Church",
       images: [],
       whatsapp_number: "",
+      contact_phone: "",
+      contact_email: "",
       service_times: [{ language: "English", day: "Sunday", time: "" }],
     });
   };
@@ -486,6 +495,13 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         images: formData.images,
         cover_image: formData.images[0] || null,
         whatsapp_number: formData.whatsapp_number || null,
+        // Contact details — POST reads contact_phone/contact_email, PATCH
+        // reads contactPhone/contactEmail; send both spellings so the same
+        // payload serves the create (POST) and owner-edit (PATCH) paths.
+        contact_phone: formData.contact_phone || null,
+        contact_email: formData.contact_email || null,
+        contactPhone: formData.contact_phone || null,
+        contactEmail: formData.contact_email || null,
         service_times: validServices,
       };
       // Owner edit → PATCH /api/churches/[id] (owner-guarded server-side).
@@ -864,16 +880,19 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929]"
             >
               <div className="relative h-[200px]">
-                {church.cover_image ? (
+                {/* Gradient underlay — broken/missing covers fall back to it */}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: CHURCH_GRADIENTS[church.cover_gradient % CHURCH_GRADIENTS.length] }}
+                />
+                {church.cover_image && (
                   <img
                     src={church.cover_image}
                     alt={church.name}
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
-                  />
-                ) : (
-                  <div
-                    className="w-full h-full"
-                    style={{ background: CHURCH_GRADIENTS[church.cover_gradient % CHURCH_GRADIENTS.length] }}
+                    className="relative w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/30 to-transparent" />
@@ -1043,26 +1062,32 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             >
               <div className="relative h-48 md:h-56">
                 {(() => {
+                  // Gradient always renders underneath — a broken/missing
+                  // image (e.g. a corrupted legacy data URL) hides itself
+                  // onError and the branded gradient shows instead.
                   const allImages = openChurch.images && openChurch.images.length > 0
                     ? openChurch.images
                     : openChurch.cover_image
                     ? [openChurch.cover_image]
                     : [];
                   const activeImg = allImages[activeImageIdx] || allImages[0];
-                  if (activeImg) {
-                    return (
-                      <img
-                        src={activeImg}
-                        alt={openChurch.name}
-                        className="w-full h-full object-cover"
-                      />
-                    );
-                  }
                   return (
-                    <div
-                      className="w-full h-full"
-                      style={{ background: CHURCH_GRADIENTS[openChurch.cover_gradient % CHURCH_GRADIENTS.length] }}
-                    />
+                    <>
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: CHURCH_GRADIENTS[openChurch.cover_gradient % CHURCH_GRADIENTS.length] }}
+                      />
+                      {activeImg && (
+                        <img
+                          src={activeImg}
+                          alt={openChurch.name}
+                          className="relative w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      )}
+                    </>
                   );
                 })()}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent" />
@@ -1300,6 +1325,28 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   </a>
                 )}
 
+                {/* Contact details — call / email when the listing provides them */}
+                {(openChurch.contactPhone || openChurch.contactEmail) && (
+                  <div className={`grid gap-2 ${openChurch.contactPhone && openChurch.contactEmail ? "grid-cols-2" : "grid-cols-1"}`}>
+                    {openChurch.contactPhone && (
+                      <a
+                        href={`tel:${openChurch.contactPhone.replace(/[^+0-9]/g, "")}`}
+                        className="py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#93C5FD] hover:bg-[#3B82F6]/25 transition-all"
+                      >
+                        <Phone size={14} /> {t("churches.contactCall")}
+                      </a>
+                    )}
+                    {openChurch.contactEmail && (
+                      <a
+                        href={`mailto:${openChurch.contactEmail}`}
+                        className="py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-all"
+                      >
+                        <Mail size={14} /> {t("churches.contactEmailBtn")}
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 {/* Owner self-edit — only the listing's owner sees this.
                     The server re-checks ownership on every PATCH. */}
                 {openChurch.is_owner && (
@@ -1514,12 +1561,39 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                      <Phone size={10} className="inline mr-0.5" /> {t("churches.form.contactPhone")}
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                      className="neo-input text-sm"
+                      placeholder={t("common.whatsappPlaceholder")}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                      <Mail size={10} className="inline mr-0.5" /> {t("churches.form.contactEmail")}
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                      className="neo-input text-sm"
+                      placeholder="office@church.in"
+                    />
+                  </div>
+                </div>
 
                 <ImagePicker
                   images={formData.images}
                   onChange={(images) => setFormData({ ...formData, images })}
                   max={5}
                   label={t("churches.form.photos")}
+                  uploadUrl="/api/churches/upload-image"
                 />
 
                 {/* Multi-row service times */}
@@ -1967,6 +2041,9 @@ function MyListingsView({
                     src={church.cover_image}
                     alt={church.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
                 ) : (
                   <div

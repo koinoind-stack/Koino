@@ -122,6 +122,10 @@ export async function GET(req: NextRequest) {
         postalCode: c.postalCode,
         location: c.location,
         contactName: c.contactName,
+        // Listing contact details — public by design (the owner publishes
+        // them so visitors can reach the church), like whatsapp_number.
+        contactPhone: c.contactPhone,
+        contactEmail: c.contactEmail,
         whatsapp_number: c.whatsappNumber,
         website: c.website,
         service_times: safeParseJson(c.serviceTimes, []),
