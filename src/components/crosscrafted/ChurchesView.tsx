@@ -24,11 +24,13 @@ import {
   Flag,
   ArrowUpDown,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 import {
   INDIAN_STATES,
   LANGUAGES,
   CHURCH_GRADIENTS,
+  CHURCH_TYPES,
   type Church,
   type ServiceTime,
 } from "@/lib/crosscrafted-data";
@@ -96,6 +98,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     city: string;
     languages: string[];
     denomination: string;
+    type: string;
     images: string[];
     whatsapp_number: string;
     service_times: ServiceTime[];
@@ -107,10 +110,57 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     city: "",
     languages: [],
     denomination: "",
+    type: "Church",
     images: [],
     whatsapp_number: "",
     service_times: [{ language: "English", day: "Sunday", time: "" }],
   });
+
+  // Owner self-edit — when editingId is set, the shared form modal below
+  // PATCHes the owner's listing instead of creating a new one. Owners reach
+  // it through the "Edit listing" button shown on their detail view.
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const openEdit = (c: Church) => {
+    setEditingId(c.id);
+    setFormData({
+      name: c.name,
+      description: c.description,
+      location: c.location || "",
+      state: c.state || "",
+      city: c.city || "",
+      languages: c.languages || [],
+      denomination: c.denomination || "",
+      type: (c.type as string) || "Church",
+      images: c.images && c.images.length > 0 ? c.images : c.cover_image ? [c.cover_image] : [],
+      whatsapp_number: c.whatsapp_number || "",
+      service_times: c.service_times && c.service_times.length > 0
+        ? c.service_times
+        : [{ language: "English", day: "Sunday", time: "" }],
+    });
+    setShowCreateModal(true);
+  };
+
+  const closeFormModal = () => {
+    setShowCreateModal(false);
+    setEditingId(null);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      location: "",
+      state: "",
+      city: "",
+      languages: [],
+      denomination: "",
+      type: "Church",
+      images: [],
+      whatsapp_number: "",
+      service_times: [{ language: "English", day: "Sunday", time: "" }],
+    });
+  };
 
   const addServiceTime = () => {
     setFormData((prev) => ({
@@ -378,44 +428,61 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       return;
     }
     setSubmitting(true);
+    // Capture BEFORE closeFormModal() resets it.
+    const editTargetId = editingId;
+    const wasEditing = editTargetId !== null;
     try {
       const validServices = formData.service_times.filter((s) => s.time.trim());
-      const res = await fetch("/api/churches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          denomination: formData.denomination,
-          state: formData.state,
-          city: formData.city,
-          location: formData.location,
-          address: formData.location,
-          languages: formData.languages,
-          images: formData.images,
-          cover_image: formData.images[0] || null,
-          whatsapp_number: formData.whatsapp_number || null,
-          service_times: validServices,
-        }),
-      });
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        denomination: formData.denomination,
+        type: formData.type,
+        state: formData.state,
+        city: formData.city,
+        location: formData.location,
+        address: formData.location,
+        languages: formData.languages,
+        images: formData.images,
+        cover_image: formData.images[0] || null,
+        whatsapp_number: formData.whatsapp_number || null,
+        service_times: validServices,
+      };
+      // Owner edit → PATCH /api/churches/[id] (owner-guarded server-side).
+      // New listing → POST /api/churches (PENDING until approved).
+      const res = wasEditing
+        ? await fetch(`/api/churches/${editTargetId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/churches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("churches.form.errorHttp", { status: res.status }));
-      setShowCreateModal(false);
-      setFormData({
-        name: "",
-        description: "",
-        location: "",
-        state: "",
-        city: "",
-        languages: [],
-        denomination: "",
-        images: [],
-        whatsapp_number: "",
-        service_times: [{ language: "English", day: "Sunday", time: "" }],
-      });
-      toast.success(t("churches.submit.success"), {
-        description: t("churches.submit.successDesc"),
-      });
+      closeFormModal();
+      resetForm();
+      if (wasEditing && editTargetId) {
+        // Optimistic merge for the card + detail, then a background reload
+        // reconciles with server truth (is_owner, followers, …).
+        const edited: Partial<Church> = {
+          ...formData,
+          service_times: validServices,
+          cover_image: formData.images[0] || undefined,
+          images: formData.images,
+        };
+        setChurches((cs) => cs.map((c) => (c.id === editTargetId ? { ...c, ...edited } : c)));
+        setOpenChurch((prev) => (prev && prev.id === editTargetId ? { ...prev, ...edited } : prev));
+        loadChurches();
+        toast.success(t("churches.editSuccess"), { description: t("churches.editSuccessDesc") });
+      } else {
+        toast.success(t("churches.submit.success"), {
+          description: t("churches.submit.successDesc"),
+        });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("churches.submit.error"));
     } finally {
@@ -935,7 +1002,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       />
                     )}
                   </div>
-                  <p className="text-xs text-white/70">{openChurch.denomination || t("churches.fallbackDenomination")}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs text-white/70">{openChurch.denomination || t("churches.fallbackDenomination")}</p>
+                    {openChurch.type && openChurch.type !== "Church" && (
+                      <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/80 text-[10px] font-bold uppercase tracking-wide">
+                        {openChurch.type}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1138,6 +1212,17 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   </a>
                 )}
 
+                {/* Owner self-edit — only the listing's owner sees this.
+                    The server re-checks ownership on every PATCH. */}
+                {openChurch.is_owner && (
+                  <button
+                    onClick={() => openEdit(openChurch)}
+                    className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#C4B5FD] hover:text-white transition-all"
+                  >
+                    <Pencil size={14} /> {t("churches.editListing")}
+                  </button>
+                )}
+
                 {/* Action row — every button is a real, working action */}
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -1234,10 +1319,10 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold gradient-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3] bg-clip-text text-transparent">
-                  {t("churches.listYourChurch")}
+                  {editingId ? t("churches.editListing") : t("churches.listYourChurch")}
                 </h2>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeFormModal}
                   className="text-[#64748B] hover:text-white p-1"
                 >
                   <X size={20} />
@@ -1256,7 +1341,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                       State
@@ -1285,6 +1370,22 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       className="neo-input text-sm"
                       placeholder="City"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                      {t("churches.type")}
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      className="neo-input text-sm"
+                    >
+                      {CHURCH_TYPES.map((tp) => (
+                        <option key={tp} value={tp}>
+                          {tp}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div>
@@ -1436,7 +1537,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={closeFormModal}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                   >
                     {t("common.cancel")}
@@ -1446,12 +1547,18 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     disabled={submitting}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F39B9B] hover:bg-[#E27B7B] transition-all hover:-translate-y-px disabled:opacity-60"
                   >
-                    {submitting ? t("common.submitting") : t("churches.form.submit")}
+                    {submitting
+                      ? t("common.submitting")
+                      : editingId
+                        ? t("churches.updateListing")
+                        : t("churches.form.submit")}
                   </button>
+                </div>
+                {!editingId && (
                   <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
                     {t("churches.form.reviewNote")}
                   </p>
-                </div>
+                )}
               </form>
             </motion.div>
           </motion.div>

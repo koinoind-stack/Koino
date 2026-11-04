@@ -52,6 +52,7 @@ import { toast } from "sonner";
 import {
   INDIAN_STATES,
   LANGUAGES,
+  CHURCH_TYPES,
   type Church,
   type EventItem,
   type TriviaGift,
@@ -836,6 +837,10 @@ function ChurchesTab() {
   const [rejectReason, setRejectReason] = useState("");
   const [editing, setEditing] = useState<AdminChurch | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [transferring, setTransferring] = useState<AdminChurch | null>(null);
+  const [transferEmail, setTransferEmail] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
 
   // Duplicate detection — same normalised (name + city) submitted more than
   // once, across ANY status. Flags both entries; the admin decides which to
@@ -877,6 +882,59 @@ function ChurchesTab() {
       toast.error(e.message || "Failed to save changes");
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // Admin creates a listing directly (default PUBLISHED — the admin is the
+  // approver). Optional ownerEmail hands it to the rightful owner at once.
+  const handleCreateSave = async (patch: Record<string, unknown>) => {
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/admin/churches/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create listing");
+      toast.success("Listing created", {
+        description:
+          data.status === "PUBLISHED"
+            ? "Live in the public directory now."
+            : "Saved as PENDING — approve it when ready.",
+      });
+      setCreating(false);
+      await loadChurches();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create listing");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Transfer the listing to its rightful owner — a REGISTERED user, looked
+  // up by email server-side (404 with a clear message when no account yet).
+  const confirmTransfer = async () => {
+    if (!transferring) return;
+    setTransferBusy(true);
+    try {
+      const res = await fetch("/api/admin/churches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: transferring.id, action: "transfer", transferEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to transfer listing");
+      toast.success("Listing transferred", {
+        description: `${transferring.name} now belongs to ${data.church?.createdByEmail || transferEmail}.`,
+      });
+      setTransferring(null);
+      setTransferEmail("");
+      await loadChurches();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to transfer listing");
+    } finally {
+      setTransferBusy(false);
     }
   };
 
@@ -1004,14 +1062,24 @@ function ChurchesTab() {
         ))}
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder={t("admin.churches.searchPlaceholder")}
-        className="neo-input text-sm"
-      />
+      {/* Search + create */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("admin.churches.searchPlaceholder")}
+          className="neo-input text-sm flex-1"
+        />
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-px shrink-0"
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
+          title="Create a new church listing"
+        >
+          <Plus size={13} /> Add listing
+        </button>
+      </div>
 
       {/* Loading */}
       {loading && (
@@ -1077,6 +1145,16 @@ function ChurchesTab() {
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[11px] font-bold transition-all"
                 >
                   <Pencil size={12} /> {t("common.edit")}
+                </button>
+                <button
+                  onClick={() => {
+                    setTransferring(c);
+                    setTransferEmail(c.createdByEmail || "");
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-[#22C55E] text-[11px] font-bold transition-all"
+                  title="Move this listing to another registered user (its rightful owner)"
+                >
+                  <UserCheck size={12} /> Transfer
                 </button>
                 {c.status === "PENDING" && (
                   <>
@@ -1241,11 +1319,105 @@ function ChurchesTab() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Transfer ownership modal — move the listing to its rightful owner */}
+      <AnimatePresence>
+        {transferring && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-end md:items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setTransferring(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-6 max-w-md w-full"
+            >
+              <h3 className="text-base font-bold text-white mb-1">Transfer listing</h3>
+              <p className="text-xs text-[#A09DB1] mb-3">
+                Move <span className="font-bold text-white">{transferring.name}</span> to a registered
+                user. They become the owner — they can then edit the listing themselves and it counts
+                as theirs in the directory.
+                {transferring.createdByEmail && (
+                  <>
+                    <br />
+                    <span className="text-[#64748B]">Current owner: {transferring.createdByEmail || "— (admin-created)"}</span>
+                  </>
+                )}
+              </p>
+              <input
+                type="email"
+                value={transferEmail}
+                onChange={(e) => setTransferEmail(e.target.value)}
+                placeholder="owner@example.com"
+                className="neo-input text-sm mb-4"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setTransferring(null)}
+                  className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmTransfer}
+                  disabled={transferBusy || !transferEmail.trim()}
+                  className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold disabled:opacity-60"
+                >
+                  {transferBusy ? "Transferring…" : "Transfer"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create listing modal — admin adds a church directly */}
+      <AnimatePresence>
+        {creating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-end md:items-center justify-center"
+            onClick={(e) => e.target === e.currentTarget && setCreating(false)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[88vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-white">Add listing</h3>
+                <button onClick={() => setCreating(false)} className="text-[#64748B] hover:text-white p-1">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-[11px] text-[#A09DB1] mb-3">
+                Create a church listing on behalf of a congregation. PUBLISHED goes live immediately;
+                assign an owner email so the congregation can manage it themselves.
+              </p>
+              <CreateChurchForm
+                saving={savingEdit}
+                onSave={handleCreateSave}
+                onCancel={() => setCreating(false)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Editable subset of a church listing for the admin correction form.
+// Includes every public field the admin asked for: cover image, contact
+// number, service languages and the listing type.
 function ChurchEditForm({
   church, saving, onSave, onCancel,
 }: {
@@ -1259,18 +1431,28 @@ function ChurchEditForm({
     name: church.name,
     description: church.description,
     denomination: church.denomination || "",
+    type: (church.type as string) || "Church",
     state: church.state || "",
     city: church.city || "",
     address: church.address || "",
     location: church.location || "",
     contactName: church.contactName || "",
+    contactPhone: church.contactPhone || "",
     whatsappNumber: church.whatsapp_number || "",
     website: church.website || "",
+    coverImage: church.cover_image || "",
+    languages: (church.languages || []) as string[],
     service_times: (church.service_times || []) as Array<{ day: string; time: string; language: string }>,
   });
 
   const updRow = (i: number, field: "day" | "time" | "language", v: string) =>
     setForm((f) => ({ ...f, service_times: f.service_times.map((s, j) => (j === i ? { ...s, [field]: v } : s)) }));
+
+  const toggleLanguage = (lang: string) =>
+    setForm((f) => ({
+      ...f,
+      languages: f.languages.includes(lang) ? f.languages.filter((l) => l !== lang) : [...f.languages, lang],
+    }));
 
   return (
     <div className="space-y-3">
@@ -1298,6 +1480,30 @@ function ChurchEditForm({
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Type</label>
+          <select className="neo-input text-sm" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+            {CHURCH_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contact number</label>
+          <input type="tel" className="neo-input text-sm" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} placeholder="+91 98765 43210" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Cover image</label>
+        <input
+          className="neo-input text-sm"
+          value={form.coverImage}
+          onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
+          placeholder="https://… (leave empty for the gradient cover)"
+        />
+        {form.coverImage.trim() && (
+          <img src={form.coverImage.trim()} alt="Cover preview" className="mt-2 w-full h-28 object-cover rounded-xl border border-white/[0.08]" />
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Address</label>
           <input className="neo-input text-sm" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
         </div>
@@ -1319,6 +1525,29 @@ function ChurchEditForm({
       <div>
         <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contact name (public)</label>
         <input className="neo-input text-sm" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Service languages</label>
+        <div className="flex flex-wrap gap-2 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+          {LANGUAGES.map((lang) => {
+            const selected = form.languages.includes(lang);
+            return (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => toggleLanguage(lang)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                  selected
+                    ? "bg-[#A855F7] text-white"
+                    : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                {lang}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-[#64748B] mt-1.5">Languages services are held in — shown as chips on the listing (e.g. English, Hindi, Telugu).</p>
       </div>
       <div>
         <div className="flex items-center justify-between mb-1.5">
@@ -1358,13 +1587,18 @@ function ChurchEditForm({
               name: form.name,
               description: form.description,
               denomination: form.denomination,
+              type: form.type,
               state: form.state,
               city: form.city,
               address: form.address,
               location: form.location,
               contactName: form.contactName,
+              contactPhone: form.contactPhone,
               whatsappNumber: form.whatsappNumber,
               website: form.website,
+              languages: form.languages,
+              // The API maps images[0] → coverImage; an empty array CLEARS it
+              images: form.coverImage.trim() ? [form.coverImage.trim()] : [],
               service_times: form.service_times.filter((s) => s.time.trim()),
             })
           }
@@ -1372,6 +1606,220 @@ function ChurchEditForm({
           className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold disabled:opacity-60"
         >
           {saving ? t("common.saving") : "Save changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Admin-side create form — same field set as the edit form plus initial
+// status (PUBLISHED default — the admin IS the approver) and an optional
+// ownerEmail that hands the listing to its rightful owner at creation time.
+function CreateChurchForm({
+  saving, onSave, onCancel,
+}: {
+  saving: boolean;
+  onSave: (patch: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    denomination: "",
+    type: "Church",
+    state: "",
+    city: "",
+    address: "",
+    location: "",
+    contactName: "",
+    contactPhone: "",
+    whatsappNumber: "",
+    website: "",
+    coverImage: "",
+    languages: [] as string[],
+    ownerEmail: "",
+    status: "PUBLISHED" as "PUBLISHED" | "PENDING",
+    service_times: [{ day: "Sunday", time: "", language: "English" }] as Array<{ day: string; time: string; language: string }>,
+  });
+
+  const updRow = (i: number, field: "day" | "time" | "language", v: string) =>
+    setForm((f) => ({ ...f, service_times: f.service_times.map((s, j) => (j === i ? { ...s, [field]: v } : s)) }));
+
+  const toggleLanguage = (lang: string) =>
+    setForm((f) => ({
+      ...f,
+      languages: f.languages.includes(lang) ? f.languages.filter((l) => l !== lang) : [...f.languages, lang],
+    }));
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Name *</label>
+        <input className="neo-input text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Description *</label>
+        <textarea className="neo-input h-24 resize-none text-sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">State *</label>
+          <input className="neo-input text-sm" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">City *</label>
+          <input className="neo-input text-sm" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Type</label>
+          <select className="neo-input text-sm" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+            {CHURCH_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Denomination</label>
+          <input className="neo-input text-sm" value={form.denomination} onChange={(e) => setForm({ ...form, denomination: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Address</label>
+          <input className="neo-input text-sm" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contact number</label>
+          <input type="tel" className="neo-input text-sm" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} placeholder="+91 98765 43210" />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">WhatsApp</label>
+          <input type="tel" className="neo-input text-sm" value={form.whatsappNumber} onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Contact name (public)</label>
+          <input className="neo-input text-sm" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Website</label>
+          <input className="neo-input text-sm" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+        </div>
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Cover image</label>
+        <input
+          className="neo-input text-sm"
+          value={form.coverImage}
+          onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
+          placeholder="https://… (leave empty for the gradient cover)"
+        />
+        {form.coverImage.trim() && (
+          <img src={form.coverImage.trim()} alt="Cover preview" className="mt-2 w-full h-28 object-cover rounded-xl border border-white/[0.08]" />
+        )}
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Service languages</label>
+        <div className="flex flex-wrap gap-2 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+          {LANGUAGES.map((lang) => {
+            const selected = form.languages.includes(lang);
+            return (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => toggleLanguage(lang)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                  selected ? "bg-[#A855F7] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                {lang}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">Service times</label>
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, service_times: [...f.service_times, { day: "Sunday", time: "", language: "English" }] }))}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#A78BFA] text-[10px] font-bold"
+          >
+            <Plus size={10} /> Add
+          </button>
+        </div>
+        <div className="space-y-2">
+          {form.service_times.map((row, i) => (
+            <div key={i} className="flex gap-2">
+              <select className="neo-input text-xs w-24 py-2" value={row.day} onChange={(e) => updRow(i, "day", e.target.value)}>
+                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select className="neo-input text-xs w-24 py-2" value={row.language} onChange={(e) => updRow(i, "language", e.target.value)}>
+                {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+              <input className="neo-input text-xs flex-1 py-2" value={row.time} placeholder="9:00 AM" onChange={(e) => updRow(i, "time", e.target.value)} />
+              <button type="button" onClick={() => setForm((f) => ({ ...f, service_times: f.service_times.filter((_, j) => j !== i) }))} className="p-2 text-[#94A3B8] hover:text-[#EF4444]">
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Owner email (optional)</label>
+          <input
+            type="email"
+            className="neo-input text-sm"
+            value={form.ownerEmail}
+            onChange={(e) => setForm({ ...form, ownerEmail: e.target.value })}
+            placeholder="registered user — becomes their listing"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">Initial status</label>
+          <select
+            className="neo-input text-sm"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value as "PUBLISHED" | "PENDING" })}
+          >
+            <option value="PUBLISHED">PUBLISHED — live immediately</option>
+            <option value="PENDING">PENDING — review later</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex gap-2 justify-end pt-1">
+        <button onClick={onCancel} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold">
+          Cancel
+        </button>
+        <button
+          onClick={() =>
+            onSave({
+              name: form.name,
+              description: form.description,
+              denomination: form.denomination,
+              type: form.type,
+              state: form.state,
+              city: form.city,
+              address: form.address,
+              location: form.location,
+              contactName: form.contactName,
+              contactPhone: form.contactPhone,
+              whatsappNumber: form.whatsappNumber,
+              website: form.website,
+              languages: form.languages,
+              images: form.coverImage.trim() ? [form.coverImage.trim()] : [],
+              service_times: form.service_times.filter((s) => s.time.trim()),
+              ownerEmail: form.ownerEmail.trim() || null,
+              status: form.status,
+            })
+          }
+          disabled={saving || !form.name.trim() || !form.description.trim() || !form.state.trim() || !form.city.trim()}
+          className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold disabled:opacity-60"
+        >
+          {saving ? "Creating…" : form.status === "PUBLISHED" ? "Create & publish" : "Create as pending"}
         </button>
       </div>
     </div>

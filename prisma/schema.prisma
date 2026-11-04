@@ -1009,6 +1009,10 @@ model Church {
   name            String
   description     String
   denomination    String   @default("") // e.g. "Assemblies of God", "Catholic", "Baptist", "Non-denominational"
+  // Listing kind — what this directory entry is. Fixed set so the admin and
+  // user forms can use a select and the values stay filterable:
+  // "Church" | "Ministry" | "Fellowship" | "Prayer Hall" | "Other"
+  type            String   @default("Church")
 
   // Location
   country         String   @default("India")
