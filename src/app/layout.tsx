@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-// Indic UI fonts — Devanagari (Hindi) and Telugu script renderers so the
-// translated interface uses proper, consistently-shaped glyphs on every
-// platform instead of falling back to whatever the OS happens to provide.
-import { Noto_Sans_Devanagari } from "next/font/google";
-import { Noto_Sans_Telugu } from "next/font/google";
+// Fonts are self-hosted via next/font/local (files under src/fonts/, all
+// SIL OFL 1.1 licensed — see each directory's license file). The previous
+// next/font/google setup downloaded font data from fonts.googleapis.com
+// during `next build`, which fails on build runners without access to
+// Google (Vercel: BUILD_UTILS_SPAWN_1 on the generated noto_sans_telugu
+// module). Same CSS variables, weight ranges and language coverage as
+// before: Latin → Geist, Devanagari (Hindi) → Noto Sans Devanagari,
+// Telugu → Noto Sans Telugu, composed per glyph by the --font-sans stack
+// in globals.css so the translated interface keeps proper, consistently
+// shaped glyphs on every platform. The files are full-coverage variable
+// fonts, so every previously supported subset/script still renders with
+// Geist/Noto glyphs instead of OS fallbacks.
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -12,21 +19,25 @@ import { Providers } from "@/components/crosscrafted/Providers";
 import ServiceWorkerRegister from "./register-sw";
 import { BRAND, SITE_TITLE, siteUrl } from "@/lib/brand";
 
-const geistSans = Geist({
+const geistSans = localFont({
+  src: "../fonts/geist/Geist-Variable.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  display: "swap",
+  weight: "100 900",
 });
 
-const notoDevanagari = Noto_Sans_Devanagari({
+const notoDevanagari = localFont({
+  src: "../fonts/noto-sans-devanagari/NotoSansDevanagari-Variable.woff2",
   variable: "--font-devanagari",
-  subsets: ["devanagari"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  weight: "400 700",
 });
 
-const notoTelugu = Noto_Sans_Telugu({
+const notoTelugu = localFont({
+  src: "../fonts/noto-sans-telugu/NotoSansTelugu-Variable.woff2",
   variable: "--font-telugu",
-  subsets: ["telugu"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  weight: "400 700",
 });
 
 export const metadata: Metadata = {
@@ -74,7 +85,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} geist_a71539c9-module__T19VSG__variable antialiased bg-[#071120] text-white`}>
+      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} antialiased bg-[#071120] text-white`}>
         <Providers>
           {children}
           <Toaster />
