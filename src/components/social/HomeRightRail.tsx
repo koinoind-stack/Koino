@@ -19,7 +19,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CalendarDays, Church as ChurchIcon, MapPin, Search, TrendingUp, Users } from "lucide-react";
+import { BookOpen, CalendarDays, Church as ChurchIcon, MapPin, MoreHorizontal, Search, TrendingUp, Users } from "lucide-react";
 import type { Post, SocialUser } from "./types";
 import { api } from "./types";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -30,6 +30,10 @@ type Props = {
   onOpenEvents: () => void;
   /** Opens the existing Bible reader at a passage (page.tsx bibleTarget). */
   onOpenPassage: (bookId: string, chapter: number) => void;
+  /** Opens the Bible hub (Daily Verse "See all"). */
+  onOpenBible: () => void;
+  /** Opens the Explore hub (Trending / Suggested "Show more"). */
+  onOpenExplore: () => void;
   /** Opens a group in the existing group-detail view (real group id). */
   onOpenGroup: (groupId: string) => void;
   /** Opens a church listing in the existing churches view (real church id). */
@@ -108,7 +112,11 @@ function SectionCard({ title, icon: Icon, children, action }: {
   );
 }
 
-export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, onOpenPassage, onOpenGroup, onOpenChurch, onSearch }: Props) {
+function formatCount(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n);
+}
+
+export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, onOpenPassage, onOpenBible, onOpenExplore, onOpenGroup, onOpenChurch, onSearch }: Props) {
   const t = useTranslation();
   const [suggested, setSuggested] = useState<SocialUser[]>([]);
   const [events, setEvents] = useState<FeedEvent[]>([]);
@@ -116,6 +124,23 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
   const [railChurches, setRailChurches] = useState<RailChurch[]>([]);
   const [railGroups, setRailGroups] = useState<RailGroup[]>([]);
   const [query, setQuery] = useState("");
+  // Real follow toggles (optimistic; POST /api/social/users/:username/follow)
+  const [followState, setFollowState] = useState<Record<string, boolean>>({});
+
+  async function toggleFollow(u: SocialUser) {
+    if (!u.username) return;
+    const next = !(followState[u.id] ?? false);
+    setFollowState((s) => ({ ...s, [u.id]: next }));
+    try {
+      const res = await api<{ following: boolean }>(
+        `/api/social/users/${encodeURIComponent(u.username)}/follow`,
+        { method: "POST" },
+      );
+      setFollowState((s) => ({ ...s, [u.id]: res.following }));
+    } catch {
+      setFollowState((s) => ({ ...s, [u.id]: !next }));
+    }
+  }
 
   // Deterministic daily verse — stable for the whole calendar day.
   const verse = useMemo(() => DAILY_VERSES[dayOfYear() % DAILY_VERSES.length], []);
@@ -205,38 +230,18 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         </div>
       </form>
 
-      {/* ─── 1. PEOPLE TO FOLLOW ─── real suggested members; hidden when none */}
-      {suggested.length > 0 && (
-        <SectionCard title={t("feed.peopleToFollow")} icon={Users}>
-          <div className="space-y-1">
-            {suggested.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => u.username && onOpenProfile(u.username)}
-                className="w-full flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/[0.04] text-left transition-colors"
-              >
-                {u.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={u.image} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white font-bold text-sm shrink-0">
-                    {(u.name || u.username || "?").charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-white truncate">{u.name || u.username}</p>
-                  <p className="text-[11px] text-[#64748B] truncate">@{u.username}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {/* ─── 2. DAILY BIBLE VERSE ─── real KJV scripture; opens the real reader */}
-      <SectionCard title={t("rail.dailyVerse")} icon={BookOpen}>
+      {/* ─── 1. DAILY BIBLE VERSE ─── real KJV scripture; opens the real reader */}
+      <SectionCard
+        title={t("rail.dailyVerse")}
+        icon={BookOpen}
+        action={
+          <button onClick={onOpenBible} className="text-[11px] font-bold text-[#F97316] hover:text-[#FB923C] transition-colors">
+            {t("common.seeAll")}
+          </button>
+        }
+      >
         <p className="text-[13px] text-white italic leading-relaxed mb-2">&ldquo;{verse.text}&rdquo;</p>
-        <p className="text-[11px] font-bold text-[#60A5FA] mb-3">&mdash; {verse.ref} (KJV)</p>
+        <p className="text-[12px] font-extrabold text-[#F97316] mb-3">{verse.ref}</p>
         <button
           onClick={() => onOpenPassage(verse.bookId, verse.chapter)}
           className="w-full py-2 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/30 text-xs font-bold text-[#93C5FD] hover:bg-[#2563EB]/25 transition-colors"
@@ -245,7 +250,89 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         </button>
       </SectionCard>
 
-      {/* ─── 3. UPCOMING EVENTS ─── real PUBLISHED events; hidden when none */}
+      {/* ─── 2. TRENDING IN LORDSBOOK ─── real hashtags from the trending feed */}
+      {trendTags.length > 0 && (
+        <SectionCard
+          title={t("rail.trendingIn", { brand: "Lordsbook" })}
+          icon={TrendingUp}
+          action={
+            <button onClick={onOpenExplore} className="text-[10px] font-bold text-[#64748B] hover:text-white transition-colors" aria-label={t("common.seeAll")}>
+              <MoreHorizontal size={16} />
+            </button>
+          }
+        >
+          <div className="space-y-2.5">
+            {trendTags.map(({ tag, count }) => (
+              <button
+                key={tag}
+                onClick={() => onHashtag(tag)}
+                className="w-full text-left px-2.5 py-1 rounded-xl hover:bg-white/[0.04] transition-colors"
+              >
+                <p className="text-[13px] font-extrabold text-white truncate capitalize">#{tag}</p>
+                <p className="text-[11px] text-[#64748B]">{t("rail.postsCount", { count: formatCount(count) })}</p>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={onOpenExplore}
+            className="mt-2.5 text-[12px] font-bold text-[#F97316] hover:text-[#FB923C] transition-colors"
+          >
+            {t("common.showMore")}
+          </button>
+        </SectionCard>
+      )}
+
+      {/* ─── 3. SUGGESTED TO FOLLOW ─── real suggested members with real
+          follow toggles; hidden when none */}
+      {suggested.length > 0 && (
+        <SectionCard title={t("rail.suggestedToFollow")} icon={Users}>
+          <div className="space-y-1">
+            {suggested.map((u) => {
+              const following = followState[u.id] ?? false;
+              return (
+                <div key={u.id} className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                  <button
+                    onClick={() => u.username && onOpenProfile(u.username)}
+                    className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+                  >
+                    {u.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.image} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                        {(u.name || u.username || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-bold text-white truncate">{u.name || u.username}</p>
+                      <p className="text-[11px] text-[#64748B] truncate">@{u.username}</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => toggleFollow(u)}
+                    aria-pressed={following}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-all ${
+                      following
+                        ? "bg-white/[0.07] text-[#94A3B8] hover:text-white border border-white/[0.10]"
+                        : "bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] hover:shadow-[0_4px_18px_rgba(249,115,22,0.55)]"
+                    }`}
+                  >
+                    {following ? t("feed.following") : t("feed.follow")}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={onOpenExplore}
+            className="mt-2 text-[12px] font-bold text-[#F97316] hover:text-[#FB923C] transition-colors"
+          >
+            {t("common.showMore")}
+          </button>
+        </SectionCard>
+      )}
+
+      {/* ─── 4. UPCOMING EVENTS ─── real PUBLISHED events; hidden when none */}
       {events.length > 0 && (
         <SectionCard
           title={t("explore.upcomingEvents")}
@@ -286,27 +373,10 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         </SectionCard>
       )}
 
-      {/* ─── 4. TRENDING IN LORDSBOOK ─── real hashtags from the trending feed */}
-      {trendTags.length > 0 && (
-        <SectionCard title={t("rail.trendingIn", { brand: "Lordsbook" })} icon={TrendingUp}>
-          <div className="space-y-1">
-            {trendTags.map(({ tag, count }) => (
-              <button
-                key={tag}
-                onClick={() => onHashtag(tag)}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl hover:bg-white/[0.04] text-left transition-colors"
-              >
-                <span className="text-[13px] font-bold text-[#22D3EE] truncate">#{tag}</span>
-                <span className="text-[10px] text-[#64748B] shrink-0 ml-2">
-                  {t("rail.postsCount", { count })}
-                </span>
-              </button>
-            ))}
-          </div>
-        </SectionCard>
-      )}
+      {/* ─── 5. TRENDING IN LORDSBOOK (kept from the discovery rail) ─── */}
+      {/* moved above — see section 2 */}
 
-      {/* ─── 5. SUGGESTED CHURCHES ─── real PUBLISHED listings; hidden when none */}
+      {/* ─── 6. SUGGESTED CHURCHES ─── real PUBLISHED listings; hidden when none */}
       {railChurches.length > 0 && (
         <SectionCard title={t("rail.suggestedChurches")} icon={ChurchIcon}>
           <div className="space-y-1">
@@ -334,7 +404,7 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         </SectionCard>
       )}
 
-      {/* ─── 6. SUGGESTED GROUPS ─── real groups; hidden when none */}
+      {/* ─── 7. SUGGESTED GROUPS ─── real groups; hidden when none */}
       {railGroups.length > 0 && (
         <SectionCard title={t("rail.suggestedGroups")} icon={Users}>
           <div className="space-y-1">

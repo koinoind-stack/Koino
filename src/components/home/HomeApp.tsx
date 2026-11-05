@@ -684,9 +684,11 @@ export default function Home() {
   // App view with sidebar + bottom nav
   return (
     <div className="min-h-screen bg-[#071120]">
-      {/* Header — auto-hides on mobile scroll */}
+      {/* Header — auto-hides on mobile scroll. Hidden on lg+ where the
+          approved three-column dashboard leads with the sidebar (logo,
+          notifications, language and user chip all live in the sidebar). */}
       <header
-        className={`sticky top-0 z-50 bg-[#071120]/80 backdrop-blur-2xl border-b border-white/[0.04] transition-transform duration-300 ${
+        className={`lg:hidden sticky top-0 z-50 bg-[#071120]/80 backdrop-blur-2xl border-b border-white/[0.04] transition-transform duration-300 ${
           headerVisible ? "translate-y-0" : "md:translate-y-0 -translate-y-full"
         }`}
       >
@@ -697,8 +699,8 @@ export default function Home() {
             <Image
               src={BRAND.assets.logo}
               alt={BRAND.name}
-              width={2149}
-              height={659}
+              width={2172}
+              height={724}
               className="hidden md:block h-8 lg:h-9 w-auto"
               priority
             />
@@ -756,7 +758,7 @@ export default function Home() {
       <div className="flex">
         {/* Desktop Sidebar — Lordsbook three-column shell.
             Tablet (md–lg): compact icon rail. Desktop (lg+): full labels. */}
-        <aside className="hidden md:flex flex-col w-[76px] lg:w-60 border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] bg-[#0A1729] px-2 lg:px-3 pt-4 pb-4 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <aside className="hidden md:flex flex-col w-[76px] lg:w-[250px] border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] lg:top-0 lg:min-h-screen bg-[#0A1729] px-2 lg:px-3 pt-4 pb-4 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Brand — shield on the compact rail, full wordmark on desktop */}
           <button
             onClick={goHome}
@@ -774,21 +776,11 @@ export default function Home() {
             <Image
               src={BRAND.assets.logo}
               alt={BRAND.name}
-              width={2149}
-              height={659}
-              className="hidden lg:block h-9 w-auto"
+              width={2172}
+              height={724}
+              className="hidden lg:block h-11 w-auto"
               priority
             />
-          </button>
-
-          {/* Prominent Post button */}
-          <button
-            onClick={() => goView("create")}
-            title={t("side.post")}
-            className="mb-4 w-full flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#3B82F6] text-white font-extrabold text-sm py-3 lg:px-4 shadow-[0_8px_24px_rgba(37,99,235,0.35)] hover:shadow-[0_8px_32px_rgba(37,99,235,0.55)] hover:from-[#1D4ED8] hover:to-[#2563EB] transition-all"
-          >
-            <PenSquare size={18} strokeWidth={2.2} className="shrink-0" />
-            <span className="hidden lg:inline">{t("side.post")}</span>
           </button>
 
           {/* Primary navigation — the fifteen Lordsbook destinations */}
@@ -802,15 +794,15 @@ export default function Home() {
                   title={t(labelKey)}
                   className={`w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-2xl font-bold text-[14px] transition-all duration-200 border justify-center lg:justify-start ${
                     active
-                      ? "bg-[#2563EB]/15 text-white border-[#2563EB]/30 shadow-[0_0_15px_rgba(37,99,235,0.12)]"
-                      : "text-[#94A3B8] hover:text-white hover:bg-white/[0.04] border-transparent"
+                      ? "bg-white/[0.07] text-[#F97316] border-white/[0.09]"
+                      : "text-white/[0.92] hover:text-white hover:bg-white/[0.05] border-transparent"
                   }`}
                 >
                   <div className="relative shrink-0">
                     <Icon
                       size={18}
                       strokeWidth={active ? 2.4 : 1.8}
-                      className={active ? "text-[#60A5FA]" : ""}
+                      className={active ? "text-[#F97316]" : "text-[#22D3EE]"}
                     />
                     {id === "notifications" && unreadCount > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#F97316] text-[8px] font-black text-white flex items-center justify-center">
@@ -819,13 +811,23 @@ export default function Home() {
                     )}
                   </div>
                   <span className="hidden lg:inline truncate">{t(labelKey)}</span>
-                  {active && (
-                    <div className="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-[#22D3EE] shadow-[0_0_8px_#22D3EE]" />
-                  )}
                 </button>
               );
             })}
           </nav>
+
+          {/* Prominent Post button — approved design placement: directly
+              below the navigation, above the user chip */}
+          <div className="mt-3">
+            <button
+              onClick={() => goView("create")}
+              title={t("side.post")}
+              className="w-full flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white font-extrabold text-sm py-3 lg:px-4 shadow-[0_8px_24px_rgba(249,115,22,0.4)] hover:shadow-[0_8px_32px_rgba(249,115,22,0.6)] hover:from-[#EA580C] hover:to-[#F97316] transition-all"
+            >
+              <PenSquare size={18} strokeWidth={2.2} className="shrink-0" />
+              <span className="hidden lg:inline">{t("side.post")}</span>
+            </button>
+          </div>
 
           {/* Secondary destinations — collapsible "More" keeps every existing
               feature reachable without cluttering the primary list */}
@@ -871,7 +873,15 @@ export default function Home() {
             )}
           </div>
 
-          {/* Logged-in user — avatar, name, handle + logout (spec §2) */}
+          {/* Language — compact switcher lives in the sidebar on lg+ (the
+              top header, which hosts it on smaller screens, is hidden there). */}
+          <div className="hidden lg:flex mt-3 border-t border-white/[0.05] pt-3 px-1">
+            <LanguageSwitcher compact />
+          </div>
+
+          {/* Logged-in user — avatar, name, handle + logout (spec §2); the
+              approved design shows a "Log out" text link under the chip on
+              desktop (icon button stays for the compact tablet rail). */}
           {isAuthenticated && (
             <div className="mt-auto pt-3">
               <div className="border-t border-white/[0.05] pt-3 flex items-center justify-center lg:justify-start gap-1.5 px-0.5 lg:px-1">
@@ -900,17 +910,23 @@ export default function Home() {
                   onClick={handleSidebarSignOut}
                   title={t("user.signOut")}
                   aria-label={t("user.signOut")}
-                  className="p-2 rounded-xl hover:bg-white/5 transition-colors shrink-0"
+                  className="p-2 rounded-xl hover:bg-white/5 transition-colors shrink-0 lg:hidden"
                 >
                   <LogOut size={16} className="text-[#64748B]" />
                 </button>
               </div>
+              <button
+                onClick={handleSidebarSignOut}
+                className="hidden lg:block mt-2 px-1 text-[11px] font-bold text-[#64748B] hover:text-white transition-colors"
+              >
+                {t("user.signOut")}
+              </button>
             </div>
           )}
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 pb-24 md:pb-6 scroll-smooth bg-[#0A1729] min-h-[calc(100vh-56px)]">
+        <main className="flex-1 min-w-0 pb-24 md:pb-6 scroll-smooth bg-[#0A1729] min-h-[calc(100vh-56px)] lg:min-h-screen">
           <AnimatePresence mode="wait">
             <motion.div
               key={view}
@@ -1109,7 +1125,7 @@ export default function Home() {
             and mobile keeps its compact nav + full-width feed. */}
         {view === "home" && (
           <aside className="hidden xl:block w-[300px] shrink-0 border-l border-white/[0.04] bg-[#0A1729] px-4 pt-4 pb-6">
-            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="sticky top-4 max-h-[calc(100vh-32px)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <HomeRightRail
                 onOpenProfile={(u) => {
                   setProfileUsername(u);
@@ -1120,6 +1136,8 @@ export default function Home() {
                   goView("explore");
                 }}
                 onOpenEvents={() => goView("events")}
+                onOpenBible={() => goView("bible")}
+                onOpenExplore={() => goView("explore")}
                 onOpenPassage={(bookId, chapter) => {
                   setBibleTarget({ bookId, chapter });
                   goView("bible");

@@ -404,6 +404,20 @@ export const hi: Record<string, string> = {
   "common.saveAmount": "Save ₹{amount}",
   "common.discount": "-{percent}%",
   "feed.tab.discover": "आपके लिए",
+
+  // ─── Approved dashboard design ───
+  "feed.follow": "फ़ॉलो करें",
+  "feed.following": "फ़ॉलो कर रहे हैं",
+  "feed.whatsOnYourHeart": "आज आपके मन में क्या है?",
+  "feed.placeholder": "आज आपके मन में क्या है? प्रार्थना, साक्षी, वचन या प्रश्न साझा करें…",
+  "home.heroDescription": "पढ़ने, सीखने, साझा करने, प्रार्थना करने, जुड़ने और मसीह में बढ़ने के लिए एक ईसाई सोशल प्लेटफ़ॉर्म।",
+  "home.whatYouCanDo": "आप क्या कर सकते हैं",
+  "home.wycd.groups": "समूहों और भाईचारे से जुड़ें",
+  "home.wycd.prayer": "प्रार्थना निवेदन साझा करें",
+  "home.wycd.shorts": "ईसाई शॉर्ट्स देखें",
+  "home.wycd.market": "ईसाई मार्केटप्लेस देखें",
+  "rail.suggestedToFollow": "फ़ॉलो करने के सुझाव",
+  "composer.comingSoon": "जल्द आ रहा है",
 };
 
 export default hi;

@@ -19,6 +19,9 @@ type Props = {
   onOpenCreate: () => void;
   onOpenEvents: () => void;
   deepLinkPostId?: string | null;
+  /** Approved home dashboard hides the stories bar (composer sits directly
+      under the feature cards); the dedicated Feed view keeps stories. */
+  showStories?: boolean;
 };
 
 const TABS = ["discover", "following", "trending"] as const;
@@ -34,7 +37,7 @@ const TAB_LABEL_KEYS: Record<FeedTab, string> = {
  * The home feed: stories bar, Following/Discover tabs, infinite scroll,
  * suggestion rail on Discover, and overlays (detail / reels / stories).
  */
-export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpenEvents, deepLinkPostId }: Props) {
+export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpenEvents, deepLinkPostId, showStories = true }: Props) {
   const t = useTranslation();
   const [tab, setTab] = useState<FeedTab>("discover");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -115,33 +118,43 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
   }
 
   return (
-    <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
-      {/* stories bar */}
-      <StoryBar
-        groups={stories}
-        onOpen={(username) => setOpenStoryUser(username)}
-        onCreate={() => setShowCreator(true)}
-        onOpenProfile={onOpenProfile}
-      />
+    <div className="max-w-[640px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
+      {/* stories bar — home dashboard hides it (approved design); the Feed
+          view keeps the full stories experience */}
+      {showStories && (
+        <StoryBar
+          groups={stories}
+          onOpen={(username) => setOpenStoryUser(username)}
+          onCreate={() => setShowCreator(true)}
+          onOpenProfile={onOpenProfile}
+        />
+      )}
 
       {/* quick composer — "What's on your heart?" */}
       <FeedComposer onPosted={handlePosted} onOpenFull={onOpenCreate} />
 
-      {/* tabs */}
-      <div className="flex gap-2 mb-4">
-        {TABS.map((tabId) => (
-          <button
-            key={tabId}
-            onClick={() => setTab(tabId)}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              tab === tabId
-                ? "bg-[#2563EB] text-white shadow-[0_0_20px_rgba(37,99,235,0.35)]"
-                : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
-            }`}
-          >
-            {t(TAB_LABEL_KEYS[tabId])}
-          </button>
-        ))}
+      {/* tabs — approved design: full-width underline tabs; the active tab
+          carries an orange underline. Trending stays as a third tab (real
+          working feature from the approved Part 2 spec). */}
+      <div className="flex border-b border-white/[0.07] mb-4 -mt-1">
+        {TABS.map((tabId) => {
+          const active = tab === tabId;
+          return (
+            <button
+              key={tabId}
+              onClick={() => setTab(tabId)}
+              aria-pressed={active}
+              className={`relative flex-1 pt-2 pb-3 text-sm font-bold transition-colors ${
+                active ? "text-white" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              {t(TAB_LABEL_KEYS[tabId])}
+              {active && (
+                <span aria-hidden className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] rounded-t-full bg-[#F97316]" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* upcoming church events surfaced in the feed — mobile/tablet only;

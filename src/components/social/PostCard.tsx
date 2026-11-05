@@ -57,7 +57,6 @@ export default function PostCard({
   onOpenDetail,
   onOpenProfile,
   onHashtag,
-  onOpenReel,
   onChanged,
   compact,
   canModerate = false,
@@ -464,20 +463,12 @@ export default function PostCard({
         </div>
       )}
 
-      {/* ─── actions ─── */}
-      <div className="flex items-center gap-1 px-2 py-2.5">
-        <button
-          onClick={toggleLike}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
-            state.viewer.liked ? "text-red-400" : "text-[#94A3B8] hover:text-white"
-          }`}
-        >
-          <Heart size={19} fill={state.viewer.liked ? "currentColor" : "none"} className={state.viewer.liked ? "scale-110 transition-transform" : ""} />
-          {formatCount(state.likeCount)}
-        </button>
+      {/* ─── actions — approved design order: comment · repost · like ·
+              bookmark · share, evenly distributed across the card width ─── */}
+      <div className="flex items-center justify-between px-3 py-2.5">
         <button
           onClick={() => onOpenDetail(state)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-[#94A3B8] hover:text-white"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-[#94A3B8] hover:text-white transition-colors"
         >
           <MessageCircle size={19} />
           {formatCount(state.commentCount)}
@@ -498,17 +489,22 @@ export default function PostCard({
           {formatCount(state.repostCount)}
         </button>
         <button
-          onClick={() => onOpenReel?.(state)}
-          className="hidden"
-        />
-        <div className="flex-1" />
+          onClick={toggleLike}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+            state.viewer.liked ? "text-red-400" : "text-[#94A3B8] hover:text-white"
+          }`}
+        >
+          <Heart size={19} fill={state.viewer.liked ? "currentColor" : "none"} className={state.viewer.liked ? "scale-110 transition-transform" : ""} />
+          {formatCount(state.likeCount)}
+        </button>
         <button
           onClick={toggleBookmark}
-          className={`p-2 rounded-xl ${state.viewer.bookmarked ? "text-[#22D3EE]" : "text-[#94A3B8] hover:text-white"}`}
+          aria-pressed={state.viewer.bookmarked}
+          className={`p-2 rounded-xl transition-colors ${state.viewer.bookmarked ? "text-[#22D3EE]" : "text-[#94A3B8] hover:text-white"}`}
         >
           <Bookmark size={19} fill={state.viewer.bookmarked ? "currentColor" : "none"} />
         </button>
-        <button onClick={sharePost} className="p-2 rounded-xl text-[#94A3B8] hover:text-white">
+        <button onClick={sharePost} className="p-2 rounded-xl text-[#94A3B8] hover:text-white transition-colors">
           <Share2 size={19} />
         </button>
       </div>
