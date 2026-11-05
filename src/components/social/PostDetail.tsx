@@ -84,6 +84,15 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
           body: JSON.stringify({ content, parentId: repliesFor }),
         });
         await loadReplies(repliesFor);
+        // Part 2: reply counters must move the moment a reply lands — bump
+        // the parent's replyCount and the post's commentCount locally (the
+        // feed itself re-syncs via onChanged → refreshAll).
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === repliesFor ? { ...c, replyCount: (c.replyCount ?? 0) + 1 } : c,
+          ),
+        );
+        setPost((p) => (p ? { ...p, commentCount: p.commentCount + 1 } : p));
       } else {
         const data = await api<{ comment: Comment }>(`/api/social/posts/${postId}/comments`, {
           method: "POST",

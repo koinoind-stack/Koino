@@ -49,7 +49,7 @@ export type Post = {
     video?: { id: string; slug: string; title: string; thumbnailUrl: string | null; durationSec: number | null } | null;
     author: SocialUser;
   } | null;
-  viewer: { liked: boolean; bookmarked: boolean; following: boolean };
+  viewer: { liked: boolean; bookmarked: boolean; following: boolean; reposted: boolean };
 };
 
 export type Comment = {

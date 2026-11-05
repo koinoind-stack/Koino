@@ -26,6 +26,8 @@ import type { Post } from "./types";
 import { api } from "./types";
 import { computePostPermissions } from "./post-permissions";
 import { useViewerId } from "./use-viewer-id";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { repostAttributionHandle, applyRepostToViewer, optimisticRepostCount } from "@/lib/social/feed-utils";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { formatCount, timeAgo, tokenizeCaption } from "@/lib/social/format";
 import { shareLinks } from "@/lib/share/links";
@@ -60,6 +62,7 @@ export default function PostCard({
   compact,
   canModerate = false,
 }: Props) {
+  const t = useTranslation();
   const [state, setState] = useState<Post>(post);
   const [mediaIndex, setMediaIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -120,22 +123,26 @@ export default function PostCard({
   }
 
   async function toggleRepost() {
+    if (busy) return;
+    setBusy(true);
     const prev = state;
-    setState({
-      ...state,
-      viewer: { ...state.viewer },
-      repostCount: state.repostCount + 1,
-    });
+    // Optimistic: the toggle flips viewer.reposted and nudges the count by
+    // exactly one step in the right direction (undo counts down) — the pure
+    // helpers in feed-utils.ts keep this symmetric and unit-tested.
+    setState({ ...state, repostCount: optimisticRepostCount(state), viewer: { ...state.viewer, reposted: !state.viewer.reposted } });
     try {
       const res = await api<{ reposted: boolean; repostCount: number }>(
         `/api/social/posts/${state.id}/repost`,
         { method: "POST" },
       );
-      setState((s) => ({ ...s, repostCount: res.repostCount }));
-      toast.success(res.reposted ? "Reposted" : "Repost removed");
+      // The server count always wins — no locally guessed number can stick.
+      setState((s) => ({ ...s, ...applyRepostToViewer(s, res) }));
+      toast.success(res.reposted ? t("feed.reposted") : t("feed.repostRemoved"));
     } catch (err) {
       setState(prev);
       toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -203,7 +210,7 @@ export default function PostCard({
       shareUrl: shareLinks.post(target),
       cardUrl: `/api/share-card?type=post&id=${encodeURIComponent(target)}`,
       formats: ["square"],
-      fileName: `koino-post-${target}.png`,
+      fileName: `lordsbook-post-${target}.png`,
     });
   }
 
@@ -292,10 +299,16 @@ export default function PostCard({
 
       {/* ─── reposted-by header ─── */}
       {state.repostedFrom && (
-        <div className="px-4 pb-2 -mt-1 flex items-center gap-1.5 text-[11px] text-[#64748B]">
+        <button
+          onClick={() => {
+            const handle = repostAttributionHandle(state);
+            if (handle) onOpenProfile(handle);
+          }}
+          className="mx-4 pb-2 -mt-1 flex items-center gap-1.5 text-[11px] text-[#64748B] hover:text-[#93C5FD] transition-colors text-left"
+        >
           <Repeat2 size={12} />
-          Reposted from @{state.author.username}
-        </div>
+          Reposted from @{repostAttributionHandle(state) || "member"}
+        </button>
       )}
 
       {/* ─── caption ─── */}
@@ -471,9 +484,17 @@ export default function PostCard({
         </button>
         <button
           onClick={toggleRepost}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-[#94A3B8] hover:text-white"
+          aria-pressed={state.viewer.reposted}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+            state.viewer.reposted
+              ? "text-[#22D3EE]"
+              : "text-[#94A3B8] hover:text-white"
+          }`}
         >
-          <Repeat2 size={19} />
+          <Repeat2
+            size={19}
+            className={state.viewer.reposted ? "scale-110 transition-transform" : "transition-transform"}
+          />
           {formatCount(state.repostCount)}
         </button>
         <button
