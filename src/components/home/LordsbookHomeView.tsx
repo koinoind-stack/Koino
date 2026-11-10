@@ -162,8 +162,9 @@ export default function LordsbookHomeView({
               </div>
             </div>
 
-            {/* Right: WHAT YOU CAN DO glass panel */}
-            <aside className="lg:w-[290px] shrink-0 rounded-2xl bg-[#0A1729]/70 backdrop-blur-md border border-white/[0.12] p-4 shadow-[0_14px_40px_rgba(2,8,23,0.55)] self-start">
+            {/* Right: WHAT YOU CAN DO glass panel — desktop only (hidden on
+                mobile per approved design; hero stacks below lg) */}
+            <aside className="hidden lg:block lg:w-[290px] shrink-0 rounded-2xl bg-[#0A1729]/70 backdrop-blur-md border border-white/[0.12] p-4 shadow-[0_14px_40px_rgba(2,8,23,0.55)] self-start">
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/90 mb-3">
                 {t("home.whatYouCanDo")}
               </p>
