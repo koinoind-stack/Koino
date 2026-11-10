@@ -94,7 +94,7 @@ type SubmitResult = {
 };
 
 export default function TriviaView() {
-  const { user, isAuthenticated, points: userPoints } = useSupabaseUser();
+  const { user, isAuthenticated, points: userPoints, loading: userLoading } = useSupabaseUser();
   const t = useTranslation();
   const api = useTriviaApi();
 
@@ -307,8 +307,12 @@ export default function TriviaView() {
 
         // Show FP toast (non-blocking)
         if (result.totalPointsEarned > 0) {
-          toast.success(t("triviaView.fpEarnedToast", { n: result.totalPointsEarned }), {
-            description: t("triviaView.verifiedBalance", { n: result.newTotalPoints }),
+          const totalWithBonus =
+            result.totalPointsEarned + (result.doubleFpApplied ? result.bonusPoints || 0 : 0);
+          toast.success(t("triviaView.fpEarnedToast", { n: totalWithBonus }), {
+            description: result.doubleFpApplied
+              ? t("triviaView.doubleFpApplied", { n: result.bonusPoints || 0 })
+              : t("triviaView.verifiedBalance", { n: result.newTotalPoints }),
           });
         } else {
           toast(t("triviaView.zeroFp"), {
@@ -376,24 +380,24 @@ export default function TriviaView() {
           </p>
         </div>
         {isAuthenticated && (
-          <div className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[#F5B84A]/10 border border-[#F5B84A]/25">
-            <Trophy size={14} className="text-[#F5B84A]" />
-            <span className="text-xs font-bold text-[#F5B84A]">{t("common.faithPoints", { count: (userPoints || 0).toLocaleString() })}</span>
+          <div className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/25">
+            <Trophy size={14} className="text-[#F59E0B]" />
+            <span className="text-xs font-bold text-[#F59E0B]">{t("common.faithPoints", { count: (userPoints || 0).toLocaleString() })}</span>
           </div>
         )}
       </div>
 
       {/* Auth banner */}
       {!isAuthenticated && (
-        <div className="bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3 mb-4 flex items-center gap-3">
-          <LogIn size={18} className="text-[#22D3EE] shrink-0" />
+        <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 mb-4 flex items-center gap-3">
+          <LogIn size={18} className="text-[#38BDF8] shrink-0" />
           <div className="flex-1">
             <p className="text-xs font-bold text-white">{t("triviaView.signInPrompt")}</p>
             <p className="text-[10px] text-[#A09DB1]">{t("triviaView.practiceNoAuth")}</p>
           </div>
           <a
             href="/auth/signin"
-            className="px-3 py-1.5 rounded-lg bg-[#22D3EE] text-slate-950 text-xs font-bold hover:bg-[#0EA5E9] transition-all"
+            className="px-3 py-1.5 rounded-lg bg-[#38BDF8] text-slate-950 text-xs font-bold hover:bg-[#0EA5E9] transition-all"
           >
             {t("rewards.signInButton")}
           </a>
@@ -414,7 +418,7 @@ export default function TriviaView() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 min-w-fit px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === tab.id
-                ? "bg-[#2563EB] text-white shadow-lg shadow-[#2563EB]/25"
+                ? "bg-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/25"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -426,7 +430,7 @@ export default function TriviaView() {
       <AnimatePresence mode="wait">
         {activeTab === "play" && (
           <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <LevelUpAnimation totalPoints={userPoints || 0} />
+            <LevelUpAnimation totalPoints={userPoints || 0} ready={!userLoading} />
             {gameState === "setup" && (
               <div className="space-y-5">
                 <StreakBadge activity="trivia_play" />
@@ -442,31 +446,31 @@ export default function TriviaView() {
                       onClick={() => setGameMode("EARN_POINTS")}
                       className={`p-3 rounded-2xl border text-left transition-all ${
                         gameMode === "EARN_POINTS"
-                          ? "bg-[#2563EB]/15 border-[#2563EB]/50"
+                          ? "bg-[#7C3AED]/15 border-[#7C3AED]/50"
                           : "bg-white/[0.03] border-white/[0.06]"
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Trophy size={14} className={gameMode === "EARN_POINTS" ? "text-[#60A5FA]" : "text-[#94A3B8]"} />
+                        <Trophy size={14} className={gameMode === "EARN_POINTS" ? "text-[#A78BFA]" : "text-[#94A3B8]"} />
                         <p className="text-sm font-bold text-white">{t("triviaView.setup.earnCard")}</p>
                       </div>
                       <p className="text-[10px] text-[#94A3B8] leading-relaxed">
                         {t("triviaView.setup.earnCardDesc")}
                       </p>
                       {!isAuthenticated && (
-                        <p className="text-[9px] text-[#F5B84A] mt-1">{t("triviaView.setup.signInRequired")}</p>
+                        <p className="text-[9px] text-[#F59E0B] mt-1">{t("triviaView.setup.signInRequired")}</p>
                       )}
                     </button>
                     <button
                       onClick={() => setGameMode("PRACTICE")}
                       className={`p-3 rounded-2xl border text-left transition-all ${
                         gameMode === "PRACTICE"
-                          ? "bg-[#22D3EE]/15 border-[#22D3EE]/50"
+                          ? "bg-[#38BDF8]/15 border-[#38BDF8]/50"
                           : "bg-white/[0.03] border-white/[0.06]"
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <BookOpen size={14} className={gameMode === "PRACTICE" ? "text-[#22D3EE]" : "text-[#94A3B8]"} />
+                        <BookOpen size={14} className={gameMode === "PRACTICE" ? "text-[#38BDF8]" : "text-[#94A3B8]"} />
                         <p className="text-sm font-bold text-white">{t("triviaView.setup.practiceCard")}</p>
                       </div>
                       <p className="text-[10px] text-[#94A3B8] leading-relaxed">
@@ -549,7 +553,7 @@ export default function TriviaView() {
                         onClick={() => setQuizMode(n)}
                         className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
                           quizMode === n
-                            ? "bg-[#2563EB] text-white"
+                            ? "bg-[#7C3AED] text-white"
                             : "bg-white/[0.03] border border-white/[0.06] text-[#94A3B8] hover:text-white"
                         }`}
                       >
@@ -565,11 +569,11 @@ export default function TriviaView() {
                   className="w-full py-3.5 rounded-2xl text-sm font-extrabold uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-white hover:-translate-y-px"
                   style={{
                     background: gameMode === "EARN_POINTS"
-                      ? "linear-gradient(135deg, #2563EB, #F97316)"
-                      : "linear-gradient(135deg, #22D3EE, #A855F7)",
+                      ? "linear-gradient(135deg, #7C3AED, #EC4899)"
+                      : "linear-gradient(135deg, #38BDF8, #A855F7)",
                     boxShadow: gameMode === "EARN_POINTS"
-                      ? "0 4px 16px rgba(37,99,235,0.3)"
-                      : "0 4px 16px rgba(34,211,238,0.3)",
+                      ? "0 4px 16px rgba(124,58,237,0.3)"
+                      : "0 4px 16px rgba(56,189,248,0.3)",
                   }}
                 >
                   {api.loading ? (
@@ -600,7 +604,7 @@ export default function TriviaView() {
                 <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full"
-                    style={{ background: gameMode === "EARN_POINTS" ? "linear-gradient(90deg, #2563EB, #F97316)" : "linear-gradient(90deg, #22D3EE, #A855F7)" }}
+                    style={{ background: gameMode === "EARN_POINTS" ? "linear-gradient(90deg, #7C3AED, #EC4899)" : "linear-gradient(90deg, #38BDF8, #A855F7)" }}
                     animate={{ width: `${((currentQ + (showExplanation ? 1 : 0)) / questions.length) * 100}%` }}
                   />
                 </div>
@@ -621,8 +625,8 @@ export default function TriviaView() {
 
                 {/* Mode badge */}
                 {gameMode === "PRACTICE" && (
-                  <div className="bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl px-3 py-1.5">
-                    <p className="text-[10px] font-bold text-[#22D3EE] uppercase tracking-wider">{t("triviaView.playing.practiceBadge")}</p>
+                  <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl px-3 py-1.5">
+                    <p className="text-[10px] font-bold text-[#38BDF8] uppercase tracking-wider">{t("triviaView.playing.practiceBadge")}</p>
                   </div>
                 )}
 
@@ -631,7 +635,7 @@ export default function TriviaView() {
                   key={currentQ}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5"
+                  className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5"
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <span
@@ -658,7 +662,7 @@ export default function TriviaView() {
                         cls += "bg-white/[0.03] border-white/[0.06] text-[#A09DB1] hover:bg-white/[0.06] hover:text-white";
                       } else if (isSelected) {
                         // Selected answer — strong highlight
-                        cls += "bg-[#2563EB] border-[#2563EB] text-white";
+                        cls += "bg-[#7C3AED] border-[#7C3AED] text-white";
                       } else {
                         // Not selected after answering — dim
                         cls += "bg-white/[0.02] border-white/[0.04] text-[#64748B] opacity-50";
@@ -710,16 +714,16 @@ export default function TriviaView() {
                       >
                         {/* Points indicator */}
                         {gameMode === "EARN_POINTS" && (
-                          <div className="bg-[#2563EB]/8 border border-[#2563EB]/20 rounded-xl p-3 mb-2">
+                          <div className="bg-[#7C3AED]/8 border border-[#7C3AED]/20 rounded-xl p-3 mb-2">
                             <p className="text-[10px] text-[#A09DB1]">
                               {t("triviaView.playing.serverScored")}
                             </p>
                           </div>
                         )}
-                        <div className="bg-[#2563EB]/8 border border-[#2563EB]/20 rounded-xl p-3">
+                        <div className="bg-[#7C3AED]/8 border border-[#7C3AED]/20 rounded-xl p-3">
                           <div className="flex items-center gap-1.5 mb-1">
-                            <Sparkles size={12} className="text-[#60A5FA]" />
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]">
+                            <Sparkles size={12} className="text-[#A78BFA]" />
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
                               {gameMode === "EARN_POINTS" ? t("triviaView.playing.answerLocked") : t("triviaView.playing.answerSelected")}
                             </p>
                           </div>
@@ -736,7 +740,7 @@ export default function TriviaView() {
                         </div>
                         <button
                           onClick={advanceQuestion}
-                          className="w-full mt-3 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                          className="w-full mt-3 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                         >
                           {currentQ + 1 >= questions.length ? t("triviaView.playing.submit") : t("triviaView.playing.next")}
                           <ArrowRight size={14} />
@@ -754,11 +758,11 @@ export default function TriviaView() {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center space-y-5 py-6"
               >
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#F5B84A]/20 to-[#EF4444]/20 border border-[#F5B84A]/30 mb-2">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#F59E0B]/20 to-[#EF4444]/20 border border-[#F59E0B]/30 mb-2">
                   {gameMode === "EARN_POINTS" ? (
-                    <Trophy size={36} className="text-[#F5B84A]" />
+                    <Trophy size={36} className="text-[#F59E0B]" />
                   ) : (
-                    <BookOpen size={36} className="text-[#22D3EE]" />
+                    <BookOpen size={36} className="text-[#38BDF8]" />
                   )}
                 </div>
                 <div>
@@ -776,22 +780,22 @@ export default function TriviaView() {
 
                 <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
                   {gameMode === "EARN_POINTS" && (
-                    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
-                      <p className="text-2xl font-extrabold text-[#F5B84A]">
+                    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
+                      <p className="text-2xl font-extrabold text-[#F59E0B]">
                         +{submitResult.totalPointsEarned}
                       </p>
                       <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.fpEarnedLabel")}</p>
                     </div>
                   )}
-                  <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
+                  <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
                     <p className="text-2xl font-extrabold text-[#22C55E]">
                       {submitResult.correctCount}/{submitResult.totalQuestions}
                     </p>
                     <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.correctLabel")}</p>
                   </div>
                   {gameMode === "EARN_POINTS" && (
-                    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
-                      <p className="text-2xl font-extrabold text-[#22D3EE]">
+                    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
+                      <p className="text-2xl font-extrabold text-[#38BDF8]">
                         {submitResult.newTotalPoints}
                       </p>
                       <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.totalFp")}</p>
@@ -843,7 +847,7 @@ export default function TriviaView() {
                   </button>
                   <button
                     onClick={resetGame}
-                    className="flex-1 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                   >
                     <RotateCcw size={14} /> {t("triviaView.results.playAgain")}
                   </button>
@@ -863,7 +867,7 @@ export default function TriviaView() {
                       </button>
                       <button
                         onClick={inviteFriend}
-                        className="flex-1 py-2.5 rounded-xl bg-[#22D3EE]/15 border border-[#22D3EE]/30 text-[#22D3EE] hover:bg-[#22D3EE]/25 text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2.5 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/25 text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
                       >
                         <Users size={13} /> {t("triviaView.results.inviteGroup")}
                       </button>
@@ -932,13 +936,13 @@ function LeaderboardTab() {
           key={u.rank}
           className={`flex items-center gap-3 p-3 rounded-2xl border ${
             u.rank <= 3
-              ? "bg-[#F5B84A]/8 border-[#F5B84A]/25"
+              ? "bg-[#F59E0B]/8 border-[#F59E0B]/25"
               : "bg-white/[0.03] border-white/[0.06]"
           }`}
         >
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-sm ${
-              u.rank === 1 ? "bg-[#F5B84A] text-slate-950"
+              u.rank === 1 ? "bg-[#F59E0B] text-slate-950"
               : u.rank === 2 ? "bg-[#94A3B8] text-slate-950"
               : u.rank === 3 ? "bg-[#F97316] text-slate-950"
               : "bg-white/[0.06] text-white"
@@ -951,7 +955,7 @@ function LeaderboardTab() {
             <p className="text-[11px] text-[#94A3B8]">{u.tierIcon} {u.tier}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm font-bold text-[#F5B84A] tabular-nums">{u.points.toLocaleString()}</p>
+            <p className="text-sm font-bold text-[#F59E0B] tabular-nums">{u.points.toLocaleString()}</p>
             <p className="text-[10px] text-[#94A3B8] uppercase tracking-wider">FP</p>
           </div>
         </div>
@@ -992,7 +996,7 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         <p className="text-sm text-[#94A3B8] mb-3">{t("triviaView.stats.signInPrompt")}</p>
         <a
           href="/auth/signin"
-          className="inline-block px-6 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-bold"
+          className="inline-block px-6 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold"
         >
           {t("rewards.signInButton")}
         </a>
@@ -1013,18 +1017,18 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
       {/* Migration notice */}
-      <div className="bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3">
+      <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3">
         <div className="flex items-center gap-2">
-          <CheckCircle2 size={14} className="text-[#22D3EE] shrink-0" />
+          <CheckCircle2 size={14} className="text-[#38BDF8] shrink-0" />
           <p className="text-[11px] text-[#A09DB1]">
             {t("triviaView.stats.migrationNote")}
           </p>
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-2xl p-5">
+      <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-14 h-14 rounded-2xl bg-[#2563EB]/20 border border-[#2563EB]/30 flex items-center justify-center text-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center text-2xl">
             {stats.tier?.icon}
           </div>
           <div>
@@ -1034,11 +1038,11 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white/[0.04] rounded-xl p-3 text-center">
-            <p className="text-xl font-extrabold text-[#F5B84A]">{stats.totalPoints}</p>
+            <p className="text-xl font-extrabold text-[#F59E0B]">{stats.totalPoints}</p>
             <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.results.totalFp")}</p>
           </div>
           <div className="bg-white/[0.04] rounded-xl p-3 text-center">
-            <p className="text-xl font-extrabold text-[#22D3EE]">{stats.gamesPlayed}</p>
+            <p className="text-xl font-extrabold text-[#38BDF8]">{stats.gamesPlayed}</p>
             <p className="text-[9px] uppercase tracking-wider text-[#94A3B8] mt-1">{t("triviaView.stats.quizzes")}</p>
           </div>
           <div className="bg-white/[0.04] rounded-xl p-3 text-center">
@@ -1049,7 +1053,7 @@ function StatsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       </div>
 
       {/* Questions mastered */}
-      <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
+      <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-bold text-white">{t("triviaView.stats.mastered")}</p>
           <span className="text-xs font-bold text-[#22C55E]">
@@ -1153,7 +1157,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#F5B84A] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#F59E0B] animate-spin" />
       </div>
     );
   }
@@ -1167,12 +1171,12 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
 
   return (
     <div className="space-y-3">
-      <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#F5B84A]/20 rounded-2xl p-4">
+      <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#F59E0B]/20 rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Gift size={16} className="text-[#F5B84A]" />
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#F5B84A]">{t('rewards.header')}</p>
+              <Gift size={16} className="text-[#F59E0B]" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">{t('rewards.header')}</p>
             </div>
             <p className="text-2xl font-extrabold text-white">
               {isAuthenticated ? userPoints.toLocaleString() : "—"} FP
@@ -1185,13 +1189,13 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
       </div>
 
       {!isAuthenticated && (
-        <div className="bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3 text-center">
+        <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 text-center">
           <p className="text-xs text-[#A09DB1]">
             {t("rewards.signInRequired")}
           </p>
           <a
             href="/auth/signin"
-            className="inline-block mt-2 px-4 py-2 rounded-lg bg-[#22D3EE] text-slate-950 text-xs font-bold"
+            className="inline-block mt-2 px-4 py-2 rounded-lg bg-[#38BDF8] text-slate-950 text-xs font-bold"
           >
             {t('rewards.signInButton')}
           </a>
@@ -1209,11 +1213,11 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden"
+              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden"
             >
               <div className="relative aspect-square bg-[#0f0f1a]">
                 <img src={gift.imageUrl} alt={gift.title} className="w-full h-full object-contain" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent" />
                 <span
                   className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
                   style={{ backgroundColor: `${tierColors[gift.tier]}E6`, color: "#0A0A0A" }}
@@ -1224,7 +1228,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                   {t("common.left", { count: gift.stock })}
                 </span>
                 {hasVariations && (
-                  <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-[#F5B84A]/90 text-slate-950 text-[8px] font-bold uppercase tracking-wider">
+                  <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-[#F59E0B]/90 text-slate-950 text-[8px] font-bold uppercase tracking-wider">
                     {gift.variations.length > 1
                       ? t("rewards.optionsBadge", { count: gift.variations.length })
                       : t("rewards.optionsBadgeSingular", { count: gift.variations.length })}
@@ -1240,7 +1244,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                     {gift.variations.map((v: any, vIdx: number) => (
                       <span
                         key={vIdx}
-                        className="px-1 py-0.5 rounded bg-[#F5B84A]/10 text-[#F5B84A] text-[8px] font-bold uppercase tracking-wide"
+                        className="px-1 py-0.5 rounded bg-[#F59E0B]/10 text-[#F59E0B] text-[8px] font-bold uppercase tracking-wide"
                         title={`${v.name}: ${(v.options || []).join(", ")}`}
                       >
                         {v.name}
@@ -1250,8 +1254,8 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                 )}
 
                 <div className="flex items-center gap-1 mb-2">
-                  <Zap size={10} className="text-[#F5B84A]" />
-                  <span className="text-[11px] font-bold text-[#F5B84A]">{gift.pointsRequired.toLocaleString()} FP</span>
+                  <Zap size={10} className="text-[#F59E0B]" />
+                  <span className="text-[11px] font-bold text-[#F59E0B]">{gift.pointsRequired.toLocaleString()} FP</span>
                 </div>
                 {isClaimed ? (
                   <div className="w-full py-2 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
@@ -1265,7 +1269,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                       claiming === gift.id
                         ? "bg-white/[0.04] text-[#94A3B8]"
                         : canClaim
-                        ? "bg-[#F5B84A] text-slate-950 hover:bg-[#E59E0B]"
+                        ? "bg-[#F59E0B] text-slate-950 hover:bg-[#E59E0B]"
                         : "bg-white/[0.04] text-[#475569] cursor-not-allowed"
                     }`}
                   >
@@ -1297,7 +1301,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#13294A] border border-[#F5B84A]/20 rounded-t-[28px] md:rounded-[24px] w-full max-w-md max-h-[88vh] overflow-y-auto"
+              className="bg-[#1C1929] border border-[#F59E0B]/20 rounded-t-[28px] md:rounded-[24px] w-full max-w-md max-h-[88vh] overflow-y-auto"
             >
               <div className="relative h-32">
                 <img
@@ -1305,7 +1309,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                   alt={pickerGift.title}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-[#13294A]/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-[#1C1929]/40 to-transparent" />
                 <button
                   onClick={closePicker}
                   className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
@@ -1313,7 +1317,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                   <X size={16} />
                 </button>
                 <div className="absolute bottom-3 left-3 right-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F5B84A] mb-0.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B] mb-0.5">
                     {pickerGift.tier} · {pickerGift.pointsRequired.toLocaleString()} FP
                   </p>
                   <h3 className="text-base font-extrabold text-white leading-tight line-clamp-1">
@@ -1331,7 +1335,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                       <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                         <Tag size={10} /> {variation.name}
                         {pickerSelections[variation.name] && (
-                          <span className="text-[#F5B84A] normal-case tracking-normal ml-1">
+                          <span className="text-[#F59E0B] normal-case tracking-normal ml-1">
                             · {pickerSelections[variation.name]}
                           </span>
                         )}
@@ -1347,7 +1351,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                               }
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                                 isSelected
-                                  ? "bg-[#F5B84A] text-slate-950 border-[#F5B84A]"
+                                  ? "bg-[#F59E0B] text-slate-950 border-[#F59E0B]"
                                   : "bg-white/[0.04] text-[#94A3B8] border-white/[0.08] hover:text-white hover:border-white/[0.2]"
                               }`}
                             >
@@ -1382,8 +1386,8 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                 )}
 
                 <div className="pt-1">
-                  <div className="bg-[#F5B84A]/8 border border-[#F5B84A]/20 rounded-xl p-2.5 mb-2">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#F5B84A] mb-0.5">
+                  <div className="bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl p-2.5 mb-2">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#F59E0B] mb-0.5">
                       {t('rewards.orderSummary')}
                     </p>
                     <p className="text-[11px] text-white">
@@ -1412,7 +1416,7 @@ function RewardsTab({ isAuthenticated, userPoints }: { isAuthenticated: boolean;
                     <button
                       onClick={confirmPickerClaim}
                       disabled={claiming === pickerGift.id}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F5B84A] hover:bg-[#E59E0B] transition-all disabled:opacity-50"
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F59E0B] hover:bg-[#E59E0B] transition-all disabled:opacity-50"
                     >
                       {claiming === pickerGift.id ? t('rewards.button.claiming') : t('rewards.redeemButton', { points: pickerGift.pointsRequired.toLocaleString() })}
                     </button>
@@ -1497,7 +1501,7 @@ function CompeteView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 size={24} className="text-[#F97316] animate-spin" />
+        <Loader2 size={24} className="text-[#F39B9B] animate-spin" />
       </div>
     );
   }
@@ -1518,13 +1522,13 @@ function CompeteView() {
   const renderCompetitionCard = (c: any) => (
     <div
       key={c.id}
-      className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden"
+      className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden"
     >
       {/* Prize image (if available) */}
       {c.prize?.imageUrl && (
         <div className="relative h-32 bg-[#0f0f1a]">
           <img src={c.prize.imageUrl} alt={c.prize.name} className="w-full h-full object-contain" />
-          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#F5B84A] text-slate-950 text-[9px] font-bold uppercase tracking-wider">
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#F59E0B] text-slate-950 text-[9px] font-bold uppercase tracking-wider">
             {t("triviaView.compete.prizeBadge")}
           </div>
         </div>
@@ -1535,7 +1539,7 @@ function CompeteView() {
             <p className="text-[9px] font-bold uppercase tracking-wider text-[#F59B9B]">{c.type}</p>
             <h3 className="text-sm font-bold text-white leading-tight">{c.title}</h3>
             {c.hostGroup?.name && (
-              <p className="text-[10px] font-bold text-[#60A5FA] mt-0.5">{t("triviaView.compete.hostedBy", { name: c.hostGroup.name })}</p>
+              <p className="text-[10px] font-bold text-[#A78BFA] mt-0.5">{t("triviaView.compete.hostedBy", { name: c.hostGroup.name })}</p>
             )}
           </div>
           <span
@@ -1544,7 +1548,7 @@ function CompeteView() {
                 ? "bg-[#22C55E]/15 text-[#22C55E]"
                 : c.status === "ended"
                 ? "bg-white/[0.06] text-[#64748B]"
-                : "bg-[#22D3EE]/15 text-[#22D3EE]"
+                : "bg-[#38BDF8]/15 text-[#38BDF8]"
             }`}
           >
             {c.status}
@@ -1553,7 +1557,7 @@ function CompeteView() {
 
         {c.prize && (
           <div className="flex items-center gap-1.5 text-[11px]">
-            <span className="text-[#F5B84A]">🏆</span>
+            <span className="text-[#F59E0B]">🏆</span>
             <span className="font-bold text-white">{c.prize.name}</span>
           </div>
         )}
@@ -1569,15 +1573,15 @@ function CompeteView() {
         </div>
 
         {c.status === "live" && (
-          <p className="text-[10px] text-[#F5B84A] font-bold">
+          <p className="text-[10px] text-[#F59E0B] font-bold">
             {t("triviaView.compete.endsIn", { time: formatTimeRemaining(c.timeRemaining) })}
           </p>
         )}
 
         {/* User's rank if authenticated + has attempts */}
         {isAuthenticated && c.userBestScore !== null && (
-          <div className="flex items-center gap-2 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg px-2 py-1">
-            <span className="text-[10px] font-bold text-[#60A5FA]">{t("triviaView.compete.yourRank", { rank: c.userRank })}</span>
+          <div className="flex items-center gap-2 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-lg px-2 py-1">
+            <span className="text-[10px] font-bold text-[#A78BFA]">{t("triviaView.compete.yourRank", { rank: c.userRank })}</span>
             <span className="text-[10px] text-[#94A3B8]">·</span>
             <span className="text-[10px] text-[#94A3B8]">{c.userBestScore} pts</span>
             <span className="text-[10px] text-[#64748B] ml-auto">
@@ -1589,7 +1593,7 @@ function CompeteView() {
         {c.status === "live" && isAuthenticated && c.userAttemptsRemaining > 0 && (
           <button
             onClick={() => setActiveCompetition({ id: c.id, title: c.title })}
-            className="w-full py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+            className="w-full py-2 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
           >
             {c.userAttemptsUsed > 0 ? t("triviaView.results.playAgain") : t("triviaView.compete.enter")}
           </button>
@@ -1614,7 +1618,7 @@ function CompeteView() {
           <p className="text-[10px] text-[#64748B] text-center">{t("triviaView.compete.signInToParticipate")}</p>
         )}
         {c.status === "scheduled" && (
-          <p className="text-[10px] text-[#22D3EE] font-bold">
+          <p className="text-[10px] text-[#38BDF8] font-bold">
             {t("triviaView.compete.startsOn", { date: new Date(c.startAt).toLocaleDateString() })}
           </p>
         )}
@@ -1629,7 +1633,7 @@ function CompeteView() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowHostForm(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
           >
             <Trophy size={13} /> {t("triviaView.host.button")}
           </button>
@@ -1656,7 +1660,7 @@ function CompeteView() {
       {/* UPCOMING */}
       {upcoming.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE] mb-2">{t("triviaView.compete.upcoming")}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-2">{t("triviaView.compete.upcoming")}</p>
           <div className="space-y-3">{upcoming.map(renderCompetitionCard)}</div>
         </div>
       )}
@@ -1805,14 +1809,14 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
     }
   };
 
-  const inputCls = "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB]";
+  const inputCls = "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]";
 
   return (
     <div
       className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-[#071120] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <div>
             <h2 className="font-extrabold text-white text-sm">{t("triviaView.host.button")}</h2>
@@ -1834,7 +1838,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
               </p>
               <a
                 href="/?view=groups"
-                className="inline-block mt-1 px-4 py-2 rounded-xl bg-[#2563EB] text-white text-xs font-bold"
+                className="inline-block mt-1 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
               >
                 {t("triviaView.host.goToGroups")}
               </a>
@@ -1978,7 +1982,7 @@ function HostTriviaModal({ onClose, onHosted }: { onClose: () => void; onHosted:
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold disabled:opacity-50"
               >
                 {saving ? t("triviaView.host.submitting") : t("triviaView.host.submitButton")}
               </button>
@@ -2015,9 +2019,9 @@ function MyHostedCompetitions() {
     status === "live"
       ? "bg-[#22C55E]/15 text-[#22C55E]"
       : status === "scheduled"
-      ? "bg-[#22D3EE]/15 text-[#22D3EE]"
+      ? "bg-[#38BDF8]/15 text-[#38BDF8]"
       : status === "pending"
-      ? "bg-[#F5B84A]/15 text-[#F5B84A]"
+      ? "bg-[#F59E0B]/15 text-[#F59E0B]"
       : status === "cancelled"
       ? "bg-[#EF4444]/10 text-[#EF4444]/70"
       : "bg-white/[0.06] text-[#64748B]";
@@ -2038,7 +2042,7 @@ function MyHostedCompetitions() {
   }
 
   return (
-    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3 space-y-2">
+    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{t("triviaView.mine.title")}</p>
       {rows.map((c) => (
         <div key={c.id} className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2">

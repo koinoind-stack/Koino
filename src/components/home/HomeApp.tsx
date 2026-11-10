@@ -38,40 +38,59 @@ import {
   PenSquare,
   LogOut,
   Settings as SettingsIcon,
+  Library,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
-import ChurchesView from "@/components/crosscrafted/ChurchesView";
-import TriviaView from "@/components/crosscrafted/TriviaView";
-import PrayerWallView from "@/components/crosscrafted/PrayerWallView";
-import EventsView from "@/components/crosscrafted/EventsView";
-import ApologeticsView from "@/components/crosscrafted/ApologeticsView";
-import ShopView from "@/components/crosscrafted/ShopView";
-import ListYourEntity from "@/components/crosscrafted/ListYourEntity";
-import BibleView from "@/components/crosscrafted/BibleView";
-import BiblePlansView from "@/components/crosscrafted/BiblePlansView";
-import AdminView from "@/components/crosscrafted/AdminView";
 import HeaderUserSection from "@/components/crosscrafted/HeaderUserSection";
 import LanguageSwitcher from "@/components/crosscrafted/LanguageSwitcher";
-import ComicView from "@/components/crosscrafted/ComicView";
-import ComicLibraryView from "@/components/crosscrafted/ComicLibraryView";
-import BusinessDirectoryView from "@/components/crosscrafted/BusinessDirectoryView";
 import AppHomeView from "@/components/crosscrafted/AppHomeView";
 import OnboardingView from "@/components/crosscrafted/OnboardingView";
 import EditProfileView from "@/components/crosscrafted/EditProfileView";
-import MatrimonyView from "@/components/matrimony/MatrimonyView";
 import FeedView from "@/components/social/FeedView";
-import GroupsView from "@/components/social/GroupsView";
-import GroupDetailView from "@/components/social/GroupDetailView";
-import ExploreView from "@/components/social/ExploreView";
-import ReelsView from "@/components/social/ReelsView";
-import WatchView from "@/components/social/WatchView";
-import ComposerView from "@/components/social/ComposerView";
-import SocialProfileView from "@/components/social/SocialProfileView";
-import NotificationsView from "@/components/social/NotificationsView";
-import PostDetail from "@/components/social/PostDetail";
 import HomeRightRail from "@/components/social/HomeRightRail";
 import LordsbookHomeView from "@/components/home/LordsbookHomeView";
 import BookmarksView from "@/components/social/BookmarksView";
+import dynamic from "next/dynamic";
+
+/**
+ * PERF: route-level code splitting (parity with main's perf-home-shell
+ * architecture). Only views that can be the FIRST thing a visitor sees
+ * (landing hero, onboarding, feed, dashboard, profile forms, header chrome)
+ * ship in the entry bundle. The other 23 views load on demand as their own
+ * chunks. next/dynamic keeps SSR: a deep link that opens straight into one
+ * of these views still renders it server-side.
+ */
+function ViewLoader() {
+  return (
+    <div className="flex items-center justify-center py-16" role="status">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#7C3AED]/30 border-t-[#7C3AED]" />
+    </div>
+  );
+}
+
+const ChurchesView = dynamic(() => import("@/components/crosscrafted/ChurchesView"), { loading: ViewLoader });
+const TriviaView = dynamic(() => import("@/components/crosscrafted/TriviaView"), { loading: ViewLoader });
+const PrayerWallView = dynamic(() => import("@/components/crosscrafted/PrayerWallView"), { loading: ViewLoader });
+const EventsView = dynamic(() => import("@/components/crosscrafted/EventsView"), { loading: ViewLoader });
+const ApologeticsView = dynamic(() => import("@/components/crosscrafted/ApologeticsView"), { loading: ViewLoader });
+const ShopView = dynamic(() => import("@/components/crosscrafted/ShopView"), { loading: ViewLoader });
+const ListYourEntity = dynamic(() => import("@/components/crosscrafted/ListYourEntity"), { loading: ViewLoader });
+const BibleView = dynamic(() => import("@/components/crosscrafted/BibleView"), { loading: ViewLoader });
+const BiblePlansView = dynamic(() => import("@/components/crosscrafted/BiblePlansView"), { loading: ViewLoader });
+const AdminView = dynamic(() => import("@/components/crosscrafted/AdminView"), { loading: ViewLoader });
+const ComicView = dynamic(() => import("@/components/crosscrafted/ComicView"), { loading: ViewLoader });
+const ComicLibraryView = dynamic(() => import("@/components/crosscrafted/ComicLibraryView"), { loading: ViewLoader });
+const BusinessDirectoryView = dynamic(() => import("@/components/crosscrafted/BusinessDirectoryView"), { loading: ViewLoader });
+const MatrimonyView = dynamic(() => import("@/components/matrimony/MatrimonyView"), { loading: ViewLoader });
+const GroupsView = dynamic(() => import("@/components/social/GroupsView"), { loading: ViewLoader });
+const GroupDetailView = dynamic(() => import("@/components/social/GroupDetailView"), { loading: ViewLoader });
+const ExploreView = dynamic(() => import("@/components/social/ExploreView"), { loading: ViewLoader });
+const ReelsView = dynamic(() => import("@/components/social/ReelsView"), { loading: ViewLoader });
+const WatchView = dynamic(() => import("@/components/social/WatchView"), { loading: ViewLoader });
+const ComposerView = dynamic(() => import("@/components/social/ComposerView"), { loading: ViewLoader });
+const SocialProfileView = dynamic(() => import("@/components/social/SocialProfileView"), { loading: ViewLoader });
+const NotificationsView = dynamic(() => import("@/components/social/NotificationsView"), { loading: ViewLoader });
+const PostDetail = dynamic(() => import("@/components/social/PostDetail"), { loading: ViewLoader });
 import type { Post } from "@/components/social/types";
 import { toast } from "sonner";
 import { BRAND } from "@/lib/brand";
@@ -103,6 +122,7 @@ type View =
   | "bible"
   | "videos" // Part 5: Bible Movies & Videos → /videos (public App Router page; reachable via Watch — no sidebar entry)
   | "bible-plans"
+  | "knowledge" // Articles & Knowledge (Phase 2) → /knowledge (public App Router page)
   | "comic"
   | "churches"
   | "events"
@@ -161,6 +181,7 @@ const MORE_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
   { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
   { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
   { id: "dashboard", icon: Sparkles, labelKey: "side.appHome" },
+  { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
   { id: "blog", icon: FileText, labelKey: "side.blog" },
   { id: "support", icon: HandHeart, labelKey: "side.support" },
   { id: "admin", icon: Shield, labelKey: "nav.admin" },
@@ -199,6 +220,7 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] =
   { id: "shop", icon: Store, labelKey: "side.marketplace" },
   { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
   { id: "dashboard", icon: Sparkles, labelKey: "side.appHome" },
+  { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
   { id: "blog", icon: FileText, labelKey: "side.blog" },
   { id: "support", icon: HandHeart, labelKey: "side.support" },
   { id: "admin", icon: Shield, labelKey: "nav.admin" },
@@ -505,6 +527,14 @@ export default function Home() {
     }
     if (!deepView) return;
 
+    // Articles & Knowledge is a public App Router page, not a rendered SPA
+    // view — /?view=knowledge deep links (shares, old bookmarks) go straight
+    // there instead of silently falling through as an unknown view.
+    if (deepView === "knowledge") {
+      window.location.replace("/knowledge");
+      return;
+    }
+
     // Part 5: Bible passage deep links from video pages — and, since Task 121,
     // shared verse links carry an optional &verse= that scrolls to the verse.
     if (deepView === "bible") {
@@ -633,7 +663,7 @@ export default function Home() {
     // Fire-and-forget analytics if available, then perform a full route
     // navigation. Mirrors navigate() cleanup so the More sheet closes
     // immediately on mobile.
-    if (v === "blog" || v === "support" || v === "memorials" || v === "videos") {
+    if (v === "blog" || v === "support" || v === "memorials" || v === "videos" || v === "knowledge") {
       setShowMoreSheet(false);
       setHeaderVisible(true);
       try {
@@ -645,6 +675,7 @@ export default function Home() {
               v === "blog" ? "blog_nav_click" :
               v === "memorials" ? "memorials_nav_click" :
               v === "videos" ? "videos_nav_click" :
+              v === "knowledge" ? "knowledge_nav_click" :
               "support_koino_nav_click",
             source: "sidebar",
           }),

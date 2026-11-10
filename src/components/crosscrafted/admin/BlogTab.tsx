@@ -316,7 +316,7 @@ export default function BlogTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
       </div>
     );
   }
@@ -325,19 +325,19 @@ export default function BlogTab() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="w-1 h-5 rounded-full bg-[#2563EB]" />
+        <div className="w-1 h-5 rounded-full bg-[#7C3AED]" />
         <h2 className="text-sm font-bold text-white">Blog &amp; Articles</h2>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB]/15 text-[#60A5FA]">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#7C3AED]/15 text-[#A78BFA]">
           {counts.total}
         </span>
         {(serverCounts?.pending ?? 0) > 0 && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F5B84A]/15 text-[#F5B84A]">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F59E0B]/15 text-[#F59E0B]">
             {serverCounts?.pending} pending review
           </span>
         )}
         <button
           onClick={openNew}
-          className="ml-auto bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
+          className="ml-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
         >
           <Plus size={12} />
           Write Article
@@ -357,7 +357,7 @@ export default function BlogTab() {
           onClick={() => setFilter("draft")}
           label="Drafts"
           count={counts.draft}
-          color="#F5B84A"
+          color="#F59E0B"
         />
         <FilterChip
           active={filter === "published"}
@@ -378,14 +378,14 @@ export default function BlogTab() {
           onClick={() => setFilter("pending")}
           label="Pending Review"
           count={counts.pending}
-          color="#F5B84A"
+          color="#F59E0B"
         />
         <FilterChip
           active={filter === "changes_requested"}
           onClick={() => setFilter("changes_requested")}
           label="Changes Requested"
           count={counts.changes_requested}
-          color="#22D3EE"
+          color="#38BDF8"
         />
         <FilterChip
           active={filter === "rejected"}
@@ -420,7 +420,7 @@ export default function BlogTab() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <FileText size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {search ? "No posts match your search." : "No blog posts yet."}
@@ -428,7 +428,7 @@ export default function BlogTab() {
           {!search && (
             <button
               onClick={openNew}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#60A5FA] hover:text-white"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#A78BFA] hover:text-white"
             >
               <Plus size={12} /> Create your first post
             </button>
@@ -440,18 +440,18 @@ export default function BlogTab() {
             const status = p.status ?? (p.published ? "published" : "draft");
             const statusBadge =
               status === "published" ? { color: "#22C55E", label: "Published" }
-              : status === "pending" ? { color: "#F5B84A", label: "Pending Review" }
-              : status === "changes_requested" ? { color: "#22D3EE", label: "Changes Requested" }
+              : status === "pending" ? { color: "#F59E0B", label: "Pending Review" }
+              : status === "changes_requested" ? { color: "#38BDF8", label: "Changes Requested" }
               : status === "rejected" ? { color: "#EF4444", label: "Rejected" }
               : status === "archived" ? { color: "#64748B", label: "Archived" }
-              : { color: "#F5B84A", label: "Draft" };
+              : { color: "#F59E0B", label: "Draft" };
             const authorName = p.authorUser?.name || p.authorUser?.username || p.author || null;
             const busy = moderating === p.id;
             return (
             <div
               key={p.id}
               onClick={() => openEdit(p.id)}
-              className="w-full text-left bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all cursor-pointer"
+              className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -490,7 +490,7 @@ export default function BlogTab() {
                   {p.category}
                 </span>
                 {status === "pending" && p.submittedAt && (
-                  <span className="flex items-center gap-0.5 text-[#F5B84A]">
+                  <span className="flex items-center gap-0.5 text-[#F59E0B]">
                     <Clock size={9} /> submitted {formatTimeAgo(p.submittedAt)}
                   </span>
                 )}
@@ -513,7 +513,7 @@ export default function BlogTab() {
                 {status === "pending" && (
                   <>
                     <RowAction label="Approve & Publish" onClick={() => { if (window.confirm(`Publish \"${p.title}\" to the Blog and feed?`)) moderate(p.id, "publish"); }} disabled={busy} tone="#22C55E" />
-                    <RowAction label="Request Changes" onClick={() => requestFeedback(p.id, "request_changes")} disabled={busy} tone="#22D3EE" />
+                    <RowAction label="Request Changes" onClick={() => requestFeedback(p.id, "request_changes")} disabled={busy} tone="#38BDF8" />
                     <RowAction label={t("common.action.reject")} onClick={() => requestFeedback(p.id, "reject")} disabled={busy} tone="#EF4444" />
                   </>
                 )}
@@ -525,7 +525,7 @@ export default function BlogTab() {
                 ) : null}
                 {status === "published" && (
                   <>
-                    <RowAction label="Unpublish" onClick={() => { if (window.confirm("Unpublish this article? It will be hidden from the Blog and feed.")) moderate(p.id, "unpublish"); }} disabled={busy} tone="#F5B84A" />
+                    <RowAction label="Unpublish" onClick={() => { if (window.confirm("Unpublish this article? It will be hidden from the Blog and feed.")) moderate(p.id, "unpublish"); }} disabled={busy} tone="#F59E0B" />
                     <RowAction label={p.featured ? t("common.action.unfeature") : t("common.action.feature")} onClick={() => moderate(p.id, p.featured ? "unfeature" : "feature")} disabled={busy} tone="#A855F7" />
                     <RowAction label="Archive" onClick={() => { if (window.confirm("Archive this article?")) moderate(p.id, "archive"); }} disabled={busy} />
                   </>
@@ -602,7 +602,7 @@ function FilterChip({
   count: number;
   color?: string;
 }) {
-  const activeBg = color ? `${color}` : "#2563EB";
+  const activeBg = color ? `${color}` : "#7C3AED";
   return (
     <button
       onClick={onClick}
@@ -794,7 +794,7 @@ function BlogEditorModal({
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
       </div>
     );
   }
@@ -805,13 +805,13 @@ function BlogEditorModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <FileText size={14} className="text-[#60A5FA]" />
+            <FileText size={14} className="text-[#A78BFA]" />
             <h2 className="text-sm font-extrabold text-white">
               {postId ? t("admin.blog.editPost") : t("admin.blog.newPost")}
             </h2>
@@ -853,7 +853,7 @@ function BlogEditorModal({
             />
             <p className="mt-1 text-[10px] text-[#64748B]">
               Live preview:{" "}
-              <span className="text-[#22D3EE]">/blog/{effectiveSlug || "—"}</span>
+              <span className="text-[#38BDF8]">/blog/{effectiveSlug || "—"}</span>
             </p>
           </Field>
 
@@ -975,7 +975,7 @@ function BlogEditorModal({
                   .map((t, i) => (
                     <span
                       key={i}
-                      className="bg-[#22D3EE]/10 text-[#22D3EE] text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
+                      className="bg-[#38BDF8]/10 text-[#38BDF8] text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
                     >
                       {t}
                     </span>
@@ -1065,23 +1065,35 @@ function BlogEditorModal({
             {postId && (
               <div className="mr-auto">
                 {confirmDelete ? (
-                  <div className="flex items-center gap-1.5">
-                    <AlertCircle size={12} className="text-[#EF4444]" />
-                    <span className="text-[11px] text-[#94A3B8]">Delete permanently?</span>
-                    <button
-                      onClick={remove}
-                      disabled={deleting}
-                      className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-[11px] font-bold rounded-lg px-2 py-1 disabled:opacity-50"
-                    >
-                      {deleting ? <Loader2 size={11} className="animate-spin" /> : "Yes, delete"}
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                      className="text-[#94A3B8] hover:text-white text-[11px] font-bold px-2 py-1"
-                    >
-                      Cancel
-                    </button>
+                  <div className="rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/[0.06] p-3 max-w-sm">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <AlertCircle size={12} className="text-[#EF4444] shrink-0" />
+                      <span className="text-[11px] font-bold text-[#EF4444]">
+                        Delete &quot;{form.title.trim() || "this article"}&quot; permanently?
+                      </span>
+                    </div>
+                    <ul className="text-[11px] leading-relaxed text-[#94A3B8] space-y-1 list-disc pl-4 mb-3">
+                      <li>The article will be permanently deleted.</li>
+                      <li>Its feed post will also be deleted.</li>
+                      <li>All associated likes, comments, replies, bookmarks and notifications will be permanently lost.</li>
+                      <li>This action cannot be undone.</li>
+                    </ul>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={remove}
+                        disabled={deleting}
+                        className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] text-[11px] font-bold rounded-lg px-2 py-1 disabled:opacity-50"
+                      >
+                        {deleting ? <Loader2 size={11} className="animate-spin" /> : "Yes, delete permanently"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={deleting}
+                        className="text-[#94A3B8] hover:text-white text-[11px] font-bold px-2 py-1"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -1104,7 +1116,7 @@ function BlogEditorModal({
             <button
               onClick={save}
               disabled={saving || deleting}
-              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all hover:-translate-y-px"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all hover:-translate-y-px"
             >
               {saving ? (
                 <>
@@ -1151,7 +1163,7 @@ function Field({
   return (
     <div>
       <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-        {label} {required && <span className="text-[#F97316]">*</span>}
+        {label} {required && <span className="text-[#F39B9B]">*</span>}
       </label>
       {children}
       {hint && <p className="mt-1 text-[10px] text-[#64748B] leading-relaxed">{hint}</p>}

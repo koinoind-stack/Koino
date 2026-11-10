@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
+import { publicBlogPostWhere } from "@/lib/blog-server";
 
 // Single PrismaClient instance at module scope — same pattern as the
 // blog page + admin routes. A separate client from the auth-server.ts one
@@ -42,17 +43,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const now = new Date();
 
-  // Only published posts that are currently visible (publishedAt is null or in the past).
-  // Wrap in try/catch so the sitemap still serves the static URLs if the DB
-  // is unavailable (local builds, transient outages).
+  // Only posts passing the FULL shared public-visibility gate (Phase 1
+  // security fixes 1+2): published + status + publishedAt + scheduledAt —
+  // the sitemap must never list a post that /blog would 404 (or one an
+  // admin believes is still scheduled). Wrap in try/catch so the sitemap
+  // still serves the static URLs if the DB is unavailable (local builds,
+  // transient outages).
   let posts: { slug: string; publishedAt: Date | null; updatedAt: Date }[] = [];
   try {
     posts = await db.blogPost.findMany({
-      where: {
-        published: true,
-        status: "published", // Task 73: dual gate — never list unpublished workflow articles
-        OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
-      },
+      where: publicBlogPostWhere(now),
       select: { slug: true, publishedAt: true, updatedAt: true },
     });
   } catch (error) {

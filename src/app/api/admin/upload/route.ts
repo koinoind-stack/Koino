@@ -14,6 +14,11 @@ import sharp from "sharp";
  *   - Path scheme:               `apologetics/<admin-user-id>/<timestamp>.webp`
  *
  * Auth: only authenticated admins (user.role === "admin") may upload.
+ * Approved contributors may also upload — but ONLY when their Contributor
+ * record grants the CAN_UPLOAD_IMAGES permission (Phase 1 security fix 13a:
+ * the old check accepted ANY approved contributor regardless of the
+ * permissions an admin actually granted — resource abuse plus an admin
+ * illusion of control).
  *
  * Accepts (matches the client-side rules in ImageUploader.tsx +
  * InlineImagePopover.tsx):
@@ -51,8 +56,9 @@ export async function POST(req: NextRequest) {
   try {
     logStage("request received");
 
-    // 1. Auth — admins, plus APPROVED CONTRIBUTORS (PART 2: contributors
-    //    upload cover images for the articles they submit for review).
+    // 1. Auth — admins, plus APPROVED CONTRIBUTORS holding CAN_UPLOAD_IMAGES
+    //    (contributors upload cover images for the articles they submit for
+    //    review — but only when an admin actually granted that permission).
     stage = "AUTH";
     const user = await getAuthUser();
     if (!user) {
@@ -61,14 +67,31 @@ export async function POST(req: NextRequest) {
     }
     if (user.role !== "admin") {
       // Not an admin — allow only if an approved Contributor record exists
-      // for this user (server-side check, never client-asserted).
+      // for this user (server-side check, never client-asserted) AND that
+      // record carries the CAN_UPLOAD_IMAGES permission (Phase 1 fix 13a —
+      // Contributor.permissions is the enforced permission store, mirroring
+      // requireContributor() in apologetics-server.ts).
       const contributor = await db.contributor.findUnique({
         where: { userId: user.id },
-        select: { status: true },
+        select: { status: true, permissions: true },
       });
       if (contributor?.status !== "approved") {
         logStage("FAILURE", { stage, name: "AuthError", message: "Admin or approved contributor access required" });
         return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+      }
+      let perms: string[] = [];
+      try {
+        const parsed = JSON.parse(contributor.permissions || "[]");
+        if (Array.isArray(parsed)) perms = parsed.map(String);
+      } catch {
+        // malformed permissions → treat as empty
+      }
+      if (!perms.includes("CAN_UPLOAD_IMAGES")) {
+        logStage("FAILURE", { stage, name: "AuthError", message: "Missing permission: CAN_UPLOAD_IMAGES" });
+        return NextResponse.json(
+          { error: "Missing permission: CAN_UPLOAD_IMAGES" },
+          { status: 403 }
+        );
       }
     }
     logStage("authenticated", { userId: user.id });

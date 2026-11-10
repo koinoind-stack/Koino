@@ -82,6 +82,9 @@ export async function GET(
         status: chapter.status,
         coverArtUrl: chapter.coverArtUrl,
         sortOrder: chapter.sortOrder,
+        kidsFriendly: chapter.kidsFriendly,
+        kidsAgeGroup: chapter.kidsAgeGroup,
+        pageMode: chapter.pageMode,
         isActive: chapter.isActive,
         createdAt: chapter.createdAt.toISOString(),
         updatedAt: chapter.updatedAt.toISOString(),
@@ -89,6 +92,14 @@ export async function GET(
           id: t.id,
           lang: t.lang,
           title: t.title || "",
+          status: t.status,
+          introduction: t.introduction || "",
+          lesson: t.lesson || "",
+          prayer: t.prayer || "",
+          keyVerseBook: t.keyVerseBook || "",
+          keyVerseChapter: t.keyVerseChapter,
+          keyVerseStart: t.keyVerseStart,
+          keyVerseEnd: t.keyVerseEnd,
         })),
         panels: chapter.panels.map((p) => ({
           id: p.id,
@@ -108,6 +119,7 @@ export async function GET(
             title: t.title || "",
             narration: t.narration || "",
             captions: safeParseArray(t.captions),
+            status: t.status,
           })),
         })),
         quizLinks: chapter.quizLinks.map((q) => ({
@@ -223,6 +235,31 @@ export async function PATCH(
     }
     if (typeof body.sortOrder === "number") {
       data.sortOrder = body.sortOrder;
+    }
+    if (typeof body.kidsFriendly === "boolean") {
+      data.kidsFriendly = body.kidsFriendly;
+    }
+    if (body.kidsAgeGroup !== undefined) {
+      if (
+        body.kidsAgeGroup !== null &&
+        body.kidsAgeGroup !== "" &&
+        !["3-5", "6-8", "9-12"].includes(body.kidsAgeGroup)
+      ) {
+        return NextResponse.json(
+          { error: 'kidsAgeGroup must be null/empty or one of: "3-5", "6-8", "9-12"' },
+          { status: 400 }
+        );
+      }
+      data.kidsAgeGroup = body.kidsAgeGroup ? body.kidsAgeGroup : null;
+    }
+    if (body.pageMode !== undefined) {
+      if (body.pageMode !== "individual" && body.pageMode !== "spread") {
+        return NextResponse.json(
+          { error: 'pageMode must be "individual" or "spread"' },
+          { status: 400 }
+        );
+      }
+      data.pageMode = body.pageMode;
     }
     if (typeof body.status === "string") {
       const allowed = ["draft", "review", "ready", "published"];

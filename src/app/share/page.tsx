@@ -1,0 +1,234 @@
+import type { Metadata } from "next";
+
+import { db } from "@/lib/db";
+import HomeApp from "@/components/home/HomeApp";
+
+/**
+ * ─── SHARE-LINK RENDERER (perf: split from /) ────────────────────────────────
+ *
+ * Used to live in src/app/page.tsx, which forced the ENTIRE home page to be
+ * `force-dynamic` so WhatsApp/Facebook link previews (/?comic=genesis/1,
+ * /?view=bible&book=…, /?post=…, /?group=…, /?event=…) could get real Open
+ * Graph metadata. That made every plain visit to / a fresh server render
+ * (x-vercel-cache: MISS, 0.3–1.9s TTFB) instead of an edge-cached static
+ * response.
+ *
+ * Split: plain / is now a static prerender (see src/app/page.tsx) and
+ * src/proxy.ts rewrites ONLY share-param URLs to this route, which keeps the
+ * per-link metadata lookups. Bots and humans see the same HTML for deep
+ * links; everyone else gets the CDN-cached shell.
+ *
+ * Privacy: metadata is generated ONLY for content that is already public
+ * (published comics/bible text, published posts, public groups, published
+ * events). Everything else falls back to the default site card — private
+ * content never leaks through link previews.
+ */
+
+export const dynamic = "force-dynamic";
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function first(v: string | string[] | undefined): string | null {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === "string" && s.length > 0 ? s : null;
+}
+
+const BOOK_NAMES: Record<string, string> = {
+  genesis: "Genesis", exodus: "Exodus", joshua: "Joshua", ruth: "Ruth",
+  "1samuel": "1 Samuel", "2samuel": "2 Samuel", "1kings": "1 Kings", "2kings": "2 Kings",
+  ezra: "Ezra", nehemiah: "Nehemiah", esther: "Esther", job: "Job",
+  psalms: "Psalms", psalm: "Psalm", proverbs: "Proverbs", ecclesiastes: "Ecclesiastes",
+  song_of_solomon: "Song of Solomon", isaiah: "Isaiah", jeremiah: "Jeremiah",
+  ezekiel: "Ezekiel", daniel: "Daniel", hosea: "Hosea", joel: "Joel", amos: "Amos",
+  jonah: "Jonah", micah: "Micah", matthew: "Matthew", mark: "Mark", luke: "Luke",
+  john: "John", acts: "Acts", romans: "Romans", "1corinthians": "1 Corinthians",
+  "2corinthians": "2 Corinthians", galatians: "Galatians", ephesians: "Ephesians",
+  philippians: "Philippians", colossians: "Colossians", "1thessalonians": "1 Thessalonians",
+  "2thessalonians": "2 Thessalonians", "1timothy": "1 Timothy", "2timothy": "2 Timothy",
+  titus: "Titus", philemon: "Philemon", hebrews: "Hebrews", james: "James",
+  "1peter": "1 Peter", "2peter": "2 Peter", "1john": "1 John", "2john": "2 John",
+  "3john": "3 John", jude: "Jude", revelation: "Revelation",
+};
+
+function cardImage(type: string, params: Record<string, string>): { url: string; width: number; height: number } {
+  const qs = new URLSearchParams({ ...params, format: "landscape" }).toString();
+  return {
+    url: `/api/share-card?${qs}`,
+    width: 1200,
+    height: 630,
+  };
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
+  let sp: Record<string, string | string[] | undefined> = {};
+  try {
+    sp = await searchParams;
+  } catch {
+    return {};
+  }
+
+  try {
+    // ── Comic chapter share: /?comic=genesis/1 ──
+    const comic = first(sp["comic"]);
+    if (comic && /^[a-z0-9_]+\/\d+$/.test(comic)) {
+      const [bookId, chapterStr] = comic.split("/");
+      const chapter = Math.max(1, parseInt(chapterStr, 10) || 1);
+      const ch = await db.comicChapter.findFirst({
+        where: { bookId, chapter, status: "published", isActive: true },
+        include: { translations: true },
+      });
+      if (ch) {
+        const t =
+          ch.translations.find((x) => x.lang === "en") || ch.translations[0];
+        const bookName = BOOK_NAMES[bookId] || bookId;
+        const title = t?.title
+          ? `${bookName} ${chapter}: ${t.title} — Koino Bible Comics`
+          : `${bookName} ${chapter} — Koino Bible Comics`;
+        return {
+          title,
+          description:
+            "Read the story. See the bigger picture. Grow in your faith — illustrated Bible comics on Koino.",
+          alternates: { canonical: `/?comic=${bookId}/${chapter}` },
+          openGraph: {
+            title,
+            type: "article",
+            images: [cardImage("comic-chapter", { book: bookId, chapter: String(chapter) })],
+          },
+          twitter: { card: "summary_large_image", title },
+        };
+      }
+    }
+
+    // ── Bible passage share: /?view=bible&book=&chapter=[&verse=] ──
+    if (first(sp["view"]) === "bible") {
+      const bookId = first(sp["book"]);
+      const chapterStr = first(sp["chapter"]);
+      const verseStr = first(sp["verse"]);
+      if (bookId && /^[a-z0-9_]{2,20}$/.test(bookId)) {
+        const chapter = Math.max(1, parseInt(chapterStr || "1", 10) || 1);
+        const bookName = BOOK_NAMES[bookId] || bookId;
+        const verse = verseStr ? Math.max(1, parseInt(verseStr, 10) || 1) : null;
+        const title = verse
+          ? `${bookName} ${chapter}:${verse} — Read the Bible on Koino`
+          : `${bookName} ${chapter} — Read the Bible on Koino`;
+        const cardParams: Record<string, string> = {
+          book: bookId,
+          chapter: String(chapter),
+          vs: String(verse || 1),
+          ve: String(verse || 8),
+        };
+        return {
+          title,
+          description:
+            "Read Scripture in the Koino Bible reader — King James Version and World English Bible, with comics, audio and reading streaks.",
+          alternates: {
+            canonical: `/?view=bible&book=${bookId}&chapter=${chapter}${verse ? `&verse=${verse}` : ""}`,
+          },
+          openGraph: {
+            title,
+            type: "article",
+            images: [cardImage("verse", cardParams)],
+          },
+          twitter: { card: "summary_large_image", title },
+        };
+      }
+    }
+
+    // ── Community post share: /?post=<id> ──
+    const post = first(sp["post"]);
+    if (post && /^[a-zA-Z0-9_-]{6,40}$/.test(post)) {
+      const p = await db.post.findUnique({
+        where: { id: post },
+        select: {
+          content: true,
+          title: true,
+          published: true,
+          author: { select: { name: true, username: true } },
+          group: { select: { visibility: true } },
+        },
+      });
+      if (p && p.published && (!p.group || p.group.visibility === "public")) {
+        const excerpt = (p.content || p.title || "").slice(0, 140);
+        const title = excerpt
+          ? `${p.author.name || p.author.username || "A member"} on Koino: "${excerpt}${(p.content || "").length > 140 ? "…" : ""}"`
+          : "A post on Koino";
+        return {
+          title,
+          description: "Join the conversation on Koino — Faith. Fellowship. Belong.",
+          alternates: { canonical: `/?post=${post}` },
+          openGraph: {
+            title,
+            type: "article",
+            images: [cardImage("post", { id: post })],
+          },
+          twitter: { card: "summary_large_image", title },
+        };
+      }
+    }
+
+    // ── Public group invite: /?view=group-detail&group=<id> ──
+    const groupId = first(sp["group"]);
+    if (groupId && /^[a-zA-Z0-9_-]{6,40}$/.test(groupId)) {
+      const g = await db.group.findUnique({
+        where: { id: groupId },
+        select: { name: true, description: true, visibility: true },
+      });
+      if (g && g.visibility === "public") {
+        const title = `Join "${g.name}" on Koino`;
+        return {
+          title,
+          description: g.description?.slice(0, 160) || "A Christian community group on Koino.",
+          alternates: { canonical: `/?view=group-detail&group=${groupId}` },
+          openGraph: {
+            title,
+            type: "website",
+            images: [cardImage("group", { id: groupId })],
+          },
+          twitter: { card: "summary_large_image", title },
+        };
+      }
+    }
+
+    // ── Published event share: /?view=events&event=<id> ──
+    const eventId = first(sp["event"]);
+    if (eventId && /^[a-zA-Z0-9_-]{6,40}$/.test(eventId)) {
+      const ev = await db.event.findUnique({
+        where: { id: eventId },
+        select: {
+          title: true, location: true, city: true, startDate: true,
+          status: true, groupId: true, groupVisibility: true,
+        },
+      });
+      if (ev && ev.status === "PUBLISHED" && (!ev.groupId || ev.groupVisibility === "public")) {
+        const when = ev.startDate.toLocaleDateString("en-IN", {
+          day: "numeric", month: "long", year: "numeric",
+        });
+        const title = `${ev.title} — ${when} on Koino`;
+        return {
+          title,
+          description: [ev.location, ev.city].filter(Boolean).join(", ") || "A community event on Koino.",
+          alternates: { canonical: `/?view=events&event=${eventId}` },
+          openGraph: {
+            title,
+            type: "website",
+            images: [cardImage("event", { id: eventId })],
+          },
+          twitter: { card: "summary_large_image", title },
+        };
+      }
+    }
+  } catch {
+    // Metadata generation must never break the page — fall through to defaults.
+  }
+
+  // Default: inherit the root layout metadata (BRAND card).
+  return {};
+}
+
+export default function Page() {
+  return <HomeApp />;
+}

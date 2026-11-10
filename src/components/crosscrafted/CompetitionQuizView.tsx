@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   X,
   ChevronRight,
@@ -45,6 +45,7 @@ type CompetitionResult = {
 
 export default function CompetitionQuizView({ competitionId, competitionTitle, onClose, onComplete }: Props) {
   const t = useTranslation();
+  const { lang } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -60,6 +61,8 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
       try {
         const res = await fetch(`/api/trivia/competitions/${competitionId}/start`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lang }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t("competition.errors.startFailed"));
@@ -73,7 +76,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
         setLoading(false);
       }
     })();
-  }, [competitionId, t]);
+  }, [competitionId, t, lang]);
 
   const submit = useCallback(async () => {
     if (!attemptId) return;
@@ -106,19 +109,19 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-[#071120] z-[80] flex items-center justify-center">
-        <Loader2 size={28} className="text-[#F97316] animate-spin" />
+      <div className="fixed inset-0 bg-[#12101A] z-[80] flex items-center justify-center">
+        <Loader2 size={28} className="text-[#F39B9B] animate-spin" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-[#071120] z-[80] flex items-center justify-center px-4">
+      <div className="fixed inset-0 bg-[#12101A] z-[80] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <X size={32} className="mx-auto text-[#EF4444] mb-3" />
           <p className="text-sm text-[#94A3B8] mb-4">{error}</p>
-          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-[#F97316] text-slate-950 text-xs font-bold">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-[#F39B9B] text-slate-950 text-xs font-bold">
             {t("competition.backToCompete")}
           </button>
         </div>
@@ -132,12 +135,12 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
   const allAnswered = questions.every((q) => answers[q.questionId] !== undefined);
 
   return (
-    <div className="fixed inset-0 bg-[#071120] z-[80] overflow-y-auto">
+    <div className="fixed inset-0 bg-[#12101A] z-[80] overflow-y-auto">
       <div className="max-w-md mx-auto px-4 py-5 min-h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F97316]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F39B9B]">
               {competitionTitle}
             </p>
             <p className="text-[10px] text-[#64748B] mt-0.5">
@@ -152,7 +155,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
         {/* Progress bar */}
         <div className="h-1.5 bg-white/[0.06] rounded-full mb-6 overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-[#F97316] to-[#2563EB]"
+            className="h-full bg-gradient-to-r from-[#F39B9B] to-[#7C3AED]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
@@ -170,7 +173,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
               transition={{ duration: 0.2 }}
             >
               <div className="flex items-center gap-2 mb-3">
-                <span className="px-2 py-0.5 rounded-md bg-[#2563EB]/15 text-[#60A5FA] text-[9px] font-bold uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-md bg-[#7C3AED]/15 text-[#A78BFA] text-[9px] font-bold uppercase tracking-wider">
                   {current.category.replace("_", " ")}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-white/[0.04] text-[#94A3B8] text-[9px] font-bold uppercase tracking-wider">
@@ -191,20 +194,20 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
                       onClick={() => setAnswers({ ...answers, [current.questionId]: idx })}
                       className={`w-full text-left p-3.5 rounded-xl border text-sm font-semibold transition-all ${
                         isSelected
-                          ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-white"
+                          ? "bg-[#7C3AED]/15 border-[#7C3AED]/40 text-white"
                           : "bg-white/[0.04] border-white/[0.06] text-[#A09DB1] hover:text-white hover:border-white/[0.15]"
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                            isSelected ? "bg-[#2563EB] text-white" : "bg-white/[0.06] text-[#94A3B8]"
+                            isSelected ? "bg-[#7C3AED] text-white" : "bg-white/[0.06] text-[#94A3B8]"
                           }`}
                         >
                           {String.fromCharCode(65 + idx)}
                         </span>
                         <span className="flex-1">{opt}</span>
-                        {isSelected && <Check size={16} className="text-[#2563EB]" />}
+                        {isSelected && <Check size={16} className="text-[#7C3AED]" />}
                       </div>
                     </button>
                   );
@@ -228,7 +231,7 @@ export default function CompetitionQuizView({ competitionId, competitionTitle, o
             <button
               onClick={() => setCurrentIdx(currentIdx + 1)}
               disabled={answers[current.questionId] === undefined}
-              className="flex-1 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {t("common.next")} <ChevronRight size={16} />
             </button>
@@ -269,7 +272,7 @@ export function CompetitionResultView({
   const accuracyPct = Math.round(result.accuracy * 100);
 
   return (
-    <div className="fixed inset-0 bg-[#071120] z-[80] overflow-y-auto">
+    <div className="fixed inset-0 bg-[#12101A] z-[80] overflow-y-auto">
       <div className="max-w-md mx-auto px-4 py-8 min-h-full flex flex-col justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -278,49 +281,49 @@ export function CompetitionResultView({
           className="text-center"
         >
           {/* Trophy */}
-          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#F5B84A] to-[#2563EB] flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#F59E0B] to-[#7C3AED] flex items-center justify-center">
             <Trophy size={36} className="text-white" />
           </div>
 
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F97316] mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B] mb-1">
             {competitionTitle}
           </p>
           <h1 className="text-2xl font-black text-white mb-1">{t("competition.resultTitle")}</h1>
           <p className="text-xs text-[#94A3B8] mb-6">{t("competition.resultSubtitle")}</p>
 
           {/* Score */}
-          <div className="bg-[#13294A] border border-white/[0.08] rounded-2xl p-5 mb-4">
+          <div className="bg-[#1C1929] border border-white/[0.08] rounded-2xl p-5 mb-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("competition.scoreLabel")}</p>
             <p className="text-4xl font-black text-white">{result.score}</p>
           </div>
 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-3">
+            <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
               <Check size={14} className="mx-auto text-[#22C55E] mb-1" />
               <p className="text-lg font-black text-white">{result.correctCount}/{result.totalQuestions}</p>
               <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.correctLabel")}</p>
             </div>
-            <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-3">
-              <Target size={14} className="mx-auto text-[#22D3EE] mb-1" />
+            <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
+              <Target size={14} className="mx-auto text-[#38BDF8] mb-1" />
               <p className="text-lg font-black text-white">{accuracyPct}%</p>
               <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.accuracyLabel")}</p>
             </div>
-            <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-3">
-              <TrendingUp size={14} className="mx-auto text-[#60A5FA] mb-1" />
+            <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
+              <TrendingUp size={14} className="mx-auto text-[#A78BFA] mb-1" />
               <p className="text-lg font-black text-white">#{result.rank}</p>
               <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.rankLabel")}</p>
             </div>
-            <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-3">
-              <Award size={14} className="mx-auto text-[#F5B84A] mb-1" />
+            <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-3">
+              <Award size={14} className="mx-auto text-[#F59E0B] mb-1" />
               <p className="text-lg font-black text-white">+{result.fpAwarded}</p>
               <p className="text-[9px] text-[#94A3B8] uppercase tracking-wider">{t("competition.fpEarnedLabel")}</p>
             </div>
           </div>
 
           {result.fpAwarded > 0 && (
-            <div className="bg-[#F5B84A]/10 border border-[#F5B84A]/20 rounded-xl p-3 mb-4">
-              <p className="text-[11px] text-[#F5B84A] font-bold">
+            <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-xl p-3 mb-4">
+              <p className="text-[11px] text-[#F59E0B] font-bold">
                 {t("competition.fpAdded", { n: result.fpAwarded })}
               </p>
             </div>
@@ -330,7 +333,7 @@ export function CompetitionResultView({
           <div className="space-y-2">
             <button
               onClick={onViewLeaderboard}
-              className="w-full py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2"
             >
               <TrendingUp size={16} /> {t("competition.viewLeaderboard")}
             </button>

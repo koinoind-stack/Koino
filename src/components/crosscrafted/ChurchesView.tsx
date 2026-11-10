@@ -24,11 +24,14 @@ import {
   Flag,
   ArrowUpDown,
   ExternalLink,
+  Pencil,
+  Mail,
 } from "lucide-react";
 import {
   INDIAN_STATES,
   LANGUAGES,
   CHURCH_GRADIENTS,
+  CHURCH_TYPES,
   type Church,
   type ServiceTime,
 } from "@/lib/crosscrafted-data";
@@ -44,7 +47,7 @@ type Props = {
   onListChurch?: () => void;
 };
 
-type DiscoverTab = "discover" | "my-churches";
+type DiscoverTab = "discover" | "my-churches" | "my-listings";
 
 export default function ChurchesView({ initialOpenChurchId, onListChurch }: Props) {
   const t = useTranslation();
@@ -67,6 +70,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   const [filterDenomination, setFilterDenomination] = useState("");
   const [filterLanguage, setFilterLanguage] = useState("");
   const [filterServiceDay, setFilterServiceDay] = useState("");
+  const [filterType, setFilterType] = useState("");
   const [sortBy, setSortBy] = useState<"featured" | "name" | "newest">("featured");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -96,8 +100,11 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     city: string;
     languages: string[];
     denomination: string;
+    type: string;
     images: string[];
     whatsapp_number: string;
+    contact_phone: string;
+    contact_email: string;
     service_times: ServiceTime[];
   }>({
     name: "",
@@ -107,10 +114,72 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     city: "",
     languages: [],
     denomination: "",
+    type: "Church",
     images: [],
     whatsapp_number: "",
+    contact_phone: "",
+    contact_email: "",
     service_times: [{ language: "English", day: "Sunday", time: "" }],
   });
+
+  // Owner self-edit — when editingId is set, the shared form modal below
+  // PATCHes the owner's listing instead of creating a new one. Owners reach
+  // it through the "Edit listing" button shown on their detail view.
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // ─── MY LISTINGS — the signed-in owner's own submissions (any status) ───
+  // Loaded lazily when the "My Listings" tab is first opened, and refreshed
+  // after every successful owner edit so the review state stays truthful.
+  // PENDING / REJECTED listings never appear in the public list above.
+  const [myListings, setMyListings] = useState<Church[]>([]);
+  const [myListingsLoading, setMyListingsLoading] = useState(false);
+  const [myListingsLoaded, setMyListingsLoaded] = useState(false);
+  const [myListingsError, setMyListingsError] = useState<string | null>(null);
+
+  const openEdit = (c: Church) => {
+    setEditingId(c.id);
+    setFormData({
+      name: c.name,
+      description: c.description,
+      location: c.location || "",
+      state: c.state || "",
+      city: c.city || "",
+      languages: c.languages || [],
+      denomination: c.denomination || "",
+      type: (c.type as string) || "Church",
+      images: c.images && c.images.length > 0 ? c.images : c.cover_image ? [c.cover_image] : [],
+      whatsapp_number: c.whatsapp_number || "",
+      contact_phone: c.contactPhone || "",
+      contact_email: c.contactEmail || "",
+      service_times: c.service_times && c.service_times.length > 0
+        ? c.service_times
+        : [{ language: "English", day: "Sunday", time: "" }],
+    });
+    setShowCreateModal(true);
+  };
+
+  const closeFormModal = () => {
+    setShowCreateModal(false);
+    setEditingId(null);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      location: "",
+      state: "",
+      city: "",
+      languages: [],
+      denomination: "",
+      type: "Church",
+      images: [],
+      whatsapp_number: "",
+      contact_phone: "",
+      contact_email: "",
+      service_times: [{ language: "English", day: "Sunday", time: "" }],
+    });
+  };
 
   const addServiceTime = () => {
     setFormData((prev) => ({
@@ -154,6 +223,35 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
   useEffect(() => {
     loadChurches();
   }, []);
+
+  // Owner's own listings (any status) — for the "My Listings" tab. `force`
+  // re-fetches (used after an owner edit / explicit retry).
+  const loadMyListings = async (force = false) => {
+    if (!isAuthenticated) {
+      setMyListings([]);
+      setMyListingsLoaded(true);
+      return;
+    }
+    if (myListingsLoaded && !force) return;
+    setMyListingsLoading(true);
+    setMyListingsError(null);
+    try {
+      const res = await fetch("/api/churches/mine", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || t("churches.mine.loadFailed"));
+      setMyListings(data.churches || []);
+      setMyListingsLoaded(true);
+    } catch (e: any) {
+      setMyListingsError(e.message || t("churches.mine.loadFailed"));
+    } finally {
+      setMyListingsLoading(false);
+    }
+  };
+
+  // Fetch as soon as the tab is opened first (and on auth state change).
+  useEffect(() => {
+    if (discoverTab === "my-listings" && !myListingsLoaded) loadMyListings();
+  }, [discoverTab, myListingsLoaded, isAuthenticated]);
 
   // Hydrate REAL follow state from the DB (auth only).
   useEffect(() => {
@@ -255,6 +353,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       if (filterState && c.state !== filterState) return false;
       if (cityQ && !(c.city || "").toLowerCase().includes(cityQ)) return false;
       if (filterDenomination && c.denomination !== filterDenomination) return false;
+      if (filterType && (c.type || "Church") !== filterType) return false;
       if (filterLanguage && !c.languages.includes(filterLanguage)) return false;
       if (filterServiceDay && !c.service_times.some((s) => s.day === filterServiceDay)) return false;
       if (q) {
@@ -267,9 +366,9 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
     else if (sortBy === "newest") list.sort((a, b) => b.id.localeCompare(a.id)); // cuid ~ time-ordered
     // "featured" keeps the server order (featured first, then newest, then name)
     return list;
-  }, [churches, filterState, filterCity, filterDenomination, filterLanguage, filterServiceDay, searchQuery, sortBy]);
+  }, [churches, filterState, filterCity, filterDenomination, filterType, filterLanguage, filterServiceDay, searchQuery, sortBy]);
 
-  const activeFilters = [filterState, filterCity, filterDenomination, filterLanguage, filterServiceDay, searchQuery].filter(Boolean).length;
+  const activeFilters = [filterState, filterCity, filterDenomination, filterType, filterLanguage, filterServiceDay, searchQuery].filter(Boolean).length;
 
   // ─── REAL follow toggle — server-persisted, optimistic with rollback ───
   const toggleFollow = async (id: string) => {
@@ -378,44 +477,69 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
       return;
     }
     setSubmitting(true);
+    // Capture BEFORE closeFormModal() resets it.
+    const editTargetId = editingId;
+    const wasEditing = editTargetId !== null;
     try {
       const validServices = formData.service_times.filter((s) => s.time.trim());
-      const res = await fetch("/api/churches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          denomination: formData.denomination,
-          state: formData.state,
-          city: formData.city,
-          location: formData.location,
-          address: formData.location,
-          languages: formData.languages,
-          images: formData.images,
-          cover_image: formData.images[0] || null,
-          whatsapp_number: formData.whatsapp_number || null,
-          service_times: validServices,
-        }),
-      });
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        denomination: formData.denomination,
+        type: formData.type,
+        state: formData.state,
+        city: formData.city,
+        location: formData.location,
+        address: formData.location,
+        languages: formData.languages,
+        images: formData.images,
+        cover_image: formData.images[0] || null,
+        whatsapp_number: formData.whatsapp_number || null,
+        // Contact details — POST reads contact_phone/contact_email, PATCH
+        // reads contactPhone/contactEmail; send both spellings so the same
+        // payload serves the create (POST) and owner-edit (PATCH) paths.
+        contact_phone: formData.contact_phone || null,
+        contact_email: formData.contact_email || null,
+        contactPhone: formData.contact_phone || null,
+        contactEmail: formData.contact_email || null,
+        service_times: validServices,
+      };
+      // Owner edit → PATCH /api/churches/[id] (owner-guarded server-side).
+      // New listing → POST /api/churches (PENDING until approved).
+      const res = wasEditing
+        ? await fetch(`/api/churches/${editTargetId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/churches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("churches.form.errorHttp", { status: res.status }));
-      setShowCreateModal(false);
-      setFormData({
-        name: "",
-        description: "",
-        location: "",
-        state: "",
-        city: "",
-        languages: [],
-        denomination: "",
-        images: [],
-        whatsapp_number: "",
-        service_times: [{ language: "English", day: "Sunday", time: "" }],
-      });
-      toast.success(t("churches.submit.success"), {
-        description: t("churches.submit.successDesc"),
-      });
+      closeFormModal();
+      resetForm();
+      if (wasEditing && editTargetId) {
+        // Optimistic merge for the card + detail, then a background reload
+        // reconciles with server truth (is_owner, followers, …).
+        const edited: Partial<Church> = {
+          ...formData,
+          service_times: validServices,
+          cover_image: formData.images[0] || undefined,
+          images: formData.images,
+        };
+        setChurches((cs) => cs.map((c) => (c.id === editTargetId ? { ...c, ...edited } : c)));
+        setOpenChurch((prev) => (prev && prev.id === editTargetId ? { ...prev, ...edited } : prev));
+        loadChurches();
+        loadMyListings(true); // keep the My Listings review state fresh
+        toast.success(t("churches.editSuccess"), { description: t("churches.editSuccessDesc") });
+      } else {
+        toast.success(t("churches.submit.success"), {
+          description: t("churches.submit.successDesc"),
+        });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("churches.submit.error"));
     } finally {
@@ -460,21 +584,21 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               }
             }}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
-            style={{ background: "linear-gradient(135deg, #A855F7, #F97316)" }}
+            style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
           >
             <Plus size={14} /> {t("churches.listYourChurch")}
           </button>
         </div>
       </div>
 
-      {/* ─── DISCOVER / MY CHURCHES TAB ─── */}
+      {/* ─── DISCOVER / MY CHURCHES / MY LISTINGS TAB ─── */}
       <div className="mb-5">
         <div className="flex p-1 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
           <button
             onClick={() => setDiscoverTab("discover")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
               discoverTab === "discover"
-                ? "bg-gradient-to-r from-[#2563EB] to-[#F97316] text-white shadow-lg shadow-[#2563EB]/20"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -484,11 +608,21 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             onClick={() => setDiscoverTab("my-churches")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
               discoverTab === "my-churches"
-                ? "bg-gradient-to-r from-[#2563EB] to-[#F97316] text-white shadow-lg shadow-[#2563EB]/20"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
             <Heart size={13} /> {t("churches.tab.myChurches")}
+          </button>
+          <button
+            onClick={() => setDiscoverTab("my-listings")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
+              discoverTab === "my-listings"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
+                : "text-[#94A3B8] hover:text-white"
+            }`}
+          >
+            <Building2 size={13} /> {t("churches.tab.myListings")}
           </button>
         </div>
       </div>
@@ -549,6 +683,23 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
+                  <Building2 size={10} className="inline mr-0.5" /> {t("churches.type")}
+                </label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="neo-input text-sm"
+                >
+                  <option value="">{t("churches.filter.allTypes")}</option>
+                  {CHURCH_TYPES.map((tp) => (
+                    <option key={tp} value={tp}>
+                      {tp}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">
                   <Building2 size={10} className="inline mr-0.5" /> {t("churches.denomination")}
                 </label>
                 <select
@@ -605,6 +756,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   setFilterState("");
                   setFilterCity("");
                   setFilterDenomination("");
+                  setFilterType("");
                   setFilterLanguage("");
                   setFilterServiceDay("");
                   setSearchQuery("");
@@ -643,7 +795,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         {/* Loading state */}
         {churchesLoading && (
           <div className="text-center py-12">
-            <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin mb-3" />
+            <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
             <p className="text-xs text-[#94A3B8]">{t("churches.loading")}</p>
           </div>
         )}
@@ -665,8 +817,8 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         {/* Empty state — no published churches yet */}
         {!churchesLoading && !churchesError && churches.length === 0 && (
           <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/15 border border-[#2563EB]/25 mb-3">
-              <Building2 size={24} className="text-[#60A5FA]" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
+              <Building2 size={24} className="text-[#A78BFA]" />
             </div>
             <p className="text-sm font-bold text-white mb-1">{t("churches.empty.title")}</p>
             <p className="text-xs text-[#A09DB1] mb-4 max-w-sm mx-auto">
@@ -675,14 +827,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
             {isAuthenticated ? (
               <button
                 onClick={() => (onListChurch ? onListChurch() : setShowCreateModal(true))}
-                className="px-5 py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+                className="px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
               >
                 {t("churches.listYourChurch")}
               </button>
             ) : (
               <a
                 href="/api/auth/signin"
-                className="inline-block px-5 py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+                className="inline-block px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
               >
                 {t("churches.empty.signInCta")}
               </a>
@@ -700,6 +852,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 setFilterState("");
                 setFilterCity("");
                 setFilterDenomination("");
+                setFilterType("");
                 setFilterLanguage("");
                 setFilterServiceDay("");
                 setSearchQuery("");
@@ -724,24 +877,27 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 setOpenChurch(church);
                 setActiveImageIdx(0);
               }}
-              className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#13294A]"
+              className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929]"
             >
               <div className="relative h-[200px]">
-                {church.cover_image ? (
+                {/* Gradient underlay — broken/missing covers fall back to it */}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: CHURCH_GRADIENTS[church.cover_gradient % CHURCH_GRADIENTS.length] }}
+                />
+                {church.cover_image && (
                   <img
                     src={church.cover_image}
                     alt={church.name}
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
-                  />
-                ) : (
-                  <div
-                    className="w-full h-full"
-                    style={{ background: CHURCH_GRADIENTS[church.cover_gradient % CHURCH_GRADIENTS.length] }}
+                    className="relative w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/30 to-transparent" />
                 {church.featured && (
-                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#F5B84A]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider">
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#F59E0B]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider">
                     {t("common.featured")}
                   </span>
                 )}
@@ -787,7 +943,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
 
               <div className="p-4">
                 {church.denomination && (
-                  <span className="inline-block px-2 py-0.5 rounded-full bg-[#A855F7]/10 border border-[#A855F7]/25 text-[#93C5FD] text-[10px] font-bold uppercase tracking-wider mb-2">
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-[#A855F7]/10 border border-[#A855F7]/25 text-[#C4B5FD] text-[10px] font-bold uppercase tracking-wider mb-2">
                     {church.denomination}
                   </span>
                 )}
@@ -840,7 +996,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       setOpenChurch(church);
                       setActiveImageIdx(0);
                     }}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.08] text-[#93C5FD] hover:text-white transition-all"
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.08] text-[#C4B5FD] hover:text-white transition-all"
                   >
                     {t("churches.viewChurch")}
                   </button>
@@ -869,6 +1025,24 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
         />
       )}
 
+      {/* ─── MY LISTINGS TAB ─── */}
+      {discoverTab === "my-listings" && (
+        <MyListingsView
+          listings={myListings}
+          loading={myListingsLoading}
+          error={myListingsError}
+          isAuthenticated={isAuthenticated}
+          onOpenChurch={(c) => {
+            setOpenChurch(c);
+            setActiveImageIdx(0);
+          }}
+          onEdit={openEdit}
+          onRetry={() => loadMyListings(true)}
+          onListChurch={onListChurch}
+          setShowCreateModal={setShowCreateModal}
+        />
+      )}
+
       {/* Church Detail Modal */}
       <AnimatePresence>
         {openChurch && (
@@ -884,33 +1058,39 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
               <div className="relative h-48 md:h-56">
                 {(() => {
+                  // Gradient always renders underneath — a broken/missing
+                  // image (e.g. a corrupted legacy data URL) hides itself
+                  // onError and the branded gradient shows instead.
                   const allImages = openChurch.images && openChurch.images.length > 0
                     ? openChurch.images
                     : openChurch.cover_image
                     ? [openChurch.cover_image]
                     : [];
                   const activeImg = allImages[activeImageIdx] || allImages[0];
-                  if (activeImg) {
-                    return (
-                      <img
-                        src={activeImg}
-                        alt={openChurch.name}
-                        className="w-full h-full object-cover"
-                      />
-                    );
-                  }
                   return (
-                    <div
-                      className="w-full h-full"
-                      style={{ background: CHURCH_GRADIENTS[openChurch.cover_gradient % CHURCH_GRADIENTS.length] }}
-                    />
+                    <>
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: CHURCH_GRADIENTS[openChurch.cover_gradient % CHURCH_GRADIENTS.length] }}
+                      />
+                      {activeImg && (
+                        <img
+                          src={activeImg}
+                          alt={openChurch.name}
+                          className="relative w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      )}
+                    </>
                   );
                 })()}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent" />
                 <button
                   onClick={() => setOpenChurch(null)}
                   className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
@@ -935,7 +1115,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       />
                     )}
                   </div>
-                  <p className="text-xs text-white/70">{openChurch.denomination || t("churches.fallbackDenomination")}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs text-white/70">{openChurch.denomination || t("churches.fallbackDenomination")}</p>
+                    {openChurch.type && openChurch.type !== "Church" && (
+                      <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/80 text-[10px] font-bold uppercase tracking-wide">
+                        {openChurch.type}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1021,7 +1208,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       {openChurch.languages.map((lang) => (
                         <span
                           key={lang}
-                          className="px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[11px] font-semibold"
+                          className="px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[11px] font-semibold"
                         >
                           {lang}
                         </span>
@@ -1070,7 +1257,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                           <span className="min-w-0 flex-1">
                             <span className="text-xs font-bold text-white flex items-center gap-1 truncate">
                               {g.name}
-                              {g.churchVerified && <ShieldCheck size={11} className="text-[#22D3EE] shrink-0" />}
+                              {g.churchVerified && <ShieldCheck size={11} className="text-[#38BDF8] shrink-0" />}
                             </span>
                             <span className="text-[10px] text-[#94A3B8] block truncate">
                               {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
@@ -1107,7 +1294,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                             className="flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-xl p-2.5 transition-colors"
                           >
                             <span className="w-9 h-9 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/25 flex items-center justify-center shrink-0">
-                              <CalendarDays size={14} className="text-[#93C5FD]" />
+                              <CalendarDays size={14} className="text-[#C4B5FD]" />
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="text-xs font-bold text-white block truncate">{ev.title}</span>
@@ -1136,6 +1323,39 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     </svg>
                     {t("churches.contactWhatsApp")}
                   </a>
+                )}
+
+                {/* Contact details — call / email when the listing provides them */}
+                {(openChurch.contactPhone || openChurch.contactEmail) && (
+                  <div className={`grid gap-2 ${openChurch.contactPhone && openChurch.contactEmail ? "grid-cols-2" : "grid-cols-1"}`}>
+                    {openChurch.contactPhone && (
+                      <a
+                        href={`tel:${openChurch.contactPhone.replace(/[^+0-9]/g, "")}`}
+                        className="py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#93C5FD] hover:bg-[#3B82F6]/25 transition-all"
+                      >
+                        <Phone size={14} /> {t("churches.contactCall")}
+                      </a>
+                    )}
+                    {openChurch.contactEmail && (
+                      <a
+                        href={`mailto:${openChurch.contactEmail}`}
+                        className="py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white transition-all"
+                      >
+                        <Mail size={14} /> {t("churches.contactEmailBtn")}
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Owner self-edit — only the listing's owner sees this.
+                    The server re-checks ownership on every PATCH. */}
+                {openChurch.is_owner && (
+                  <button
+                    onClick={() => openEdit(openChurch)}
+                    className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#C4B5FD] hover:text-white transition-all"
+                  >
+                    <Pencil size={14} /> {t("churches.editListing")}
+                  </button>
                 )}
 
                 {/* Action row — every button is a real, working action */}
@@ -1169,7 +1389,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   </button>
                   <button
                     onClick={() => openChurchShare(openChurch)}
-                    className="py-3 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#93C5FD] hover:text-white transition-all flex items-center justify-center gap-2"
+                    className="py-3 rounded-xl text-sm font-bold bg-white/[0.04] border border-white/[0.08] text-[#C4B5FD] hover:text-white transition-all flex items-center justify-center gap-2"
                   >
                     <Share2 size={14} /> {t("churches.shareChurch")}
                   </button>
@@ -1230,14 +1450,14 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               animate={{ y: 0 }}
               exit={{ y: 100 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#13294A] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto"
+              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold gradient-text bg-gradient-to-r from-[#F97316] to-[#3B82F6] bg-clip-text text-transparent">
-                  {t("churches.listYourChurch")}
+                <h2 className="text-lg font-bold gradient-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3] bg-clip-text text-transparent">
+                  {editingId ? t("churches.editListing") : t("churches.listYourChurch")}
                 </h2>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeFormModal}
                   className="text-[#64748B] hover:text-white p-1"
                 >
                   <X size={20} />
@@ -1256,7 +1476,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                       State
@@ -1285,6 +1505,22 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                       className="neo-input text-sm"
                       placeholder="City"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                      {t("churches.type")}
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      className="neo-input text-sm"
+                    >
+                      {CHURCH_TYPES.map((tp) => (
+                        <option key={tp} value={tp}>
+                          {tp}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div>
@@ -1325,12 +1561,39 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                      <Phone size={10} className="inline mr-0.5" /> {t("churches.form.contactPhone")}
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                      className="neo-input text-sm"
+                      placeholder={t("common.whatsappPlaceholder")}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                      <Mail size={10} className="inline mr-0.5" /> {t("churches.form.contactEmail")}
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                      className="neo-input text-sm"
+                      placeholder="office@church.in"
+                    />
+                  </div>
+                </div>
 
                 <ImagePicker
                   images={formData.images}
                   onChange={(images) => setFormData({ ...formData, images })}
                   max={5}
                   label={t("churches.form.photos")}
+                  uploadUrl="/api/churches/upload-image"
                 />
 
                 {/* Multi-row service times */}
@@ -1342,7 +1605,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                     <button
                       type="button"
                       onClick={addServiceTime}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#60A5FA] text-[10px] font-bold hover:bg-[#A855F7]/25 transition-all"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#A855F7]/15 border border-[#A855F7]/30 text-[#A78BFA] text-[10px] font-bold hover:bg-[#A855F7]/25 transition-all"
                     >
                       <Plus size={10} /> {t("churches.form.addService")}
                     </button>
@@ -1436,7 +1699,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={closeFormModal}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                   >
                     {t("common.cancel")}
@@ -1444,14 +1707,20 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F97316] hover:bg-[#EA580C] transition-all hover:-translate-y-px disabled:opacity-60"
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-950 bg-[#F39B9B] hover:bg-[#E27B7B] transition-all hover:-translate-y-px disabled:opacity-60"
                   >
-                    {submitting ? t("common.submitting") : t("churches.form.submit")}
+                    {submitting
+                      ? t("common.submitting")
+                      : editingId
+                        ? t("churches.updateListing")
+                        : t("churches.form.submit")}
                   </button>
+                </div>
+                {!editingId && (
                   <p className="text-[10px] text-[#64748B] text-center leading-relaxed">
                     {t("churches.form.reviewNote")}
                   </p>
-                </div>
+                )}
               </form>
             </motion.div>
           </motion.div>
@@ -1473,7 +1742,7 @@ export default function ChurchesView({ initialOpenChurchId, onListChurch }: Prop
               animate={{ y: 0 }}
               exit={{ y: 100 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#13294A] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-md p-5"
+              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-md p-5"
             >
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-base font-bold text-white">{t("churches.report.title")}</h3>
@@ -1562,7 +1831,7 @@ function MyChurchesView({
         <a
           href="/api/auth/signin"
           className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "linear-gradient(135deg, #A855F7, #F97316)" }}
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
         >
           {t("signin.submit.signin")}
         </a>
@@ -1579,7 +1848,7 @@ function MyChurchesView({
         <button
           onClick={() => onListChurch ? onListChurch() : setShowCreateModal(true)}
           className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "linear-gradient(135deg, #A855F7, #F97316)" }}
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
         >
           {t("churches.listYourChurch")}
         </button>
@@ -1598,7 +1867,7 @@ function MyChurchesView({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => onOpenChurch(church)}
-          className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#13294A]"
+          className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929]"
         >
           <div className="flex gap-3 p-3">
             {/* Thumbnail */}
@@ -1645,6 +1914,186 @@ function MyChurchesView({
           </div>
         </motion.div>
       ))}
+    </div>
+  );
+}
+
+// ─── My Listings — the signed-in owner's own submissions (any status) ──────
+// Owners open this tab to see where each listing stands in review
+// (PENDING / PUBLISHED / REJECTED / CANCELLED), open it in the public
+// detail view, or edit it via the shared form modal (PATCH). This is the
+// owner side of "when user list church there need to be option for them to
+// edit or update something" — the server re-checks ownership on every save.
+function MyListingsView({
+  listings,
+  loading,
+  error,
+  isAuthenticated,
+  onOpenChurch,
+  onEdit,
+  onRetry,
+  onListChurch,
+  setShowCreateModal,
+}: {
+  listings: Church[];
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+  onOpenChurch: (c: Church) => void;
+  onEdit: (c: Church) => void;
+  onRetry: () => void;
+  onListChurch?: () => void;
+  setShowCreateModal: (v: boolean) => void;
+}) {
+  const t = useTranslation();
+
+  const statusBadge = (status: string) => {
+    if (status === "PUBLISHED") {
+      return { label: t("churches.mine.statusLive"), cls: "bg-[#22C55E]/15 border-[#22C55E]/30 text-[#4ADE80]" };
+    }
+    if (status === "PENDING") {
+      return { label: t("churches.mine.statusPending"), cls: "bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#FBBF24]" };
+    }
+    if (status === "REJECTED") {
+      return { label: t("churches.mine.statusRejected"), cls: "bg-[#EF4444]/15 border-[#EF4444]/30 text-[#F87171]" };
+    }
+    return { label: t("churches.mine.statusCancelled"), cls: "bg-white/[0.06] border-white/[0.12] text-[#94A3B8]" };
+  };
+
+  // Auth gate — anonymous visitors can't own listings
+  if (!isAuthenticated) {
+    return (
+      <div className="text-center py-16">
+        <Building2 size={32} className="mx-auto text-[#475569] mb-3" />
+        <p className="text-sm text-[#94A3B8] mb-1">{t("churches.mine.signInPrompt")}</p>
+        <p className="text-[11px] text-[#64748B] mb-4">{t("churches.mine.signInHint")}</p>
+        <a
+          href="/api/auth/signin"
+          className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
+        >
+          {t("signin.submit.signin")}
+        </a>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
+        <p className="text-xs text-[#94A3B8]">{t("churches.loading")}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-2xl p-5 text-center">
+        <p className="text-sm font-bold text-[#EF4444] mb-3">{error}</p>
+        <button
+          onClick={onRetry}
+          className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold transition-all"
+        >
+          {t("common.retry")}
+        </button>
+      </div>
+    );
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <Building2 size={32} className="mx-auto text-[#475569] mb-3" />
+        <p className="text-sm text-[#94A3B8] mb-1">{t("churches.mine.empty")}</p>
+        <p className="text-[11px] text-[#64748B] mb-4">{t("churches.mine.emptyHint")}</p>
+        <button
+          onClick={() => onListChurch ? onListChurch() : setShowCreateModal(true)}
+          className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+          style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)" }}
+        >
+          {t("churches.listYourChurch")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-[#94A3B8]">
+        {t("churches.mine.count", { count: listings.length })}
+      </p>
+      {listings.map((church) => {
+        const badge = statusBadge(church.status);
+        return (
+          <motion.div
+            key={church.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => onOpenChurch(church)}
+            className="rounded-2xl overflow-hidden cursor-pointer group border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929]"
+          >
+            <div className="flex gap-3 p-3">
+              {/* Thumbnail */}
+              <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-[#0f0f1a]">
+                {church.cover_image ? (
+                  <img
+                    src={church.cover_image}
+                    alt={church.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full"
+                    style={{ background: CHURCH_GRADIENTS[(church.cover_gradient || 0) % CHURCH_GRADIENTS.length] }}
+                  />
+                )}
+              </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-sm font-bold text-white leading-tight truncate">{church.name}</h3>
+                  {church.type && church.type !== "Church" && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.12] text-white/80 text-[9px] font-bold uppercase tracking-wide shrink-0">
+                      {church.type}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">
+                  {church.city ? `${church.city}, ` : ""}{church.state}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                  {church.status === "REJECTED" && church.rejectionReason && (
+                    <span className="text-[10px] text-[#F87171] truncate max-w-[200px]">
+                      {church.rejectionReason}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* Edit */}
+              <div className="flex items-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(church);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-white/[0.06] text-[#94A3B8] border border-white/[0.06] hover:bg-white/[0.1] hover:text-white transition-all"
+                >
+                  <span className="flex items-center gap-1">
+                    <Pencil size={11} /> {t("churches.editListing")}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }

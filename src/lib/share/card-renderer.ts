@@ -153,10 +153,10 @@ function wrapText(text: string, maxChars: number, maxLines: number): string[] {
 type Palette = { deep: string; mid: string; glow: string; accent: string };
 
 const PALETTES: Palette[] = [
-  { deep: "#14101F", mid: "#221A38", glow: "#F97316", accent: "#F97316" }, // comics rose
-  { deep: "#120F1E", mid: "#1E1740", glow: "#2563EB", accent: "#60A5FA" }, // brand violet
-  { deep: "#0E1420", mid: "#13233C", glow: "#22D3EE", accent: "#7DD3FC" }, // watch sky
-  { deep: "#171122", mid: "#2A1B33", glow: "#F97316", accent: "#F9A8D4" }, // memorial pink
+  { deep: "#14101F", mid: "#221A38", glow: "#F39B9B", accent: "#F39B9B" }, // comics rose
+  { deep: "#120F1E", mid: "#1E1740", glow: "#7C3AED", accent: "#A78BFA" }, // brand violet
+  { deep: "#0E1420", mid: "#13233C", glow: "#38BDF8", accent: "#7DD3FC" }, // watch sky
+  { deep: "#171122", mid: "#2A1B33", glow: "#EC4899", accent: "#F9A8D4" }, // memorial pink
   { deep: "#131A16", mid: "#1B2B22", glow: "#22C55E", accent: "#86EFAC" }, // trivia green
 ];
 

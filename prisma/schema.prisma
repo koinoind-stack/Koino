@@ -114,6 +114,10 @@ model User {
   competitionAttempts TriviaCompetitionAttempt[]
   triviaWins          TriviaWinner[]
 
+  // Comic Bible reading sync (server-side progress + story bookmarks)
+  comicReadingProgress ComicReadingProgress[]
+  comicBookmarks       ComicBookmark[]
+
   // Streak + rewards
   userStreak          UserStreak?
   userRewards         UserReward[]
@@ -154,6 +158,10 @@ model User {
   authoredBlogPosts   BlogPost[] @relation("BlogPostAuthor")
   reviewedBlogPosts   BlogPost[] @relation("BlogPostReviewer")
   publishedBlogPosts  BlogPost[] @relation("BlogPostPublisher")
+
+  // Articles & Knowledge Phase 2 — unified-model authorship (additive,
+  // nullable until the Phase 3 author resolution backfill)
+  authoredKoinoArticles KoinoArticle[] @relation("KoinoArticleAuthor")
 
   // Matrimony (Task 74 Stage B) — one private profile per member
   matrimonyProfile    MatrimonyProfile?
@@ -402,9 +410,22 @@ model Post {
   // Blog & Articles (Task 73): set when this post is the feed card of a
   // published blog article (card renders a "Read Article" banner). @unique:
   // exactly one feed wrapper per article — prevents duplicate feed entries.
-  // SetNull: deleting the article keeps the post and its engagement history.
+  // SetNull only covers DIRECT article deletion (a stray wrapper would be
+  // kept with articleId nulled). The admin hard-delete workflow
+  // (DELETE /api/admin/blog/[id]) deliberately deletes the wrapper Post
+  // FIRST, in the same transaction as the article — the wrapper's likes,
+  // comments, replies, bookmarks and notifications are then removed by
+  // their own onDelete: Cascade rules (owner-approved semantics).
+  // Unpublishing keeps the wrapper and its engagement (published: false)
+  // so a later republication restores the discussion.
   article      BlogPost?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
   articleId    String?         @unique
+  // Articles & Knowledge Phase 2 (Plan v2 §2.6): second wrapper FK pointing at
+  // the unified KoinoArticle model. Populated during the Phase 3 migration
+  // (one wrapper per article — @unique); the legacy `articleId` column above
+  // is kept in parallel until the optional Phase 9 retirement.
+  unifiedArticle KoinoArticle? @relation("UnifiedArticleFeedWrapper", fields: [unifiedArticleId], references: [id], onDelete: SetNull)
+  unifiedArticleId String?     @unique
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -657,6 +678,15 @@ model ComicChapter {
   title           String             // English default title
   coverArtUrl     String?            // optional chapter cover image
   sortOrder       Int      @default(0)
+  // Story experience flags (Comic Bible redesign).
+  kidsFriendly    Boolean  @default(false) // surfaced in the "For Kids" library tab
+  // Optional suggested age band for kids-friendly stories.
+  //   "3-5" | "6-8" | "9-12" — null = no age guidance (story may not be kids).
+  kidsAgeGroup    String?
+  // Reader pagination mode configured by admins:
+  //   "individual" — each panel is one page; desktop shows a two-page spread
+  //   "spread"     — panels are pre-composed two-page spreads; one per view
+  pageMode        String   @default("individual") // "individual" | "spread"
   // Publishing workflow state.
   // draft    — admin started but not finished
   // review   — ready for someone else to QA
@@ -672,6 +702,8 @@ model ComicChapter {
   panels          ComicPanel[]
   translations    ComicChapterTranslation[]
   quizLinks       ComicChapterQuiz[]
+  readingProgress ComicReadingProgress[]
+  bookmarks       ComicBookmark[]
 
   @@unique([bookId, chapter]) // one comic per book+chapter
   @@index([bookId])
@@ -707,6 +739,11 @@ model ComicPanelTranslation {
   title           String?            // Panel title in this language
   narration       String?            // Narration / story text
   captions        String   @default("[]") // JSON array of caption strings (speech bubbles, etc.)
+  // Per-language publish state. Only "published" rows are ever served to
+  // readers — the public API never silently shows a draft or missing
+  // language's content. Existing rows default to "published" so the redesign
+  // does not hide already-live content (see migration 20261104000000).
+  status          String   @default("published") // "draft" | "published"
 
   panel           ComicPanel @relation(fields: [panelId], references: [panelId], onDelete: Cascade)
 
@@ -719,6 +756,19 @@ model ComicChapterTranslation {
   comicChapterId  String
   lang            String
   title           String?            // Chapter title in this language
+  // Per-language publish state ("draft" rows are never served publicly).
+  status          String   @default("published") // "draft" | "published"
+  // Story-experience sections, localized (Comic Bible redesign §7).
+  introduction    String?            // Story introduction
+  lesson          String?            // "What We Learn"
+  prayer          String?            // Short prayer
+  // Key Bible verse — stored STRUCTURED so the verse text is always fetched
+  // live from the existing Bible translation system (never invented or
+  // duplicated). Null = story has no key verse.
+  keyVerseBook    String?            // Koino book slug, e.g. "1samuel"
+  keyVerseChapter Int?
+  keyVerseStart   Int?
+  keyVerseEnd     Int?
 
   comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
 
@@ -743,6 +793,54 @@ model ComicChapterQuiz {
   comicChapter    ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
 
   @@unique([comicChapterId, questionId]) // one link per chapter+question
+  @@index([comicChapterId])
+}
+
+// ─── COMIC READING PROGRESS (server-side sync) ───────────────────────────────
+// Mirrors the localStorage progress store (cc_comic_progress) for AUTHENTICATED
+// users so reading state survives devices and browsers. The public reader
+// always keeps writing local progress first (offline-safe) and fire-and-forget
+// syncs here. RESUME POLICY: the reader resumes from the HIGHEST of local and
+// server progress — progress never regresses.
+// @@unique([userId, comicChapterId]) guarantees ONE row per user per story:
+// every write is an UPSERT, duplicate records are impossible by construction.
+model ComicReadingProgress {
+  id             String   @id @default(cuid())
+  userId         String
+  comicChapterId String
+  lastPanel      Int      @default(0) // highest page (1-based) the user has seen
+  totalPanels    Int      @default(0) // snapshot for completion math on the library
+  completed      Boolean  @default(false) // lastPanel >= totalPanels > 0
+  startedAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comicChapter  ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comicChapterId])
+  @@index([userId])
+  @@index([comicChapterId])
+}
+
+// ─── COMIC BOOKMARKS (server-side sync) ──────────────────────────────────
+// "Bookmark stories": one row per user per story holds the bookmarked page
+// numbers (JSON array of 1-based page indexes, same shape as the reader's
+// local cc_comic_bookmarks store). A row EXISTING means the story is
+// bookmarked in the member's library; pages let the reader restore exact
+// bookmarks across devices. Upserted from the reader's bookmark toggle.
+model ComicBookmark {
+  id             String   @id @default(cuid())
+  userId         String
+  comicChapterId String
+  pages          String   @default("[]") // JSON array of bookmarked page numbers
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comicChapter  ComicChapter @relation(fields: [comicChapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comicChapterId])
+  @@index([userId])
   @@index([comicChapterId])
 }
 
@@ -992,6 +1090,10 @@ model Church {
   name            String
   description     String
   denomination    String   @default("") // e.g. "Assemblies of God", "Catholic", "Baptist", "Non-denominational"
+  // Listing kind — what this directory entry is. Fixed set so the admin and
+  // user forms can use a select and the values stay filterable:
+  // "Church" | "Ministry" | "Fellowship" | "Prayer Hall" | "Other"
+  type            String   @default("Church")
 
   // Location
   country         String   @default("India")
@@ -1399,17 +1501,120 @@ model KoinoArticle {
   seoDescription  String?
   canonicalUrl    String?
   viewCount       Int      @default(0)
+  // ─── Articles & Knowledge Phase 2 (Plan v2 §2.6) — additive, nullable ────
+  // Real authorship for any member (port of BlogPost.authorUserId); nullable
+  // until the Phase 3 backfill resolves legacy display-name authors.
+  authorUserId    String?
+  // Server-computed reading time (port of BlogPost.readingMinutes); nullable
+  // until the Phase 3 backfill computes it for existing rows.
+  readingMinutes  Int?
+  // ISO 639-1 code, default "en" — feed language signal for Phase 8.
+  language        String   @default("en")
+  // Canonical DB-managed category reference. The legacy `category` string
+  // column above is RETAINED in parallel until the optional Phase 9.
+  categoryId      String?
+  // Import marker for the Phase 3 BlogPost→KoinoArticle backfill: idempotent
+  // (unique), cleanly rollbackable, and a full audit trail of imported rows.
+  legacyBlogPostId String? @unique
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   series          ArticleSeries? @relation(fields: [seriesId], references: [id])
   author          Contributor?   @relation(fields: [authorId], references: [id])
+  authorUser      User?          @relation("KoinoArticleAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  taxonomyCategory Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topics          ArticleTopic[]
+  unifiedFeedWrappers Post[]    @relation("UnifiedArticleFeedWrapper")
 
   @@index([status, contentType, publishedAt])
   @@index([category])
   @@index([status])
   @@index([slug])
   @@index([sourceQuestionId])
+  @@index([categoryId])
+  @@index([authorUserId])
+}
+
+// ─── Articles & Knowledge Phase 2 — DB-managed taxonomy (Plan v2 §2.3/2.4) ──
+// Categories and topics are DATABASE tables managed through the admin
+// Taxonomy panel — the static registries in src/lib/* are demoted to seed
+// data + validation enums only (Plan v2 §2.5).
+
+// Broad editorial section used for browsing and filters. Seeded with the six
+// canonical sections (Apologetics, Bible Study, Christian Living, Church and
+// Ministry, Community, Prayer and Encouragement) — renamable/extendable by
+// admins without code changes.
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique // URL + SEO slug, admin-editable
+  description String?
+  iconKey     String?  // lucide icon name (crosscrafted-data.ts icon pattern)
+  imageUrl    String?
+  isActive    Boolean  @default(true) // soft deactivation — pickers hide, URLs survive
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topics   Topic[]
+  articles KoinoArticle[]
+
+  @@index([isActive, sortOrder])
+}
+
+// Admin-created subject (e.g. "Problem of Evil") — many per article via the
+// ArticleTopic join. legacyKey preserves the six existing SPA topic ids
+// exactly, so UserQuestion.category values and SPA deep links keep working
+// with zero question data migration.
+model Topic {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique // URL + SEO slug, admin-editable
+  legacyKey        String?  @unique // six legacy APOLOGETICS_TOPICS ids; null for new topics
+  parentCategoryId String
+  description      String?
+  iconKey          String?
+  imageUrl         String?
+  color            String?  // hex color preserved from the SPA topic registry
+  isActive         Boolean  @default(true) // soft deactivation — pickers hide, associations survive
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  parentCategory Category     @relation(fields: [parentCategoryId], references: [id], onDelete: Restrict)
+  articles       ArticleTopic[]
+
+  @@index([parentCategoryId])
+  @@index([isActive, sortOrder])
+}
+
+// Many-to-many article ↔ topic association (one article may carry multiple
+// topics). Both sides cascade: deleting an article or a topic removes the
+// association rows only — never the content on the other side.
+model ArticleTopic {
+  id        String   @id @default(cuid())
+  articleId String
+  topicId   String
+  createdAt DateTime @default(now())
+
+  article KoinoArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  topic   Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, topicId])
+  @@index([topicId])
+}
+
+// 301 map for the rare blog/apologetics slug collisions discovered by the
+// Phase 3 migration scan (Plan v2 Table 7). Written by the migration, served
+// by the read-cutover phase (Phase 4).
+model SlugRedirect {
+  id        String   @id @default(cuid())
+  fromSlug  String   @unique
+  toSlug    String
+  createdAt DateTime @default(now())
+
+  @@index([toSlug])
 }
 
 model ArticleSeries {

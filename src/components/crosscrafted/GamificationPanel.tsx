@@ -16,7 +16,7 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useTranslation, useLanguage } from "@/lib/i18n/LanguageContext";
 
 type DailyChallenge = {
   id: string;
@@ -54,6 +54,7 @@ type Badge = {
 
 export default function GamificationPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const t = useTranslation();
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"daily" | "spin" | "badges">("daily");
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -71,16 +72,17 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
   // Badge state
   const [badges, setBadges] = useState<Badge[]>([]);
 
-  // Fetch daily challenge
+  // Fetch daily challenge (lang dep: refetches on language switch so the
+  // question text re-renders in the active language)
   const fetchChallenge = useCallback(async () => {
     try {
-      const res = await fetch("/api/gamification/daily-challenge");
+      const res = await fetch(`/api/gamification/daily-challenge?lang=${encodeURIComponent(lang)}`);
       if (res.status === 401) return;
       const data = await res.json();
       setChallenge(data.challenge || null);
     } catch {}
     setLoading(false);
-  }, []);
+  }, [lang]);
 
   // Fetch spin data
   const fetchSpin = useCallback(async () => {
@@ -113,7 +115,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, fetchChallenge, fetchSpin, fetchBadges]);
+  }, [isAuthenticated, lang, fetchChallenge, fetchSpin, fetchBadges]);
 
   // Submit daily challenge
   const submitChallenge = async () => {
@@ -123,7 +125,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
       const res = await fetch("/api/gamification/daily-challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedAnswer }),
+        body: JSON.stringify({ selectedAnswer, lang }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -193,13 +195,13 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
 
   if (!isAuthenticated) {
     return (
-      <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-6 text-center">
-        <Sparkles size={28} className="mx-auto text-[#60A5FA] mb-2" />
+      <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
+        <Sparkles size={28} className="mx-auto text-[#A78BFA] mb-2" />
         <p className="text-sm font-bold text-white">{t("gamification.signInTitle")}</p>
         <p className="text-[11px] text-[#94A3B8] mt-1">
           {t("gamification.signInDesc")}
         </p>
-        <a href="/auth/signin" className="inline-block mt-3 px-5 py-2 rounded-xl bg-[#2563EB] text-white text-xs font-bold">
+        <a href="/auth/signin" className="inline-block mt-3 px-5 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">
           {t("rewards.signInButton")}
         </a>
       </div>
@@ -209,7 +211,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 size={24} className="text-[#2563EB] animate-spin" />
+        <Loader2 size={24} className="text-[#7C3AED] animate-spin" />
       </div>
     );
   }
@@ -221,7 +223,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
         <button
           onClick={() => setActiveTab("daily")}
           className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "daily" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"
+            activeTab === "daily" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           <Calendar size={12} /> {t("gamification.tab.daily")}
@@ -229,7 +231,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
         <button
           onClick={() => setActiveTab("spin")}
           className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "spin" ? "bg-[#F5B84A] text-slate-950" : "text-[#94A3B8] hover:text-white"
+            activeTab === "spin" ? "bg-[#F59E0B] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           <Gift size={12} /> {t("gamification.tab.spin")}
@@ -249,12 +251,12 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-2xl p-4"
+          className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-[#60A5FA]" />
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]">
+              <Calendar size={16} className="text-[#A78BFA]" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
                 {t("gamification.daily.title")}
               </p>
             </div>
@@ -320,7 +322,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
                     disabled={submitting}
                     className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all border-2 ${
                       selectedAnswer === idx
-                        ? "bg-[#2563EB] border-[#2563EB] text-white"
+                        ? "bg-[#7C3AED] border-[#7C3AED] text-white"
                         : "bg-white/[0.03] border-white/[0.06] text-[#A09DB1] hover:bg-white/[0.06] hover:text-white"
                     }`}
                   >
@@ -339,7 +341,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
                 <button
                   onClick={submitChallenge}
                   disabled={submitting}
-                  className="w-full py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? t("gamification.submitting") : t("triviaView.playing.submit")}
                   <ArrowRight size={14} />
@@ -355,11 +357,11 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#F5B84A]/20 rounded-2xl p-4"
+          className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#F59E0B]/20 rounded-2xl p-4"
         >
           <div className="flex items-center gap-2 mb-3">
-            <Gift size={16} className="text-[#F5B84A]" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#F5B84A]">
+            <Gift size={16} className="text-[#F59E0B]" />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">
               {t("gamification.spin.title")}
             </p>
           </div>
@@ -398,7 +400,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
               <button
                 onClick={doSpin}
                 disabled={spinning}
-                className="px-6 py-2.5 rounded-xl bg-[#F5B84A] hover:bg-[#E59E0B] text-slate-950 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-[#F59E0B] hover:bg-[#E59E0B] text-slate-950 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
               >
                 {spinning ? t("gamification.spin.spinning") : t("gamification.spin.cta")}
               </button>
@@ -433,7 +435,7 @@ export default function GamificationPanel({ isAuthenticated }: { isAuthenticated
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#22C55E]/20 rounded-2xl p-4"
+          className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#22C55E]/20 rounded-2xl p-4"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">

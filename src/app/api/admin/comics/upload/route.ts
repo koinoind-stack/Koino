@@ -31,6 +31,11 @@ import sharp from "sharp";
  *                given panelId already exists in that chapter (edit mode),
  *                the uploaded URL is also persisted to ComicPanel.artworkUrl
  *                and `dbUpdated: true` is returned.
+ *   target     — optional. "panel" (default) uploads page artwork;
+ *                "cover" uploads the STORY COVER: the object is stored at
+ *                comics/<bookId>/<chapter>/cover.webp and, when chapterId is
+ *                provided, the URL is persisted to ComicChapter.coverArtUrl.
+ *                In cover mode panelId is ignored ("cover" is used instead).
  *
  * Response:
  *   201 { success: true, artworkUrl, url, optimizedSize, originalSize, dbUpdated }
@@ -109,6 +114,16 @@ export async function POST(req: NextRequest) {
     const chapterRaw = String(formData.get("chapter") || "").trim();
     const panelId = String(formData.get("panelId") || "").trim();
     const chapterId = String(formData.get("chapterId") || "").trim() || null;
+    const target = String(formData.get("target") || "panel").trim() || "panel";
+
+    if (target !== "panel" && target !== "cover") {
+      return NextResponse.json(
+        { error: 'target must be "panel" or "cover".' },
+        { status: 400 },
+      );
+    }
+    // In cover mode the panelId filename slot is the fixed "cover" object.
+    const objectKey = target === "cover" ? "cover" : panelId;
 
     if (!BIBLE_BOOKS.some((b) => b.id === bookId)) {
       return NextResponse.json(
@@ -120,13 +135,13 @@ export async function POST(req: NextRequest) {
     if (isNaN(chapter) || chapter < 1) {
       return NextResponse.json({ error: "chapter must be a positive integer." }, { status: 400 });
     }
-    if (!PANEL_ID_RE.test(panelId)) {
+    if (!PANEL_ID_RE.test(objectKey)) {
       return NextResponse.json(
         { error: "Invalid panelId — use 1-64 characters: letters, numbers, dashes, underscores." },
         { status: 400 },
       );
     }
-    logStage("params validated", { bookId, chapter, panelId, hasChapterId: !!chapterId });
+    logStage("params validated", { bookId, chapter, panelId: objectKey, target, hasChapterId: !!chapterId });
 
     // 5. File presence + type + size.
     stage = "FILE_VALIDATE";
@@ -173,11 +188,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 8. Upload to Supabase Storage. Stable path per panel — upsert:true means
+    // 8. Upload to Supabase Storage. Stable path per object — upsert:true means
     //    Replace Artwork overwrites the same object (URL stays stable, the
     //    cache-buster below forces browsers to refetch).
     stage = "SUPABASE_UPLOAD";
-    const storagePath = `comics/${bookId}/${chapter}/${panelId}.webp`;
+    const storagePath = `comics/${bookId}/${chapter}/${objectKey}.webp`;
     const supabase = createServiceClient();
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
@@ -212,18 +227,26 @@ export async function POST(req: NextRequest) {
     }
     const versionedUrl = `${publicUrl}?v=${Date.now()}`;
 
-    // 10. Optional DB persist (edit mode — panel already exists in this chapter).
+    // 10. Optional DB persist (edit mode — the object already exists in this chapter).
     let dbUpdated = false;
     if (chapterId) {
       stage = "DB_PERSIST";
       try {
-        const result = await db.comicPanel.updateMany({
-          where: { panelId, comicChapterId: chapterId },
-          data: { artworkUrl: versionedUrl },
-        });
-        dbUpdated = result.count > 0;
+        if (target === "cover") {
+          const result = await db.comicChapter.updateMany({
+            where: { id: chapterId, bookId },
+            data: { coverArtUrl: versionedUrl },
+          });
+          dbUpdated = result.count > 0;
+        } else {
+          const result = await db.comicPanel.updateMany({
+            where: { panelId, comicChapterId: chapterId },
+            data: { artworkUrl: versionedUrl },
+          });
+          dbUpdated = result.count > 0;
+        }
       } catch (dbErr: any) {
-        // Non-fatal — the CMS save step will persist artworkUrl anyway.
+        // Non-fatal — the CMS save step will persist the URL anyway.
         logStage("DB persist skipped", { message: dbErr?.message || String(dbErr) });
       }
     }

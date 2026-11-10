@@ -42,8 +42,11 @@ import {
   type Bookmark as BookmarkType,
 } from "@/lib/bible-data";
 import {
+  BIBLE_AUTOSELECT_LANGUAGE,
   DEFAULT_VERSION_REF,
   VERSION_STORAGE_KEY,
+  findTeluguVersion,
+  findVersion,
   formatVersionRef,
   parseVersionRef,
   resolveVersionOrGeneric,
@@ -93,9 +96,35 @@ export default function BibleView({
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   // Unified version selection (YouVersion primary + Koino fallback).
-  // Scripture language is INDEPENDENT of the UI language: the user picks the
-  // Bible version in the selector; the interface language never changes it.
+  // Scripture language follows the UI language for TWO locales by deliberate
+  // product decision: Telugu (BIBLE_AUTOSELECT_LANGUAGE) auto-selects the
+  // licensed Telugu Bible from the catalogue, and English ("en") auto-selects
+  // the existing DEFAULT_VERSION_REF. Switching between the two languages
+  // moves the reader to the appropriate translation in BOTH directions.
+  // Every other UI language is a no-op (the reader stays on its current
+  // translation). The selector remains fully manual: any pick here is
+  // preserved for as long as the user stays in the same website language;
+  // a website-language change triggers a fresh auto-selection.
   const [versionRef, setVersionRef] = useState<VersionRef>(DEFAULT_VERSION_REF);
+  // Bidirectional auto-selection guards (session-scoped, never persisted):
+  //   prevLangRef          — detects actual language CHANGES (and the first
+  //                         mount) so auto-select fires on transitions, not
+  //                         on every render.
+  //   autoSelectPendingRef — true while auto-select still needs to fire for
+  //                         the current language (set on language change and
+  //                         on first mount without a persisted preference;
+  //                         cleared once a target is resolved or skipped).
+  //   userPickedForLangRef — the UI language during which the user manually
+  //                         picked a version. While it equals the current
+  //                         lang, auto-select is suppressed (manual pick
+  //                         preserved). A language change resets it.
+  //   persistedLoadedRef   — true if a saved cc_bible_version was loaded on
+  //                         mount. When true, the first mount does NOT
+  //                         auto-select (the saved preference is respected).
+  const prevLangRef = useRef<string | null>(null);
+  const autoSelectPendingRef = useRef(true);
+  const userPickedForLangRef = useRef<string | null>(null);
+  const persistedLoadedRef = useRef(false);
   const [catalog, setCatalog] = useState<{ enabled: boolean; versions: BibleVersion[] }>({
     enabled: false,
     versions: KOINO_FALLBACK_VERSIONS,
@@ -131,7 +160,10 @@ export default function BibleView({
   useEffect(() => {
     try {
       const saved = localStorage.getItem(VERSION_STORAGE_KEY);
-      if (saved && parseVersionRef(saved)) setVersionRef(saved);
+      if (saved && parseVersionRef(saved)) {
+        setVersionRef(saved);
+        persistedLoadedRef.current = true;
+      }
     } catch {
       // storage unavailable — keep default
     }
@@ -148,16 +180,141 @@ export default function BibleView({
     };
   }, []);
 
-  const selectVersion = (v: BibleVersion) => {
-    const ref = formatVersionRef(v);
+  // Single persistence write path for the version selection: React state +
+  // the EXISTING localStorage preference (VERSION_STORAGE_KEY — the same key
+  // the reading-plan previews and cross-tab mirror read). Used by the manual
+  // selector and by the Telugu auto-selection alike; no new storage surface.
+  const applyVersionRef = useCallback((ref: VersionRef) => {
     setVersionRef(ref);
     try {
       localStorage.setItem(VERSION_STORAGE_KEY, ref);
     } catch {
       // storage unavailable — selection persists for this session only
     }
+  }, []);
+
+  const selectVersion = (v: BibleVersion) => {
+    userPickedForLangRef.current = lang; // manual pick is remembered for the CURRENT language only
+    applyVersionRef(formatVersionRef(v));
     setVersionMenuOpen(false);
   };
+
+  // ─── Bidirectional auto-selection (Telugu ↔ English) ──────────────────────
+  // When the site language changes, the reader auto-selects the appropriate
+  // Bible translation:
+  //   • Telugu (BIBLE_AUTOSELECT_LANGUAGE) → the licensed Telugu Bible from
+  //     the catalogue, resolved by languageTag (the concrete id is the
+  //     catalogue's, never hardcoded).
+  //   • English ("en") → the existing DEFAULT_VERSION_REF (koino:kjv), the
+  //     same default the reader initialises with.
+  //   • Any other language → no-op (the reader stays on its current
+  //     translation); auto-select is still marked as not-pending so it
+  //     doesn't retry.
+  //
+  // The effect fires on:
+  //   • an actual language CHANGE (detected via prevLangRef), which resets
+  //     the manual-pick tracking and re-arms auto-select for the new lang;
+  //   • the first mount WITHOUT a persisted preference (gives a first-time
+  //     visitor the right translation for their UI language);
+  //   • a catalogue arrival after mount (if auto-select is still pending
+  //     because the catalogue wasn't loaded yet).
+  //
+  // Guards, in order:
+  //   • a manual pick in the selector wins for as long as the user stays in
+  //     the same website language (userPickedForLangRef === lang);
+  //   • a persisted preference loaded on mount is respected (no auto-select
+  //     on refresh within the same language);
+  //   • catalogue unavailable or lists no Telugu version → retain the
+  //     previous selection without crashing (auto-select stays pending for
+  //     Telugu so it retries when the catalogue arrives);
+  //   • already reading the target translation → no write, just clear
+  //     pending.
+  // Chapter fetch failures keep the existing graceful path (error text +
+  // toast, previous text retained, selection intact).
+  useEffect(() => {
+    const prevLang = prevLangRef.current;
+    const isLanguageChange = prevLang !== null && prevLang !== lang;
+    prevLangRef.current = lang;
+
+    // On a real language change, reset the per-language tracking and re-arm
+    // auto-select for the new language.
+    if (isLanguageChange) {
+      userPickedForLangRef.current = null;
+      autoSelectPendingRef.current = true;
+    }
+
+    // If the user manually picked a version during this language, preserve
+    // it — do not override with auto-select.
+    if (userPickedForLangRef.current === lang) {
+      autoSelectPendingRef.current = false;
+      return;
+    }
+
+    // Only fire when auto-select is pending (language change or first mount
+    // without a persisted preference).
+    if (!autoSelectPendingRef.current) return;
+
+    // First mount (prevLang === null): BibleView unmounts/remounts when the
+    // user navigates between SPA views, so this fires every time they open
+    // the Bible — not just on page refresh. We must distinguish:
+    //   (a) the saved pref is in the CURRENT UI language → respect it (the
+    //       user explicitly chose this version for this language, or refreshed
+    //       the page without changing language);
+    //   (b) the saved pref is in a DIFFERENT language → auto-select must fire
+    //       (e.g., user was on English with KJV saved, switched to Telugu,
+    //       then opened the Bible — the English KJV pref should NOT block the
+    //       Telugu auto-select).
+    // To tell the difference we need the catalogue (to look up the saved
+    // ref's languageTag). If the catalogue isn't loaded yet, stay pending and
+    // retry when it arrives.
+    if (prevLang === null && persistedLoadedRef.current) {
+      if (catalog.enabled) {
+        const saved = findVersion(versionRef, catalog.versions);
+        const savedLang = saved?.languageTag ?? null;
+        // Treat the English default as English even if not in the catalogue.
+        const inferredLang =
+          savedLang ?? (versionRef === DEFAULT_VERSION_REF ? "en" : null);
+        if (inferredLang === lang) {
+          // Saved pref is in the current UI language → respect it.
+          userPickedForLangRef.current = lang;
+          autoSelectPendingRef.current = false;
+          return;
+        }
+        // Saved pref is in a different language → fall through to auto-select.
+      } else {
+        // Catalogue not loaded yet — stay pending, retain previous.
+        return;
+      }
+    }
+
+    // Resolve the target translation for the current language.
+    let targetRef: VersionRef | null = null;
+    if (lang === BIBLE_AUTOSELECT_LANGUAGE) {
+      // Telugu: resolve from the live catalogue by languageTag.
+      if (catalog.enabled) {
+        const teVersion = findTeluguVersion(catalog.versions);
+        if (teVersion) targetRef = formatVersionRef(teVersion);
+      }
+      // If the catalogue is not ready or lists no Telugu version, stay
+      // pending (targetRef stays null) so the effect retries when the
+      // catalogue arrives.
+    } else if (lang === "en") {
+      // English: revert to the existing default.
+      targetRef = DEFAULT_VERSION_REF;
+    } else {
+      // Other languages: no auto-select. Mark as not-pending so it doesn't
+      // retry; the reader keeps its current translation.
+      autoSelectPendingRef.current = false;
+      return;
+    }
+
+    if (targetRef === null) return; // catalogue not ready — stay pending, retain previous
+
+    // Target resolved — clear pending and apply (or skip if already there).
+    autoSelectPendingRef.current = false;
+    if (versionRef === targetRef) return; // already reading the target
+    applyVersionRef(targetRef);
+  }, [lang, catalog, versionRef, applyVersionRef]);
 
   // Load bookmarks on mount
   useEffect(() => {
@@ -424,9 +581,9 @@ export default function BibleView({
     );
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("bg-[#2563EB]/20");
+      el.classList.add("bg-[#7C3AED]/20");
       const timer = window.setTimeout(
-        () => el.classList.remove("bg-[#2563EB]/20"),
+        () => el.classList.remove("bg-[#7C3AED]/20"),
         2600
       );
       setPendingScrollVerse(null);
@@ -448,7 +605,7 @@ export default function BibleView({
               onClick={() => setView("search")}
               className={`p-2 rounded-xl text-xs font-semibold transition-all border ${
                 view === "search"
-                  ? "bg-[#2563EB]/15 border-[#2563EB]/30 text-[#60A5FA]"
+                  ? "bg-[#7C3AED]/15 border-[#7C3AED]/30 text-[#A78BFA]"
                   : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
               }`}
               title={t("common.search")}
@@ -459,14 +616,14 @@ export default function BibleView({
               onClick={() => setView("bookmarks")}
               className={`relative p-2 rounded-xl text-xs font-semibold transition-all border ${
                 view === "bookmarks"
-                  ? "bg-[#F5B84A]/15 border-[#F5B84A]/30 text-[#F5B84A]"
+                  ? "bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B]"
                   : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
               }`}
               title={t("bible.bookmarks")}
             >
               <Bookmark size={14} />
               {bookmarks.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#F5B84A] text-slate-950 text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#F59E0B] text-slate-950 text-[9px] font-bold flex items-center justify-center">
                   {bookmarks.length > 9 ? "9+" : bookmarks.length}
                 </span>
               )}
@@ -482,7 +639,7 @@ export default function BibleView({
             onClick={() => setMode("read")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
               mode === "read"
-                ? "bg-gradient-to-r from-[#2563EB] to-[#F97316] text-white shadow-lg shadow-[#2563EB]/20"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -492,7 +649,7 @@ export default function BibleView({
             onClick={() => setMode("comics")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
               mode === "comics"
-                ? "bg-gradient-to-r from-[#2563EB] to-[#F97316] text-white shadow-lg shadow-[#2563EB]/20"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -502,7 +659,7 @@ export default function BibleView({
             onClick={() => setMode("plans")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
               mode === "plans"
-                ? "bg-gradient-to-r from-[#2563EB] to-[#F97316] text-white shadow-lg shadow-[#2563EB]/20"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -521,12 +678,12 @@ export default function BibleView({
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setVersionMenuOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs transition-all hover:border-[#2563EB]/40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs transition-all hover:border-[#7C3AED]/40"
               title={t("bible.version.open")}
               aria-label={t("bible.version.open")}
               aria-expanded={versionMenuOpen}
             >
-              <BookOpen size={12} className="text-[#60A5FA]" />
+              <BookOpen size={12} className="text-[#A78BFA]" />
               <span className="font-bold text-white">{currentVersion.abbr}</span>
               <ChevronDown size={12} className="text-[#94A3B8]" />
             </button>
@@ -534,11 +691,11 @@ export default function BibleView({
                 language (independent of the UI language chosen in the header). */}
             <div className="flex-1 flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs">
               <span className="flex items-center gap-1.5 text-white">
-                <Globe size={12} className="text-[#22D3EE]" />
+                <Globe size={12} className="text-[#38BDF8]" />
                 <span className="font-bold">{currentVersion.nativeLanguageLabel}</span>
               </span>
               {!bibleTextSupported && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F5B84A]/15 text-[#F5B84A] font-bold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F59E0B]/15 text-[#F59E0B] font-bold">
                   {t("bible.enTextBadge")}
                 </span>
               )}
@@ -549,9 +706,9 @@ export default function BibleView({
               is NOT connected: Bible TEXT is then only available in English
               (KJV/WEB), while the UI can be in any language. */}
           {!bibleTextSupported && view === "reader" && (
-            <div className="mb-4 bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3">
+            <div className="mb-4 bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3">
               <p className="text-[10px] text-[#A09DB1] leading-relaxed">
-                <span className="font-bold text-[#22D3EE]">{t("bible.noticeLabel")}</span>{" "}
+                <span className="font-bold text-[#38BDF8]">{t("bible.noticeLabel")}</span>{" "}
                 {t("bible.noticeBody", { T: currentVersion.abbr })}
               </p>
             </div>
@@ -716,7 +873,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
         <button
           onClick={() => setTestament("OT")}
           className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-            testament === "OT" ? "bg-[#F5B84A] text-slate-950" : "text-[#94A3B8] hover:text-white"
+            testament === "OT" ? "bg-[#F59E0B] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           {t("bible.otCount")}
@@ -724,7 +881,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
         <button
           onClick={() => setTestament("NT")}
           className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-            testament === "NT" ? "bg-[#22D3EE] text-slate-950" : "text-[#94A3B8] hover:text-white"
+            testament === "NT" ? "bg-[#38BDF8] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           {t("bible.ntCount")}
@@ -746,7 +903,7 @@ function BooksView({ onSelectBook }: { onSelectBook: (b: BibleBook) => void }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   onClick={() => onSelectBook(book)}
-                  className="p-3 rounded-xl bg-[#13294A] border border-white/[0.06] hover:border-white/[0.15] hover:bg-[#22202F] transition-all text-left group min-h-[60px] flex flex-col justify-center"
+                  className="p-3 rounded-xl bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:bg-[#22202F] transition-all text-left group min-h-[60px] flex flex-col justify-center"
                 >
                   <p className="text-sm font-bold text-white group-hover:scale-[1.02] transition-transform leading-tight">
                     {/* Localized book name in the UI language where a
@@ -788,10 +945,10 @@ function ChaptersView({
         <ChevronLeft size={14} /> {t("bible.allBooks")}
       </button>
 
-      <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-2xl p-4 mb-4">
+      <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
-          <BookOpen size={16} className="text-[#60A5FA]" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]">
+          <BookOpen size={16} className="text-[#A78BFA]" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
             {book.testament === "OT" ? t("bible.ot") : t("bible.nt")} · {book.category}
           </span>
         </div>
@@ -805,7 +962,7 @@ function ChaptersView({
           <button
             key={ch}
             onClick={() => onSelectChapter(ch)}
-            className="aspect-square rounded-xl bg-[#13294A] border border-white/[0.06] hover:border-[#2563EB]/40 hover:bg-[#2563EB]/10 text-white font-bold text-sm transition-all"
+            className="aspect-square rounded-xl bg-[#1C1929] border border-white/[0.06] hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/10 text-white font-bold text-sm transition-all"
           >
             {ch}
           </button>
@@ -917,7 +1074,7 @@ function ReaderView({
             onClick={() => (selectMode ? resetSelection() : setSelectMode(true))}
             className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
               selectMode
-                ? "bg-[#2563EB]/25 border-[#2563EB]/50 text-[#93C5FD]"
+                ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
                 : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
             }`}
             title={t("bible.selectVersesTitle")}
@@ -928,7 +1085,7 @@ function ReaderView({
       </div>
 
       {selectMode && (
-        <p className="text-[11px] text-[#60A5FA] mb-2">
+        <p className="text-[11px] text-[#A78BFA] mb-2">
           {t("bible.selectHint")}
         </p>
       )}
@@ -942,19 +1099,19 @@ function ReaderView({
       )}
 
       {/* Chapter header */}
-      <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-2xl p-4 mb-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA] mb-1">
+      <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">
           {book.testament === "OT" ? t("bible.ot") : t("bible.nt")}
         </p>
         <h2 className="text-xl font-extrabold text-white">
-          {book.name} <span className="text-[#60A5FA]">{chapter}</span>
+          {book.name} <span className="text-[#A78BFA]">{chapter}</span>
         </h2>
       </div>
 
       {/* Loading state */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 size={32} className="text-[#2563EB] animate-spin" />
+          <Loader2 size={32} className="text-[#7C3AED] animate-spin" />
           <p className="text-xs text-[#94A3B8]">{t("bible.loadingChapter")}</p>
         </div>
       )}
@@ -969,7 +1126,7 @@ function ReaderView({
               // Trigger reload via chapter state change
               window.location.reload();
             }}
-            className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-xs font-bold"
+            className="px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
           >
             {t("bible.retry")}
           </button>
@@ -980,7 +1137,7 @@ function ReaderView({
       {!loading && !error && verses.length > 0 && (
         <div
           ref={scrollRef}
-          className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 max-h-[60vh] overflow-y-auto"
+          className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 max-h-[60vh] overflow-y-auto"
         >
           <div className="space-y-2">
             {verses.map((v) => {
@@ -1001,12 +1158,12 @@ function ReaderView({
                   transition={{ delay: Math.min(v.verse * 0.01, 0.3) }}
                   onClick={() => handleVerseTap(v.verse)}
                   className={`group flex gap-2 hover:bg-white/[0.03] -mx-2 px-2 py-1 rounded-lg transition-colors ${
-                    inRange ? "bg-[#2563EB]/[0.12]" : ""
+                    inRange ? "bg-[#7C3AED]/[0.12]" : ""
                   } ${selectMode ? "cursor-pointer" : ""}`}
                 >
                   <span
                     className={`text-[11px] font-bold mt-0.5 shrink-0 w-6 text-right select-none ${
-                      isAnchor ? "text-[#93C5FD]" : "text-[#2563EB]"
+                      isAnchor ? "text-[#C4B5FD]" : "text-[#7C3AED]"
                     }`}
                   >
                     {v.verse}
@@ -1019,7 +1176,7 @@ function ReaderView({
                         onBookmark(v.verse, v.text);
                       }}
                       className={`p-1 rounded-md transition-all ${
-                        isMarked ? "text-[#F5B84A]" : "text-[#94A3B8] hover:text-white"
+                        isMarked ? "text-[#F59E0B]" : "text-[#94A3B8] hover:text-white"
                       }`}
                       title={isMarked ? t("bible.removeBookmarkTitle") : t("bible.bookmarkVerseTitle")}
                     >
@@ -1056,8 +1213,8 @@ function ReaderView({
       {/* Selection action bar — extended with copy / listen / save for the
           selected passage (share already existed via Task 121) */}
       {!loading && !error && rangeStart !== null && rangeEnd !== null && (
-        <div className="mt-3 flex items-center justify-between gap-2 bg-[#2563EB]/15 border border-[#2563EB]/40 rounded-2xl px-3 py-2.5">
-          <p className="text-[11px] font-bold text-[#93C5FD] truncate">
+        <div className="mt-3 flex items-center justify-between gap-2 bg-[#7C3AED]/15 border border-[#7C3AED]/40 rounded-2xl px-3 py-2.5">
+          <p className="text-[11px] font-bold text-[#C4B5FD] truncate">
             {book.name} {chapter}:{rangeStart === rangeEnd ? rangeStart : `${rangeStart}-${rangeEnd}`}
             <span className="text-[#94A3B8] font-semibold">
               {" "}· {t("bible.verseCount", { n: rangeEnd - rangeStart + 1 })}
@@ -1106,7 +1263,7 @@ function ReaderView({
                 onShareRange(rangeStart, rangeEnd);
                 resetSelection();
               }}
-              className="px-3 py-1.5 rounded-lg bg-[#2563EB] text-[10px] font-bold text-white flex items-center gap-1.5 hover:bg-[#1D4ED8]"
+              className="px-3 py-1.5 rounded-lg bg-[#7C3AED] text-[10px] font-bold text-white flex items-center gap-1.5 hover:bg-[#6D28D9]"
             >
               <Share2 size={11} /> {t("bible.share")}
             </button>
@@ -1125,7 +1282,7 @@ function ReaderView({
           </button>
           <button
             onClick={onNext}
-            className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-all"
+            className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all"
           >
             {t("common.next")} <ChevronRight size={14} />
           </button>
@@ -1233,7 +1390,7 @@ function PanelButton({
         dimmed
           ? "bg-white/[0.02] border-white/[0.04] text-[#475569] cursor-default"
           : active
-            ? "bg-[#2563EB]/20 border-[#2563EB]/50 text-[#93C5FD]"
+            ? "bg-[#7C3AED]/20 border-[#7C3AED]/50 text-[#C4B5FD]"
             : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white hover:bg-white/[0.06]"
       }`}
     >
@@ -1366,7 +1523,7 @@ function ChapterActionPanel({
   };
 
   return (
-    <div className="mt-5 bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/25 rounded-2xl p-3.5">
+    <div className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-3.5">
       <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-[#94A3B8] mb-2.5">
         {t("bible.continueJourney", { book: book.name, ch: chapter })}
       </h3>
@@ -1446,7 +1603,7 @@ function SelectionListenButton({ text, refLabel }: { text: string; refLabel: str
       }}
       className={`p-2 rounded-lg border transition-colors ${
         speaking
-          ? "bg-[#2563EB]/25 border-[#2563EB]/50 text-[#93C5FD]"
+          ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
           : "bg-white/[0.06] border-white/[0.08] text-[#94A3B8] hover:text-white"
       }`}
       title={speaking ? t("bible.stopNarrationTitle") : t("bible.listenPassageTitle")}
@@ -1509,7 +1666,7 @@ function SelectionSaveButton({
       }}
       className={`p-2 rounded-lg border transition-colors ${
         allSaved
-          ? "bg-[#F5B84A]/15 border-[#F5B84A]/40 text-[#F5B84A]"
+          ? "bg-[#F59E0B]/15 border-[#F59E0B]/40 text-[#F59E0B]"
           : "bg-white/[0.06] border-white/[0.08] text-[#94A3B8] hover:text-white"
       }`}
       title={allSaved ? t("bible.removeRangeBookmarksTitle") : t("bible.bookmarkAllTitle")}
@@ -1562,9 +1719,9 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
   if (!loaded || videos.length === 0) return null;
 
   return (
-    <div id="chapter-videos" className="mt-5 bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/25 rounded-2xl p-4">
+    <div id="chapter-videos" className="mt-5 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/25 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#93C5FD]">
+        <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#C4B5FD]">
           <Play size={12} fill="currentColor" /> {t("bible.watchRelated")}
         </h3>
         <span className="text-[10px] text-[#94A3B8] font-bold">{videos.length}</span>
@@ -1574,7 +1731,7 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
           <a
             key={v.id}
             href={`/videos/${v.slug}`}
-            className="group shrink-0 w-36 bg-[#13294A]/80 border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#2563EB]/40 transition-all"
+            className="group shrink-0 w-36 bg-[#1C1929]/80 border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#7C3AED]/40 transition-all"
           >
             <div className="relative aspect-video bg-black/60">
               {(v.thumbnailUrl || (v.youtubeId ? `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg` : null)) ? (
@@ -1596,7 +1753,7 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
                 </span>
               )}
             </div>
-            <p className="p-2 pb-1 text-[11px] font-bold text-white leading-snug line-clamp-2 group-hover:text-[#93C5FD] transition-colors">
+            <p className="p-2 pb-1 text-[11px] font-bold text-white leading-snug line-clamp-2 group-hover:text-[#C4B5FD] transition-colors">
               {v.title}
             </p>
             {/* Coverage label — a whole-book video must be visibly "Genesis 1–50",
@@ -1611,7 +1768,7 @@ function ChapterVideos({ bookId, chapter }: { bookId: string; chapter: number })
       </div>
       <a
         href={`/videos?book=${encodeURIComponent(bookId)}&chapter=${chapter}`}
-        className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-bold text-[#60A5FA] hover:text-white"
+        className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-bold text-[#A78BFA] hover:text-white"
       >
         {t("bible.browseVideos")} <ChevronRight size={11} />
       </a>
@@ -1659,15 +1816,15 @@ function SearchView({
         <button
           onClick={onSearch}
           disabled={loading || !query.trim()}
-          className="px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1.5"
+          className="px-4 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1.5"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
           {t("bible.lookup")}
         </button>
       </div>
 
-      <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3 mb-3">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA] mb-1">{t("bible.quickLookup")}</p>
+      <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">{t("bible.quickLookup")}</p>
         <p className="text-[11px] text-[#A09DB1] leading-relaxed">
           {t("bible.quickLookupDesc")}
         </p>
@@ -1675,7 +1832,7 @@ function SearchView({
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <Loader2 size={28} className="text-[#2563EB] animate-spin" />
+          <Loader2 size={28} className="text-[#7C3AED] animate-spin" />
           <p className="text-xs text-[#94A3B8]">{t("bible.lookingUp", { q: query, T: versionAbbr })}</p>
         </div>
       )}
@@ -1689,16 +1846,16 @@ function SearchView({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => onSelectResult(r.bookId, r.chapter)}
-              className="w-full text-left bg-[#13294A] border border-white/[0.06] hover:border-[#2563EB]/40 rounded-xl p-3 transition-all"
+              className="w-full text-left bg-[#1C1929] border border-white/[0.06] hover:border-[#7C3AED]/40 rounded-xl p-3 transition-all"
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-[#60A5FA]">
+                <span className="text-xs font-bold text-[#A78BFA]">
                   {r.bookName} {r.chapter}:{r.verse}
                 </span>
                 <span className="text-[9px] text-[#64748B] uppercase tracking-wider">{versionAbbr}</span>
               </div>
               <p className="text-[13px] text-[#A09DB1] leading-relaxed">{r.text}</p>
-              <p className="text-[10px] text-[#2563EB] mt-2 font-bold">{t("bible.openChapter")}</p>
+              <p className="text-[10px] text-[#7C3AED] mt-2 font-bold">{t("bible.openChapter")}</p>
             </motion.button>
           ))}
         </div>
@@ -1716,7 +1873,7 @@ function SearchView({
 
       {!loading && !query && (
         <div className="text-center py-12">
-          <Sparkles size={28} className="mx-auto text-[#60A5FA] mb-2" />
+          <Sparkles size={28} className="mx-auto text-[#A78BFA] mb-2" />
           <p className="text-sm text-[#94A3B8] mb-1">{t("bible.lookUpAnyVerse")}</p>
           <p className="text-xs text-[#64748B] max-w-xs mx-auto mb-3">
             {t("bible.tryPopular")}
@@ -1726,7 +1883,7 @@ function SearchView({
               <button
                 key={ref}
                 onClick={() => onQuickLookup(ref)}
-                className="px-3 py-1.5 rounded-xl bg-[#2563EB]/10 border border-[#2563EB]/25 text-[#60A5FA] text-[11px] font-bold hover:bg-[#2563EB]/20 transition-all"
+                className="px-3 py-1.5 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/25 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/20 transition-all"
               >
                 {ref}
               </button>
@@ -1773,10 +1930,10 @@ function BookmarksView({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => onSelect(bm.bookId, bm.chapter)}
-          className="w-full text-left bg-[#13294A] border border-white/[0.06] hover:border-[#F5B84A]/30 rounded-xl p-3 transition-all group"
+          className="w-full text-left bg-[#1C1929] border border-white/[0.06] hover:border-[#F59E0B]/30 rounded-xl p-3 transition-all group"
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-[#F5B84A] flex items-center gap-1">
+            <span className="text-xs font-bold text-[#F59E0B] flex items-center gap-1">
               <BookmarkCheck size={11} />
               {/* verse 0 = whole-chapter marker saved by the reader's action panel */}
               {bm.verse === 0 ? `${bm.bookName} ${bm.chapter}` : `${bm.bookName} ${bm.chapter}:${bm.verse}`}
@@ -1787,7 +1944,7 @@ function BookmarksView({
           </div>
           <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-2">
             {bm.verse === 0 ? (
-              <span className="text-[#F5B84A] font-bold">{t("bible.fullChapterSaved")}</span>
+              <span className="text-[#F59E0B] font-bold">{t("bible.fullChapterSaved")}</span>
             ) : (
               bm.text
             )}
@@ -1876,7 +2033,7 @@ function VersionMenu({
                       onClick={() => onSelect(v)}
                       className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-left transition-all ${
                         isCurrent
-                          ? "bg-[#2563EB]/20 border border-[#2563EB]/40"
+                          ? "bg-[#7C3AED]/20 border border-[#7C3AED]/40"
                           : "bg-white/[0.03] border border-transparent hover:bg-white/[0.06]"
                       }`}
                     >
@@ -1892,7 +2049,7 @@ function VersionMenu({
                         </span>
                       </span>
                       {isCurrent && (
-                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#2563EB] text-white">
+                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7C3AED] text-white">
                           {t("bible.version.current")}
                         </span>
                       )}

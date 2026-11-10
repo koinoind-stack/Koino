@@ -6,7 +6,7 @@
 
 export const kn: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "ನಂಬಿಕೆ. ಸಹಭಾಗಿತ್ವ. ಸಮುದಾಯ.",
+  "brand.tagline": "ನಂಬಿಕೆ. ಸಂಪರ್ಕ. ಬೆಳೆಯಿರಿ.",
   "landing.badge": "ನಂಬಿಕೆಯ ಸಮುದಾಯ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್",
   "landing.title": "Koino",
   "landing.titleGradient": "ನಂಬಿಕೆಯಲ್ಲಿ ಬೆಳೆಯಿರಿ, ಒಟ್ಟಿಗೆ",
@@ -394,8 +394,7 @@ export const kn: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "ನಿಮಗಾಗಿ",
+  "common.discount": "-{percent}%"
 };
 
 export default kn;

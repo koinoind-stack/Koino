@@ -4,6 +4,8 @@ import { getAuthUser } from "@/lib/auth-server";
 import { rateLimit } from "@/lib/social/rate-limit";
 import { db } from "@/lib/db";
 
+const CHURCH_TYPES = ["Church", "Ministry", "Fellowship", "Prayer Hall", "Other"];
+
 /**
  * GET /api/churches
  * Public — returns all PUBLISHED churches for the Church Directory.
@@ -101,12 +103,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Optional viewer — lets owners see which listings are theirs so the UI
+    // can offer "Edit listing". Auth is OPTIONAL here: anonymous visitors get
+    // is_owner:false and everything else works exactly as before.
+    const viewer = await getAuthUser().catch(() => null);
+
     return NextResponse.json({
       churches: churches.map((c) => ({
         id: c.id,
         name: c.name,
         description: c.description,
         denomination: c.denomination,
+        type: c.type || "Church",
         country: c.country,
         state: c.state || "",
         city: c.city || "",
@@ -114,6 +122,10 @@ export async function GET(req: NextRequest) {
         postalCode: c.postalCode,
         location: c.location,
         contactName: c.contactName,
+        // Listing contact details — public by design (the owner publishes
+        // them so visitors can reach the church), like whatsapp_number.
+        contactPhone: c.contactPhone,
+        contactEmail: c.contactEmail,
         whatsapp_number: c.whatsappNumber,
         website: c.website,
         service_times: safeParseJson(c.serviceTimes, []),
@@ -124,6 +136,7 @@ export async function GET(req: NextRequest) {
         verified: c.verified,
         featured: c.featured,
         followers_count: c._count.followers, // LIVE count from ChurchFollow
+        is_owner: !!(viewer && c.createdById && viewer.id === c.createdById),
       })),
     });
   } catch (error: any) {
@@ -239,12 +252,17 @@ export async function POST(req: NextRequest) {
     const coverImage =
       (typeof body.cover_image === "string" && body.cover_image.trim()) || images[0] || null;
 
+    // ─── Listing type — fixed set (Church / Ministry / Fellowship / …) ───
+    const rawType = typeof body.type === "string" ? body.type.trim() : "";
+    const type = CHURCH_TYPES.includes(rawType) ? rawType : "Church";
+
     // ─── Insert into DB with status=PENDING (NEVER auto-published) ───
     const church = await db.church.create({
       data: {
         name,
         description: String(body.description).trim().slice(0, 5000),
         denomination: body.denomination ? String(body.denomination).slice(0, 200) : "",
+        type,
         country: body.country || "India",
         state: String(body.state).slice(0, 100),
         city: String(body.city).slice(0, 100),

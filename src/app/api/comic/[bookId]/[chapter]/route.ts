@@ -11,17 +11,39 @@ function safeParseArray(raw: string | null | undefined): any[] {
   }
 }
 
+const VALID_LANGS = ["en", "hi", "bn", "te", "mr", "ta", "gu", "ur", "kn", "or", "ml", "pa", "as"] as const;
+type Lang = (typeof VALID_LANGS)[number];
+
 /**
  * GET /api/comic/[bookId]/[chapter]
  *
- * Returns a comic chapter with all panels + their translations for the
- * requested language. Falls back to English for any missing translations.
+ * Returns a comic story (chapter) with all pages (panels) + their
+ * translations for the requested language.
+ *
+ * MULTILINGUAL CONTRACT (Comic Bible redesign):
+ *   • Artwork is language-independent — ONE image per page.
+ *   • Only translation rows with status "published" are ever served. A draft
+ *     translation is treated exactly like a missing one.
+ *   • If the requested language does not fully cover the story, the response
+ *     explicitly says so (languages[] availability map + langAvailable flag
+ *     + per-panel isFallback) — the reader surfaces a "coming soon" notice
+ *     instead of silently showing another language's text.
+ *   • English (the base language) is served as the explicit fallback content,
+ *     clearly flagged, never presented as the requested language.
  *
  * Query params:
- *   lang — "en" (default), "hi", "te", etc.
+ *   lang — "en" (default), "hi", "te", etc. (one of VALID_LANGS)
  *
  * Response:
- *   { chapter: { id, comicId, bookId, chapter, title, coverArtUrl, panels: [...] } }
+ *   { chapter: {
+ *       id, comicId, bookId, chapter, title, coverArtUrl, sortOrder,
+ *       kidsFriendly, pageMode,
+ *       titleIsFallback, langAvailable,
+ *       introduction?, lesson?, prayer?, keyVerse {book,chapter,start,end} | null,
+ *       languages: [{ lang, label, available, publishedPanels, totalPanels }],
+ *       panels: [{ panelId, sortOrder, artworkUrl, altText, verseStart,
+ *                  verseEnd, bookId, chapter, audioUrl, videoUrl,
+ *                  title, narration, captions, isFallback, hasTranslation }] } }
  */
 export async function GET(
   req: NextRequest,
@@ -38,8 +60,7 @@ export async function GET(
     // Get lang from query string
     const url = new URL(req.url);
     const lang = url.searchParams.get("lang") || "en";
-    const validLangs = ["en", "hi", "bn", "te", "mr", "ta", "gu", "ur", "kn", "or", "ml", "pa", "as"];
-    if (!validLangs.includes(lang)) {
+    if (!VALID_LANGS.includes(lang as Lang)) {
       return NextResponse.json({ error: "Invalid language code" }, { status: 400 });
     }
 
@@ -61,15 +82,55 @@ export async function GET(
       return NextResponse.json({ error: "Comic chapter not found" }, { status: 404 });
     }
 
-    // Build the response — pick the right translation for each panel
-    const chapterTranslation = comicChapter.translations.find((t) => t.lang === lang);
-    const englishChapterTranslation = comicChapter.translations.find((t) => t.lang === "en");
+    const totalPanels = comicChapter.panels.length;
+
+    // ─── Per-language availability map (published rows only) ────────────────
+    // A panel "has" a language when a PUBLISHED translation row exists for it.
+    // A language is "available" for the story when every page is covered
+    // (and, for non-English, the chapter-level translation is published too).
+    const publishedPanelsByLang = new Map<string, number>();
+    for (const panel of comicChapter.panels) {
+      for (const tr of panel.translations) {
+        if (tr.status !== "published") continue;
+        publishedPanelsByLang.set(tr.lang, (publishedPanelsByLang.get(tr.lang) || 0) + 1);
+      }
+    }
+    const publishedChapterLangs = new Set(
+      comicChapter.translations.filter((t) => t.status === "published").map((t) => t.lang)
+    );
+
+    const languages = VALID_LANGS.map((l) => {
+      const covered = publishedPanelsByLang.get(l) || 0;
+      // English is the base language: it is available when its panel rows
+      // (if any exist) are all published — a panel without an English row
+      // simply renders with narration only, which has always been valid.
+      const chapterOk =
+        l === "en" ? true : publishedChapterLangs.has(l);
+      const available = totalPanels === 0 ? false : covered >= totalPanels && chapterOk;
+      return { lang: l, available, publishedPanels: covered, totalPanels };
+    });
+    const requestedEntry = languages.find((l) => l.lang === lang)!;
+    const langAvailable = lang === "en" ? true : requestedEntry.available;
+
+    // ─── Pick translations for the requested language ────────────────────────
+    // English fallback is EXPLICIT: served content is flagged per panel and
+    // at chapter level. Draft rows are never served.
+    const chapterTranslation = langAvailable
+      ? comicChapter.translations.find((t) => t.lang === lang && t.status === "published")
+      : comicChapter.translations.find((t) => t.lang === "en" && t.status === "published");
+    const englishChapterTranslation = comicChapter.translations.find(
+      (t) => t.lang === "en" && t.status === "published"
+    );
 
     const panels = comicChapter.panels.map((panel) => {
-      const panelTranslation = panel.translations.find((t) => t.lang === lang);
-      const englishPanelTranslation = panel.translations.find((t) => t.lang === "en");
+      const panelTranslation = langAvailable
+        ? panel.translations.find((t) => t.lang === lang && t.status === "published")
+        : undefined;
+      const englishPanelTranslation = panel.translations.find(
+        (t) => t.lang === "en" && t.status === "published"
+      );
 
-      // Use translated content if available, fall back to English
+      // Use translated content if available, fall back to English explicitly
       const activeTranslation = panelTranslation || englishPanelTranslation;
 
       return {
@@ -91,6 +152,20 @@ export async function GET(
       };
     });
 
+    // ─── Localized story sections (only from PUBLISHED rows) ─────────────────
+    const activeChapterTranslation = chapterTranslation || englishChapterTranslation;
+    const keyVerse =
+      activeChapterTranslation?.keyVerseBook &&
+      activeChapterTranslation?.keyVerseChapter &&
+      activeChapterTranslation?.keyVerseStart
+        ? {
+            book: activeChapterTranslation.keyVerseBook,
+            chapter: activeChapterTranslation.keyVerseChapter,
+            start: activeChapterTranslation.keyVerseStart,
+            end: activeChapterTranslation.keyVerseEnd ?? activeChapterTranslation.keyVerseStart,
+          }
+        : null;
+
     return NextResponse.json({
       chapter: {
         id: comicChapter.id,
@@ -100,9 +175,21 @@ export async function GET(
         title: chapterTranslation?.title || englishChapterTranslation?.title || comicChapter.title,
         coverArtUrl: comicChapter.coverArtUrl,
         sortOrder: comicChapter.sortOrder,
+        kidsFriendly: comicChapter.kidsFriendly,
+        pageMode: comicChapter.pageMode === "spread" ? "spread" : "individual",
+        introduction: activeChapterTranslation?.introduction || null,
+        lesson: activeChapterTranslation?.lesson || null,
+        prayer: activeChapterTranslation?.prayer || null,
+        keyVerse,
         panels,
         // Whether the chapter title is a fallback
         titleIsFallback: !chapterTranslation && !!englishChapterTranslation && lang !== "en",
+        // Whether the requested language fully covers this story — the reader
+        // uses this to show a "coming soon" notice instead of silently
+        // substituting English.
+        langAvailable,
+        // Availability map across all Koino scripture languages.
+        languages,
       },
       lang,
     });

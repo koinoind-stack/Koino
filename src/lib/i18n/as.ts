@@ -6,7 +6,7 @@
 
 export const as: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "বিশ্বাস। সহভাগিতা। সমাজ।",
+  "brand.tagline": "বিশ্বাস কৰক। সংযোগ স্থাপন কৰক। বৃদ্ধি হোৱাক।",
   "landing.badge": "বিশ্বাস সম্প্ৰদায় প্লেটফৰ্ম",
   "landing.title": "Koino",
   "landing.titleGradient": "�িশ্বাসত একেলগে বৃদ্ধি হওক",
@@ -394,8 +394,7 @@ export const as: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "আপোনাৰ বাবে",
+  "common.discount": "-{percent}%"
 };
 
 export default as;

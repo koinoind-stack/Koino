@@ -6,7 +6,7 @@
 
 export const ta: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "நம்பிக்கை. பங்கீடு. சமூகம்.",
+  "brand.tagline": "நம்பு. இணை. வளர்.",
   "landing.badge": "நம்பிக்கை சமூக தளம்",
   "landing.title": "Koino",
   "landing.titleGradient": "நம்பிக்கையில் வளர்ந்து, ஒன்றாக வளர்க",
@@ -394,8 +394,7 @@ export const ta: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "உங்களுக்காக",
+  "common.discount": "-{percent}%"
 };
 
 export default ta;

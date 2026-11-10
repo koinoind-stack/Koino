@@ -176,11 +176,6 @@ const fakeDb = {
   },
   post: {
     findUnique: async (args: { where: { id: string } }) => posts.get(args.where.id) ?? null,
-    // Part 2: serializePosts now also batches the viewer's repost markers
-    // (fetchViewerRepostSet) — PATCH flows serialize the updated post, so the
-    // mock needs the query. No repost markers exist in this suite's fixture
-    // data, hence an empty result.
-    findMany: async () => [],
     update: async (args: { where: { id: string }; data: Record<string, unknown> }) => {
       dbCalls.postUpdate++;
       const row = posts.get(args.where.id);

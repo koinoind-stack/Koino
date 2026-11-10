@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
         name: c.name,
         description: c.description,
         denomination: c.denomination,
+        type: c.type || "Church",
         country: c.country,
         state: c.state || "",
         city: c.city || "",
@@ -137,6 +138,10 @@ export async function GET(req: NextRequest) {
  *               congregation — e.g. contact responded). NEVER set on a plain
  *               approval; grant deliberately, only after checks.
  *   unverify  → verified: false
+ *   transfer  → move the listing to another REGISTERED user — body must
+ *               include transferEmail; the user is looked up by email and a
+ *               404 is returned when no account matches. Updates
+ *               createdById + createdByEmail; audit stays in reviewedBy.
  *
  * After action, revalidates the cache so the change is immediately visible
  * on the public Churches directory + admin list.
@@ -158,7 +163,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
     }
 
-    const validActions = ["approve", "reject", "cancel", "reopen", "feature", "unfeature", "verify", "unverify"];
+    const validActions = ["approve", "reject", "cancel", "reopen", "feature", "unfeature", "verify", "unverify", "transfer"];
     if (!validActions.includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -172,6 +177,41 @@ export async function POST(req: NextRequest) {
     let newFeatured = existing.featured;
     let newVerified = existing.verified;
     let newRejectionReason = existing.rejectionReason;
+
+    // Transfer ownership — move the listing to its rightful owner (a
+    // REGISTERED user, looked up by email). Used when e.g. a pastor's teammate
+    // submitted the listing, or the admin created it on someone's behalf.
+    let transferToId: string | null = null;
+    let transferToEmail: string | null = null;
+    if (action === "transfer") {
+      const transferEmail = typeof body.transferEmail === "string" ? body.transferEmail.trim() : "";
+      if (!transferEmail) {
+        return NextResponse.json(
+          { error: "transferEmail is required for the transfer action." },
+          { status: 400 }
+        );
+      }
+      const target = await db.user.findFirst({
+        where: { email: { equals: transferEmail, mode: "insensitive" } },
+        select: { id: true, email: true },
+      });
+      if (!target) {
+        return NextResponse.json(
+          {
+            error: `No registered user found with email "${transferEmail}". Ask them to sign up on Koino first, then transfer the listing to them.`,
+          },
+          { status: 404 }
+        );
+      }
+      if (target.id === existing.createdById) {
+        return NextResponse.json(
+          { error: `This listing already belongs to ${target.email}.` },
+          { status: 400 }
+        );
+      }
+      transferToId = target.id;
+      transferToEmail = target.email;
+    }
 
     switch (action) {
       case "approve":
@@ -221,10 +261,15 @@ export async function POST(req: NextRequest) {
         rejectionReason: newRejectionReason,
         reviewedBy: user.email,
         reviewedAt: new Date(),
+        // Ownership transfer (action === "transfer" only — otherwise null-ish
+        // no-ops that leave the existing owner untouched)
+        ...(transferToId ? { createdById: transferToId, createdByEmail: transferToEmail } : {}),
       },
     });
 
-    console.log(`[api/admin/churches POST] Church ${id}: ${existing.status} → ${newStatus} (by ${user.email})`);
+    console.log(
+      `[api/admin/churches POST] Church ${id}: ${existing.status} → ${newStatus}${action === "transfer" ? ` (transferred to ${transferToEmail})` : ""} (by ${user.email})`
+    );
 
     try {
       revalidatePath("/", "layout");
@@ -239,6 +284,8 @@ export async function POST(req: NextRequest) {
         verified: updated.verified,
         reviewedBy: updated.reviewedBy,
         reviewedAt: updated.reviewedAt?.toISOString(),
+        createdById: updated.createdById,
+        createdByEmail: updated.createdByEmail,
       },
     });
   } catch (error: any) {

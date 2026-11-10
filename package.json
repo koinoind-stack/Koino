@@ -7,14 +7,15 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
-    "test": "node --experimental-test-module-mocks --import tsx --test tests/auth-status.test.ts tests/auth-server.test.ts tests/profile-endpoints.test.ts tests/redirect-validation.test.ts tests/post-permissions.test.ts tests/comment-block-filter.test.ts tests/security-headers.test.ts tests/db-guard.test.ts tests/i18n-coverage.test.ts tests/youversion-config.test.ts tests/youversion-provider.test.ts tests/bible-localization.test.ts tests/bible-routes.test.ts tests/social-feed-utils.test.ts tests/notification-dedup.test.ts tests/repost-state.test.ts",
+    "test": "node --experimental-test-module-mocks --import tsx --test tests/auth-status.test.ts tests/auth-server.test.ts tests/profile-endpoints.test.ts tests/redirect-validation.test.ts tests/post-permissions.test.ts tests/comment-block-filter.test.ts tests/security-headers.test.ts tests/db-guard.test.ts tests/blog-visibility-gate.test.ts tests/taxonomy.test.ts tests/navigation-knowledge.test.ts tests/i18n-coverage.test.ts tests/youversion-config.test.ts tests/youversion-provider.test.ts tests/bible-localization.test.ts tests/bible-routes.test.ts tests/telugu-bible-autoselect.test.ts tests/telugu-bible-trivia.test.ts tests/trivia-competition-telugu.test.ts tests/trivia-daily-telugu.test.ts tests/knowledge-hub-telugu.test.ts tests/launch-audit.test.ts tests/perf-launch.test.ts tests/levelup-once.test.ts tests/perf-home-shell.test.ts tests/church-listing.test.ts tests/church-mine-filters.test.ts tests/church-media-contact.test.ts tests/comic-bible-multilingual.test.ts tests/comic-reading-sync.test.ts tests/notification-dedup.test.ts tests/repost-state.test.ts tests/social-feed-utils.test.ts",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx prisma/seed-trivia.ts",
     "db:push:force": "prisma db push --accept-data-loss",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:seed-taxonomy": "tsx prisma/scripts/seed-taxonomy.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -63,6 +64,7 @@
     "embla-carousel-react": "^8.6.0",
     "emoji-picker-react": "^5.1.0",
     "framer-motion": "^12.23.2",
+    "geist": "^1.9.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.525.0",
     "next": "^16.1.1",

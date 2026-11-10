@@ -6,7 +6,7 @@
 
 export const mr: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "श्रद्धा. सहभागिता. समुदाय.",
+  "brand.tagline": "विश्वास करा. जोडणी करा. वाढवा.",
   "landing.badge": "विश्वास समुदाय प्लॅटफॉर्म",
   "landing.title": "Koino",
   "landing.titleGradient": "विश्वासात एकत्र वाढा",
@@ -394,8 +394,7 @@ export const mr: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "तुमच्यासाठी",
+  "common.discount": "-{percent}%"
 };
 
 export default mr;

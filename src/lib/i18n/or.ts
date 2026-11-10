@@ -6,7 +6,7 @@
 
 export const or: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "ବିଶ୍ୱାସ। ସହଭାଗିତା। ସମୁଦାୟ।",
+  "brand.tagline": "ବିଶ୍ବାସ କରନ୍ତୁ। ସଂଯୋଗ ସ୍ଥାପନ କରନ୍ତୁ। ବିକାଶ ଲାଭ କରନ୍ତୁ।",
   "landing.badge": "ବିଶ୍ବାସ ସମ୍ପ୍ରଦାୟ ପ୍ଲାଟଫର୍ମ",
   "landing.title": "Koino",
   "landing.titleGradient": "ବିଶ୍ବାସରେ ବିକାଶ ଲାଭ କରନ୍ତୁ, ଏକାଠି ହୋଇ",
@@ -394,8 +394,7 @@ export const or: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "ଆପଣଙ୍କ ପାଇଁ",
+  "common.discount": "-{percent}%"
 };
 
 export default or;

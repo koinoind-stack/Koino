@@ -6,7 +6,8 @@ import { Calendar, ArrowLeft, Clock, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { BRAND, siteUrl } from "@/lib/brand";
-import { displayArticleAuthor } from "@/lib/blog-server";
+import { displayArticleAuthor, publicBlogPostWhere } from "@/lib/blog-server";
+import { isPubliclyVisible } from "@/lib/blog";
 import MarkdownRenderer from "@/components/crosscrafted/MarkdownRenderer";
 import ArticleShareBar from "@/components/blog/ArticleShareBar";
 
@@ -27,15 +28,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await db.blogPost.findUnique({ where: { slug } });
 
-  // Dual public-visibility gate for SEO (Task 73): legacy boolean + workflow
-  // status + schedule — unpublished content must never be indexed.
-  const now = new Date();
-  if (
-    !post ||
-    !post.published ||
-    post.status !== "published" ||
-    (post.publishedAt && post.publishedAt > now)
-  ) {
+  // Shared public-visibility gate for SEO (Task 73 + Phase 1 security fix 2):
+  // legacy boolean + workflow status + publishedAt + scheduledAt —
+  // unpublished or future-scheduled content must never be indexed.
+  if (!post || !isPubliclyVisible(post)) {
     return { title: "Article Not Found — Koino Blog" };
   }
 
@@ -83,16 +79,10 @@ export default async function BlogArticlePage({
     },
   });
 
-  // Visibility gate — drafts, pending submissions, rejected/archived and
-  // future-scheduled posts are NOT publicly visible (dual gate). Call
-  // notFound() so the response is a clean 404.
-  const now = new Date();
-  if (
-    !post ||
-    !post.published ||
-    post.status !== "published" ||
-    (post.publishedAt && post.publishedAt > now)
-  ) {
+  // Shared visibility gate (Phase 1 security fix 2) — drafts, pending
+  // submissions, rejected/archived and future-scheduled posts are NOT
+  // publicly visible. Call notFound() so the response is a clean 404.
+  if (!post || !isPubliclyVisible(post)) {
     notFound();
   }
 
@@ -120,12 +110,10 @@ export default async function BlogArticlePage({
   }
 
   // Fetch related posts — admin-picked first; if none were chosen, fall back
-  // to the latest published posts in the same category (Task 73).
-  const relatedVisibility = {
-    published: true,
-    status: "published",
-    OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
-  };
+  // to the latest published posts in the same category (Task 73). Related
+  // cards use the SAME shared gate (Phase 1 security fix 2) — a related card
+  // must never link to a post the public surfaces would 404.
+  const relatedVisibility = publicBlogPostWhere();
   const relatedSelect = {
     id: true,
     title: true,
@@ -201,13 +189,13 @@ export default async function BlogArticlePage({
         {/* Back link */}
         <Link
           href="/blog"
-          className="text-xs text-[#60A5FA] hover:text-white flex items-center gap-1 mb-6"
+          className="text-xs text-[#A78BFA] hover:text-white flex items-center gap-1 mb-6"
         >
           <ArrowLeft size={12} /> Back to Blog
         </Link>
 
         {/* Eyebrow + Title */}
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">
           {post.category}
         </span>
         <h1 className="text-3xl md:text-4xl font-black text-white mt-2 mb-3 leading-tight">
@@ -257,7 +245,7 @@ export default async function BlogArticlePage({
 
         {/* Excerpt as lead */}
         {post.excerpt && (
-          <p className="text-base text-[#A09DB1] leading-relaxed mb-6 font-semibold border-l-2 border-[#F97316]/40 pl-4">
+          <p className="text-base text-[#A09DB1] leading-relaxed mb-6 font-semibold border-l-2 border-[#F39B9B]/40 pl-4">
             {post.excerpt}
           </p>
         )}
@@ -276,7 +264,7 @@ export default async function BlogArticlePage({
             {tags.map((t, i) => (
               <span
                 key={i}
-                className="bg-[#22D3EE]/10 text-[#22D3EE] text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
+                className="bg-[#38BDF8]/10 text-[#38BDF8] text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
               >
                 {t}
               </span>
@@ -290,7 +278,7 @@ export default async function BlogArticlePage({
             Originally published at{" "}
             <a
               href={post.canonicalUrl}
-              className="text-[#60A5FA] hover:text-white underline"
+              className="text-[#A78BFA] hover:text-white underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -304,7 +292,7 @@ export default async function BlogArticlePage({
       {orderedRelated.length > 0 && (
         <section className="max-w-5xl mx-auto px-6 pb-16">
           <h2 className="text-sm font-bold uppercase tracking-wider text-[#94A3B8] mb-4 flex items-center gap-2">
-            <span className="w-1 h-4 rounded-full bg-[#2563EB]" />
+            <span className="w-1 h-4 rounded-full bg-[#7C3AED]" />
             Related Articles
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -312,7 +300,7 @@ export default async function BlogArticlePage({
               <Link
                 key={r.id}
                 href={`/blog/${r.slug}`}
-                className="group bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] hover:-translate-y-0.5 transition-all"
+                className="group bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] hover:-translate-y-0.5 transition-all"
               >
                 {r.featuredImage && (
                   <div className="h-32 bg-[#0f0f1a] overflow-hidden">
@@ -325,10 +313,10 @@ export default async function BlogArticlePage({
                   </div>
                 )}
                 <div className="p-4">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">
                     {r.category}
                   </span>
-                  <h3 className="text-sm font-bold text-white mt-1 leading-snug group-hover:text-[#60A5FA] transition-colors line-clamp-2">
+                  <h3 className="text-sm font-bold text-white mt-1 leading-snug group-hover:text-[#A78BFA] transition-colors line-clamp-2">
                     {r.title}
                   </h3>
                   {r.excerpt && (

@@ -6,7 +6,7 @@
 
 export const ml: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "വിശ്വാസം. സഹവാസം. സമുദായം.",
+  "brand.tagline": "വിശ്വസിക്കുക. ബന്ധപ്പെടുക. വളരുക.",
   "landing.badge": "വിശ്വാസ സമൂഹ പ്ലാറ്റ്‌ഫോം",
   "landing.title": "Koino",
   "landing.titleGradient": "വിശ്വാസത്തിൽ വളരുക, ഒന്നിച്ച്",
@@ -394,8 +394,7 @@ export const ml: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "നിങ്ങൾക്കായി",
+  "common.discount": "-{percent}%"
 };
 
 export default ml;

@@ -349,6 +349,12 @@ export async function PATCH(
  *
  * Admin-only. Hard-deletes the post. No soft-delete column exists on
  * BlogPost — this is permanent.
+ *
+ * Phase 1 security fix 5: the feed wrapper Post is deleted in the SAME
+ * transaction. Post.articleId is onDelete: SetNull, so deleting only the
+ * BlogPost used to strand an excerpt-only text post in the social feed,
+ * linking members to a 404. The wrapper's social engagement rows end with
+ * the admin's destructive action (they cascade with the wrapper Post).
  */
 export async function DELETE(
   _req: NextRequest,
@@ -367,7 +373,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    await db.blogPost.delete({ where: { id } });
+    await db.$transaction(async (tx) => {
+      // Wrapper first (at most one — Post.articleId is @unique), then the
+      // canonical article. All-or-nothing: no orphaned wrapper, no article
+      // left behind if the wrapper delete fails.
+      await tx.post.deleteMany({ where: { articleId: id } });
+      await tx.blogPost.delete({ where: { id } });
+    });
 
     return NextResponse.json({ success: true, id });
   } catch (e: any) {

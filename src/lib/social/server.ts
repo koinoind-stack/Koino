@@ -248,6 +248,7 @@ export const postSelect = {
       status: true,
       published: true,
       publishedAt: true,
+      scheduledAt: true, // gate must see the schedule hold (4-leg visibility)
     },
   },
   editedAt: true,
@@ -292,15 +293,21 @@ export async function fetchViewerRepostSet(
   postIds: string[],
 ): Promise<Set<string>> {
   if (!viewerId || postIds.length === 0) return new Set<string>();
-  const markers = await db.post.findMany({
-    where: { authorId: viewerId, repostedFromId: { in: postIds } },
-    select: { repostedFromId: true },
-  });
-  return new Set(
-    markers
-      .map((m) => m.repostedFromId)
-      .filter((v): v is string => typeof v === "string"),
-  );
+  // Defensive: a viewer-repost lookup failure must never 500 the whole feed
+  // serialization (degrades to "viewer has not reposted anything").
+  try {
+    const markers = await db.post.findMany({
+      where: { authorId: viewerId, repostedFromId: { in: postIds } },
+      select: { repostedFromId: true },
+    });
+    return new Set(
+      markers
+        .map((m) => m.repostedFromId)
+        .filter((v): v is string => typeof v === "string"),
+    );
+  } catch {
+    return new Set<string>();
+  }
 }
 
 /**
@@ -366,6 +373,7 @@ export async function serializePosts(
         published: r.article.published,
         status: r.article.status,
         publishedAt: r.article.publishedAt,
+        scheduledAt: r.article.scheduledAt,
       })
         ? {
             id: r.article.id,

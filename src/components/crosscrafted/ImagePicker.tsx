@@ -11,6 +11,15 @@ type Props = {
   onChange: (images: string[]) => void;
   max?: number;
   label?: string | null;
+  /**
+   * When set, picked files are UPLOADED to this endpoint (multipart "file")
+   * and the returned permanent URL is used instead of a base64 data URL.
+   * Required wherever the payload passes through an API that truncates
+   * image strings (e.g. church listings @ 1000 chars) — a data URL would
+   * be silently corrupted. Upload failures reject the file with a toast
+   * instead of quietly producing a broken image.
+   */
+  uploadUrl?: string;
 };
 
 /**
@@ -18,10 +27,61 @@ type Props = {
  * (phone gallery, camera, or files). Converts to base64 data URLs — no
  * backend upload needed. Works offline once selected.
  */
-export default function ImagePicker({ images, onChange, max = 5, label = null }: Props) {
+export default function ImagePicker({ images, onChange, max = 5, label = null, uploadUrl }: Props) {
   const t = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(0); // in-flight uploads
+
+  // One file → final string for onChange. With uploadUrl: real upload to
+  // storage (server re-processes with sharp); without: legacy data URL.
+  const processFile = useCallback(
+    (file: File): Promise<string> => {
+    if (uploadUrl) {
+      const body = new FormData();
+      body.append("file", file);
+      return fetch(uploadUrl, { method: "POST", body })
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.url) {
+            throw new Error(data.error || t("imagePicker.error.uploadFailed"));
+          }
+          return data.url as string;
+        });
+    }
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+
+      // Compress: if image is large, downscale via canvas
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1200; // max width or height
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => resolve(reader.result as string);
+      img.src = URL.createObjectURL(file);
+      reader.readAsDataURL(file);
+    });
+    },
+    [uploadUrl, t]
+  );
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
@@ -41,47 +101,21 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
       }
 
       const toProcess = fileArray.slice(0, remaining);
+      if (uploadUrl) setUploading((n) => n + toProcess.length);
       Promise.all(
-        toProcess.map(
-          (file) =>
-            new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-
-              // Compress: if image is large, downscale via canvas
-              const img = new Image();
-              img.onload = () => {
-                const MAX_DIM = 1200; // max width or height
-                let { width, height } = img;
-                if (width > MAX_DIM || height > MAX_DIM) {
-                  const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-                  width = Math.round(width * ratio);
-                  height = Math.round(height * ratio);
-                }
-                const canvas = document.createElement("canvas");
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext("2d");
-                if (!ctx) {
-                  resolve(reader.result as string);
-                  return;
-                }
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL("image/jpeg", 0.82));
-              };
-              img.onerror = () => resolve(reader.result as string);
-              img.src = URL.createObjectURL(file);
-              reader.readAsDataURL(file);
-            })
-        )
+        toProcess.map((file) => processFile(file))
       )
-        .then((dataUrls) => {
-          onChange([...images, ...dataUrls]);
+        .then((urls) => {
+          onChange([...images, ...urls]);
         })
-        .catch(() => toast.error(t("imagePicker.error.loadFailed")));
+        .catch((err) => {
+          toast.error(err instanceof Error ? err.message : t("imagePicker.error.uploadFailed"));
+        })
+        .finally(() => {
+          if (uploadUrl) setUploading(0);
+        });
     },
-    [images, max, onChange, t]
+    [images, max, onChange, processFile, t, uploadUrl]
   );
 
   const handleRemove = (idx: number) => {
@@ -103,7 +137,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-[10px] font-bold hover:bg-[#2563EB]/25 transition-all"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[10px] font-bold hover:bg-[#7C3AED]/25 transition-all"
           >
             <Plus size={10} /> {t("imagePicker.addImage")}
           </button>
@@ -125,6 +159,12 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
 
       {/* Drop zone / empty state */}
       {images.length === 0 ? (
+        uploading > 0 ? (
+          <div className="w-full p-6 rounded-xl border-2 border-dashed border-[#7C3AED]/40 bg-[#7C3AED]/5 flex flex-col items-center justify-center gap-2 text-center">
+            <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
+            <p className="text-xs font-bold text-[#A78BFA]">{t("imagePicker.uploading")}</p>
+          </div>
+        ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -140,12 +180,12 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
           }}
           className={`w-full p-6 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 text-center ${
             dragOver
-              ? "border-[#2563EB] bg-[#2563EB]/10"
+              ? "border-[#7C3AED] bg-[#7C3AED]/10"
               : "border-white/[0.12] bg-white/[0.02] hover:border-white/[0.2] hover:bg-white/[0.04]"
           }`}
         >
-          <div className="w-12 h-12 rounded-2xl bg-[#2563EB]/15 border border-[#2563EB]/30 flex items-center justify-center">
-            <Camera size={20} className="text-[#60A5FA]" />
+          <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 flex items-center justify-center">
+            <Camera size={20} className="text-[#A78BFA]" />
           </div>
           <div>
             <p className="text-sm font-bold text-white">{t("imagePicker.tapToAdd")}</p>
@@ -154,6 +194,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
             </p>
           </div>
         </button>
+        )
       ) : (
         <div className="grid grid-cols-3 gap-2">
           <AnimatePresence>
@@ -165,13 +206,13 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
                 exit={{ opacity: 0, scale: 0.8 }}
                 className={`relative aspect-square rounded-xl overflow-hidden border ${
                   idx === 0
-                    ? "border-[#2563EB]/50 ring-2 ring-[#2563EB]/20"
+                    ? "border-[#7C3AED]/50 ring-2 ring-[#7C3AED]/20"
                     : "border-white/[0.08]"
                 }`}
               >
                 <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
                 {idx === 0 && (
-                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-[#2563EB] text-white text-[8px] font-bold uppercase tracking-wider">
+                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-[#7C3AED] text-white text-[8px] font-bold uppercase tracking-wider">
                     {t("imagePicker.coverBadge")}
                   </span>
                 )}
@@ -190,7 +231,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="aspect-square rounded-xl border-2 border-dashed border-white/[0.12] bg-white/[0.02] hover:border-[#2563EB]/40 hover:bg-[#2563EB]/8 flex flex-col items-center justify-center gap-1 transition-all"
+              className="aspect-square rounded-xl border-2 border-dashed border-white/[0.12] bg-white/[0.02] hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/8 flex flex-col items-center justify-center gap-1 transition-all"
             >
               <Plus size={18} className="text-[#94A3B8]" />
               <span className="text-[9px] font-bold text-[#94A3B8]">{t("imagePicker.addMore")}</span>
@@ -203,7 +244,7 @@ export default function ImagePicker({ images, onChange, max = 5, label = null }:
         <p className="text-[10px] text-[#64748B] mt-1.5">
           {t("imagePicker.coverHint")}
           {images.length < 3 && (
-            <span className="text-[#F5B84A]">{t("imagePicker.tip")}</span>
+            <span className="text-[#F59E0B]">{t("imagePicker.tip")}</span>
           )}
         </p>
       )}

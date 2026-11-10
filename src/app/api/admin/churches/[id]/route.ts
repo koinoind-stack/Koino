@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const CHURCH_TYPES = ["Church", "Ministry", "Fellowship", "Prayer Hall", "Other"];
 
 /**
  * PATCH /api/admin/churches/[id]
@@ -12,7 +13,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
  * times, contact details, etc. — this is the correction path for flagged
  * listings). Only provided fields are updated.
  *
- * Body (all optional): { name, description, denomination, state, city,
+ * Body (all optional): { name, description, denomination, type, state, city,
  *   address, postalCode, location, contactName, contactEmail, contactPhone,
  *   whatsappNumber, website, service_times, languages, images }
  */
@@ -40,6 +41,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (description !== undefined) data.description = description;
     const denomination = str(body.denomination, 200);
     if (denomination !== undefined) data.denomination = denomination;
+
+    // Listing type — fixed set so the value stays filterable
+    const rawType = typeof body.type === "string" ? body.type.trim() : "";
+    if (rawType) {
+      if (!CHURCH_TYPES.includes(rawType)) {
+        return NextResponse.json(
+          { error: `Invalid type. Allowed: ${CHURCH_TYPES.join(", ")}` },
+          { status: 400 }
+        );
+      }
+      data.type = rawType;
+    }
+
     const state = str(body.state, 100);
     if (state !== undefined) data.state = state;
     const city = str(body.city, 100);

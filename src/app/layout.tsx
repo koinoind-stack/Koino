@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-// Fonts are self-hosted via next/font/local (files under src/fonts/, all
-// SIL OFL 1.1 licensed — see each directory's license file). The previous
-// next/font/google setup downloaded font data from fonts.googleapis.com
-// during `next build`, which fails on build runners without access to
-// Google (Vercel: BUILD_UTILS_SPAWN_1 on the generated noto_sans_telugu
-// module). Same CSS variables, weight ranges and language coverage as
-// before: Latin → Geist, Devanagari (Hindi) → Noto Sans Devanagari,
-// Telugu → Noto Sans Telugu, composed per glyph by the --font-sans stack
-// in globals.css so the translated interface keeps proper, consistently
-// shaped glyphs on every platform. The files are full-coverage variable
-// fonts, so every previously supported subset/script still renders with
-// Geist/Noto glyphs instead of OS fallbacks.
-import localFont from "next/font/local";
+import { GeistSans } from "geist/font/sans";
+// Indic UI fonts — Devanagari (Hindi) and Telugu script renderers so the
+// translated interface uses proper, consistently-shaped glyphs on every
+// platform instead of falling back to whatever the OS happens to provide.
+//
+// ALL fonts are loaded LOCALLY: no build-time network fetch (the previous
+// next/font/google imports intermittently broke Vercel production builds
+// with "module-not-found" errors on the noto_sans_devanagari CSS file).
+//
+// PERF (launch audit): the Devanagari/Telugu faces are NOT loaded through
+// next/font/local anymore — that preloaded BOTH full TTFs (628KB + 868KB)
+// on every page for every visitor, including English-only readers. They are
+// now plain self-hosted WOFF2 subsets (216KB + 244KB) declared in
+// globals.css with `unicode-range`, so the browser downloads a face ONLY
+// when the page actually renders that script: 0 bytes for English visits,
+// one face for Hindi or Telugu visits. The original TTFs stay in
+// public/fonts — the server-side share-card renderer reads them from disk.
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -19,26 +23,7 @@ import { Providers } from "@/components/crosscrafted/Providers";
 import ServiceWorkerRegister from "./register-sw";
 import { BRAND, SITE_TITLE, siteUrl } from "@/lib/brand";
 
-const geistSans = localFont({
-  src: "../fonts/geist/Geist-Variable.woff2",
-  variable: "--font-geist-sans",
-  display: "swap",
-  weight: "100 900",
-});
-
-const notoDevanagari = localFont({
-  src: "../fonts/noto-sans-devanagari/NotoSansDevanagari-Variable.woff2",
-  variable: "--font-devanagari",
-  display: "swap",
-  weight: "400 700",
-});
-
-const notoTelugu = localFont({
-  src: "../fonts/noto-sans-telugu/NotoSansTelugu-Variable.woff2",
-  variable: "--font-telugu",
-  display: "swap",
-  weight: "400 700",
-});
+const geistSans = GeistSans;
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.url),
@@ -58,23 +43,22 @@ export const metadata: Metadata = {
   authors: [{ name: `${BRAND.name} Team` }],
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: BRAND.assets.favicon,
-    shortcut: BRAND.assets.favicon,
-    apple: BRAND.assets.appleTouchIcon,
+    icon: BRAND.assets.logo,
+    apple: BRAND.assets.logo,
   },
   openGraph: {
-    title: SITE_TITLE,
+    title: "Koino — Faith. Fellowship. Belong.",
     description:
-      "Connect, grow and belong with the Christian community on Lordsbook.",
-    siteName: BRAND.name,
+      "Connect, grow and belong with the Christian community on Koino.",
+    siteName: "Koino",
     type: "website",
-    images: [BRAND.assets.logo],
+    images: ["/koino-logo.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: BRAND.name,
-    description: BRAND.tagline,
-    images: [BRAND.assets.logo],
+    title: "Koino",
+    description: "Faith. Fellowship. Belong.",
+    images: ["/koino-logo.png"],
   },
 };
 
@@ -85,7 +69,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${notoDevanagari.variable} ${notoTelugu.variable} antialiased bg-[#071120] text-white`}>
+      <body className={`${geistSans.variable} antialiased bg-[#12101A] text-white`}>
         <Providers>
           {children}
           <Toaster />

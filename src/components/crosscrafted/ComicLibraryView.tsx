@@ -29,14 +29,22 @@ import {
   PlayCircle,
   AlertCircle,
   Loader2,
+  Bookmark,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   BIBLE_BOOKS,
   getBook,
   getAllComicProgress,
   type ComicProgress,
 } from "@/lib/bible-data";
+import {
+  fetchServerComicBookmarks,
+  fetchServerComicProgress,
+  pushComicBookmarks,
+} from "@/lib/comic-sync";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
 
 type ComicChapterSummary = {
   id: string;
@@ -47,10 +55,13 @@ type ComicChapterSummary = {
   description: string | null;
   coverArtUrl: string | null;
   sortOrder: number;
+  kidsFriendly: boolean;
+  kidsAgeGroup: string | null;
+  pageMode: string;
   panelCount: number;
 };
 
-type TestamentFilter = "all" | "OT" | "NT";
+type TestamentFilter = "all" | "OT" | "NT" | "kids";
 
 // sessionStorage key for the library's filter state (survives reader round-trips)
 const FILTERS_KEY = "cc_comic_library_filters";
@@ -65,6 +76,7 @@ export default function ComicLibraryView({
   onOpenComic: (bookId: string, chapter: number) => void;
 }) {
   const t = useTranslation();
+  const { isAuthenticated } = useSupabaseUser();
   const [chapters, setChapters] = useState<ComicChapterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +131,86 @@ export default function ComicLibraryView({
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, []);
+
+  // ── Server reading sync (signed-in members; spec Part 2 §4) ──
+  // Server-side progress is what makes completion status + Continue Reading
+  // follow the member across devices. Merged with the "highest progress
+  // wins" policy — progress never regresses. Guests keep pure local state.
+  const [serverProgress, setServerProgress] = useState<Record<string, ComicProgress> | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setServerProgress(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () =>
+      fetchServerComicProgress().then((p) => {
+        if (!cancelled) setServerProgress(p);
+      });
+    load();
+    window.addEventListener("focus", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", load);
+    };
+  }, [isAuthenticated]);
+
+  const mergedProgress = useMemo(() => {
+    if (!serverProgress) return progress;
+    const merged = { ...progress };
+    for (const [key, sp] of Object.entries(serverProgress)) {
+      const lp = merged[key];
+      if (!lp) {
+        merged[key] = sp;
+      } else if (sp.lastPanel > lp.lastPanel) {
+        merged[key] = {
+          ...lp,
+          lastPanel: sp.lastPanel,
+          totalPanels: sp.totalPanels || lp.totalPanels,
+          completed: sp.completed || lp.completed,
+          updatedAt: Math.max(lp.updatedAt, sp.updatedAt),
+        };
+      } else if (sp.completed && !lp.completed) {
+        merged[key] = { ...lp, completed: true, updatedAt: Math.max(lp.updatedAt, sp.updatedAt) };
+      }
+    }
+    return merged;
+  }, [progress, serverProgress]);
+
+  // ── Story bookmarks (server-side; spec Part 2 §4 "Bookmark stories") ──
+  // Keyed "${bookId}-${chapter}" → bookmarked page numbers (may be empty for
+  // a story-level bookmark). A key existing means the story is bookmarked.
+  const [bookmarks, setBookmarks] = useState<Record<string, number[]>>({});
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setBookmarks({});
+      return;
+    }
+    let cancelled = false;
+    fetchServerComicBookmarks().then((b) => {
+      if (!cancelled && b) setBookmarks(b);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  const toggleStoryBookmark = (ch: ComicChapterSummary) => {
+    if (!isAuthenticated) {
+      toast.error(t("comics2.bookmarkSignIn"));
+      return;
+    }
+    const key = `${ch.bookId}-${ch.chapter}`;
+    const isOn = Object.prototype.hasOwnProperty.call(bookmarks, key);
+    setBookmarks((prev) => {
+      const next = { ...prev };
+      if (isOn) delete next[key];
+      else next[key] = [];
+      return next;
+    });
+    // ON → story-level row (empty page list still creates it); OFF → removes it.
+    pushComicBookmarks(ch.bookId, ch.chapter, [], { storyLevel: !isOn });
+  };
 
   // Load published chapters from the existing public API
   useEffect(() => {
@@ -175,26 +267,34 @@ export default function ComicLibraryView({
       chapters.filter((ch) => getBook(ch.bookId)?.testament === "NT").length,
     [chapters]
   );
+  const kidsCount = useMemo(
+    () => chapters.filter((ch) => ch.kidsFriendly).length,
+    [chapters]
+  );
 
   // Most recent in-progress chapter (for the Continue Reading strip)
   const continueEntry = useMemo(() => {
     let best: { chapter: ComicChapterSummary; prog: ComicProgress } | null = null;
     for (const ch of chapters) {
-      const prog = progress[`${ch.bookId}-${ch.chapter}`];
+      const prog = mergedProgress[`${ch.bookId}-${ch.chapter}`];
       if (!prog || prog.completed) continue;
       if (!best || prog.updatedAt > best.prog.updatedAt) {
         best = { chapter: ch, prog };
       }
     }
     return best;
-  }, [chapters, progress]);
+  }, [chapters, mergedProgress]);
 
-  // Filtered chapter list: testament × book × search query
+  // Filtered chapter list: testament × kids × book × search query
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return chapters.filter((ch) => {
       const book = getBook(ch.bookId);
-      if (testament !== "all" && book?.testament !== testament) return false;
+      if (testament === "kids") {
+        if (!ch.kidsFriendly) return false;
+      } else if (testament !== "all" && book?.testament !== testament) {
+        return false;
+      }
       if (selectedBookId && ch.bookId !== selectedBookId) return false;
       if (q) {
         const haystack = [
@@ -218,8 +318,14 @@ export default function ComicLibraryView({
   const bookHasComics = selectedBookId ? (countByBook.get(selectedBookId) || 0) > 0 : true;
   const filtersActive = testament !== "all" || !!selectedBookId || query.trim().length > 0;
 
+  // Featured story for the hero — first story with cover artwork, else first.
+  const featured = useMemo(
+    () => chapters.find((ch) => ch.coverArtUrl) || chapters[0] || null,
+    [chapters]
+  );
+
   const statusFor = (ch: ComicChapterSummary): "new" | "progress" | "done" => {
-    const prog = progress[`${ch.bookId}-${ch.chapter}`];
+    const prog = mergedProgress[`${ch.bookId}-${ch.chapter}`];
     if (!prog) return "new";
     return prog.completed ? "done" : "progress";
   };
@@ -229,7 +335,7 @@ export default function ComicLibraryView({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 size={28} className="text-[#F97316] animate-spin" />
+        <Loader2 size={28} className="text-[#F39B9B] animate-spin" />
       </div>
     );
   }
@@ -259,18 +365,11 @@ export default function ComicLibraryView({
 
   return (
     <div className="min-w-0">
-      {/* ─── Heading + subtitle ─── */}
-      <div className="mb-5">
-        <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center shadow-lg shadow-[#2563EB]/20">
-            <Sparkles size={15} className="text-white" />
-          </span>
-          <h2 className="text-xl font-black text-white tracking-tight">{t("feature.comics.title")}</h2>
-        </div>
-        <p className="text-xs text-[#A09DB1] mt-1.5 ml-10">
-          {t("comics.subtitle")}
-        </p>
-      </div>
+      {/* ─── HERO — Koino Comic Bible ─── */}
+      <ComicHero
+        featured={featured}
+        onOpen={(bookId, chapter) => onOpenComic(bookId, chapter)}
+      />
 
       {/* ─── Continue Reading strip ─── */}
       {continueEntry && (
@@ -292,7 +391,7 @@ export default function ComicLibraryView({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("comics.searchPlaceholder")}
           aria-label={t("comics.searchAria")}
-          className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB]/50 focus:bg-white/[0.06] transition-all"
+          className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]/50 focus:bg-white/[0.06] transition-all"
         />
         {query && (
           <button
@@ -305,13 +404,14 @@ export default function ComicLibraryView({
         )}
       </div>
 
-      {/* ─── Testament filter ─── */}
+      {/* ─── Story tabs (All / OT / NT / For Kids) ─── */}
       <div className="flex p-1 bg-white/[0.04] border border-white/[0.06] rounded-xl mb-3">
         {(
           [
-            { id: "all", label: t("common.all"), count: chapters.length },
+            { id: "all", label: t("comics2.allStories"), count: chapters.length },
             { id: "OT", label: t("bible.ot"), count: otCount },
             { id: "NT", label: t("bible.nt"), count: ntCount },
+            { id: "kids", label: t("comics2.forKids"), count: kidsCount },
           ] as { id: TestamentFilter; label: string; count: number }[]
         ).map((opt) => (
           <button
@@ -319,7 +419,7 @@ export default function ComicLibraryView({
             onClick={() => setTestament(opt.id)}
             className={`flex-1 py-2 rounded-lg text-[11px] font-bold transition-all ${
               testament === opt.id
-                ? "bg-gradient-to-r from-[#2563EB] to-[#F97316] text-white shadow-lg shadow-[#2563EB]/20"
+                ? "bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white shadow-lg shadow-[#7C3AED]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -363,7 +463,7 @@ export default function ComicLibraryView({
                 setTestament("all");
                 setQuery("");
               }}
-              className="mt-4 px-4 py-2 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-xs font-bold hover:bg-[#2563EB]/25 transition-all"
+              className="mt-4 px-4 py-2 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold hover:bg-[#7C3AED]/25 transition-all"
             >
               {t("comics.browseAll")}
             </button>
@@ -402,7 +502,7 @@ export default function ComicLibraryView({
             {filtered.map((ch, idx) => {
               const book = getBook(ch.bookId);
               const status = statusFor(ch);
-              const prog = progress[`${ch.bookId}-${ch.chapter}`];
+              const prog = mergedProgress[`${ch.bookId}-${ch.chapter}`];
               return (
                 <ComicChapterCard
                   key={ch.id}
@@ -411,6 +511,8 @@ export default function ComicLibraryView({
                   index={idx}
                   status={status}
                   prog={prog || null}
+                  bookmarked={Object.prototype.hasOwnProperty.call(bookmarks, `${ch.bookId}-${ch.chapter}`)}
+                  onToggleBookmark={() => toggleStoryBookmark(ch)}
                   onOpen={() => onOpenComic(ch.bookId, ch.chapter)}
                 />
               );
@@ -418,6 +520,64 @@ export default function ComicLibraryView({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ─── Comic Hero — Koino Comic Bible ───────────────────────────────────────────
+// Cinematic dashboard hero: gold comic-book typography on deep navy, with the
+// featured story's cover artwork as the backdrop when one exists.
+
+function ComicHero({
+  featured,
+  onOpen,
+}: {
+  featured: ComicChapterSummary | null;
+  onOpen: (bookId: string, chapter: number) => void;
+}) {
+  const t = useTranslation();
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#14121F] mb-5">
+      {/* Featured artwork backdrop */}
+      {featured?.coverArtUrl ? (
+         
+        <img
+          src={featured.coverArtUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+          loading="eager"
+          decoding="async"
+        />
+      ) : null}
+      {/* Legibility gradients (always on, even over artwork) */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0B0A12]/95 via-[#0B0A12]/80 to-[#0B0A12]/40" />
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0B0A12] to-transparent" />
+
+      <div className="relative p-5 sm:p-7">
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#F39B9B] mb-1.5">
+          {t("comics.eyebrow")}
+        </p>
+        <h1 className="text-2xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-[#FDE68A] via-[#F59E0B] to-[#FBBF24] bg-clip-text text-transparent drop-shadow-sm">
+          {t("comics2.heroTitle")}
+        </h1>
+        <p className="text-sm sm:text-base font-extrabold text-white mt-1">{t("comics2.heroSubtitle")}</p>
+        <p className="text-[11px] sm:text-xs text-[#A09DB1] mt-1 max-w-md leading-relaxed">
+          {t("comics2.heroDesc")}
+        </p>
+
+        {featured && (
+          <button
+            onClick={() => onOpen(featured.bookId, featured.chapter)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#F39B9B] text-white text-xs font-black shadow-lg shadow-[#7C3AED]/30 hover:opacity-90 active:scale-[0.98] transition-all min-h-[40px]"
+          >
+            <PlayCircle size={15} />
+            {t("comics2.heroCta")}
+            <span className="hidden sm:inline font-bold text-white/85">· {featured.title}</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -445,14 +605,14 @@ function ContinueReadingStrip({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onContinue}
-      className="w-full group text-left mb-4 rounded-2xl p-[1px] bg-gradient-to-r from-[#2563EB]/60 via-[#F97316]/50 to-[#2563EB]/60 hover:from-[#2563EB] hover:to-[#F97316] transition-all"
+      className="w-full group text-left mb-4 rounded-2xl p-[1px] bg-gradient-to-r from-[#7C3AED]/60 via-[#F39B9B]/50 to-[#7C3AED]/60 hover:from-[#7C3AED] hover:to-[#F39B9B] transition-all"
       aria-label={t("comics.continueAria", { title: chapter.title, n: nextPanel, total })}
     >
-      <div className="rounded-2xl bg-[#13294A] p-3 flex items-center gap-3">
+      <div className="rounded-2xl bg-[#1C1929] p-3 flex items-center gap-3">
         {/* Cover thumbnail */}
         <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-[#0f0f1a] border border-white/[0.06]">
           {chapter.coverArtUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               src={chapter.coverArtUrl}
               alt=""
@@ -469,7 +629,7 @@ function ContinueReadingStrip({
 
         {/* Text + progress */}
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F97316]">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#F39B9B]">
             {t("comics.continueReading")}
           </p>
           <p className="text-xs font-extrabold text-white truncate mt-0.5">{chapter.title}</p>
@@ -479,7 +639,7 @@ function ContinueReadingStrip({
           {/* Progress bar */}
           <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#F97316]"
+              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#F39B9B]"
               style={{ width: `${Math.max(6, pct)}%` }}
             />
           </div>
@@ -487,7 +647,7 @@ function ContinueReadingStrip({
 
         <PlayCircle
           size={22}
-          className="shrink-0 text-[#F97316] group-hover:scale-110 transition-transform"
+          className="shrink-0 text-[#F39B9B] group-hover:scale-110 transition-transform"
         />
       </div>
     </motion.button>
@@ -519,7 +679,7 @@ function BookPicker({
         onClick={() => onSelect(null)}
         className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
           selectedBookId === null
-            ? "bg-[#2563EB] border-[#2563EB] text-white shadow-lg shadow-[#2563EB]/25"
+            ? "bg-[#7C3AED] border-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/25"
             : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white hover:border-white/[0.2]"
         }`}
       >
@@ -546,9 +706,9 @@ function BookPicker({
                   }
                   className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 ${
                     selected
-                      ? "bg-[#2563EB] border-[#2563EB] text-white shadow-lg shadow-[#2563EB]/25"
+                      ? "bg-[#7C3AED] border-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/25"
                       : count > 0
-                        ? "bg-white/[0.04] border-white/[0.08] text-white hover:border-[#F97316]/50"
+                        ? "bg-white/[0.04] border-white/[0.08] text-white hover:border-[#F39B9B]/50"
                         : "bg-white/[0.02] border-white/[0.04] text-[#64748B] hover:text-[#94A3B8]"
                   }`}
                 >
@@ -556,7 +716,7 @@ function BookPicker({
                   {count > 0 && (
                     <span
                       className={`min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center ${
-                        selected ? "bg-white/25 text-white" : "bg-[#F97316]/20 text-[#F97316]"
+                        selected ? "bg-white/25 text-white" : "bg-[#F39B9B]/20 text-[#F39B9B]"
                       }`}
                     >
                       {count}
@@ -580,6 +740,8 @@ function ComicChapterCard({
   index,
   status,
   prog,
+  bookmarked,
+  onToggleBookmark,
   onOpen,
 }: {
   chapter: ComicChapterSummary;
@@ -587,6 +749,8 @@ function ComicChapterCard({
   index: number;
   status: "new" | "progress" | "done";
   prog: ComicProgress | null;
+  bookmarked: boolean;
+  onToggleBookmark: () => void;
   onOpen: () => void;
 }) {
   const t = useTranslation();
@@ -594,18 +758,28 @@ function ComicChapterCard({
   const pct = prog && total > 0 ? Math.min(100, Math.round((prog.lastPanel / total) * 100)) : 0;
 
   return (
-    <motion.button
+    // div (not button): the card hosts a nested bookmark control — buttons
+    // cannot nest. Keyboard + click behavior is preserved explicitly.
+    <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.3) }}
       onClick={onOpen}
-      className="group bg-[#13294A] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group cursor-pointer bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.15] hover:-translate-y-px rounded-2xl overflow-hidden transition-all text-left flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED]/60"
       aria-label={t("comics.cardAria", { title: chapter.title, book: bookName, ch: chapter.chapter })}
     >
       {/* Cover */}
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
         {chapter.coverArtUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <img
             src={chapter.coverArtUrl}
             alt={t("comics.coverAlt", { title: chapter.title, book: bookName, ch: chapter.chapter })}
@@ -631,21 +805,51 @@ function ComicChapterCard({
               <CheckCircle2 size={10} /> {t("comics.completed")}
             </span>
           ) : status === "progress" ? (
-            <span className="px-2 py-0.5 rounded-full bg-[#F97316] text-slate-950 text-[9px] font-black">
+            <span className="px-2 py-0.5 rounded-full bg-[#F39B9B] text-slate-950 text-[9px] font-black">
               {t("comics.pctRead", { pct })}
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-full bg-[#2563EB] text-white text-[9px] font-black">
+            <span className="px-2 py-0.5 rounded-full bg-[#7C3AED] text-white text-[9px] font-black">
               {t("comics.new")}
             </span>
           )}
+        </div>
+
+        {/* Top-right: kids badge + age band + story bookmark */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          {chapter.kidsFriendly && (
+            <span className="px-2 py-0.5 rounded-full bg-[#22C55E]/90 text-slate-950 text-[9px] font-black uppercase">
+              {t("comics.kidsBadge")}
+            </span>
+          )}
+          {chapter.kidsFriendly && chapter.kidsAgeGroup && (
+            <span className="px-1.5 py-0.5 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#22C55E] text-[9px] font-black">
+              {t("comics2.agesChip", { ages: chapter.kidsAgeGroup })}
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // don't open the story — just toggle the bookmark
+              onToggleBookmark();
+            }}
+            aria-label={bookmarked ? t("comics2.bookmarkRemoveAria") : t("comics2.bookmarkAddAria")}
+            aria-pressed={bookmarked}
+            title={bookmarked ? t("comics2.bookmarkRemoveAria") : t("comics2.bookmarkAddAria")}
+            className={`p-1.5 rounded-full border backdrop-blur-sm transition-all ${
+              bookmarked
+                ? "bg-[#F59E0B] border-[#F59E0B] text-slate-950"
+                : "bg-black/60 border-white/20 text-white/80 hover:text-white hover:border-white/50"
+            }`}
+          >
+            <Bookmark size={11} fill={bookmarked ? "currentColor" : "none"} />
+          </button>
         </div>
 
         {/* In-progress thin bar along the cover bottom */}
         {status === "progress" && (
           <div className="absolute inset-x-0 bottom-0 h-[3px] bg-black/40">
             <div
-              className="h-full bg-gradient-to-r from-[#2563EB] to-[#F97316]"
+              className="h-full bg-gradient-to-r from-[#7C3AED] to-[#F39B9B]"
               style={{ width: `${Math.max(6, pct)}%` }}
             />
           </div>
@@ -682,7 +886,7 @@ function ComicChapterCard({
       {/* CTA bar — Continue Reading only where progress exists */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-white/[0.04]">
         {status === "progress" ? (
-          <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-[#60A5FA] to-[#F97316] bg-clip-text text-transparent">
+          <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-[#A78BFA] to-[#F39B9B] bg-clip-text text-transparent">
             {t("comics.continueReading")}
           </span>
         ) : status === "done" ? (
@@ -699,6 +903,6 @@ function ComicChapterCard({
           className="text-[#94A3B8] group-hover:text-white group-hover:translate-x-0.5 transition-all"
         />
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

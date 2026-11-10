@@ -167,7 +167,7 @@ export const READING_PLANS: ReadingPlan[] = [
       "Read through all 27 books of the New Testament in 30 days. About 8–9 chapters per day. A great way to immerse yourself in the life of Jesus and the early church.",
     duration: 30,
     category: "New Testament",
-    color: "#22D3EE",
+    color: "#38BDF8",
     days: [
       { day: 1, readings: [r("matthew", 1), r("matthew", 2), r("matthew", 3), r("matthew", 4), r("matthew", 5), r("matthew", 6), r("matthew", 7), r("matthew", 8), r("matthew", 9)] },
       { day: 2, readings: [r("matthew", 10), r("matthew", 11), r("matthew", 12), r("matthew", 13), r("matthew", 14), r("matthew", 15), r("matthew", 16), r("matthew", 17), r("matthew", 18)] },
@@ -208,7 +208,7 @@ export const READING_PLANS: ReadingPlan[] = [
       "Walk through the four Gospels — Matthew, Mark, Luke, and John — in two weeks. See Jesus from four unique perspectives and dive deep into His life, teachings, death, and resurrection.",
     duration: 14,
     category: "Gospels",
-    color: "#F97316",
+    color: "#F39B9B",
     days: [
       { day: 1, readings: [r("matthew", 1), r("matthew", 2), r("matthew", 3), r("matthew", 4)] },
       { day: 2, readings: [r("matthew", 5), r("matthew", 6), r("matthew", 7), r("matthew", 8)] },
@@ -233,7 +233,7 @@ export const READING_PLANS: ReadingPlan[] = [
       "Read one chapter of Psalms and one chapter of Proverbs each day for a month. The perfect daily wisdom rhythm — praise from David, wisdom from Solomon.",
     duration: 31,
     category: "Wisdom",
-    color: "#F5B84A",
+    color: "#F59E0B",
     days: Array.from({ length: 31 }, (_, i) => ({
       day: i + 1,
       readings: [r("psalms", i + 1), r("proverbs", i + 1)],
@@ -246,7 +246,7 @@ export const READING_PLANS: ReadingPlan[] = [
       "Read the entire Bible — all 66 books — in 90 days. About 13 chapters per day. A challenge for serious readers; the most rewarding journey through Scripture you'll ever take.",
     duration: 90,
     category: "Whole Bible",
-    color: "#2563EB",
+    color: "#7C3AED",
     days: Array.from({ length: 90 }, (_, i) => ({
       day: i + 1,
       // Simplified 90-day plan: distribute chapters roughly evenly across 1189 total / 90 days ≈ 13/day
@@ -527,6 +527,21 @@ export function saveComicProgress(
   all[key] = next;
   localStorage.setItem(COMIC_PROGRESS_KEY, JSON.stringify(all));
   return next;
+}
+
+/**
+ * Reset one story's local reading progress ("Reset progress if desired" —
+ * Comic Bible spec Part 2 §4). Server-side progress is reset separately by
+ * the reader when the member is signed in (see @/lib/comic-sync).
+ */
+export function resetComicProgress(bookId: string, chapter: number): void {
+  const all = getAllComicProgress();
+  delete all[`${bookId}-${chapter}`];
+  try {
+    localStorage.setItem(COMIC_PROGRESS_KEY, JSON.stringify(all));
+  } catch {
+    /* storage unavailable — nothing to reset locally */
+  }
 }
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────

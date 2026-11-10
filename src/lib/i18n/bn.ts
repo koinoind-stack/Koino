@@ -3,7 +3,7 @@
 
 export const bn: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "বিশ্বাস. ঐক্য. সমাজ.",
+  "brand.tagline": "বিশ্বাস করুন। যোগাযোগ করুন। বৃদ্ধি করুন।",
   "landing.badge": "বিশ্বাস সম্প্রদায় প্ল্যাটফর্ম",
   "landing.title": "Koino",
   "landing.titleGradient": "বিশ্বাসে বৃদ্ধি পান, একসাথে",
@@ -391,8 +391,7 @@ export const bn: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "আপনার জন্য",
+  "common.discount": "-{percent}%"
 };
 
 export default bn;

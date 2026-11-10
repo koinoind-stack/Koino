@@ -50,35 +50,83 @@ function getTierIndex(points: number): number {
 }
 
 /**
- * Shows a full-screen celebration animation when user crosses a tier threshold.
- * Detects tier changes by comparing previous and current points.
+ * Last tier this browser has celebrated, persisted in localStorage. Together
+ * with the `ready` gate below it guarantees a tier celebration fires at most
+ * once per tier per device — never again on a plain refresh.
  */
-export default function LevelUpAnimation({ totalPoints }: { totalPoints: number }) {
+const SEEN_TIER_KEY = "koino:levelup-seen-tier";
+
+function getSeenTier(): number {
+  if (typeof window === "undefined") return -1;
+  try {
+    const raw = window.localStorage.getItem(SEEN_TIER_KEY);
+    if (raw === null) return -1;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : -1;
+  } catch {
+    return -1; // storage disabled / private mode — in-session guard still works
+  }
+}
+
+function setSeenTier(idx: number): void {
+  try {
+    window.localStorage.setItem(SEEN_TIER_KEY, String(idx));
+  } catch {
+    // storage unavailable — the ready-gate alone still prevents reload replays
+  }
+}
+
+type LevelUpAnimationProps = {
+  totalPoints: number;
+  /** True once the user's real FP total has loaded (profile fetch done).
+   *  While false, points is the loading placeholder (0) — arming the detector
+   *  then would treat the 0 → real-total transition as a fresh level-up and
+   *  replay the celebration on every page load. */
+  ready?: boolean;
+};
+
+/**
+ * Shows a full-screen celebration animation when user crosses a tier threshold.
+ * Detects tier changes by comparing previous and current points — but only
+ * AFTER the real total has loaded and only for tiers this browser has not
+ * celebrated yet (persisted), so refreshing never replays the popup.
+ */
+export default function LevelUpAnimation({ totalPoints, ready = true }: LevelUpAnimationProps) {
   const t = useTranslation();
   const tierTitle = (tier: Tier) => t(TIER_KEYS[tier.minPoints] ?? tier.title);
   const [showCelebration, setShowCelebration] = useState(false);
   const [newTier, setNewTier] = useState<Tier | null>(null);
   const prevTierIdx = useRef<number>(-1);
-  const initialized = useRef(false);
+  const armed = useRef(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
 
   useEffect(() => {
     const currentTierIdx = getTierIndex(totalPoints);
 
-    if (!initialized.current) {
-      // First render — just set the initial tier, don't celebrate
-      prevTierIdx.current = currentTierIdx;
-      initialized.current = true;
+    if (!armed.current) {
+      // Wait for the real FP total before setting the baseline. The hook
+      // mounts with the loading placeholder (0); comparing that against the
+      // fetched total is what faked a level-up on every refresh.
+      if (!ready) return;
+      armed.current = true;
+      prevTierIdx.current = Math.max(currentTierIdx, getSeenTier());
       return;
     }
 
     if (currentTierIdx > prevTierIdx.current) {
-      // Tier increased!
+      // Tier increased — and never celebrated on this device before!
       const tier = TIERS[currentTierIdx];
       setNewTier(tier);
       setShowCelebration(true);
+      setSeenTier(currentTierIdx);
 
       // Auto-hide after 5 seconds
-      setTimeout(() => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      hideTimer.current = setTimeout(() => {
         setShowCelebration(false);
       }, 5000);
 
@@ -89,7 +137,7 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
     }
 
     prevTierIdx.current = currentTierIdx;
-  }, [totalPoints, t]);
+  }, [totalPoints, ready, t]);
 
   const shareLevelUp = () => {
     if (!newTier) return;
@@ -122,8 +170,8 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
                   left: `${Math.random() * 100}%`,
                   top: `-10px`,
                   backgroundColor: [
-                    "#F97316", "#2563EB", "#22D3EE", "#22C55E",
-                    "#F5B84A", "#F97316", "#A855F7", "#22D36A",
+                    "#F39B9B", "#7C3AED", "#38BDF8", "#22C55E",
+                    "#F59E0B", "#EC4899", "#A855F7", "#22D36A",
                   ][i % 8],
                 }}
                 initial={{ y: -20, rotate: 0, opacity: 1 }}
@@ -147,7 +195,7 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
             animate={{ scale: 1, rotate: 0 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 15, stiffness: 200 }}
-            className="relative bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/30 rounded-3xl p-8 max-w-sm mx-4 text-center"
+            className="relative bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/30 rounded-3xl p-8 max-w-sm mx-4 text-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
@@ -175,8 +223,8 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
               transition={{ delay: 0.3 }}
             >
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Sparkles size={14} className="text-[#60A5FA]" />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]">
+                <Sparkles size={14} className="text-[#A78BFA]" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">
                   {t("levelup.title")}
                 </p>
               </div>
@@ -207,7 +255,7 @@ export default function LevelUpAnimation({ totalPoints }: { totalPoints: number 
 
               <button
                 onClick={shareLevelUp}
-                className="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
               >
                 <Share2 size={14} /> {t("levelup.shareCta")}
               </button>

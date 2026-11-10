@@ -18,25 +18,25 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["lifestyle", "social", "books", "education"],
     icons: [
       {
-        src: BRAND.assets.icon192,
+        src: BRAND.assets.logo,
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: BRAND.assets.icon512,
+        src: BRAND.assets.logo,
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: BRAND.assets.icon192,
+        src: BRAND.assets.logo,
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: BRAND.assets.icon512,
+        src: BRAND.assets.logo,
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

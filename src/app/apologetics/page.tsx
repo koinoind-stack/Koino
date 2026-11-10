@@ -46,7 +46,7 @@ export default async function ApologeticsPage() {
     <PublicPageLayout>
       {/* Hero */}
       <section className="py-16 px-6 max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-6">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
           <Sparkles size={12} fill="currentColor" /> <T k="apologetics.title" />
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
@@ -66,10 +66,10 @@ export default async function ApologeticsPage() {
             <Link
               key={cat.name}
               href={`/apologetics?category=${encodeURIComponent(cat.name)}`}
-              className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all group"
+              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all group"
             >
               <p className="text-2xl mb-2">{cat.icon}</p>
-              <p className="text-xs font-bold text-white group-hover:text-[#60A5FA] transition-colors">{cat.name}</p>
+              <p className="text-xs font-bold text-white group-hover:text-[#A78BFA] transition-colors">{cat.name}</p>
             </Link>
           ))}
         </div>
@@ -80,7 +80,7 @@ export default async function ApologeticsPage() {
         <section className="py-8 px-6 max-w-5xl mx-auto">
           {/* Featured Article — large card with prominent cover image */}
           {featured && (
-            <Link href={`/apologetics/${featured.slug}`} className="block bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden mb-8 hover:border-white/[0.15] transition-all group">
+            <Link href={`/apologetics/${featured.slug}`} className="block bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden mb-8 hover:border-white/[0.15] transition-all group">
               {/* Cover image — prominent, full-width, 16:9-ish aspect ratio */}
               {featured.coverImageUrl ? (
                 <div className="relative aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
@@ -91,7 +91,7 @@ export default async function ApologeticsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="relative aspect-[16/9] bg-gradient-to-br from-[#13294A] via-[#1A3A66] to-[#0f0f1a] overflow-hidden">
+                <div className="relative aspect-[16/9] bg-gradient-to-br from-[#1C1929] via-[#2B254E] to-[#0f0f1a] overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <BookOpen size={48} className="text-[#475569]/50" />
                   </div>
@@ -103,13 +103,13 @@ export default async function ApologeticsPage() {
               <div className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
                   {featured.category && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">{featured.category}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">{featured.category}</span>
                   )}
                   {featured.difficulty && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#60A5FA]">{featured.difficulty}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]">{featured.difficulty}</span>
                   )}
                 </div>
-                <h2 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#60A5FA] transition-colors">{featured.title}</h2>
+                <h2 className="text-lg sm:text-xl font-black text-white mb-2 group-hover:text-[#A78BFA] transition-colors">{featured.title}</h2>
                 {featured.excerpt && <p className="text-sm text-[#A09DB1] leading-relaxed line-clamp-2">{featured.excerpt}</p>}
                 <div className="flex items-center gap-2 mt-3 text-[10px] text-[#64748B]">
                   {featured.authorName && <span><T k="apologetics.page.by" vars={{ author: featured.authorName }} /></span>}
@@ -131,7 +131,7 @@ export default async function ApologeticsPage() {
                 <Link
                   key={article.id}
                   href={`/apologetics/${article.slug}`}
-                  className="flex flex-col sm:flex-row bg-[#13294A] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.15] transition-all group"
+                  className="flex flex-col sm:flex-row bg-[#1C1929] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.15] transition-all group"
                 >
                   {/* Cover image — left on desktop, top on mobile, 16:9 */}
                   <div className="sm:w-56 shrink-0">
@@ -145,7 +145,7 @@ export default async function ApologeticsPage() {
                         />
                       </div>
                     ) : (
-                      <div className="relative aspect-[16/9] sm:h-full bg-gradient-to-br from-[#13294A] via-[#1A3A66] to-[#0f0f1a] overflow-hidden">
+                      <div className="relative aspect-[16/9] sm:h-full bg-gradient-to-br from-[#1C1929] via-[#2B254E] to-[#0f0f1a] overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
                           <BookOpen size={24} className="text-[#475569]/60" />
                         </div>
@@ -156,13 +156,13 @@ export default async function ApologeticsPage() {
                   <div className="flex-1 p-4 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
                       {article.category && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">{article.category}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">{article.category}</span>
                       )}
                       {article.difficulty && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#60A5FA]">{article.difficulty}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]">{article.difficulty}</span>
                       )}
                     </div>
-                    <h3 className="text-sm font-bold text-white group-hover:text-[#60A5FA] transition-colors line-clamp-2">{article.title}</h3>
+                    <h3 className="text-sm font-bold text-white group-hover:text-[#A78BFA] transition-colors line-clamp-2">{article.title}</h3>
                     {article.excerpt && <p className="text-[11px] text-[#A09DB1] mt-1 line-clamp-2">{article.excerpt}</p>}
                     <div className="flex items-center gap-2 mt-2 text-[9px] text-[#64748B]">
                       {article.authorName && <span>by {article.authorName}</span>}
@@ -189,24 +189,35 @@ export default async function ApologeticsPage() {
 
       {/* Ask a Question CTA */}
       <section className="py-8 px-6 max-w-3xl mx-auto">
-        <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-3xl p-6 text-center">
-          <MessageCircle size={24} className="mx-auto text-[#60A5FA] mb-3" />
+        <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-3xl p-6 text-center">
+          <MessageCircle size={24} className="mx-auto text-[#A78BFA] mb-3" />
           <h2 className="text-lg font-bold text-white mb-1"><T k="apologetics.page.ask.title" /></h2>
           <p className="text-xs text-[#A09DB1] mb-4"><T k="apologetics.page.ask.body" /></p>
-          <Link href="/contact?subject=Apologetics+Question" className="inline-block px-6 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all">
+          <Link href="/contact?subject=Apologetics+Question" className="inline-block px-6 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all">
             <T k="apologetics.page.ask.cta" />
           </Link>
+          {/* Questions & Answers — the member Q&A lives in the app (deep link,
+              also used by share links and notifications). From here it is one
+              hop away, so removing the standalone sidebar entry loses nothing. */}
+          <div className="mt-4">
+            <Link
+              href="/?view=apologetics"
+              className="inline-block px-6 py-3 rounded-xl border border-[#7C3AED]/40 text-[#A78BFA] hover:text-white hover:border-[#7C3AED]/70 text-xs font-extrabold uppercase tracking-wider transition-all"
+            >
+              Questions &amp; Answers →
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Partner CTA */}
       <section className="py-8 px-6 max-w-3xl mx-auto">
-        <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
+        <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
           <h2 className="text-sm font-bold text-white mb-1"><T k="apologetics.page.partner.title" /></h2>
           <p className="text-[11px] text-[#A09DB1] leading-relaxed mb-3">
             Are you a pastor, Bible teacher, apologist or Christian writer? Apply to become a Koino contributor and help Christians ask better questions, grow deeper in Scripture and explore the Christian faith.
           </p>
-          <Link href="/partner" className="text-[#60A5FA] text-xs font-bold hover:text-white transition-colors">
+          <Link href="/partner" className="text-[#A78BFA] text-xs font-bold hover:text-white transition-colors">
             <T k="apologetics.page.partner.cta" />
           </Link>
         </div>

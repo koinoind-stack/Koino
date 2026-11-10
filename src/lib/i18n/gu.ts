@@ -6,7 +6,7 @@
 
 export const gu: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "શ્રદ્ધા. સહભાગિતા. સમુદાય.",
+  "brand.tagline": "વિશ્વાસ કરો. જોડાઓ. વિકાસ પામો.",
   "landing.badge": "વિશ્વાસ સમુદાય પ્લેટફોર્મ",
   "landing.title": "Koino",
   "landing.titleGradient": "વિશ્વાસમાં વિકાસ પામો, સાથે સાથે",
@@ -394,8 +394,7 @@ export const gu: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "તમારા માટે",
+  "common.discount": "-{percent}%"
 };
 
 export default gu;

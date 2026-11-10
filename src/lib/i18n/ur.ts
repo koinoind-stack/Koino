@@ -6,7 +6,7 @@
 
 export const ur: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "ایمان۔ ساتھ۔ برادری۔",
+  "brand.tagline": "یقین۔ رابطہ۔ نشوونما۔",
   "landing.badge": "ایمان کا برادری پلیٹ فارم",
   "landing.title": "Koino",
   "landing.titleGradient": "ایمان میں مل کر بڑھیں",
@@ -394,8 +394,7 @@ export const ur: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "آپ کے لیے",
+  "common.discount": "-{percent}%"
 };
 
 export default ur;

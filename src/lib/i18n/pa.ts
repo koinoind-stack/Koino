@@ -6,7 +6,7 @@
 
 export const pa: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "ਵਿਸ਼ਵਾਸ. ਸਾਝ. ਭਾਈਚਾਰਾ.",
+  "brand.tagline": "ਵਿਸ਼ਵਾਸ ਕਰੋ, ਜੁੜੋ, ਵਧੋ।",
   "landing.badge": "ਵਿਸ਼ਵਾਸ ਭਾਈਚਾਰਾ ਪਲੇਟਫਾਰਮ",
   "landing.title": "Koino",
   "landing.titleGradient": "ਵਿਸ਼ਵਾਸ ਵਿੱਚ ਵਧੋ, ਮਿਲ ਕੇ",
@@ -394,8 +394,7 @@ export const pa: Record<string, string> = {
   "common.followers": "{count} followers",
   "common.reviews": "({count} reviews)",
   "common.saveAmount": "Save ₹{amount}",
-  "common.discount": "-{percent}%",
-  "feed.tab.discover": "ਤੁਹਾਡੇ ਲਈ",
+  "common.discount": "-{percent}%"
 };
 
 export default pa;
