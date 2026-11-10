@@ -1,5 +1,5 @@
 /**
- * ─── SOCIAL FEED UTILITIES (Lordsbook Part 2) ────────────────────────────────
+ * ─── SOCIAL FEED UTILITIES (Koino Social) ────────────────────────────────────
  *
  * Pure, dependency-free helpers behind the Part 2 social feed behaviors:
  * feed tabs, Trending ranking, keyset pagination cursors, notification

@@ -6,12 +6,15 @@
  * ONLY this file + the files under /public/brand/ + the NEXT_PUBLIC_SITE_URL
  * env var.
  *
- * ⚠️ Do NOT hardcode "Lordsbook" in components — import { BRAND } from here.
+ * ⚠️ Do NOT hardcode "Koino" in components — import { BRAND } from here.
  *
- * LORDSBOOK DEMONSTRATION EDITION: this edition re-skins the platform with
- * Lordsbook branding. The change is reversible — the original Koino logo
- * files (public/brand/logo.png, public/koino-logo.png) are preserved and
- * still referenced by BRAND.assets.legacyLogo for installed PWAs.
+ * KOINO (www.koino.in) — approved brand: logo public/koino-logo.png
+ * (gradient k+cross mark, wordmark, tagline), tagline
+ * "Faith. Fellowship. Belong.", palette per the approved design tokens
+ * (navy #090D18, secondary navy #0D1322, card #111827, elevated card
+ * #172033, primary purple #873EFF, lavender #B68AFF). The PWA icon set
+ * under /public/brand/ is derived from the approved Koino mark on the
+ * approved navy.
  *
  * Client-safe: only NEXT_PUBLIC_* env vars are read, never private secrets.
  */
@@ -20,14 +23,14 @@ const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 
 export const BRAND = {
   /** Public brand name (display chrome, SEO, share texts, i18n interpolation). */
-  name: "Lordsbook",
+  name: "Koino",
 
   /** Tagline used in titles, landing, PWA. */
-  tagline: "Faith. Fellowship. Community.",
+  tagline: "Faith. Fellowship. Belong.",
 
   /** Full SEO description. */
   description:
-    "Lordsbook is a Christian community platform for Scripture, churches, prayer, events, Bible trivia, Christian businesses, marketplace and fellowship.",
+    "Koino is a Christian community platform for Scripture, churches, prayer, events, Bible trivia, Christian businesses, marketplace and fellowship.",
 
   /** Canonical site origin (no trailing slash). Configure via NEXT_PUBLIC_SITE_URL. */
   url: envSiteUrl || "https://www.koino.in",
@@ -36,18 +39,18 @@ export const BRAND = {
   contactEmail: "koinoind@gmail.com",
 
   /** Rewards program display name (Trivia shop / claim flows). */
-  storeName: "Lordsbook Rewards",
+  storeName: "Koino Rewards",
   rewardsName: "Faith Points",
 
-  /** Assets — Lordsbook artwork supplied for this demonstration edition. */
+  /** Assets — approved Koino artwork (public/koino-logo.png, public/logo.svg). */
   assets: {
-    /** Horizontal shield + wordmark — desktop headers and wide placements. */
-    logo: "/brand/lordsbook-horizontal.png",
-    /** Compact shield-only mark — app icon, favicon, tight squares. */
-    shield: "/brand/lordsbook-shield.png",
-    /** Full square emblem (shield + banner) — auth, hero, splash surfaces. */
-    emblem: "/brand/lordsbook-emblem.png",
-    /** PWA icon entries (shield on deep navy, maskable-safe). */
+    /** Approved Koino lockup (mark + wordmark) — headers and hero. */
+    logo: "/koino-logo.png",
+    /** Approved Koino mark (square, transparent) — tight squares, avatars. */
+    shield: "/koino-logo.png",
+    /** Full square emblem — auth, hero, splash surfaces (same approved art). */
+    emblem: "/koino-logo.png",
+    /** PWA icon entries (Koino mark on approved navy, maskable-safe). */
     icon192: "/brand/icon-192.png",
     icon512: "/brand/icon-512.png",
     appleTouchIcon: "/brand/apple-touch-icon.png",
@@ -56,20 +59,24 @@ export const BRAND = {
     legacyLogo: "/koino-logo.png",
   },
 
-  /** Design tokens mirrored from globals.css — keep both in sync. */
+  /** Design tokens mirrored from globals.css — keep both in sync.
+   *  Approved Koino palette anchors below; orange/gold/silver/muted stay as
+   *  functional accents from the approved design. */
   colors: {
-    /** Deep navy app background. */
-    background: "#071120",
-    /** Sidebar / main surface navy. */
-    surface: "#0A1729",
-    /** Elevated card navy. */
-    card: "#0F2038",
-    /** Royal blue — primary actions, active nav. */
-    primary: "#2563EB",
-    /** Soft/electric blue for gradients and hovers. */
-    primarySoft: "#3B82F6",
-    /** Electric cyan — accents, live dots, highlights. */
-    accent: "#22D3EE",
+    /** Deep navy app background (approved). */
+    background: "#090D18",
+    /** Secondary navy — sidebar / main surface (approved). */
+    surface: "#0D1322",
+    /** Card navy (approved). */
+    card: "#111827",
+    /** Elevated card navy (approved). */
+    cardElevated: "#172033",
+    /** Primary purple — primary actions, active nav (approved). */
+    primary: "#873EFF",
+    /** Lavender — soft accents, gradients, hovers (approved). */
+    primarySoft: "#B68AFF",
+    /** Lavender accent slot (approved). */
+    accent: "#B68AFF",
     /** Orange — CTA highlights and attention. */
     orange: "#F97316",
     /** Gold accent (cross flame / premium touches). */
@@ -82,22 +89,22 @@ export const BRAND = {
 
   /** PWA metadata. */
   pwa: {
-    name: "Lordsbook — Faith. Fellowship. Community.",
-    shortName: "Lordsbook",
-    themeColor: "#071120",
-    backgroundColor: "#071120",
+    name: "Koino — Faith. Fellowship. Belong.",
+    shortName: "Koino",
+    themeColor: "#090D18",
+    backgroundColor: "#090D18",
   },
 
   /** Email identity (for transactional templates / sender display name). */
   email: {
-    fromName: "Lordsbook",
-    signature: "— The Lordsbook Team",
+    fromName: "Koino",
+    signature: "— The Koino Team",
   },
 
   /** Social/share label. */
   social: {
-    shareTitle: "Lordsbook — Faith. Fellowship. Community.",
-    whatsappChannelLabel: "Lordsbook WhatsApp Channel",
+    shareTitle: "Koino — Faith. Fellowship. Belong.",
+    whatsappChannelLabel: "Koino WhatsApp Channel",
   },
 } as const;
 

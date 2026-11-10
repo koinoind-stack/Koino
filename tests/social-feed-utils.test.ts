@@ -1,5 +1,5 @@
 /**
- * Lordsbook Part 2 — feed utility tests.
+ * Koino Social — feed utility tests.
  *
  * Covers the pure feed helpers behind GET /api/social/posts:
  *

@@ -69,71 +69,82 @@
 
 :root {
   --radius: 0.75rem;
-  --background: #071120;
+  /* ─── Approved Koino palette (canonical anchors) ───
+     navy #090D18 · secondary navy #0D1322 · card #111827 ·
+     elevated card #172033 · primary purple #873EFF · lavender #B68AFF.
+     The shadcn tokens below map onto these anchors. */
+  --koino-navy: #090D18;
+  --koino-navy-2: #0D1322;
+  --koino-card: #111827;
+  --koino-card-elevated: #172033;
+  --koino-primary: #873EFF;
+  --koino-lavender: #B68AFF;
+  --background: #090D18;
   --foreground: #ffffff;
-  --card: #13294A;
+  --card: #111827;
   --card-foreground: #ffffff;
-  --popover: #13294A;
+  --popover: #111827;
   --popover-foreground: #ffffff;
-  --primary: #2563EB;
+  --primary: #873EFF;
   --primary-foreground: #ffffff;
-  --secondary: #1A3A66;
+  --secondary: #0D1322;
   --secondary-foreground: #ffffff;
-  --muted: #13294A;
+  --muted: #172033;
   --muted-foreground: #94A3B8;
-  --accent: #2563EB;
+  --accent: #873EFF;
   --accent-foreground: #ffffff;
   --destructive: #EF4444;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #2563EB;
-  --chart-1: #F97316;
-  --chart-2: #3B82F6;
+  --ring: #873EFF;
+  --chart-1: #873EFF;
+  --chart-2: #B68AFF;
   --chart-3: #22D3EE;
   --chart-4: #22C55E;
   --chart-5: #F5B84A;
-  --sidebar: #0A1729;
+  --sidebar: #0D1322;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #2563EB;
+  --sidebar-primary: #873EFF;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(37, 99, 235, 0.15);
+  --sidebar-accent: rgba(135, 62, 255, 0.15);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.04);
-  --sidebar-ring: #2563EB;
+  --sidebar-ring: #873EFF;
 }
 
 .dark {
-  --background: #071120;
+  /* Mirrors the approved Koino palette above (single dark theme). */
+  --background: #090D18;
   --foreground: #ffffff;
-  --card: #13294A;
+  --card: #111827;
   --card-foreground: #ffffff;
-  --popover: #13294A;
+  --popover: #111827;
   --popover-foreground: #ffffff;
-  --primary: #2563EB;
+  --primary: #873EFF;
   --primary-foreground: #ffffff;
-  --secondary: #1A3A66;
+  --secondary: #0D1322;
   --secondary-foreground: #ffffff;
-  --muted: #13294A;
+  --muted: #172033;
   --muted-foreground: #94A3B8;
-  --accent: #2563EB;
+  --accent: #873EFF;
   --accent-foreground: #ffffff;
   --destructive: #EF4444;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #2563EB;
-  --chart-1: #F97316;
-  --chart-2: #3B82F6;
+  --ring: #873EFF;
+  --chart-1: #873EFF;
+  --chart-2: #B68AFF;
   --chart-3: #22D3EE;
   --chart-4: #22C55E;
   --chart-5: #F5B84A;
-  --sidebar: #0A1729;
+  --sidebar: #0D1322;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #2563EB;
+  --sidebar-primary: #873EFF;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(37, 99, 235, 0.15);
+  --sidebar-accent: rgba(135, 62, 255, 0.15);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.04);
-  --sidebar-ring: #2563EB;
+  --sidebar-ring: #873EFF;
 }
 
 @layer base {
@@ -141,12 +152,12 @@
     @apply border-border outline-ring/50;
   }
   html {
-    background: #071120;
+    background: #090D18;
     color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground;
-    background: #071120;
+    background: #090D18;
     color: #ffffff;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
@@ -174,21 +185,21 @@
   }
   select option,
   select optgroup {
-    background-color: #13294A;
+    background-color: #111827;
     color: #ffffff;
   }
 }
 
 @layer utilities {
   .gradient-text {
-    background: linear-gradient(135deg, #60A5FA, #22D3EE);
+    background: linear-gradient(135deg, #B68AFF, #873EFF);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
   .neo-input {
-    background: #13294A;
+    background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 10px 14px;
@@ -199,8 +210,8 @@
     width: 100%;
   }
   .neo-input:focus {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: rgba(135, 62, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(135, 62, 255, 0.15);
   }
   .neo-input::placeholder {
     color: #64748B;

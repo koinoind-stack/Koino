@@ -3,7 +3,7 @@
 
 export const hi: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "विश्वास. सहभागिता. समुदाय.",
+  "brand.tagline": "विश्वास. सहभागिता. जुड़ाव.",
   "landing.badge": "विश्वास समुदाय प्लेटफॉर्म",
   "landing.title": "Koino",
   "landing.titleGradient": "विश्वास में साथ-साथ बढ़ें",

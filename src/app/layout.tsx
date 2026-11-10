@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   authors: [{ name: `${BRAND.name} Team` }],
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: BRAND.assets.logo,
-    apple: BRAND.assets.logo,
+    icon: BRAND.assets.icon192,
+    apple: BRAND.assets.appleTouchIcon,
   },
   openGraph: {
     title: "Koino — Faith. Fellowship. Belong.",
@@ -69,7 +69,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} antialiased bg-[#12101A] text-white`}>
+      <body className={`${geistSans.variable} antialiased bg-[#090D18] text-white`}>
         <Providers>
           {children}
           <Toaster />

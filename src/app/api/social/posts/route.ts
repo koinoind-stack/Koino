@@ -163,11 +163,11 @@ export async function POST(req: NextRequest) {
   // Publish-time re-validation (defense in depth). Uploads only ever enter
   // Storage through /api/social/upload-url, which enforces type + size per
   // user before a byte moves; here we make sure hand-crafted payloads can't
-  // publish arbitrary external/hotlinked files instead of Lordsbook uploads.
+  // publish arbitrary external/hotlinked files instead of Koino uploads.
   // (The storage bucket itself is legacy infrastructure — path unchanged.)
   if (mediaType !== "text") {
     if (mediaUrls.some((u) => !u.includes("/believ-comic-artwork/social/")))
-      return jsonError("Media must be uploaded through Lordsbook's uploader");
+      return jsonError("Media must be uploaded through Koino's uploader");
   }
   if (mediaType === "image" && mediaUrls.some((u) => !/\.(jpe?g|png|webp)(\?|$)/i.test(u)))
     return jsonError("Unsupported image format — use JPG, PNG or WEBP");

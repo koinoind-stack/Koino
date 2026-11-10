@@ -1,5 +1,5 @@
 /**
- * Lordsbook Part 2 — repost state & attribution tests.
+ * Koino Social — repost state & attribution tests.
  *
  * THE BUGS (pre-Part 2 PostCard):
  *   1. toggleRepost never tracked `viewer.reposted`, so a viewer who had

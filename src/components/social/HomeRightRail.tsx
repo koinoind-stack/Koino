@@ -23,6 +23,7 @@ import { BookOpen, CalendarDays, Church as ChurchIcon, MapPin, MoreHorizontal, S
 import type { Post, SocialUser } from "./types";
 import { api } from "./types";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { BRAND } from "@/lib/brand";
 
 type Props = {
   onOpenProfile: (username: string) => void;
@@ -38,7 +39,7 @@ type Props = {
   onOpenGroup: (groupId: string) => void;
   /** Opens a church listing in the existing churches view (real church id). */
   onOpenChurch: (churchId: string) => void;
-  /** Hands the "Search Lordsbook" query to the Explore hub. */
+  /** Hands the "Search Koino" query to the Explore hub. */
   onSearch: (query: string) => void;
 };
 
@@ -207,7 +208,7 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ─── 0. SEARCH LORDSBOOK ─── hands the query to the Explore hub */}
+      {/* ─── 0. SEARCH KOINO ─── hands the query to the Explore hub */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -216,15 +217,15 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         }}
         role="search"
       >
-        <label htmlFor="lordsbook-search" className="sr-only">{t("rail.searchPlaceholder", { brand: "Lordsbook" })}</label>
+        <label htmlFor="koino-search" className="sr-only">{t("rail.searchPlaceholder", { brand: BRAND.name })}</label>
         <div className="relative">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] pointer-events-none" />
           <input
-            id="lordsbook-search"
+            id="koino-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("rail.searchPlaceholder", { brand: "Lordsbook" })}
+            placeholder={t("rail.searchPlaceholder", { brand: BRAND.name })}
             className="w-full py-2.5 pl-10 pr-3 rounded-2xl bg-white/[0.04] border border-white/[0.07] text-[13px] font-semibold text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50 focus:bg-white/[0.06] transition-all"
           />
         </div>
@@ -250,10 +251,10 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         </button>
       </SectionCard>
 
-      {/* ─── 2. TRENDING IN LORDSBOOK ─── real hashtags from the trending feed */}
+      {/* ─── 2. TRENDING IN KOINO ─── real hashtags from the trending feed */}
       {trendTags.length > 0 && (
         <SectionCard
-          title={t("rail.trendingIn", { brand: "Lordsbook" })}
+          title={t("rail.trendingIn", { brand: BRAND.name })}
           icon={TrendingUp}
           action={
             <button onClick={onOpenExplore} className="text-[10px] font-bold text-[#64748B] hover:text-white transition-colors" aria-label={t("common.seeAll")}>
@@ -373,7 +374,7 @@ export default function HomeRightRail({ onOpenProfile, onHashtag, onOpenEvents, 
         </SectionCard>
       )}
 
-      {/* ─── 5. TRENDING IN LORDSBOOK (kept from the discovery rail) ─── */}
+      {/* ─── 5. TRENDING IN KOINO (kept from the discovery rail) ─── */}
       {/* moved above — see section 2 */}
 
       {/* ─── 6. SUGGESTED CHURCHES ─── real PUBLISHED listings; hidden when none */}

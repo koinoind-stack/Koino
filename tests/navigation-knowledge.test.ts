@@ -12,7 +12,7 @@
  *      cache is purged on activate.
  *   2. Sidebar contract — AMENDED for the APPROVED Koino dashboard design
  *      (PR #41; supersedes main's interim Grow/More category IA): the
- *      desktop sidebar is the approved fifteen-item Lordsbook primary list
+ *      desktop sidebar is the approved fifteen-item Koino primary list
  *      plus a collapsible More section carrying the twelve remaining
  *      destinations (support + admin included; apologetics and blog stay
  *      reachable by design — the "nothing is removed" protection rule).
@@ -84,9 +84,9 @@ test("P2FIX-SW-2: cache name bumped to v2 so every v1 cache is purged on activat
 
 // ─── 2. Sidebar unification (desktop + mobile) ──────────────────────────────
 
-test("P2FIX-NAV-1: primary sidebar carries the fifteen approved Lordsbook destinations — knowledge reachable exactly once", () => {
+test("P2FIX-NAV-1: primary sidebar carries the fifteen approved Koino destinations — knowledge reachable exactly once", () => {
   const home = read("src/components/home/HomeApp.tsx");
-  const primary = slice(home, "const LORDSBOOK_NAV", "];");
+  const primary = slice(home, "const KOINO_NAV", "];");
   const ids = [...primary.matchAll(/id: "([a-z-]+)"/g)].map((m) => m[1]);
   // The fifteen approved primary destinations, in the approved order.
   assert.deepEqual(ids, [
@@ -136,7 +136,7 @@ test("P2FIX-NAV-3: mobile More sheet matches the desktop — every destination r
   const mobileNav = slice(home, "const MOBILE_NAV", "];");
   const mobile = new Set([...idsIn(mobileNav), ...idsIn(sheet)]);
   const desktop = [
-    ...idsIn(slice(home, "const LORDSBOOK_NAV", "];").replace(/const LORDSBOOK_NAV[^\n]*/, "")),
+    ...idsIn(slice(home, "const KOINO_NAV", "];").replace(/const KOINO_NAV[^\n]*/, "")),
     ...idsIn(slice(home, "const MORE_NAV", "];").replace(/const MORE_NAV[^\n]*/, "")),
   ];
   for (const id of desktop) {

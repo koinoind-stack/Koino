@@ -10,12 +10,12 @@
 export const en: Record<string, string> = {
   // ─── Branding ───
   "brand.name": "Koino",
-  "brand.tagline": "Faith. Fellowship. Community.",
+  "brand.tagline": "Faith. Fellowship. Belong.",
 
   // ─── Landing hero ───
   "landing.badge": "Faith Community Platform",
   "landing.title": "Koino",
-  "landing.titleGradient": "Faith. Fellowship. Community.",
+  "landing.titleGradient": "Faith. Fellowship. Belong.",
   "landing.subtitle":
     "An all-in-one Christian faith platform where believers can grow in faith, explore Scripture, connect with churches and communities, discover events, pray together, learn, and support Christian businesses.",
   "landing.cta.enterKoino": "Enter Koino",
@@ -151,7 +151,7 @@ export const en: Record<string, string> = {
 
   // ─── Sign-in page ───
   "signin.title": "Koino",
-  "signin.subtitle": "Faith. Fellowship. Community. — Sign in to track your Faith Points",
+  "signin.subtitle": "Faith. Fellowship. Belong. — Sign in to track your Faith Points",
   "signin.google": "Continue with Google",
   "signin.google.loading": "Redirecting...",
   "signin.divider.signin": "or sign in with email",
@@ -759,7 +759,7 @@ export const en: Record<string, string> = {
   "feed.kind.verse": "Verse Reflection",
   "feed.kind.question": "Faith Question",
   "feed.kind.announce": "Announcement",
-  "feed.shared": "Shared with the Lordsbook family",
+  "feed.shared": "Shared with the Koino family",
   "feed.errorPost": "Could not post right now",
   "feed.reposted": "Reposted",
   "feed.repostRemoved": "Repost removed",
@@ -3318,7 +3318,7 @@ export const en: Record<string, string> = {
   "bookmarks.empty": "Nothing saved yet — tap the bookmark icon on any post to keep it here.",
   "common.loadMore": "Load more",
 
-  // ─── Approved dashboard design (feature/lordsbook-approved-dashboard-design) ───
+  // ─── Approved Koino dashboard design ───
   "feed.follow": "Follow",
   "feed.following": "Following",
   "home.whatYouCanDo": "What you can do",

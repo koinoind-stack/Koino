@@ -115,11 +115,18 @@ test("PF-4: all three logo copies are ≤60KB and exactly 512x512", () => {
   }
 });
 
-test("PF-5: favicon + OG + manifest still point at the (now light) logo assets", () => {
+test("PF-5: favicon + OG + manifest still point at the approved Koino logo assets", () => {
   const layout = read("src/app/layout.tsx");
-  assert.match(layout, /icon: BRAND\.assets\.logo/);
+  // Phase 0 (Koino brand core): favicon wiring deliberately tightened —
+  // icon/apple now use the square approved-mark PWA icon set instead of
+  // BRAND.assets.logo (which the demonstration edition pointed at a wide
+  // 2172x724 wordmark). Same approved artwork, correct icon geometry.
+  assert.match(layout, /icon: BRAND\.assets\.icon192/);
+  assert.match(layout, /apple: BRAND\.assets\.appleTouchIcon/);
   assert.match(layout, /images: \["\/koino-logo\.png"\]/);
   const manifest = read("src/app/manifest.ts");
+  assert.match(manifest, /src: BRAND\.assets\.icon192/);
+  assert.match(manifest, /src: BRAND\.assets\.icon512/);
   assert.match(manifest, /sizes: "192x192"/);
   assert.match(manifest, /sizes: "512x512"/);
 });

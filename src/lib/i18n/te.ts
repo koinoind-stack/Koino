@@ -14,7 +14,7 @@
 
 export const te: Record<string, string> = {
   "brand.name": "Koino",
-  "brand.tagline": "విశ్వాసం. సహచర్య. సంఘం.",
+  "brand.tagline": "విశ్వాసం. సహచర్య. చెందడం.",
   "landing.badge": "విశ్వాస సమాజ ప్లాట్‌ఫార్మ్",
   "landing.title": "Koino",
   "landing.titleGradient": "విశ్వాసంలో పెరిగినందుకు కలిసి ముందుకు",
@@ -680,7 +680,7 @@ export const te: Record<string, string> = {
   "feed.kind.verse": "వచన ప్రతిబింబం",
   "feed.kind.question": "విశ్వాస ప్రశ్న",
   "feed.kind.announce": "ప్రకటన",
-  "feed.shared": "Lordsbook కుటుంబంతో షేర్ చేయబడింది",
+  "feed.shared": "Koino కుటుంబంతో షేర్ చేయబడింది",
   "feed.errorPost": "ప్రస్తుతం పోస్ట్ చేయలేకపోయాము",
   "feed.reposted": "రీపోస్ట్ చేయబడింది",
   "feed.repostRemoved": "రీపోస్ట్ తీసివేయబడింది",

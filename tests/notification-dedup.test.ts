@@ -1,5 +1,5 @@
 /**
- * Lordsbook Part 2 — notification de-duplication tests.
+ * Koino Social — notification de-duplication tests.
  *
  * THE PROBLEM: like and repost are toggles. Before Part 2, every `notify()`
  * call inserted a fresh Notification row, so a viewer who liked → unliked →

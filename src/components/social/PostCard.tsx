@@ -209,7 +209,7 @@ export default function PostCard({
       shareUrl: shareLinks.post(target),
       cardUrl: `/api/share-card?type=post&id=${encodeURIComponent(target)}`,
       formats: ["square"],
-      fileName: `lordsbook-post-${target}.png`,
+      fileName: `koino-post-${target}.png`,
     });
   }
 

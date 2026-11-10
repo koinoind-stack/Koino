@@ -48,7 +48,7 @@ import OnboardingView from "@/components/crosscrafted/OnboardingView";
 import EditProfileView from "@/components/crosscrafted/EditProfileView";
 import FeedView from "@/components/social/FeedView";
 import HomeRightRail from "@/components/social/HomeRightRail";
-import LordsbookHomeView from "@/components/home/LordsbookHomeView";
+import KoinoHomeView from "@/components/home/KoinoHomeView";
 import BookmarksView from "@/components/social/BookmarksView";
 import dynamic from "next/dynamic";
 
@@ -106,7 +106,7 @@ import { useSupabaseUser } from "@/lib/supabase/use-user";
 type View =
   | "landing"
   | "onboarding" // Profile setup flow (shown when !profileCompleted)
-  | "home" // ── LORDSBOOK HOME (hero + features + feed) — default destination
+  | "home" // ── KOINO HOME (hero + features + feed) — default destination
   | "feed" // ── pure social feed (stories + composer + tabs + posts)
   | "explore"
   | "reels" // full-screen vertical reels overlay (deep links, feed taps)
@@ -142,16 +142,16 @@ type View =
   | "matrimony" // Task 74: private member-only matchmaking section (SPA view — never a public route)
   | "admin";
 
-// ─── SIDEBAR — Lordsbook three-column layout ───
-// The fifteen Lordsbook destinations, in the order specified for this
-// demonstration edition. Every id maps to an existing SPA view (or, for
+// ─── SIDEBAR — Koino three-column layout ───
+// The fifteen Koino destinations, in the approved order. Every id maps to an
+// existing SPA view (or, for
 // messages/settings, the honest "coming soon" screen) — nothing is removed:
 // the remaining destinations (Watch, Events, Prayer Wall, Apologetics,
 // Memorials, Matrimony, Business Directory, Blog, Support, App Home, Admin)
 // stay reachable in the collapsible "More" section below the primary list.
 // Labels are i18n keys (labelKey) resolved via t() at render — never
 // translated at module scope.
-const LORDSBOOK_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
+const KOINO_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
   { id: "home", icon: HomeIcon, labelKey: "side.home" },
   { id: "bible", icon: BookOpen, labelKey: "side.bible" },
   { id: "comic", icon: Sparkles, labelKey: "side.comics" },
@@ -197,7 +197,7 @@ const MOBILE_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
 ];
 
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
-// Includes the full Lordsbook primary nav destinations plus every remaining
+// Includes the full Koino primary nav destinations plus every remaining
 // feature — one flat grid, nothing removed.
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] = [
   { id: "feed", icon: Newspaper, labelKey: "side.feed" },
@@ -389,7 +389,7 @@ export default function Home() {
     }
   };
 
-  // ─── RIGHT-RAIL SEARCH ─── "Search Lordsbook" hands the query to the
+  // ─── RIGHT-RAIL SEARCH ─── "Search Koino" hands the query to the
   // existing Explore hub (which owns live search). ExploreView re-mounts on
   // view change, so its useState initializer picks up the latest query.
   const [exploreQuery, setExploreQuery] = useState<string | null>(null);
@@ -724,13 +724,13 @@ export default function Home() {
       >
         <div className="flex justify-between items-center h-12 md:h-14 px-4 md:px-5">
           <button onClick={goHome} className="flex items-center gap-2" aria-label={BRAND.name}>
-            {/* Lordsbook branding — horizontal wordmark on desktop, compact
-                shield + name on mobile. Original artwork, aspect preserved. */}
+            {/* Koino branding — approved logo lockup on desktop, compact
+                mark + name on mobile. Original artwork, aspect preserved. */}
             <Image
               src={BRAND.assets.logo}
               alt={BRAND.name}
-              width={2172}
-              height={724}
+              width={512}
+              height={512}
               className="hidden md:block h-8 lg:h-9 w-auto"
               priority
             />
@@ -786,7 +786,7 @@ export default function Home() {
       </header>
 
       <div className="flex">
-        {/* Desktop Sidebar — Lordsbook three-column shell.
+        {/* Desktop Sidebar — Koino three-column shell.
             Tablet (md–lg): compact icon rail. Desktop (lg+): full labels. */}
         <aside className="hidden md:flex flex-col w-[76px] lg:w-[250px] border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] lg:top-0 lg:min-h-screen bg-[#0A1729] px-2 lg:px-3 pt-4 pb-4 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Brand — shield on the compact rail, full wordmark on desktop */}
@@ -806,16 +806,16 @@ export default function Home() {
             <Image
               src={BRAND.assets.logo}
               alt={BRAND.name}
-              width={2172}
-              height={724}
+              width={512}
+              height={512}
               className="hidden lg:block h-11 w-auto"
               priority
             />
           </button>
 
-          {/* Primary navigation — the fifteen Lordsbook destinations */}
+          {/* Primary navigation — the fifteen Koino destinations */}
           <nav className="space-y-0.5" aria-label={BRAND.name}>
-            {LORDSBOOK_NAV.map(({ id, icon: Icon, labelKey }) => {
+            {KOINO_NAV.map(({ id, icon: Icon, labelKey }) => {
               const active = view === id;
               return (
                 <button
@@ -966,7 +966,7 @@ export default function Home() {
               transition={{ duration: 0.18 }}
             >
               {view === "home" && (
-                <LordsbookHomeView
+                <KoinoHomeView
                   onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
                   onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
                   onOpenCreate={() => goView("create")}

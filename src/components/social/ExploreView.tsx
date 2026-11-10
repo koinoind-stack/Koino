@@ -40,7 +40,7 @@ type Props = {
   onOpenProfile: (username: string) => void;
   onHashtag: (tag: string) => void;
   initialHashtag?: string | null;
-  /** Pre-filled free-text search (right-rail "Search Lordsbook" hand-off). */
+  /** Pre-filled free-text search (right-rail "Search Koino" hand-off). */
   initialQuery?: string | null;
   /** Open a Koino feature view (churches / events / shop / business-directory / reels …). */
   onNavigate?: (view: string) => void;

@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Lordsbook home — the centre column of the three-column layout.
+ * Koino home — the centre column of the three-column layout.
  *
- * Structure (APPROVED DESIGN — "Lordsbook Christian Social Platform UI"):
- *   1. Hero banner — the sunrise-and-cross artwork with the horizontal
- *      shield+wordmark on top, heading "Faith. Fellowship. Community."
- *      (last word orange), description, orange "Get Started" + blue
+ * Structure (APPROVED DESIGN — "Koino Christian Social Dashboard"):
+ *   1. Hero banner — the sunrise-and-cross artwork with the approved
+ *      Koino logo on top, heading "Faith. Fellowship. Belong."
+ *      (last word highlighted), description, "Get Started" +
  *      "Read the Bible" buttons, and the right-side "WHAT YOU CAN DO"
  *      glass panel (Read the Bible / Join Groups & Fellowships / Share
  *      Prayer Requests / Watch Christian Shorts / Explore Christian
@@ -90,7 +90,7 @@ const WHAT_YOU_CAN_DO: WycdItem[] = [
   { view: "shop", icon: ShoppingBag, labelKey: "home.wycd.market" },
 ];
 
-export default function LordsbookHomeView({
+export default function KoinoHomeView({
   onOpenProfile,
   onHashtag,
   onOpenCreate,
@@ -100,8 +100,8 @@ export default function LordsbookHomeView({
 }: Props) {
   const t = useTranslation();
 
-  // "Faith. Fellowship. Community." → last word rendered in orange, exactly
-  // like the approved design. Works for every translated tagline.
+  // "Faith. Fellowship. Belong." → last word rendered in the accent color,
+  // exactly like the approved design. Works for every translated tagline.
   const tagline = t("brand.tagline");
   const taglineParts = tagline.split(" ");
   const taglineLast = taglineParts.pop() ?? "";
@@ -132,9 +132,9 @@ export default function LordsbookHomeView({
               <Image
                 src={BRAND.assets.logo}
                 alt={BRAND.name}
-                width={2172}
-                height={724}
-                className="h-10 md:h-11 w-auto mb-5 drop-shadow-[0_6px_20px_rgba(2,8,23,0.85)]"
+                width={512}
+                height={512}
+                className="h-12 md:h-14 w-auto mb-5 drop-shadow-[0_6px_20px_rgba(2,8,23,0.85)]"
                 priority
               />
               <h1 className="text-[30px] md:text-[38px] leading-[1.08] font-black tracking-tight text-white mb-3 drop-shadow-[0_2px_14px_rgba(2,8,23,0.7)]">
