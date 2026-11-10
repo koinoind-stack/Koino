@@ -29,13 +29,13 @@ export function StoryBar({ groups, onOpen, onCreate, onOpenProfile }: BarProps) 
         {mine ? (
           <button
             onClick={() => mine.user.username && onOpen(mine.user.username)}
-            className={`w-16 h-16 rounded-full p-[3px] ${mine.allSeen ? "bg-white/15" : "bg-gradient-to-tr from-[#7C3AED] via-[#EC4899] to-[#F59E0B]"}`}
+            className={`w-16 h-16 rounded-full p-[3px] ${mine.allSeen ? "bg-white/15" : "bg-gradient-to-tr from-[#2563EB] via-[#F97316] to-[#F5B84A]"}`}
           >
-            <div className="w-full h-full rounded-full p-[2px] bg-[#12101A]">
+            <div className="w-full h-full rounded-full p-[2px] bg-[#071120]">
               {mine.user.image ? (
                 <Image src={mine.user.image} alt="" width={56} height={56} className="w-full h-full rounded-full object-cover" unoptimized />
               ) : (
-                <div className="w-full h-full rounded-full bg-[#1C1929] flex items-center justify-center text-white font-bold">
+                <div className="w-full h-full rounded-full bg-[#13294A] flex items-center justify-center text-white font-bold">
                   {(mine.user.name || mine.user.username || "?").charAt(0).toUpperCase()}
                 </div>
               )}
@@ -44,7 +44,7 @@ export function StoryBar({ groups, onOpen, onCreate, onOpenProfile }: BarProps) 
         ) : (
           <button
             onClick={onCreate}
-            className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center hover:border-[#7C3AED]"
+            className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center hover:border-[#2563EB]"
           >
             <Plus size={22} className="text-[#94A3B8]" />
           </button>
@@ -58,13 +58,13 @@ export function StoryBar({ groups, onOpen, onCreate, onOpenProfile }: BarProps) 
         <div key={g.user.id} className="shrink-0 flex flex-col items-center gap-1.5">
           <button
             onClick={() => g.user.username && onOpen(g.user.username)}
-            className={`w-16 h-16 rounded-full p-[3px] ${g.allSeen ? "bg-white/15" : "bg-gradient-to-tr from-[#7C3AED] via-[#EC4899] to-[#F59E0B]"}`}
+            className={`w-16 h-16 rounded-full p-[3px] ${g.allSeen ? "bg-white/15" : "bg-gradient-to-tr from-[#2563EB] via-[#F97316] to-[#F5B84A]"}`}
           >
-            <div className="w-full h-full rounded-full p-[2px] bg-[#12101A]">
+            <div className="w-full h-full rounded-full p-[2px] bg-[#071120]">
               {g.user.image ? (
                 <Image src={g.user.image} alt="" width={56} height={56} className="w-full h-full rounded-full object-cover" unoptimized />
               ) : (
-                <div className="w-full h-full rounded-full bg-[#1C1929] flex items-center justify-center text-white font-bold">
+                <div className="w-full h-full rounded-full bg-[#13294A] flex items-center justify-center text-white font-bold">
                   {(g.user.name || g.user.username || "?").charAt(0).toUpperCase()}
                 </div>
               )}
@@ -174,7 +174,7 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
           {group.user.image ? (
             <Image src={group.user.image} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" unoptimized />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-xs font-bold">
               {(group.user.name || group.user.username || "?").charAt(0).toUpperCase()}
             </div>
           )}
@@ -218,7 +218,7 @@ export function StoryViewer({ groups, startUsername, onClose, onOpenProfile }: V
               insertAtCursor(replyRef.current, e, setReply, 300);
             }}
           />
-          <button onClick={sendReply} className="w-10 h-10 rounded-full bg-[#7C3AED] flex items-center justify-center text-white">
+          <button onClick={sendReply} className="w-10 h-10 rounded-full bg-[#2563EB] flex items-center justify-center text-white">
             <Send size={16} />
           </button>
         </div>
@@ -298,7 +298,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
         ) : (
           <button
             onClick={() => inputRef.current?.click()}
-            className="w-64 h-64 rounded-3xl border-2 border-dashed border-white/25 flex flex-col items-center justify-center gap-3 text-white/60 hover:border-[#7C3AED]"
+            className="w-64 h-64 rounded-3xl border-2 border-dashed border-white/25 flex flex-col items-center justify-center gap-3 text-white/60 hover:border-[#2563EB]"
           >
             <Plus size={36} />
             <span className="text-sm font-bold">{t("stories.chooseMedia")}</span>
@@ -320,7 +320,7 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
             onChange={(e) => setCaption(e.target.value)}
             placeholder={t("stories.captionPlaceholder")}
             maxLength={200}
-            className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
+            className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#2563EB]"
           />
           <EmojiPickerButton
             onPick={(e) => insertAtCursor(captionRef.current, e, setCaption, 200)}
@@ -328,13 +328,13 @@ export function StoryCreator({ onClose, onPosted }: CreatorProps) {
         </div>
         {uploading && (
           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-[#7C3AED] transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-[#2563EB] transition-all" style={{ width: `${progress}%` }} />
           </div>
         )}
         <button
           onClick={uploadAndPost}
           disabled={!file || uploading}
-          className="w-full py-3.5 rounded-2xl bg-[#7C3AED] text-white font-extrabold disabled:opacity-40"
+          className="w-full py-3.5 rounded-2xl bg-[#2563EB] text-white font-extrabold disabled:opacity-40"
         >
           {uploading ? t("stories.uploading", { percent: progress }) : t("stories.shareCta")}
         </button>

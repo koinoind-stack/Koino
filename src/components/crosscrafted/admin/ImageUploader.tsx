@@ -209,22 +209,22 @@ export default function ImageUploader({ value, onChange, label = "Cover Image" }
           onDrop={onDrop}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
-          className={`border-2 border-dashed rounded-2xl p-6 text-center hover:border-[#7C3AED]/40 transition-colors cursor-pointer min-h-[140px] flex flex-col items-center justify-center gap-2 ${
+          className={`border-2 border-dashed rounded-2xl p-6 text-center hover:border-[#2563EB]/40 transition-colors cursor-pointer min-h-[140px] flex flex-col items-center justify-center gap-2 ${
             dragOver
-              ? "border-[#7C3AED] bg-[#7C3AED]/5"
+              ? "border-[#2563EB] bg-[#2563EB]/5"
               : "border-white/[0.12] bg-white/[0.02]"
           } ${uploading ? "pointer-events-none opacity-70" : ""}`}
         >
           {uploading ? (
             <>
-              <Loader2 size={20} className="animate-spin text-[#A78BFA]" />
+              <Loader2 size={20} className="animate-spin text-[#60A5FA]" />
               <span className="text-xs font-bold text-[#A09DB1]">Uploading…</span>
             </>
           ) : (
             <>
               <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
                 {dragOver ? (
-                  <Upload size={18} className="text-[#A78BFA]" />
+                  <Upload size={18} className="text-[#60A5FA]" />
                 ) : (
                   <ImageIcon size={18} className="text-[#A09DB1]" />
                 )}
@@ -245,7 +245,7 @@ export default function ImageUploader({ value, onChange, label = "Cover Image" }
                   e.stopPropagation();
                   onPick();
                 }}
-                className="mt-1 inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-colors"
+                className="mt-1 inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors"
               >
                 <Upload size={12} />
                 Choose File

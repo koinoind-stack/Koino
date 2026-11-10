@@ -113,21 +113,21 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
   if (authLoading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
   if (!user) {
     return (
       <div className="max-w-md mx-auto text-center py-20 px-4">
-        <Flower2 size={30} className="mx-auto text-[#C4B5FD] mb-4" />
+        <Flower2 size={30} className="mx-auto text-[#93C5FD] mb-4" />
         <h2 className="text-lg font-bold text-white mb-2">{t("memorials.form.signinTitle")}</h2>
         <p className="text-sm text-[#94A3B8] mb-6 leading-relaxed">
           {t("memorials.form.signinBody")}
         </p>
         <Link
           href="/auth/signin"
-          className="inline-flex items-center px-6 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9]"
+          className="inline-flex items-center px-6 py-3 rounded-full bg-[#2563EB] text-white text-sm font-bold hover:bg-[#1D4ED8]"
         >
           {t("memorials.form.signinCta")}
         </Link>
@@ -262,15 +262,15 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
 
   const cities = form.state ? INDIAN_CITIES_BY_STATE[form.state] || [] : [];
   const inputCls =
-    "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50";
+    "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50";
   const labelCls = "block text-xs font-bold text-[#94A3B8] mb-1.5";
   const canSubmit = form.fullName.trim().length >= 2 && form.tribute.trim().length >= 2 && consent;
 
   return (
     <div className="max-w-[680px] mx-auto px-4 pt-8 pb-24">
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-3">
-          <Flower2 size={22} className="text-[#C4B5FD]" />
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 mb-3">
+          <Flower2 size={22} className="text-[#93C5FD]" />
         </div>
         <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
           {mode === "create" ? t("memorials.form.createTitle") : t("memorials.form.editTitle")}
@@ -285,19 +285,19 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             key={label}
             onClick={() => i < step && setStep(i)}
             disabled={i >= step}
-            className={`flex-1 rounded-full h-1.5 transition-colors ${i <= step ? "bg-[#7C3AED]" : "bg-white/[0.08]"} ${i < step ? "cursor-pointer" : ""}`}
+            className={`flex-1 rounded-full h-1.5 transition-colors ${i <= step ? "bg-[#2563EB]" : "bg-white/[0.08]"} ${i < step ? "cursor-pointer" : ""}`}
             aria-label={`${t("memorials.form.stepOf", { n: i + 1, m: STEPS.length, label: t(label) })}${i < step ? " " + t("memorials.form.stepBackHint") : ""}`}
             title={t("memorials.form.stepOf", { n: i + 1, m: STEPS.length, label: t(label) })}
           />
         ))}
       </div>
-      <p className="text-[11px] font-bold uppercase tracking-wider text-[#C4B5FD] mb-5">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#93C5FD] mb-5">
         {t("memorials.form.stepOf", { n: step + 1, m: STEPS.length, label: t(STEPS[step]) })}
       </p>
 
       {/* consent notice */}
-      <div className="rounded-xl bg-[#7C3AED]/[0.06] border border-[#7C3AED]/20 px-4 py-3 mb-6 flex gap-2.5">
-        <ShieldCheck size={16} className="text-[#C4B5FD] shrink-0 mt-0.5" />
+      <div className="rounded-xl bg-[#2563EB]/[0.06] border border-[#2563EB]/20 px-4 py-3 mb-6 flex gap-2.5">
+        <ShieldCheck size={16} className="text-[#93C5FD] shrink-0 mt-0.5" />
         <p className="text-[11px] text-[#94A3B8] leading-relaxed">
           {t("memorials.form.consentNotice")}
         </p>
@@ -315,7 +315,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     <Image src={form.photoUrl} alt="" width={72} height={72} className="w-[72px] h-[72px] rounded-full object-cover border border-white/10" unoptimized />
                     <button
                       onClick={() => set("photoUrl", "")}
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#13294A] border border-white/10 flex items-center justify-center"
                       aria-label={t("memorials.form.removePhoto")}
                     >
                       <X size={10} className="text-white" />
@@ -356,14 +356,14 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>{t("memorials.form.stateLabel")}</label>
-                <select value={form.state} onChange={(e) => { set("state", e.target.value); set("city", ""); }} className={`${inputCls} [&>option]:bg-[#1C1929]`}>
+                <select value={form.state} onChange={(e) => { set("state", e.target.value); set("city", ""); }} className={`${inputCls} [&>option]:bg-[#13294A]`}>
                   <option value="">—</option>
                   {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelCls}>{t("memorials.form.cityLabel")}</label>
-                <select value={form.city} onChange={(e) => set("city", e.target.value)} disabled={!form.state} className={`${inputCls} disabled:opacity-40 [&>option]:bg-[#1C1929]`}>
+                <select value={form.city} onChange={(e) => set("city", e.target.value)} disabled={!form.state} className={`${inputCls} disabled:opacity-40 [&>option]:bg-[#13294A]`}>
                   <option value="">—</option>
                   {cities.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -420,7 +420,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     <Image src={g} alt="" width={64} height={64} className="w-16 h-16 rounded-xl object-cover border border-white/10" unoptimized />
                     <button
                       onClick={() => set("gallery", form.gallery.filter((x) => x !== g))}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1C1929] border border-white/10 flex items-center justify-center"
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#13294A] border border-white/10 flex items-center justify-center"
                       aria-label={t("memorials.form.removePhoto")}
                     >
                       <X size={10} className="text-white" />
@@ -431,7 +431,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                   <button
                     onClick={() => galleryInput.current?.click()}
                     disabled={uploading !== null}
-                    className="w-16 h-16 rounded-xl bg-white/[0.03] border border-dashed border-white/15 flex items-center justify-center hover:border-[#7C3AED]/40 disabled:opacity-40"
+                    className="w-16 h-16 rounded-xl bg-white/[0.03] border border-dashed border-white/15 flex items-center justify-center hover:border-[#2563EB]/40 disabled:opacity-40"
                     aria-label={t("memorials.form.addPhoto")}
                   >
                     {uploading === "gallery" ? <Loader2 size={16} className="animate-spin text-[#94A3B8]" /> : <ImagePlus size={16} className="text-[#64748B]" />}
@@ -441,9 +441,9 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
               <input ref={galleryInput} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => handleGallery(e.target.files)} />
             </div>
 
-            <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+            <div className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4">
               <p className="text-xs font-bold text-white inline-flex items-center gap-1.5 mb-1">
-                <Film size={13} className="text-[#C4B5FD]" /> YouTube videos &amp; memories
+                <Film size={13} className="text-[#93C5FD]" /> YouTube videos &amp; memories
               </p>
               <p className="text-[11px] text-[#64748B] mb-3 leading-relaxed">
                 {t("memorials.form.videosNote")}
@@ -458,7 +458,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                 />
                 <div className="grid grid-cols-[1fr_150px] gap-2.5">
                   <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder={t("memorials.form.videoTitlePh")} maxLength={150} className={inputCls} />
-                  <select value={videoCat} onChange={(e) => setVideoCat(e.target.value)} className={`${inputCls} [&>option]:bg-[#1C1929]`} aria-label={t("memorials.form.videoCatAria")}>
+                  <select value={videoCat} onChange={(e) => setVideoCat(e.target.value)} className={`${inputCls} [&>option]:bg-[#13294A]`} aria-label={t("memorials.form.videoCatAria")}>
                     {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(`memorials.videoCat.${c.id}`)}</option>)}
                   </select>
                 </div>
@@ -510,11 +510,11 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                     onClick={() => set("visibility", v.id)}
                     className={`text-left rounded-xl border px-3 py-2.5 transition-colors ${
                       form.visibility === v.id
-                        ? "bg-[#7C3AED]/15 border-[#7C3AED]/50"
+                        ? "bg-[#2563EB]/15 border-[#2563EB]/50"
                         : "bg-white/[0.03] border-white/[0.06] hover:border-white/15"
                     }`}
                   >
-                    <p className={`text-xs font-bold ${form.visibility === v.id ? "text-[#C4B5FD]" : "text-white"}`}>{v.label}</p>
+                    <p className={`text-xs font-bold ${form.visibility === v.id ? "text-[#93C5FD]" : "text-white"}`}>{v.label}</p>
                     <p className="text-[10px] text-[#64748B] mt-0.5 leading-snug">{v.desc}</p>
                   </button>
                 ))}
@@ -537,7 +537,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
                 type="checkbox"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-[#7C3AED] shrink-0"
+                className="mt-0.5 w-4 h-4 accent-[#2563EB] shrink-0"
               />
               <span className="text-[11px] text-[#94A3B8] leading-relaxed">
                 {t("memorials.form.consentCheckbox")}
@@ -568,7 +568,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             <button
               onClick={next}
               disabled={busy}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#2563EB] text-white text-sm font-bold hover:bg-[#1D4ED8] disabled:opacity-40"
             >
               {t("memorials.form.continue")} <ArrowRight size={14} />
             </button>
@@ -576,7 +576,7 @@ export default function MemorialForm({ mode, memorialId, initial, onSaved }: Pro
             <button
               onClick={() => save("pending")}
               disabled={busy || !canSubmit}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] disabled:opacity-40"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full bg-[#2563EB] text-white text-sm font-bold hover:bg-[#1D4ED8] disabled:opacity-40"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {busy ? t("common.submitting") : t("memorials.form.submitForReview")}

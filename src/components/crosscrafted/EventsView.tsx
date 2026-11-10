@@ -444,13 +444,13 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
               activeFilters > 0
-                ? "bg-[#EC4899]/15 border-[#EC4899]/30 text-[#EC4899]"
+                ? "bg-[#F97316]/15 border-[#F97316]/30 text-[#F97316]"
                 : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
             }`}
           >
             <Filter size={14} />
             {activeFilters > 0 && (
-              <span className="w-4 h-4 rounded-full bg-[#EC4899] text-white text-[9px] flex items-center justify-center font-bold">
+              <span className="w-4 h-4 rounded-full bg-[#F97316] text-white text-[9px] flex items-center justify-center font-bold">
                 {activeFilters}
               </span>
             )}
@@ -458,7 +458,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
-            style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+            style={{ background: "linear-gradient(135deg, #F97316, #F5B84A)" }}
           >
             <Plus size={14} /> {t("events.listYourEvent")}
           </button>
@@ -472,7 +472,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             onClick={() => setQuickFilter("near-you")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
               quickFilter === "near-you"
-                ? "bg-gradient-to-r from-[#EC4899] to-[#F59E0B] text-white shadow-lg shadow-[#EC4899]/20"
+                ? "bg-gradient-to-r from-[#F97316] to-[#F5B84A] text-white shadow-lg shadow-[#F97316]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -485,7 +485,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             }}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
               quickFilter === "all-india"
-                ? "bg-gradient-to-r from-[#EC4899] to-[#F59E0B] text-white shadow-lg shadow-[#EC4899]/20"
+                ? "bg-gradient-to-r from-[#F97316] to-[#F5B84A] text-white shadow-lg shadow-[#F97316]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -495,7 +495,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             onClick={() => setQuickFilter("online")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
               quickFilter === "online"
-                ? "bg-gradient-to-r from-[#EC4899] to-[#F59E0B] text-white shadow-lg shadow-[#EC4899]/20"
+                ? "bg-gradient-to-r from-[#F97316] to-[#F5B84A] text-white shadow-lg shadow-[#F97316]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -506,10 +506,10 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
       {/* Near You banner — prompt user to select location if they tapped Near You without a state set */}
       {quickFilter === "near-you" && !filterState && (
-        <div className="mb-3 bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 flex items-start gap-2">
-          <Info size={14} className="text-[#38BDF8] mt-0.5 shrink-0" />
+        <div className="mb-3 bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3 flex items-start gap-2">
+          <Info size={14} className="text-[#22D3EE] mt-0.5 shrink-0" />
           <p className="text-[11px] text-[#A09DB1] leading-relaxed">
-            <span className="font-bold text-[#38BDF8]">{t("events.nearYouBanner.title")}</span>{" "}
+            <span className="font-bold text-[#22D3EE]">{t("events.nearYouBanner.title")}</span>{" "}
             {t("events.nearYouBanner.desc")}
           </p>
         </div>
@@ -523,7 +523,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             onClick={() => setDateFilter(d.v)}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               dateFilter === d.v
-                ? "bg-[#EC4899] text-white"
+                ? "bg-[#F97316] text-white"
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
@@ -682,7 +682,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
         {/* Loading state */}
         {eventsLoading && (
           <div className="text-center py-12">
-            <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
+            <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin mb-3" />
             <p className="text-xs text-[#94A3B8]">{t("events.loading")}</p>
           </div>
         )}
@@ -704,8 +704,8 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
         {/* Empty state — no published events yet */}
         {!eventsLoading && !eventsError && events.length === 0 && (
           <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
-              <Calendar size={24} className="text-[#A78BFA]" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/15 border border-[#2563EB]/25 mb-3">
+              <Calendar size={24} className="text-[#60A5FA]" />
             </div>
             <p className="text-sm font-bold text-white mb-1">{t("events.empty.title")}</p>
             <p className="text-xs text-[#A09DB1] mb-4 max-w-sm mx-auto">
@@ -713,7 +713,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+              className="px-5 py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
             >
               {t("events.empty.cta")}
             </button>
@@ -727,8 +727,8 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
         {!eventsLoading && !eventsError && featured.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2.5">
-              <Flame size={13} className="text-[#F59E0B]" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[#F59E0B]">{t("events.featuredHeading")}</h2>
+              <Flame size={13} className="text-[#F5B84A]" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#F5B84A]">{t("events.featuredHeading")}</h2>
               <span className="text-[10px] text-[#64748B]">({featured.length})</span>
             </div>
             <div className="flex gap-3 overflow-x-auto snap-x pb-2 -mx-4 px-4 md:grid md:grid-cols-2 md:overflow-visible md:mx-0 md:px-0">
@@ -742,7 +742,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => setOpenEvent(event)}
-                    className="relative shrink-0 w-[300px] snap-start rounded-2xl overflow-hidden cursor-pointer border border-white/[0.08] hover:border-[#F59E0B]/40 transition-all bg-[#1C1929] md:w-auto"
+                    className="relative shrink-0 w-[300px] snap-start rounded-2xl overflow-hidden cursor-pointer border border-white/[0.08] hover:border-[#F5B84A]/40 transition-all bg-[#13294A] md:w-auto"
                   >
                     <div className="relative h-40">
                       {event.cover_image ? (
@@ -755,13 +755,13 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                           <Icon size={44} className="text-white/25" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-[#1C1929]/30 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-[#13294A]/30 to-transparent" />
                       <div className="absolute top-3 left-3 px-2.5 py-1.5 rounded-xl bg-black/55 backdrop-blur-sm border border-white/10 text-center leading-none">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">{date.month}</p>
                         <p className="text-lg font-extrabold text-white my-0.5">{date.day}</p>
                         <p className="text-[8px] text-white/60">{date.weekday}</p>
                       </div>
-                      <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#F59E0B] text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1">
+                      <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#F5B84A] text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1">
                         <Flame size={9} /> {t("common.featured")}
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -771,7 +771,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                             <Clock size={10} /> {formatTimeLabel(event, t)}
                           </span>
                           {event.eventType === "online" ? (
-                            <span className="flex items-center gap-1 text-[#38BDF8]">
+                            <span className="flex items-center gap-1 text-[#22D3EE]">
                               <Globe size={10} /> {t("home.events.online")}
                             </span>
                           ) : (
@@ -793,7 +793,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         {event.is_free ? (
                           <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[9px] font-bold shrink-0">FREE</span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold flex items-center gap-1 shrink-0">
+                          <span className="px-2 py-0.5 rounded-md bg-[#F5B84A]/15 text-[#F5B84A] text-[9px] font-bold flex items-center gap-1 shrink-0">
                             <Ticket size={8} /> ₹{event.price}
                           </span>
                         )}
@@ -801,7 +801,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenEvent(event); }}
                         className="px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-white flex items-center gap-1 shrink-0 transition-all hover:-translate-y-px"
-                        style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+                        style={{ background: "linear-gradient(135deg, #F97316, #F5B84A)" }}
                       >
                         {t("events.viewEvent")} <ArrowRight size={11} />
                       </button>
@@ -838,7 +838,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(i, 8) * 0.04 }}
                     onClick={() => setOpenEvent(event)}
-                    className="rounded-2xl overflow-hidden cursor-pointer border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#1C1929] flex flex-col"
+                    className="rounded-2xl overflow-hidden cursor-pointer border border-white/[0.06] hover:border-white/[0.12] transition-all bg-[#13294A] flex flex-col"
                   >
                     {/* Cover: organizer-uploaded flyer, or a tasteful gradient
                         + category icon placeholder (existing cover fields). */}
@@ -853,14 +853,14 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                           <Icon size={30} className="text-white/25" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent opacity-70" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent opacity-70" />
                       <div className="absolute top-2.5 left-2.5 px-2 py-1.5 rounded-lg bg-black/55 backdrop-blur-sm border border-white/10 text-center leading-none">
                         <p className="text-[8px] font-bold uppercase tracking-wider text-white/70">{date.month}</p>
                         <p className="text-base font-extrabold text-white my-0.5">{date.day}</p>
                       </div>
                       <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                         {event.eventType === "online" && (
-                          <span className="px-2 py-0.5 rounded-full bg-[#38BDF8]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-0.5">
+                          <span className="px-2 py-0.5 rounded-full bg-[#22D3EE]/90 text-slate-950 text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-0.5">
                             <Globe size={9} /> Online
                           </span>
                         )}
@@ -882,7 +882,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                           {CATEGORY_LABEL_KEYS[cat.value] ? t(CATEGORY_LABEL_KEYS[cat.value]) : cat.label}
                         </span>
                         {event.featured && (
-                          <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                          <span className="px-2 py-0.5 rounded-full bg-[#F5B84A]/15 text-[#F5B84A] text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5">
                             <Flame size={9} /> {t("common.featured")}
                           </span>
                         )}
@@ -898,8 +898,8 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         <p className="flex items-center gap-1.5">
                           {event.eventType === "online" ? (
                             <>
-                              <Globe size={11} className="shrink-0 text-[#38BDF8]" />
-                              <span className="truncate text-[#38BDF8]">{t("events.onlineEvent")}</span>
+                              <Globe size={11} className="shrink-0 text-[#22D3EE]" />
+                              <span className="truncate text-[#22D3EE]">{t("events.onlineEvent")}</span>
                             </>
                           ) : (
                             <>
@@ -922,7 +922,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                           {event.is_free ? (
                             <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/15 text-[#22C55E] text-[10px] font-bold shrink-0">{t("events.freeBadge")}</span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] text-[10px] font-bold flex items-center gap-1 shrink-0">
+                            <span className="px-2 py-0.5 rounded-md bg-[#F5B84A]/15 text-[#F5B84A] text-[10px] font-bold flex items-center gap-1 shrink-0">
                               <Ticket size={9} /> ₹{event.price}
                             </span>
                           )}
@@ -934,7 +934,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                             onClick={(e) => { e.stopPropagation(); toggleSave(event.id); }}
                             className="h-11 w-11 flex items-center justify-center text-[#94A3B8] hover:text-white"
                           >
-                            {isSaved ? <BookmarkCheck size={16} className="text-[#EC4899]" /> : <Bookmark size={16} />}
+                            {isSaved ? <BookmarkCheck size={16} className="text-[#F97316]" /> : <Bookmark size={16} />}
                           </button>
                           <button
                             aria-label={t("events.shareAria")}
@@ -945,7 +945,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setOpenEvent(event); }}
-                            className="h-11 px-1.5 text-[11px] font-bold text-[#EC4899] hover:text-white flex items-center"
+                            className="h-11 px-1.5 text-[11px] font-bold text-[#F97316] hover:text-white flex items-center"
                           >
                             {t("events.details")} <ArrowRight size={12} className="ml-0.5" />
                           </button>
@@ -965,8 +965,8 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
           yet" block above covers the genuinely-empty case. */}
       {!eventsLoading && !eventsError && events.length > 0 && filtered.length === 0 && (
         <div className="text-center py-14">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
-            <Calendar size={24} className="text-[#A78BFA]" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/15 border border-[#2563EB]/25 mb-3">
+            <Calendar size={24} className="text-[#60A5FA]" />
           </div>
           <p className="text-sm font-bold text-white mb-1 max-w-sm mx-auto">{t("events.emptyFiltered.title")}</p>
           <p className="text-xs text-[#A09DB1] mb-4">{t("events.emptyFiltered.desc")}</p>
@@ -974,7 +974,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider text-white transition-all hover:-translate-y-px flex items-center gap-1.5"
-              style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+              style={{ background: "linear-gradient(135deg, #F97316, #F5B84A)" }}
             >
               <Plus size={13} /> {t("events.listYourEvent")}
             </button>
@@ -1011,7 +1011,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
               <div className="relative h-44">
                 {openEvent.cover_image ? (
@@ -1026,7 +1026,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     style={{ background: CHURCH_GRADIENTS[openEvent.cover_gradient % CHURCH_GRADIENTS.length] }}
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent" />
                 <button
                   onClick={() => setOpenEvent(null)}
                   className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
@@ -1071,7 +1071,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1">{t("events.where")}</p>
                     {openEvent.eventType === "online" ? (
                       <>
-                        <p className="text-xs text-[#38BDF8] flex items-center gap-1 font-bold">
+                        <p className="text-xs text-[#22D3EE] flex items-center gap-1 font-bold">
                           <Globe size={11} /> {t("events.onlineEvent")}
                         </p>
                         {openEvent.onlineUrl && (
@@ -1139,7 +1139,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       {openEvent.languages.map((lang) => (
                         <span
                           key={lang}
-                          className="px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[11px] font-semibold"
+                          className="px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[11px] font-semibold"
                         >
                           {lang}
                         </span>
@@ -1154,7 +1154,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     className="px-4 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white flex items-center justify-center"
                   >
                     {savedEvents.has(openEvent.id) ? (
-                      <BookmarkCheck size={18} className="text-[#EC4899]" />
+                      <BookmarkCheck size={18} className="text-[#F97316]" />
                     ) : (
                       <Bookmark size={18} />
                     )}
@@ -1184,7 +1184,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
-                      style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+                      style={{ background: "linear-gradient(135deg, #F97316, #F5B84A)" }}
                     >
                       <Ticket size={16} /> {t("events.getTickets")}
                       <ExternalLink size={12} className="opacity-80" />
@@ -1195,7 +1195,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
-                      style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
+                      style={{ background: "linear-gradient(135deg, #22D3EE, #A855F7)" }}
                     >
                       <Video size={16} /> {t("events.joinOnline")}
                     </a>
@@ -1203,7 +1203,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     <button
                       onClick={() => addToCalendar(openEvent)}
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px flex items-center justify-center gap-2"
-                      style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}
+                      style={{ background: "linear-gradient(135deg, #F97316, #F5B84A)" }}
                     >
                       <Calendar size={16} /> {t("events.addToCalendar")}
                     </button>
@@ -1238,10 +1238,10 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
               animate={{ y: 0 }}
               exit={{ y: 100 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-[#13294A] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-[#1C1929] z-10 flex justify-between items-center p-5 pb-3 border-b border-white/[0.04]">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-[#EC4899] to-[#F59E0B] bg-clip-text text-transparent">
+              <div className="sticky top-0 bg-[#13294A] z-10 flex justify-between items-center p-5 pb-3 border-b border-white/[0.04]">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-[#F97316] to-[#F5B84A] bg-clip-text text-transparent">
                   {t("events.form.title")}
                 </h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-[#64748B] hover:text-white p-1">
@@ -1262,15 +1262,15 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                         <img src={eventForm.coverImage} alt={t("events.form.flyer")} className="w-full h-full object-contain" />
                       </div>
                       <div className="flex gap-2 mt-2 justify-center">
-                        <button type="button" onClick={() => eventImgInputRef.current?.click()} disabled={imageUploading} className="px-3 py-1.5 rounded-lg bg-[#EC4899]/15 border border-[#EC4899]/30 text-[#EC4899] text-[10px] font-bold hover:bg-[#EC4899]/25 transition-all disabled:opacity-50">
+                        <button type="button" onClick={() => eventImgInputRef.current?.click()} disabled={imageUploading} className="px-3 py-1.5 rounded-lg bg-[#F97316]/15 border border-[#F97316]/30 text-[#F97316] text-[10px] font-bold hover:bg-[#F97316]/25 transition-all disabled:opacity-50">
                           {imageUploading ? <Loader2 size={11} className="animate-spin" /> : t("common.replace")}
                         </button>
                         <button type="button" onClick={() => setEventForm(f => ({ ...f, coverImage: "" }))} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-[#EF4444] hover:bg-[#EF4444]/10 transition-all">{t("common.remove")}</button>
                       </div>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => eventImgInputRef.current?.click()} disabled={imageUploading} className="w-full py-8 rounded-xl border-2 border-dashed border-white/[0.12] bg-white/[0.02] hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all flex flex-col items-center gap-2 text-[#64748B] disabled:opacity-50">
-                      {imageUploading ? <Loader2 size={20} className="animate-spin text-[#EC4899]" /> : <Upload size={20} />}
+                    <button type="button" onClick={() => eventImgInputRef.current?.click()} disabled={imageUploading} className="w-full py-8 rounded-xl border-2 border-dashed border-white/[0.12] bg-white/[0.02] hover:border-[#F97316]/30 hover:bg-[#F97316]/5 transition-all flex flex-col items-center gap-2 text-[#64748B] disabled:opacity-50">
+                      {imageUploading ? <Loader2 size={20} className="animate-spin text-[#F97316]" /> : <Upload size={20} />}
                       <span className="text-[10px] font-bold uppercase tracking-wider">{t("events.form.uploadFlyer")}</span>
                       <span className="text-[8px] text-[#475569]">{t("events.form.flyerAccept")}</span>
                     </button>
@@ -1280,7 +1280,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
                 {/* ─── BASIC INFORMATION ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("events.form.basicInfo")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">{t("events.form.basicInfo")}</p>
                   <input type="text" placeholder={t("events.form.titlePlaceholder")} value={eventForm.title} onChange={(e) => setEventForm(f => ({ ...f, title: e.target.value }))} className="neo-input text-sm" required />
                   <textarea placeholder={t("events.form.descPlaceholder")} value={eventForm.description} onChange={(e) => setEventForm(f => ({ ...f, description: e.target.value }))} className="neo-input h-24 resize-none text-sm" required />
                   <select value={eventForm.category} onChange={(e) => setEventForm(f => ({ ...f, category: e.target.value }))} className="neo-input text-sm" required>
@@ -1291,7 +1291,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
                 {/* ─── DATE & TIME ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("events.form.dateSection")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">{t("events.form.dateSection")}</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-[9px] text-[#64748B]">{t("events.form.startDate")}</label><input type="date" value={eventForm.startDate} onChange={(e) => setEventForm(f => ({ ...f, startDate: e.target.value }))} className="neo-input text-sm" required /></div>
                     <div><label className="text-[9px] text-[#64748B]">{eventForm.allDay ? `${t("events.form.startTime").replace(" *", "")} ${t("events.form.allDaySuffix")}` : t("events.form.startTime")}</label><input type="time" value={eventForm.startTime} onChange={(e) => setEventForm(f => ({ ...f, startTime: e.target.value }))} className="neo-input text-sm" disabled={eventForm.allDay} /></div>
@@ -1301,14 +1301,14 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                     <div><label className="text-[9px] text-[#64748B]">{t("events.form.endTime")}</label><input type="time" value={eventForm.endTime} onChange={(e) => setEventForm(f => ({ ...f, endTime: e.target.value }))} className="neo-input text-sm" disabled={eventForm.allDay} /></div>
                   </div>
                   <label className="flex items-center gap-2 text-[11px] text-[#94A3B8] cursor-pointer">
-                    <input type="checkbox" checked={eventForm.allDay} onChange={(e) => setEventForm(f => ({ ...f, allDay: e.target.checked }))} className="accent-[#EC4899]" />
+                    <input type="checkbox" checked={eventForm.allDay} onChange={(e) => setEventForm(f => ({ ...f, allDay: e.target.checked }))} className="accent-[#F97316]" />
                     {t("events.form.allDayEvent")}
                   </label>
                 </div>
 
                 {/* ─── LOCATION ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("common.location")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">{t("common.location")}</p>
                   <select value={eventForm.eventType} onChange={(e) => setEventForm(f => ({ ...f, eventType: e.target.value as any }))} className="neo-input text-sm" required>
                     <option value="in-person">{t("events.inPerson")}</option>
                     <option value="online">{t("home.events.online")}</option>
@@ -1336,7 +1336,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
                 {/* ─── REGISTRATION ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("events.form.registration")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">{t("events.form.registration")}</p>
                   <select value={eventForm.registrationType} onChange={(e) => setEventForm(f => ({ ...f, registrationType: e.target.value }))} className="neo-input text-sm">
                     <option value="free">{t("events.form.regFree")}</option>
                     <option value="paid">{t("events.form.regPaid")}</option>
@@ -1349,7 +1349,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
 
                 {/* ─── CONTACT ─── */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">{t("churches.contact")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">{t("churches.contact")}</p>
                   <input type="text" placeholder={t("events.form.organizerPlaceholder")} value={eventForm.organizerName} onChange={(e) => setEventForm(f => ({ ...f, organizerName: e.target.value }))} className="neo-input text-sm" />
                   <div className="grid grid-cols-2 gap-3">
                     <input type="tel" placeholder={t("events.form.whatsappPlaceholder")} value={eventForm.whatsappNumber} onChange={(e) => setEventForm(f => ({ ...f, whatsappNumber: e.target.value }))} className="neo-input text-sm" />
@@ -1361,7 +1361,7 @@ export default function EventsView({ initialEventId }: { initialEventId?: string
                   </div>
                 </div>
 
-                <button type="submit" disabled={submittingEvent || imageUploading} className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #EC4899, #F59E0B)" }}>
+                <button type="submit" disabled={submittingEvent || imageUploading} className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, #F97316, #F5B84A)" }}>
                   {submittingEvent ? <Loader2 size={16} className="animate-spin" /> : t("events.form.submit")}
                 </button>
               </form>

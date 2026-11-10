@@ -63,7 +63,7 @@ export default function ContactPageClient() {
     <>
       {/* Hero */}
       <section className="py-12 px-6 max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-5">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-5">
           <Mail size={12} /> {t("contact.badge")}
         </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-3">
@@ -84,10 +84,10 @@ export default function ContactPageClient() {
           {WHY_CONTACT.map((w) => (
             <div
               key={w.k}
-              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F39B9B]/20 transition-colors"
+              className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F97316]/20 transition-colors"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 border border-white/[0.08] flex items-center justify-center mb-3">
-                <w.icon size={16} className="text-[#F39B9B]" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F97316]/20 to-[#2563EB]/20 border border-white/[0.08] flex items-center justify-center mb-3">
+                <w.icon size={16} className="text-[#F97316]" />
               </div>
               <h3 className="text-xs font-bold text-white mb-1">{t(`contact.reason.${w.k}.title`)}</h3>
               <p className="text-[10px] text-[#A09DB1] leading-relaxed">{t(`contact.reason.${w.k}.desc`)}</p>
@@ -108,10 +108,10 @@ export default function ContactPageClient() {
 
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="flex items-start gap-3 bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F39B9B]/20 transition-colors"
+              className="flex items-start gap-3 bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F97316]/20 transition-colors"
             >
-              <div className="w-9 h-9 rounded-xl bg-[#F39B9B]/15 border border-[#F39B9B]/25 flex items-center justify-center shrink-0">
-                <Mail size={16} className="text-[#F39B9B]" />
+              <div className="w-9 h-9 rounded-xl bg-[#F97316]/15 border border-[#F97316]/25 flex items-center justify-center shrink-0">
+                <Mail size={16} className="text-[#F97316]" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-0.5">{t("contact.email")}</p>
@@ -126,7 +126,7 @@ export default function ContactPageClient() {
               href={WHATSAPP_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-start gap-3 bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-[#22C55E]/30 transition-colors"
+              className="flex items-start gap-3 bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-[#22C55E]/30 transition-colors"
             >
               <div className="w-9 h-9 rounded-xl bg-[#22C55E]/15 border border-[#22C55E]/25 flex items-center justify-center shrink-0">
                 <MessageCircle size={16} className="text-[#22C55E]" />
@@ -142,9 +142,9 @@ export default function ContactPageClient() {
               </div>
             </a>
 
-            <div className="flex items-start gap-3 bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
-              <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center shrink-0">
-                <Clock size={16} className="text-[#A78BFA]" />
+            <div className="flex items-start gap-3 bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
+              <div className="w-9 h-9 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center shrink-0">
+                <Clock size={16} className="text-[#60A5FA]" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-0.5">
@@ -177,7 +177,7 @@ export default function ContactPageClient() {
             ) : (
               <form
                 onSubmit={submit}
-                className="bg-[#1C1929] border border-white/[0.06] rounded-3xl p-6 space-y-3"
+                className="bg-[#13294A] border border-white/[0.06] rounded-3xl p-6 space-y-3"
               >
                 <h2 className="text-base font-black text-white mb-1">{t("contact.formTitle")}</h2>
                 <p className="text-[11px] text-[#A09DB1] mb-3">
@@ -245,7 +245,7 @@ export default function ContactPageClient() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <Loader2 size={16} className="animate-spin" />

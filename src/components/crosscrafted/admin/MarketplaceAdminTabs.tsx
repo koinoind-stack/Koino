@@ -166,7 +166,7 @@ export function MarketplaceListingsTab() {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-5">
-      <AdminHeader title={t("admin.marketplace.title.memberListings")} count={total} color="#9786E3" />
+      <AdminHeader title={t("admin.marketplace.title.memberListings")} count={total} color="#3B82F6" />
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
@@ -183,9 +183,9 @@ export function MarketplaceListingsTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" /></div>
       ) : items.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <p className="text-sm text-[#94A3B8]">No listings match. New member submissions appear here for review.</p>
         </div>
       ) : (
@@ -193,7 +193,7 @@ export function MarketplaceListingsTab() {
           {items.map((m) => {
             const images = (() => { try { return JSON.parse(m.images || "[]") as string[]; } catch { return []; } })();
             return (
-              <div key={m.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3">
+              <div key={m.id} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3">
                 <div className="flex gap-3">
                   <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#0f0f1a] shrink-0 flex items-center justify-center">
                     {images[0] ? (
@@ -206,7 +206,7 @@ export function MarketplaceListingsTab() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`statusChip ${listStatusChip(m.status)}`}>{m.status}</span>
-                      {m.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B]">FEATURED</span>}
+                      {m.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F5B84A]/15 text-[#F5B84A]">FEATURED</span>}
                       {!m.inStock && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-300">OUT OF STOCK</span>}
                     </div>
                     <p className="text-sm font-bold text-white truncate mt-1">{m.title}</p>
@@ -238,7 +238,7 @@ export function MarketplaceListingsTab() {
                         <X size={11} /> Reject
                       </button>
                     )}
-                    <button disabled={busyId === m.id} onClick={() => action(m, m.featured ? "unfeature" : "feature")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] flex items-center gap-1">
+                    <button disabled={busyId === m.id} onClick={() => action(m, m.featured ? "unfeature" : "feature")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F5B84A]/10 text-[#F5B84A] flex items-center gap-1">
                       <Star size={11} /> {m.featured ? t("common.action.unfeature") : t("common.action.feature")}
                     </button>
                     {m.status !== "ARCHIVED" && (
@@ -262,14 +262,14 @@ export function MarketplaceListingsTab() {
 
       {editing && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && setEditing(null)}>
-          <div className="bg-[#1C1929] border border-white/[0.08] rounded-2xl p-4 w-full max-w-md space-y-3">
-            <AdminHeader title="Edit listing" color="#9786E3" />
+          <div className="bg-[#13294A] border border-white/[0.08] rounded-2xl p-4 w-full max-w-md space-y-3">
+            <AdminHeader title="Edit listing" color="#3B82F6" />
             <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="neo-input text-sm w-full" placeholder="Title" />
             <textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={4} className="neo-input text-sm w-full" placeholder="Description" />
             <input type="number" value={editing.price} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} className="neo-input text-sm w-full" placeholder="Price ₹" />
             <div className="flex gap-2">
               <button onClick={() => setEditing(null)} className="flex-1 py-2 rounded-xl text-xs font-semibold text-[#94A3B8] bg-white/[0.04]">Cancel</button>
-              <button disabled={busyId === editing.id} onClick={saveEdit} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-[#7C3AED]">Save</button>
+              <button disabled={busyId === editing.id} onClick={saveEdit} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-[#2563EB]">Save</button>
             </div>
           </div>
         </div>
@@ -403,7 +403,7 @@ export function StoreAdminTab() {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-5">
-      <AdminHeader title={t("admin.marketplace.title.store")} count={rows.length} color="#38BDF8" />
+      <AdminHeader title={t("admin.marketplace.title.store")} count={rows.length} color="#22D3EE" />
       <p className="text-[11px] text-[#64748B] mb-3">
         Official Koino inventory — members can never edit these. Active products appear under the Koino Store filter on the public Marketplace.
       </p>
@@ -412,15 +412,15 @@ export function StoreAdminTab() {
         <button
           onClick={() => { setForm(emptyStoreForm); setShowForm(true); }}
           className="px-4 py-2.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5"
-          style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+          style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
         >
           <Package size={13} /> Add product
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-[#1C1929] border border-white/[0.08] rounded-2xl p-4 mb-5 space-y-3">
-          <AdminHeader title={form.id ? "Edit product" : "New store product"} color="#38BDF8" />
+        <div className="bg-[#13294A] border border-white/[0.08] rounded-2xl p-4 mb-5 space-y-3">
+          <AdminHeader title={form.id ? "Edit product" : "New store product"} color="#22D3EE" />
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="neo-input text-sm w-full" placeholder="Product name *" />
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="neo-input text-sm w-full" placeholder="Description (min 10 characters) *" />
           <div className="grid grid-cols-2 gap-2">
@@ -443,7 +443,7 @@ export function StoreAdminTab() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => { setShowForm(false); setForm(emptyStoreForm); }} className="flex-1 py-2 rounded-xl text-xs font-semibold text-[#94A3B8] bg-white/[0.04]">Cancel</button>
-            <button disabled={!!busyId} onClick={save} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-[#7C3AED] disabled:opacity-50">
+            <button disabled={!!busyId} onClick={save} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-[#2563EB] disabled:opacity-50">
               {busyId ? t("common.saving") : form.id ? "Save changes" : "Create product"}
             </button>
           </div>
@@ -451,9 +451,9 @@ export function StoreAdminTab() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" /></div>
       ) : rows.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <p className="text-sm text-[#94A3B8]">No store products yet. Create the first Koino Store item above.</p>
         </div>
       ) : (
@@ -461,7 +461,7 @@ export function StoreAdminTab() {
           {rows.map((r) => {
             const images = (() => { try { return JSON.parse(r.images || "[]") as string[]; } catch { return []; } })();
             return (
-              <div key={r.id} className={`bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 ${!r.active ? "opacity-60" : ""}`}>
+              <div key={r.id} className={`bg-[#13294A] border border-white/[0.06] rounded-2xl p-3 ${!r.active ? "opacity-60" : ""}`}>
                 <div className="flex gap-3 items-center">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#0f0f1a] shrink-0 flex items-center justify-center">
                     {images[0] ? (
@@ -473,7 +473,7 @@ export function StoreAdminTab() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {r.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B]">FEATURED</span>}
+                      {r.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F5B84A]/15 text-[#F5B84A]">FEATURED</span>}
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${r.active ? "bg-emerald-500/15 text-emerald-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
                         {r.active ? "Active" : t("common.status.archived")}
                       </span>
@@ -486,7 +486,7 @@ export function StoreAdminTab() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2.5">
-                  <button disabled={!!busyId} onClick={() => quickUpdate(r, { featured: !r.featured })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] flex items-center gap-1">
+                  <button disabled={!!busyId} onClick={() => quickUpdate(r, { featured: !r.featured })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F5B84A]/10 text-[#F5B84A] flex items-center gap-1">
                     <Star size={11} /> {r.featured ? t("common.action.unfeature") : t("common.action.feature")}
                   </button>
                   <button disabled={!!busyId} onClick={() => quickUpdate(r, { active: !r.active })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.04] text-[#94A3B8] flex items-center gap-1">
@@ -510,7 +510,7 @@ export function StoreAdminTab() {
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && setPreview(null)}>
           <div className="w-full max-w-[300px]">
             <p className="text-[10px] text-[#64748B] mb-2 text-center">Public product card preview</p>
-            <div className="bg-[#1C1929] border border-white/[0.08] rounded-2xl overflow-hidden">
+            <div className="bg-[#13294A] border border-white/[0.08] rounded-2xl overflow-hidden">
               <div className="relative w-full aspect-square bg-[#0f0f1a]">
                 {(() => {
                   const images = (() => { try { return JSON.parse(preview.images || "[]") as string[]; } catch { return []; } })();
@@ -523,7 +523,7 @@ export function StoreAdminTab() {
                 })()}
               </div>
               <div className="p-3">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-[#9786E3]">{preview.category}</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-[#3B82F6]">{preview.category}</p>
                 <p className="text-xs font-bold text-white line-clamp-2 mt-0.5">{preview.name}</p>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-base font-extrabold text-white">₹{preview.price.toLocaleString("en-IN")}</span>
@@ -639,9 +639,9 @@ export function BusinessAdminTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" /></div>
       ) : items.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <p className="text-sm text-[#94A3B8]">No businesses match. Member submissions appear here for review.</p>
         </div>
       ) : (
@@ -649,7 +649,7 @@ export function BusinessAdminTab() {
           {items.map((b) => {
             const images = (() => { try { return JSON.parse(b.images || "[]") as string[]; } catch { return []; } })();
             return (
-              <div key={b.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3">
+              <div key={b.id} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3">
                 <div className="flex gap-3">
                   <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#0f0f1a] shrink-0 flex items-center justify-center">
                     {images[0] ? (
@@ -663,7 +663,7 @@ export function BusinessAdminTab() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${listStatusChip(b.status)}`}>{b.status}</span>
                       {b.verified && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">VERIFIED</span>}
-                      {b.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B]">FEATURED</span>}
+                      {b.featured && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F5B84A]/15 text-[#F5B84A]">FEATURED</span>}
                     </div>
                     <p className="text-sm font-bold text-white truncate mt-1">{b.name}</p>
                     <p className="text-[11px] text-[#94A3B8]">{b.category}{b.city ? ` · ${b.city}` : ""}{b.state ? `, ${b.state}` : ""}</p>
@@ -694,7 +694,7 @@ export function BusinessAdminTab() {
                     <button disabled={busyId === b.id} onClick={() => action(b, b.verified ? "unverify" : "verify")} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 ${b.verified ? "bg-white/[0.04] text-[#94A3B8]" : "bg-emerald-500/10 text-emerald-300"}`}>
                       <span className="text-[10px]">✓</span> {b.verified ? t("common.action.unverify") : t("common.action.verify")}
                     </button>
-                    <button disabled={busyId === b.id} onClick={() => action(b, b.featured ? "unfeature" : "feature")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] flex items-center gap-1">
+                    <button disabled={busyId === b.id} onClick={() => action(b, b.featured ? "unfeature" : "feature")} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#F5B84A]/10 text-[#F5B84A] flex items-center gap-1">
                       <Star size={11} /> {b.featured ? t("common.action.unfeature") : t("common.action.feature")}
                     </button>
                     {b.status !== "ARCHIVED" && (
@@ -848,7 +848,7 @@ export function RewardsAdminTab() {
           <button
             key={s.id}
             onClick={() => setSection(s.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold ${section === s.id ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold ${section === s.id ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
           >
             <s.icon size={12} /> {s.label}
           </button>
@@ -856,13 +856,13 @@ export function RewardsAdminTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-14"><div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" /></div>
       ) : section === "items" ? (
         <div className="space-y-3">
-          <AdminHeader title={t("admin.marketplace.title.rewards")} count={gifts.length} color="#F59E0B" />
+          <AdminHeader title={t("admin.marketplace.title.rewards")} count={gifts.length} color="#F5B84A" />
           <p className="text-[11px] text-[#64748B]">Manage rewards, stock, reward type and eligibility. Claims are fulfilled in the Redemptions tab.</p>
           {gifts.map((g) => (
-            <div key={g.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3">
+            <div key={g.id} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${g.isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
                   {g.isActive ? "Enabled" : "Disabled"}
@@ -870,7 +870,7 @@ export function RewardsAdminTab() {
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300">{g.tier}</span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300">{g.deliveryType}</span>
                 {g.eligibilityType !== "points" && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#F59E0B]">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#F5B84A]/15 text-[#F5B84A]">
                     {g.eligibilityType === "competition_winner" ? "Winners only" : `Top ${g.eligibilityValue ?? 10}`}
                   </span>
                 )}
@@ -926,7 +926,7 @@ export function RewardsAdminTab() {
         </div>
       ) : section === "assign" ? (
         <div className="max-w-md space-y-3">
-          <AdminHeader title="Manually assign a reward" color="#F59E0B" />
+          <AdminHeader title="Manually assign a reward" color="#F5B84A" />
           <p className="text-[11px] text-[#64748B]">
             Assign any reward to a member without spending their points. Duplicate assignments are blocked automatically. Find the member&apos;s user ID in the Members tab.
           </p>
@@ -938,21 +938,21 @@ export function RewardsAdminTab() {
             ))}
           </select>
           <textarea value={assignNotes} onChange={(e) => setAssignNotes(e.target.value)} rows={2} className="neo-input text-sm w-full" placeholder="Reason / notes (optional)" />
-          <button disabled={!!busyId} onClick={assign} className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#7C3AED] disabled:opacity-50">
+          <button disabled={!!busyId} onClick={assign} className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#2563EB] disabled:opacity-50">
             {busyId === "assign" ? "Assigning..." : "Assign reward"}
           </button>
         </div>
       ) : (
         <div className="space-y-3">
-          <AdminHeader title="Competition winners" count={winners.length} color="#F59E0B" />
+          <AdminHeader title="Competition winners" count={winners.length} color="#F5B84A" />
           <p className="text-[11px] text-[#64748B]">Track fulfilment for competition winners. Winners are created automatically when a competition is finalized.</p>
           {winners.length === 0 ? (
-            <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+            <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
               <p className="text-sm text-[#94A3B8]">No competition winners yet.</p>
             </div>
           ) : (
             winners.map((w) => (
-              <div key={w.id} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3">
+              <div key={w.id} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-white truncate">

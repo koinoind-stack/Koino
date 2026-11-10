@@ -308,13 +308,13 @@ export default function MemorialsTab() {
       <div className="flex gap-1.5 mb-5">
         <button
           onClick={() => setSection("memorials")}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${section === "memorials" ? "bg-[#7C3AED] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"}`}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${section === "memorials" ? "bg-[#2563EB] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"}`}
         >
           <Flower2 size={12} /> {t("admin.memorials.tab.memorials")}
         </button>
         <button
           onClick={() => setSection("videos")}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${section === "videos" ? "bg-[#7C3AED] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"}`}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${section === "videos" ? "bg-[#2563EB] text-white" : "bg-white/[0.04] text-[#94A3B8] hover:text-white"}`}
         >
           <Film size={12} /> {t("admin.memorials.tab.videoQueue")} {videoStatus === "pending" && videos.length > 0 ? `(${videos.length})` : ""}
         </button>
@@ -329,13 +329,13 @@ export default function MemorialsTab() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t("admin.memorials.searchPlaceholder")}
-                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
               />
             </div>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#1C1929]"
+              className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#13294A]"
             >
               <option value="">All statuses</option>
               <option value="pending">Pending review</option>
@@ -349,7 +349,7 @@ export default function MemorialsTab() {
 
           {loading ? (
             <div className="flex justify-center py-16">
-              <div className="w-7 h-7 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-16">
@@ -359,14 +359,14 @@ export default function MemorialsTab() {
           ) : (
             <ul className="space-y-2.5">
               {items.map((m) => (
-                <li key={m.id} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] px-4 py-3.5">
+                <li key={m.id} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] px-4 py-3.5">
                   <div className="flex items-start gap-3">
                     {m.photoUrl ? (
                        
                       <img src={m.photoUrl} alt="" className="w-10 h-10 rounded-full object-cover border border-white/10" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-[#7C3AED]/10 flex items-center justify-center shrink-0">
-                        <Flower2 size={15} className="text-[#C4B5FD]" />
+                      <div className="w-10 h-10 rounded-full bg-[#2563EB]/10 flex items-center justify-center shrink-0">
+                        <Flower2 size={15} className="text-[#93C5FD]" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
@@ -449,7 +449,7 @@ export default function MemorialsTab() {
             <select
               value={videoStatus}
               onChange={(e) => setVideoStatus(e.target.value)}
-              className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#1C1929]"
+              className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#13294A]"
             >
               <option value="pending">Pending review</option>
               <option value="approved">Approved</option>
@@ -461,7 +461,7 @@ export default function MemorialsTab() {
 
           {videosLoading ? (
             <div className="flex justify-center py-16">
-              <div className="w-7 h-7 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
             </div>
           ) : videos.length === 0 ? (
             <div className="text-center py-16">
@@ -471,7 +471,7 @@ export default function MemorialsTab() {
           ) : (
             <ul className="space-y-2.5">
               {videos.map((v) => (
-                <li key={v.id} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] px-4 py-3.5 flex items-start gap-3">
+                <li key={v.id} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] px-4 py-3.5 flex items-start gap-3">
                   { }
                   <img src={v.thumbUrl} alt="" className="w-24 h-[54px] rounded-lg object-cover border border-white/10 shrink-0" loading="lazy" />
                   <div className="min-w-0 flex-1">
@@ -480,7 +480,7 @@ export default function MemorialsTab() {
                       On <b className="text-[#94A3B8]">{v.memorial.fullName}</b> · by {v.addedByName} · {v.status}
                     </p>
                     {v.description && <p className="text-[11px] text-[#64748B] mt-0.5 line-clamp-1">{v.description}</p>}
-                    <a href={v.watchUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-[#C4B5FD] hover:text-white inline-flex items-center gap-1 mt-1">
+                    <a href={v.watchUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-[#93C5FD] hover:text-white inline-flex items-center gap-1 mt-1">
                       Open on YouTube <ExternalLink size={9} />
                     </a>
                   </div>
@@ -535,7 +535,7 @@ export default function MemorialsTab() {
                 href={`/memorials/${reviewing.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11px] font-bold text-[#C4B5FD] hover:text-white inline-flex items-center gap-1 shrink-0"
+                className="text-[11px] font-bold text-[#93C5FD] hover:text-white inline-flex items-center gap-1 shrink-0"
               >
                 Open page <ExternalLink size={10} />
               </a>
@@ -569,7 +569,7 @@ export default function MemorialsTab() {
               {(reviewing.verse || reviewing.testimony) && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-1">Verse & faith</p>
-                  {reviewing.verse && <p className="text-[#C4B5FD] text-xs italic">“{reviewing.verse}” {reviewing.verseRef && `— ${reviewing.verseRef}`}</p>}
+                  {reviewing.verse && <p className="text-[#93C5FD] text-xs italic">“{reviewing.verse}” {reviewing.verseRef && `— ${reviewing.verseRef}`}</p>}
                   {reviewing.testimony && <p className="text-[#CBD5E1] text-xs leading-relaxed whitespace-pre-wrap mt-1.5">{reviewing.testimony}</p>}
                 </div>
               )}
@@ -601,14 +601,14 @@ export default function MemorialsTab() {
                 <p className="text-[11px] font-bold text-amber-300">Correcting content — recorded with a moderation timestamp</p>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-1">Tribute</p>
-                  <textarea value={editing.tribute} onChange={(e) => setEditing({ ...editing, tribute: e.target.value })} rows={2} maxLength={500} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#7C3AED]/50" />
+                  <textarea value={editing.tribute} onChange={(e) => setEditing({ ...editing, tribute: e.target.value })} rows={2} maxLength={500} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#2563EB]/50" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-1">Life story</p>
-                  <textarea value={editing.lifeStory} onChange={(e) => setEditing({ ...editing, lifeStory: e.target.value })} rows={4} maxLength={20000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#7C3AED]/50" />
+                  <textarea value={editing.lifeStory} onChange={(e) => setEditing({ ...editing, lifeStory: e.target.value })} rows={4} maxLength={20000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#2563EB]/50" />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={saveEdit} disabled={busyId === reviewing.id} className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] text-white text-[11px] font-bold disabled:opacity-40">{t("admin.memorials.saveCorrection")}</button>
+                  <button onClick={saveEdit} disabled={busyId === reviewing.id} className="px-3.5 py-1.5 rounded-full bg-[#2563EB] text-white text-[11px] font-bold disabled:opacity-40">{t("admin.memorials.saveCorrection")}</button>
                   <button onClick={() => setEditing(null)} className="px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-bold text-white">{t("common.cancel")}</button>
                 </div>
               </div>
@@ -660,7 +660,7 @@ export default function MemorialsTab() {
               rows={3}
               maxLength={500}
               placeholder="e.g. Please add the family's permission note for the photographs before we can publish this."
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50 resize-none"
+              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50 resize-none"
             />
             <div className="flex gap-2 mt-3">
               <button onClick={reject} disabled={busyId === rejecting.id} className="flex-1 px-4 py-2 rounded-full bg-red-500/15 border border-red-500/30 text-xs font-bold text-red-300 hover:bg-red-500/25 disabled:opacity-40">
@@ -688,7 +688,7 @@ export default function MemorialsTab() {
               rows={3}
               maxLength={500}
               placeholder="e.g. This video does not appear to relate to the person remembered here."
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50 resize-none"
+              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50 resize-none"
             />
             <div className="flex gap-2 mt-3">
               <button onClick={videoReject} disabled={busyId === videoRejecting.id} className="flex-1 px-4 py-2 rounded-full bg-red-500/15 border border-red-500/30 text-xs font-bold text-red-300 hover:bg-red-500/25 disabled:opacity-40">

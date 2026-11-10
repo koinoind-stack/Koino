@@ -10,10 +10,16 @@
  *      signed-in Home feed under the /knowledge URL. v2 must only fall back
  *      for the app root itself, and must bump the cache name so every v1
  *      cache is purged on activate.
- *   2. Sidebar unification — Grow carries exactly one written-content entry
- *      (knowledge); standalone apologetics (Grow) and blog (More) entries
- *      are gone from the desktop sidebar AND the mobile More sheet, while
- *      the routes, pseudo-view handling and deep links all keep working.
+ *   2. Sidebar contract — AMENDED for the APPROVED Koino dashboard design
+ *      (PR #41; supersedes main's interim Grow/More category IA): the
+ *      desktop sidebar is the approved fifteen-item Koino primary list
+ *      plus a collapsible More section carrying the twelve remaining
+ *      destinations (support + admin included; apologetics and blog stay
+ *      reachable by design — the "nothing is removed" protection rule).
+ *      The mobile bottom nav is the five quick slots and the mobile More
+ *      sheet mirrors the desktop so every destination stays reachable with
+ *      no duplicate entries. Routes, pseudo-view handling and deep links
+ *      all keep working.
  *   3. Content-type routing — all six types resolve to a real destination;
  *      the /knowledge landing has no "Coming soon" card; the
  *      /knowledge/browse listing is a read-only surface over the EXISTING
@@ -78,28 +84,70 @@ test("P2FIX-SW-2: cache name bumped to v2 so every v1 cache is purged on activat
 
 // ─── 2. Sidebar unification (desktop + mobile) ──────────────────────────────
 
-test("P2FIX-NAV-1: Grow carries knowledge as its single written-content entry, no standalone apologetics", () => {
+test("P2FIX-NAV-1: primary sidebar carries the fifteen approved Koino destinations — knowledge reachable exactly once", () => {
   const home = read("src/components/home/HomeApp.tsx");
-  const grow = slice(home, 'labelKey: "side.cat.grow"', 'labelKey: "side.cat.community"');
-  assert.match(grow, /id: "knowledge"/);
-  assert.doesNotMatch(grow, /id: "apologetics"/);
-  assert.doesNotMatch(grow, /id: "blog"/);
+  const primary = slice(home, "const KOINO_NAV", "];");
+  const ids = [...primary.matchAll(/id: "([a-z-]+)"/g)].map((m) => m[1]);
+  // The fifteen approved primary destinations, in the approved order.
+  assert.deepEqual(ids, [
+    "home", "bible", "comic", "feed", "reels", "trivia", "explore",
+    "groups", "churches", "shop", "notifications", "messages",
+    "bookmarks", "profile", "settings",
+  ]);
+  // Knowledge stays a first-class written-content destination — reachable
+  // exactly once across the desktop sidebar (primary list + More).
+  const more = slice(home, "const MORE_NAV", "];");
+  const knowledgeHits =
+    ids.filter((id) => id === "knowledge").length +
+    [...more.matchAll(/id: "knowledge"/g)].length;
+  assert.equal(knowledgeHits, 1);
 });
 
-test("P2FIX-NAV-2: More category keeps support + admin, no standalone blog", () => {
+test("P2FIX-NAV-2: More section keeps support + admin and all twelve approved remaining destinations", () => {
   const home = read("src/components/home/HomeApp.tsx");
-  const more = slice(home, 'labelKey: "side.cat.more"', "];");
-  assert.match(more, /id: "support"/);
-  assert.match(more, /id: "admin"/);
-  assert.doesNotMatch(more, /id: "blog"/);
+  const more = slice(home, "const MORE_NAV", "];");
+  const ids = [...more.matchAll(/id: "([a-z-]+)"/g)].map((m) => m[1]);
+  // The approved More list: every pre-existing feature stays reachable
+  // ("nothing is removed" protection rule).
+  assert.deepEqual(ids, [
+    "watch", "events", "prayer-wall", "apologetics", "memorials",
+    "matrimony", "business-directory", "dashboard", "knowledge",
+    "blog", "support", "admin",
+  ]);
+  // Main's contract still holds as a subset: support + admin stay in More.
+  assert.ok(ids.includes("support"));
+  assert.ok(ids.includes("admin"));
+  // Admin is access-gated at render time (desktop and mobile lists alike).
+  assert.match(home, /id !== "admin" \|\| isAdmin/);
 });
 
-test("P2FIX-NAV-3: mobile More sheet matches the desktop — no standalone apologetics/blog", () => {
+test("P2FIX-NAV-3: mobile More sheet matches the desktop — every destination reachable, none duplicated", () => {
   const home = read("src/components/home/HomeApp.tsx");
   const sheet = slice(home, "const MOBILE_MORE_VIEWS", "];");
+  // The approved mobile design keeps knowledge, apologetics and blog
+  // reachable in the sheet…
   assert.match(sheet, /id: "knowledge"/);
-  assert.doesNotMatch(sheet, /id: "apologetics"/);
-  assert.doesNotMatch(sheet, /id: "blog"/);
+  assert.match(sheet, /id: "apologetics"/);
+  assert.match(sheet, /id: "blog"/);
+  // …every desktop sidebar destination (primary ∪ More) is reachable on
+  // mobile via the bottom nav or the More sheet…
+  const idsIn = (src: string) =>
+    new Set([...src.matchAll(/id: "([a-z-]+)"/g)].map((m) => m[1]));
+  const mobileNav = slice(home, "const MOBILE_NAV", "];");
+  const mobile = new Set([...idsIn(mobileNav), ...idsIn(sheet)]);
+  const desktop = [
+    ...idsIn(slice(home, "const KOINO_NAV", "];").replace(/const KOINO_NAV[^\n]*/, "")),
+    ...idsIn(slice(home, "const MORE_NAV", "];").replace(/const MORE_NAV[^\n]*/, "")),
+  ];
+  for (const id of desktop) {
+    assert.ok(mobile.has(id), `desktop destination "${id}" unreachable on mobile`);
+  }
+  // …and the two mobile lists must not overlap — the sheet concatenates
+  // them with key={id}, so any overlap would render a duplicate tile.
+  const sheetIds = idsIn(sheet);
+  for (const id of idsIn(mobileNav)) {
+    assert.ok(!sheetIds.has(id), `"${id}" appears in both MOBILE_NAV and MOBILE_MORE_VIEWS`);
+  }
 });
 
 test("P2FIX-NAV-4: pseudo-view routing still covers every external route — nothing orphaned", () => {
@@ -135,8 +183,24 @@ test("P2FIX-NAV-6: Q&A surface preserved — ApologeticsView still renders and d
 
 test("P2FIX-NAV-7: no unused icon imports left behind (lint guard)", () => {
   const home = read("src/components/home/HomeApp.tsx");
-  assert.doesNotMatch(home, /FileText/);
-  assert.doesNotMatch(home, /ListChecks/);
+  // Design-agnostic hygiene contract: EVERY icon imported from lucide-react
+  // must be referenced beyond the import statement itself. (FileText and
+  // ListChecks are legitimately used again under the approved design — they
+  // back the More-section blog and apologetics entries.)
+  const importBlock = slice(home, "import {", '} from "lucide-react";');
+  const icons = [
+    ...importBlock.matchAll(
+      /^\s*([A-Za-z][A-Za-z0-9]*)(?:\s+as\s+([A-Za-z][A-Za-z0-9]*))?\s*,?\s*$/gm
+    ),
+  ].map((m) => m[2] ?? m[1]);
+  assert.ok(
+    icons.length >= 25,
+    `icon import inventory unexpectedly small: ${icons.length}`
+  );
+  for (const icon of icons) {
+    const uses = (home.match(new RegExp(`\\b${icon}\\b`, "g")) || []).length;
+    assert.ok(uses >= 2, `unused icon import: ${icon} (referenced only in the import)`);
+  }
 });
 
 // ─── 3. Content-type routing — every type has a real destination ────────────

@@ -37,7 +37,7 @@ export default function MatrimonyProfilePreview({
 
   return (
     <div>
-      <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-[#2B254E]/40 to-[#1C1929] overflow-hidden">
+      <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-[#1A3A66]/40 to-[#13294A] overflow-hidden">
         {/* Photo */}
         <div className="relative aspect-[4/3] bg-white/[0.03]">
           {primary ? (
@@ -69,14 +69,14 @@ export default function MatrimonyProfilePreview({
 
           {(account.state || account.city) && (
             <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#B7C0D0]">
-              <MapPin size={13} className="text-[#7C3AED]" />
+              <MapPin size={13} className="text-[#2563EB]" />
               {[account.city, account.state].filter(Boolean).join(", ")}
             </p>
           )}
 
           {profile.languages.length > 0 && (
             <p className="mt-2 flex items-start gap-1.5 text-[13px] text-[#B7C0D0]">
-              <Languages size={13} className="text-[#7C3AED] mt-0.5 shrink-0" />
+              <Languages size={13} className="text-[#2563EB] mt-0.5 shrink-0" />
               <span>{profile.languages.join(" · ")}</span>
             </p>
           )}
@@ -84,12 +84,12 @@ export default function MatrimonyProfilePreview({
           {(intention || timeline) && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {intention && (
-                <span className="px-2.5 py-1 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[11px] font-bold text-[#F39B9B]">
+                <span className="px-2.5 py-1 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[11px] font-bold text-[#F97316]">
                   {intention.label}
                 </span>
               )}
               {timeline && (
-                <span className="px-2.5 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[11px] font-bold text-[#C4B5FD]">
+                <span className="px-2.5 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 text-[11px] font-bold text-[#93C5FD]">
                   {timeline.label}
                 </span>
               )}

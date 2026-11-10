@@ -8,9 +8,6 @@
    actually renders characters inside its unicode-range: an English visit
    downloads 0 bytes of Indic fonts, a Telugu visit downloads only the
    Telugu face (~244KB), a Hindi visit only the Devanagari face (~216KB).
-   Previously BOTH full TTFs (628KB + 868KB) were preloaded on every page
-   for every visitor via next/font/local. Layout-features are kept intact
-   (GSUB/GPOS) so Telugu conjuncts and matras shape correctly.
    The full TTFs remain in public/fonts for the server-side share-card
    renderer, which reads them from disk at runtime. */
 @font-face {
@@ -21,7 +18,6 @@
   font-display: swap;
   unicode-range: U+0C00-0C7F, U+0020-007E, U+00A0-00FF, U+2000-206F, U+20B9;
 }
-
 @font-face {
   font-family: "Noto Sans Devanagari";
   src: url("/fonts/NotoSansDevanagari-web.woff2") format("woff2");
@@ -73,71 +69,82 @@
 
 :root {
   --radius: 0.75rem;
-  --background: #12101A;
+  /* ─── Approved Koino palette (canonical anchors) ───
+     navy #090D18 · secondary navy #0D1322 · card #111827 ·
+     elevated card #172033 · primary purple #873EFF · lavender #B68AFF.
+     The shadcn tokens below map onto these anchors. */
+  --koino-navy: #090D18;
+  --koino-navy-2: #0D1322;
+  --koino-card: #111827;
+  --koino-card-elevated: #172033;
+  --koino-primary: #873EFF;
+  --koino-lavender: #B68AFF;
+  --background: #090D18;
   --foreground: #ffffff;
-  --card: #1C1929;
+  --card: #111827;
   --card-foreground: #ffffff;
-  --popover: #1C1929;
+  --popover: #111827;
   --popover-foreground: #ffffff;
-  --primary: #F39B9B;
-  --primary-foreground: #0A0A0A;
-  --secondary: #2B254E;
+  --primary: #873EFF;
+  --primary-foreground: #ffffff;
+  --secondary: #0D1322;
   --secondary-foreground: #ffffff;
-  --muted: #1C1929;
+  --muted: #172033;
   --muted-foreground: #94A3B8;
-  --accent: #7C3AED;
+  --accent: #873EFF;
   --accent-foreground: #ffffff;
   --destructive: #EF4444;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #7C3AED;
-  --chart-1: #F39B9B;
-  --chart-2: #9786E3;
-  --chart-3: #38BDF8;
+  --ring: #873EFF;
+  --chart-1: #873EFF;
+  --chart-2: #B68AFF;
+  --chart-3: #22D3EE;
   --chart-4: #22C55E;
-  --chart-5: #F59E0B;
-  --sidebar: #0B1120;
+  --chart-5: #F5B84A;
+  --sidebar: #0D1322;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #7C3AED;
+  --sidebar-primary: #873EFF;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(124, 58, 237, 0.15);
+  --sidebar-accent: rgba(135, 62, 255, 0.15);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.04);
-  --sidebar-ring: #7C3AED;
+  --sidebar-ring: #873EFF;
 }
 
 .dark {
-  --background: #12101A;
+  /* Mirrors the approved Koino palette above (single dark theme). */
+  --background: #090D18;
   --foreground: #ffffff;
-  --card: #1C1929;
+  --card: #111827;
   --card-foreground: #ffffff;
-  --popover: #1C1929;
+  --popover: #111827;
   --popover-foreground: #ffffff;
-  --primary: #F39B9B;
-  --primary-foreground: #0A0A0A;
-  --secondary: #2B254E;
+  --primary: #873EFF;
+  --primary-foreground: #ffffff;
+  --secondary: #0D1322;
   --secondary-foreground: #ffffff;
-  --muted: #1C1929;
+  --muted: #172033;
   --muted-foreground: #94A3B8;
-  --accent: #7C3AED;
+  --accent: #873EFF;
   --accent-foreground: #ffffff;
   --destructive: #EF4444;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #7C3AED;
-  --chart-1: #F39B9B;
-  --chart-2: #9786E3;
-  --chart-3: #38BDF8;
+  --ring: #873EFF;
+  --chart-1: #873EFF;
+  --chart-2: #B68AFF;
+  --chart-3: #22D3EE;
   --chart-4: #22C55E;
-  --chart-5: #F59E0B;
-  --sidebar: #0B1120;
+  --chart-5: #F5B84A;
+  --sidebar: #0D1322;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #7C3AED;
+  --sidebar-primary: #873EFF;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(124, 58, 237, 0.15);
+  --sidebar-accent: rgba(135, 62, 255, 0.15);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.04);
-  --sidebar-ring: #7C3AED;
+  --sidebar-ring: #873EFF;
 }
 
 @layer base {
@@ -145,12 +152,12 @@
     @apply border-border outline-ring/50;
   }
   html {
-    background: #12101A;
+    background: #090D18;
     color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground;
-    background: #12101A;
+    background: #090D18;
     color: #ffffff;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
@@ -178,21 +185,21 @@
   }
   select option,
   select optgroup {
-    background-color: #1C1929;
+    background-color: #111827;
     color: #ffffff;
   }
 }
 
 @layer utilities {
   .gradient-text {
-    background: linear-gradient(135deg, #F39B9B, #9786E3);
+    background: linear-gradient(135deg, #B68AFF, #873EFF);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
   .neo-input {
-    background: #1C1929;
+    background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 10px 14px;
@@ -203,8 +210,8 @@
     width: 100%;
   }
   .neo-input:focus {
-    border-color: rgba(124, 58, 237, 0.5);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    border-color: rgba(135, 62, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(135, 62, 255, 0.15);
   }
   .neo-input::placeholder {
     color: #64748B;

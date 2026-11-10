@@ -83,7 +83,7 @@ export default function BlogListClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search articles…"
-            className="w-full bg-[#1C1929] border border-white/[0.06] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]/60 focus:bg-[#22202F] transition-all"
+            className="w-full bg-[#13294A] border border-white/[0.06] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB]/60 focus:bg-[#22202F] transition-all"
           />
           {search && (
             <button
@@ -99,7 +99,7 @@ export default function BlogListClient({
 
       {/* Post grid */}
       {filtered.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-10 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-10 text-center">
           <p className="text-sm text-[#94A3B8] mb-2">
             {search || category !== "all"
               ? "No articles match your filter."
@@ -107,7 +107,7 @@ export default function BlogListClient({
           </p>
           <Link
             href="/about"
-            className="inline-flex items-center text-xs font-bold text-[#A78BFA] hover:text-white"
+            className="inline-flex items-center text-xs font-bold text-[#60A5FA] hover:text-white"
           >
             Learn about Koino →
           </Link>
@@ -118,7 +118,7 @@ export default function BlogListClient({
             <Link
               key={p.id}
               href={`/blog/${p.slug}`}
-              className="group bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] hover:-translate-y-0.5 transition-all"
+              className="group bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] hover:-translate-y-0.5 transition-all"
             >
               {p.featuredImage && (
                 <div className="relative h-44 bg-[#0f0f1a] overflow-hidden">
@@ -132,7 +132,7 @@ export default function BlogListClient({
               )}
               <div className="p-5">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">
                     {p.category}
                   </span>
                   {p.publishedAt && (
@@ -146,7 +146,7 @@ export default function BlogListClient({
                     </span>
                   )}
                 </div>
-                <h3 className="text-base font-bold text-white leading-snug mb-2 group-hover:text-[#A78BFA] transition-colors">
+                <h3 className="text-base font-bold text-white leading-snug mb-2 group-hover:text-[#60A5FA] transition-colors">
                   {p.title}
                 </h3>
                 {p.excerpt && (
@@ -182,7 +182,7 @@ function CategoryChip({
       onClick={onClick}
       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
         active
-          ? "bg-[#7C3AED] border-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/20"
+          ? "bg-[#2563EB] border-[#2563EB] text-white shadow-lg shadow-[#2563EB]/20"
           : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white hover:border-white/[0.15]"
       }`}
     >

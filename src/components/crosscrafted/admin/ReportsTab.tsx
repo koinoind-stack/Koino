@@ -25,8 +25,8 @@ type Report = {
 };
 
 const QUEUE_COLORS: Record<string, string> = {
-  pending: "#F59E0B",
-  reviewed: "#38BDF8",
+  pending: "#F5B84A",
+  reviewed: "#22D3EE",
   dismissed: "#64748B",
 };
 
@@ -123,7 +123,7 @@ export default function ReportsTab() {
             onClick={() => setQueue(s)}
             className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all capitalize ${
               queue === s
-                ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]"
+                ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]"
                 : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -147,7 +147,7 @@ export default function ReportsTab() {
           {reports.map((r) => (
             <div key={r.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#7C3AED]/20 text-[#C4B5FD]">
+                <span className="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#2563EB]/20 text-[#93C5FD]">
                   {TYPE_LABEL[r.targetType] || r.targetType}
                 </span>
                 {r.reason && (
@@ -175,7 +175,7 @@ export default function ReportsTab() {
                 <div className="flex gap-2 mt-2.5">
                   <button
                     onClick={() => setStatus(r.id, "reviewed")}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#7C3AED] text-white text-[11px] font-bold hover:bg-[#6D28D9]"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#2563EB] text-white text-[11px] font-bold hover:bg-[#1D4ED8]"
                   >
                     <Check size={12} /> Reviewed
                   </button>

@@ -12,13 +12,13 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 export default function PublicPageLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslation();
   return (
-    <div className="min-h-screen bg-[#12101A] text-white flex flex-col">
+    <div className="min-h-screen bg-[#071120] text-white flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#12101A]/80 backdrop-blur-xl border-b border-white/[0.04]">
+      <header className="sticky top-0 z-40 bg-[#071120]/80 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/koino-logo.png"
+              src={BRAND.assets.shield}
               alt={BRAND.name + ""}
               width={32}
               height={32}
@@ -41,7 +41,7 @@ export default function PublicPageLayout({ children }: { children: React.ReactNo
             <LanguageSwitcher />
             <Link
               href="/"
-              className="px-5 py-2.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all hover:-translate-y-px"
+              className="px-5 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all hover:-translate-y-px"
             >
               {t("landing.cta.enterKoino")}
             </Link>

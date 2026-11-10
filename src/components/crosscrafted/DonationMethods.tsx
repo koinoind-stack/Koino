@@ -49,11 +49,11 @@ export default function DonationMethods({
   if (!hasAnyCard) {
     // Nothing configured yet — show a gentle "no methods" state.
     return (
-      <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
+      <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-6 text-center">
         <p className="text-sm text-[#A09DB1]">
           Donation methods haven&apos;t been configured yet. Please check back
           soon, or{" "}
-          <a href="/contact" className="text-[#A78BFA] underline">
+          <a href="/contact" className="text-[#60A5FA] underline">
             contact us
           </a>{" "}
           to support Koino.
@@ -102,9 +102,9 @@ function UpiCard({ upiId }: { upiId: string }) {
   };
 
   return (
-    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
-      <div className="w-10 h-10 rounded-xl bg-[#F39B9B]/15 border border-[#F39B9B]/25 flex items-center justify-center mb-3">
-        <Wallet size={18} className="text-[#F39B9B]" />
+    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
+      <div className="w-10 h-10 rounded-xl bg-[#F97316]/15 border border-[#F97316]/25 flex items-center justify-center mb-3">
+        <Wallet size={18} className="text-[#F97316]" />
       </div>
       <h3 className="text-base font-bold text-white mb-1">UPI</h3>
       <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">
@@ -120,7 +120,7 @@ function UpiCard({ upiId }: { upiId: string }) {
       <button
         type="button"
         onClick={copy}
-        className="w-full py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-1.5"
+        className="w-full py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-1.5"
       >
         {copied ? <Check size={13} /> : <Copy size={13} />}
         {copied ? "Copied!" : "Copy UPI ID"}
@@ -137,9 +137,9 @@ function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
   // We deliberately do NOT fetch+create a blob here because Supabase Storage
   // public URLs are already direct links and `download` works natively.
   return (
-    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
-      <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
-        <QrCode size={18} className="text-[#A78BFA]" />
+    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
+      <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center mb-3">
+        <QrCode size={18} className="text-[#60A5FA]" />
       </div>
       <h3 className="text-base font-bold text-white mb-1">Scan &amp; Pay</h3>
       <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">
@@ -162,7 +162,7 @@ function QrCard({ qrCodeUrl }: { qrCodeUrl: string }) {
         download="koino-donation-qr.png"
         target="_blank"
         rel="noopener noreferrer"
-        className="w-full py-2.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-1.5"
+        className="w-full py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-1.5"
       >
         <Download size={13} />
         Download QR Code
@@ -184,9 +184,9 @@ function BankCard({ settings }: { settings: PublicDonationSettings }) {
   }
 
   return (
-    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
-      <div className="w-10 h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/25 flex items-center justify-center mb-3">
-        <Landmark size={18} className="text-[#38BDF8]" />
+    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
+      <div className="w-10 h-10 rounded-xl bg-[#22D3EE]/15 border border-[#22D3EE]/25 flex items-center justify-center mb-3">
+        <Landmark size={18} className="text-[#22D3EE]" />
       </div>
       <h3 className="text-base font-bold text-white mb-1">Bank Transfer</h3>
       <p className="text-[11px] text-[#A09DB1] mb-3 leading-relaxed">

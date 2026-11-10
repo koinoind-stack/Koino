@@ -109,11 +109,11 @@ export default function MatrimonyProfileEditor({
   };
 
   const inputCls =
-    "w-full rounded-xl bg-white/[0.03] border border-white/[0.08] px-3.5 py-2.5 text-[13.5px] text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#7C3AED]/50 transition-colors";
+    "w-full rounded-xl bg-white/[0.03] border border-white/[0.08] px-3.5 py-2.5 text-[13.5px] text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB]/50 transition-colors";
   const labelCls = "block text-[11px] font-black uppercase tracking-wider text-[#64748B] mb-1.5";
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#1C1929] p-4 md:p-5">
+    <div className="rounded-2xl border border-white/[0.06] bg-[#13294A] p-4 md:p-5">
       {/* Account-sourced facts (read-only) */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
@@ -134,7 +134,7 @@ export default function MatrimonyProfileEditor({
       {/* Languages */}
       <div className="mt-5">
         <span className={labelCls}>
-          {t("matrimony.editor.languages")} <span className="text-[#F39B9B]">*</span>
+          {t("matrimony.editor.languages")} <span className="text-[#F97316]">*</span>
         </span>
         <div className="flex flex-wrap gap-1.5">
           {MATRIMONY_LANGUAGES.map((lang) => {
@@ -146,7 +146,7 @@ export default function MatrimonyProfileEditor({
                 onClick={() => toggleLanguage(lang)}
                 className={`px-3 py-1.5 rounded-full text-[12px] font-bold border transition-all ${
                   active
-                    ? "bg-[#7C3AED]/20 border-[#7C3AED]/40 text-white"
+                    ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-white"
                     : "bg-white/[0.03] border-white/[0.08] text-[#94A3B8] hover:text-white"
                 }`}
               >
@@ -163,7 +163,7 @@ export default function MatrimonyProfileEditor({
       {/* Intention + timeline */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={labelCls} htmlFor="m-intention">{t("matrimony.editor.intention")} <span className="text-[#F39B9B]">*</span></label>
+          <label className={labelCls} htmlFor="m-intention">{t("matrimony.editor.intention")} <span className="text-[#F97316]">*</span></label>
           <select id="m-intention" value={intention} onChange={(e) => setIntention(e.target.value)} className={inputCls}>
             <option value="">{t("common.choose")}</option>
             {MATRIMONY_INTENTIONS.map((i) => (
@@ -172,7 +172,7 @@ export default function MatrimonyProfileEditor({
           </select>
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-timeline">{t("matrimony.editor.timeline")} <span className="text-[#F39B9B]">*</span></label>
+          <label className={labelCls} htmlFor="m-timeline">{t("matrimony.editor.timeline")} <span className="text-[#F97316]">*</span></label>
           <select id="m-timeline" value={timeline} onChange={(e) => setTimeline(e.target.value)} className={inputCls}>
             <option value="">{t("common.choose")}</option>
             {MATRIMONY_TIMELINES.map((t) => (
@@ -185,11 +185,11 @@ export default function MatrimonyProfileEditor({
       {/* Location (writes to account) */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls} htmlFor="m-state">{t("matrimony.editor.state")} <span className="text-[#F39B9B]">*</span></label>
+          <label className={labelCls} htmlFor="m-state">{t("matrimony.editor.state")} <span className="text-[#F97316]">*</span></label>
           <input id="m-state" value={stateField} onChange={(e) => setStateField(e.target.value)} maxLength={100} className={inputCls} placeholder={t("matrimony.editor.statePlaceholder")} />
         </div>
         <div>
-          <label className={labelCls} htmlFor="m-city">{t("matrimony.editor.city")} <span className="text-[#F39B9B]">*</span></label>
+          <label className={labelCls} htmlFor="m-city">{t("matrimony.editor.city")} <span className="text-[#F97316]">*</span></label>
           <input id="m-city" value={cityField} onChange={(e) => setCityField(e.target.value)} maxLength={100} className={inputCls} placeholder={t("matrimony.editor.cityPlaceholder")} />
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function MatrimonyProfileEditor({
       <button
         onClick={save}
         disabled={saving}
-        className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-[#F39B9B] to-[#EC4899] text-white text-sm font-black hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+        className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#F97316] text-white text-sm font-black hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
         {profile.status === "draft" && !profile.id ? t("matrimony.editor.saveDraft") : t("matrimony.editor.saveChanges")}

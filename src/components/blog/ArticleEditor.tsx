@@ -297,7 +297,7 @@ export default function ArticleEditor({
         onChange={(e) => setTitle(e.target.value)}
         placeholder={t("blog.editor.titlePlaceholder")}
         maxLength={BLOG_LIMITS.titleMax}
-        className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-lg font-black text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60 focus:ring-2 focus:ring-[#F39B9B]/20"
+        className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-lg font-black text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F97316]/60 focus:ring-2 focus:ring-[#F97316]/20"
       />
 
       {/* Excerpt */}
@@ -307,7 +307,7 @@ export default function ArticleEditor({
         placeholder={t("blog.editor.excerptPlaceholder")}
         rows={2}
         maxLength={BLOG_LIMITS.excerptMax}
-        className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60 resize-y"
+        className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F97316]/60 resize-y"
       />
 
       {/* Category + tags */}
@@ -315,7 +315,7 @@ export default function ArticleEditor({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl bg-[#1C1929] border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F39B9B]/60"
+          className="w-full rounded-xl bg-[#13294A] border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F97316]/60"
         >
           <option value="">{t("blog.editor.chooseCategory")}</option>
           {BLOG_CATEGORIES.map((c) => (
@@ -326,7 +326,7 @@ export default function ArticleEditor({
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder={t("blog.editor.tagsPlaceholder")}
-          className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60"
+          className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F97316]/60"
         />
       </div>
 
@@ -421,7 +421,7 @@ export default function ArticleEditor({
           onChange={(e) => setContent(e.target.value)}
           placeholder={t("blog.editor.contentPlaceholder")}
           rows={16}
-          className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F39B9B]/60 resize-y font-mono leading-relaxed"
+          className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-[#726E88] focus:outline-none focus:border-[#F97316]/60 resize-y font-mono leading-relaxed"
         />
       )}
 
@@ -451,7 +451,7 @@ export default function ArticleEditor({
           type="button"
           onClick={() => save(true)}
           disabled={busy !== ""}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] px-4 py-2.5 text-xs font-extrabold text-slate-950 uppercase tracking-wider transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] px-4 py-2.5 text-xs font-extrabold text-slate-950 uppercase tracking-wider transition-colors disabled:opacity-40"
         >
           <Send size={13} /> {busy === "submit" ? t("blog.editor.submitting") : t("blog.editor.submitForReview")}
         </button>
@@ -460,7 +460,7 @@ export default function ArticleEditor({
             type="button"
             onClick={() => save(true, true)}
             disabled={busy !== ""}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] px-4 py-2.5 text-xs font-extrabold text-white uppercase tracking-wider transition-colors disabled:opacity-40"
           >
             <Send size={13} /> {busy === "publish" ? t("blog.editor.publishing") : t("blog.editor.publishNow")}
           </button>

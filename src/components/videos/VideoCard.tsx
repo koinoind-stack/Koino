@@ -47,7 +47,7 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
   return (
     <a
       href={href || `/videos/${video.slug}`}
-      className="group block bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#7C3AED]/40 transition-all"
+      className="group block bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#2563EB]/40 transition-all"
     >
       <div className="relative aspect-video bg-black/60 overflow-hidden">
         {thumb ? (
@@ -67,7 +67,7 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
         )}
         {/* play overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-          <div className="w-11 h-11 rounded-full bg-[#7C3AED] flex items-center justify-center shadow-lg">
+          <div className="w-11 h-11 rounded-full bg-[#2563EB] flex items-center justify-center shadow-lg">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
               <polygon points="6 3 20 12 6 21 6 3" />
             </svg>
@@ -79,14 +79,14 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
           </span>
         )}
         {video.featured && (
-          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-[#7C3AED] text-[9px] font-extrabold uppercase tracking-wide text-white">
+          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-[#2563EB] text-[9px] font-extrabold uppercase tracking-wide text-white">
             {t("videos.card.featured")}
           </span>
         )}
         {/* continue-watching progress bar */}
         {pct != null && pct > 0 && !video.completed && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
-            <div className="h-full bg-[#38BDF8]" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-[#22D3EE]" style={{ width: `${pct}%` }} />
           </div>
         )}
         {video.completed && (
@@ -96,14 +96,14 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
         )}
       </div>
       <div className="p-3">
-        <h3 className="text-sm font-bold text-white leading-snug line-clamp-2 group-hover:text-[#C4B5FD] transition-colors">
+        <h3 className="text-sm font-bold text-white leading-snug line-clamp-2 group-hover:text-[#93C5FD] transition-colors">
           {video.title}
         </h3>
         {video.summary && (
           <p className="text-xs text-[#94A3B8] mt-1 line-clamp-2">{video.summary}</p>
         )}
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <span className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/15 text-[#C4B5FD] text-[10px] font-bold">
+          <span className="px-1.5 py-0.5 rounded-md bg-[#2563EB]/15 text-[#93C5FD] text-[10px] font-bold">
             {categoryLabel(video.category)}
           </span>
           <span className="px-1.5 py-0.5 rounded-md bg-white/[0.05] text-[#94A3B8] text-[10px] font-bold">
@@ -111,7 +111,7 @@ export default function VideoCard({ video, href }: { video: VideoCardData; href?
           </span>
           {video.bibleRefs && video.bibleRefs.length > 0 && (
             <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#38BDF8]/10 text-[#7DD3FC] text-[10px] font-bold max-w-full"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#22D3EE]/10 text-[#7DD3FC] text-[10px] font-bold max-w-full"
               title={video.bibleRefs.map((r) => formatBibleRef(r, cardBookName)).join(" · ")}
             >
               <BookOpen size={9} className="shrink-0" />

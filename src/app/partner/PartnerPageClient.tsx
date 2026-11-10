@@ -131,11 +131,11 @@ export default function PartnerPageClient() {
     <>
       {/* Hero */}
       <section className="py-16 px-6 max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-6">
           <BadgeCheck size={12} />{t("partner.badge")}</div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
           Help Christians Grow in Faith Through Your{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3]">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F97316] to-[#3B82F6]">
             {t("partner.tagline")}
           </span>
         </h1>
@@ -159,10 +159,10 @@ export default function PartnerPageClient() {
           {PARTNER_KINDS.map((p) => (
             <div
               key={t(p.title)}
-              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F39B9B]/20 transition-colors"
+              className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-[#F97316]/20 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 border border-white/[0.08] flex items-center justify-center mb-3">
-                <p.icon size={18} className="text-[#F39B9B]" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F97316]/20 to-[#2563EB]/20 border border-white/[0.08] flex items-center justify-center mb-3">
+                <p.icon size={18} className="text-[#F97316]" />
               </div>
               <h3 className="text-sm font-bold text-white mb-1">{t(p.title)}</h3>
               <p className="text-[11px] text-[#A09DB1] leading-relaxed">{t(p.desc)}</p>
@@ -174,7 +174,7 @@ export default function PartnerPageClient() {
       {/* Contribution Areas */}
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#A78BFA] text-[10px] font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 text-[#60A5FA] text-[10px] font-bold uppercase tracking-wider mb-3">
             <FileText size={11} />{t("partner.areasTitle")}</div>
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">{t("partner.areasSub")}</h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto">
@@ -184,9 +184,9 @@ export default function PartnerPageClient() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {CONTRIBUTION_AREAS.map((c) => (
-            <div key={t(c.title)} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
-                <c.icon size={18} className="text-[#A78BFA]" />
+            <div key={t(c.title)} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
+              <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center mb-3">
+                <c.icon size={18} className="text-[#60A5FA]" />
               </div>
               <h3 className="text-sm font-bold text-white mb-1">{t(c.title)}</h3>
               <p className="text-[11px] text-[#A09DB1] leading-relaxed">{t(c.desc)}</p>
@@ -198,7 +198,7 @@ export default function PartnerPageClient() {
       {/* How It Works */}
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 text-[#38BDF8] text-[10px] font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20 text-[#22D3EE] text-[10px] font-bold uppercase tracking-wider mb-3">
             <ListChecks size={11} />{t("partner.howTitle")}</div>
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">{t("partner.howSub")}</h2>
           <p className="text-sm text-[#A09DB1] max-w-2xl mx-auto">
@@ -210,11 +210,11 @@ export default function PartnerPageClient() {
           {WORKFLOW.map((w) => (
             <div
               key={w.step}
-              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 relative"
+              className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 relative"
             >
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 border border-white/[0.08] flex items-center justify-center">
-                  <w.icon size={16} className="text-[#F39B9B]" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F97316]/20 to-[#2563EB]/20 border border-white/[0.08] flex items-center justify-center">
+                  <w.icon size={16} className="text-[#F97316]" />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                   Step {w.step}
@@ -229,14 +229,14 @@ export default function PartnerPageClient() {
 
       {/* Verified Contributor callout */}
       <section className="py-8 px-6 max-w-3xl mx-auto">
-        <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#F39B9B]/20 rounded-3xl p-6">
+        <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#F97316]/20 rounded-3xl p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#F39B9B]/15 border border-[#F39B9B]/25 flex items-center justify-center shrink-0">
-              <BadgeCheck size={22} className="text-[#F39B9B]" />
+            <div className="w-12 h-12 rounded-2xl bg-[#F97316]/15 border border-[#F97316]/25 flex items-center justify-center shrink-0">
+              <BadgeCheck size={22} className="text-[#F97316]" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#F39B9B]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">
                   {t("partner.verifiedBadge")}
                 </span>
               </div>
@@ -261,7 +261,7 @@ export default function PartnerPageClient() {
             onClick={() => setTab("inquiry")}
             className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
               tab === "inquiry"
-                ? "bg-[#F39B9B] text-slate-950"
+                ? "bg-[#F97316] text-slate-950"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >{t("partner.inquiryTitle")}</button>
@@ -270,7 +270,7 @@ export default function PartnerPageClient() {
             onClick={() => setTab("contributor")}
             className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
               tab === "contributor"
-                ? "bg-[#F39B9B] text-slate-950"
+                ? "bg-[#F97316] text-slate-950"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >{t("partner.contributorTitle")}</button>
@@ -433,7 +433,7 @@ function PartnershipInquiryForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : (
               <>
@@ -667,7 +667,7 @@ function ContributorApplicationForm() {
                   onClick={() => toggleArrayValue("expertise", opt)}
                   className={`text-[10px] font-semibold px-2.5 py-1.5 rounded-md border transition-all ${
                     selected
-                      ? "bg-[#F39B9B]/15 border-[#F39B9B]/40 text-[#F39B9B]"
+                      ? "bg-[#F97316]/15 border-[#F97316]/40 text-[#F97316]"
                       : "bg-white/[0.03] border-white/[0.06] text-[#A09DB1] hover:text-white"
                   }`}
                 >
@@ -726,7 +726,7 @@ function ContributorApplicationForm() {
                   onClick={() => toggleArrayValue("contentInterests", opt)}
                   className={`text-[10px] font-semibold px-2.5 py-1.5 rounded-md border transition-all ${
                     selected
-                      ? "bg-[#7C3AED]/15 border-[#7C3AED]/40 text-[#A78BFA]"
+                      ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-[#60A5FA]"
                       : "bg-white/[0.03] border-white/[0.06] text-[#A09DB1] hover:text-white"
                   }`}
                 >
@@ -751,7 +751,7 @@ function ContributorApplicationForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 flex items-center justify-center gap-2"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />

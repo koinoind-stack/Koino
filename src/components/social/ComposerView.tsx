@@ -337,8 +337,8 @@ export default function ComposerView({ onClose, onPosted }: Props) {
             disabled={posting}
             className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-bold border transition-all disabled:opacity-50 ${
               mode === id
-                ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-white"
-                : "bg-white/[0.03] border-white/[0.07] text-[#94A3B8] hover:text-white hover:border-[#7C3AED]/40"
+                ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-white"
+                : "bg-white/[0.03] border-white/[0.07] text-[#94A3B8] hover:text-white hover:border-[#2563EB]/40"
             }`}
           >
             <Icon size={16} /> {t(labelKey)}
@@ -353,7 +353,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
         onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
         onClick={() => !posting && inputRef.current?.click()}
         className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all mb-4 ${
-          dragOver ? "border-[#7C3AED] bg-[#7C3AED]/10" : "border-white/15 hover:border-white/30"
+          dragOver ? "border-[#2563EB] bg-[#2563EB]/10" : "border-white/15 hover:border-white/30"
         }`}
       >
         <div className="flex items-center justify-center gap-3 text-[#94A3B8]">
@@ -397,13 +397,13 @@ export default function ComposerView({ onClose, onPosted }: Props) {
               {fmtDuration(videoItem.duration)}
             </span>
           )}
-          <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#7C3AED]/80 text-[10px] font-extrabold uppercase tracking-wide text-white">
+          <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#2563EB]/80 text-[10px] font-extrabold uppercase tracking-wide text-white">
             <Clapperboard size={10} /> {mode === "reel" ? t("composer.mode.reel") : t("composer.mode.video")}
           </span>
           {videoItem.progress > 0 && videoItem.progress < 100 && (
             <>
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                <div className="h-full bg-[#7C3AED] transition-all" style={{ width: `${videoItem.progress}%` }} />
+                <div className="h-full bg-[#2563EB] transition-all" style={{ width: `${videoItem.progress}%` }} />
               </div>
               <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/70 text-[10px] font-bold text-white">
                 {videoItem.progress}%
@@ -429,7 +429,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
               <img src={item.preview} alt="" className="w-full h-full object-cover" />
               {item.progress > 0 && item.progress < 100 && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                  <div className="h-full bg-[#7C3AED] transition-all" style={{ width: `${item.progress}%` }} />
+                  <div className="h-full bg-[#2563EB] transition-all" style={{ width: `${item.progress}%` }} />
                 </div>
               )}
               <button
@@ -453,7 +453,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
         rows={4}
         maxLength={2200}
         placeholder={t("composer.captionPlaceholder")}
-        className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-sm text-white resize-none focus:outline-none focus:border-[#7C3AED]"
+        className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-sm text-white resize-none focus:outline-none focus:border-[#2563EB]"
       />
       <div className="flex items-center justify-between mt-1.5">
         <EmojiPickerButton
@@ -466,7 +466,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
       {/* ─── destination info (replaces the old opt-in checkbox — mode decides) ─── */}
       {videoItem && (
         <div className="flex items-center gap-3 mt-3 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
-          {mode === "reel" ? <Clapperboard size={18} className="text-[#C4B5FD] shrink-0" /> : <Video size={18} className="text-[#C4B5FD] shrink-0" />}
+          {mode === "reel" ? <Clapperboard size={18} className="text-[#93C5FD] shrink-0" /> : <Video size={18} className="text-[#93C5FD] shrink-0" />}
           <p className="text-xs text-[#94A3B8]">
             {mode === "reel"
               ? t("composer.destination.reel")
@@ -478,7 +478,7 @@ export default function ComposerView({ onClose, onPosted }: Props) {
       <button
         onClick={submit}
         disabled={!canShare}
-        className="w-full mt-5 py-3.5 rounded-2xl bg-[#7C3AED] text-white font-extrabold disabled:opacity-40 shadow-[0_0_30px_rgba(124,58,237,0.3)]"
+        className="w-full mt-5 py-3.5 rounded-2xl bg-[#2563EB] text-white font-extrabold disabled:opacity-40 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
       >
         {posting
           ? items.length > 0 && overallProgress < 100

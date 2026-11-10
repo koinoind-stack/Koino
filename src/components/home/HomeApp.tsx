@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 import {
   Search,
   Calendar,
@@ -14,10 +16,11 @@ import {
   Sparkles,
   Home as HomeIcon,
   HeartHandshake,
-  Library,
+  ListChecks,
   Grid,
   X,
   Shield,
+  FileText,
   HandHeart,
   Bell,
   CircleUser,
@@ -27,6 +30,15 @@ import {
   MonitorPlay,
   Church,
   ChevronDown,
+  Newspaper,
+  Clapperboard,
+  Compass,
+  MessageCircle,
+  Bookmark,
+  PenSquare,
+  LogOut,
+  Settings as SettingsIcon,
+  Library,
 } from "lucide-react";
 import LandingHero from "@/components/crosscrafted/LandingHero";
 import HeaderUserSection from "@/components/crosscrafted/HeaderUserSection";
@@ -36,16 +48,17 @@ import OnboardingView from "@/components/crosscrafted/OnboardingView";
 import EditProfileView from "@/components/crosscrafted/EditProfileView";
 import FeedView from "@/components/social/FeedView";
 import HomeRightRail from "@/components/social/HomeRightRail";
+import KoinoHomeView from "@/components/home/KoinoHomeView";
+import BookmarksView from "@/components/social/BookmarksView";
 import dynamic from "next/dynamic";
 
 /**
- * PERF: route-level code splitting. Only views that can be the FIRST thing a
- * visitor sees (landing hero, onboarding, feed, dashboard, profile forms,
- * header chrome) ship in the entry bundle. The other 23 views — trivia,
- * comics, bible reader, shop, admin, the social surfaces… — load on demand as
- * their own chunks, cutting first-load JS on / substantially. next/dynamic
- * keeps SSR: a deep link that opens straight into one of these views still
- * renders it server-side, so nothing breaks and nothing flashes empty.
+ * PERF: route-level code splitting (parity with main's perf-home-shell
+ * architecture). Only views that can be the FIRST thing a visitor sees
+ * (landing hero, onboarding, feed, dashboard, profile forms, header chrome)
+ * ship in the entry bundle. The other 23 views load on demand as their own
+ * chunks. next/dynamic keeps SSR: a deep link that opens straight into one
+ * of these views still renders it server-side.
  */
 function ViewLoader() {
   return (
@@ -93,10 +106,11 @@ import { useSupabaseUser } from "@/lib/supabase/use-user";
 type View =
   | "landing"
   | "onboarding" // Profile setup flow (shown when !profileCompleted)
-  | "home" // ── SOCIAL FEED (Task 50) — the default authenticated destination
+  | "home" // ── KOINO HOME (hero + features + feed) — default destination
+  | "feed" // ── pure social feed (stories + composer + tabs + posts)
   | "explore"
   | "reels" // full-screen vertical reels overlay (deep links, feed taps)
-  | "watch" // Koino Watch hub — reels + Bible movies & stories + Christian videos
+  | "watch" // Watch hub — reels + Bible movies & stories + Christian videos
   | "notifications"
   | "groups" // Round 2: Groups & Fellowship discovery
   | "memorials" // Part 4: In Loving Memory → /memorials (public App Router page)
@@ -108,102 +122,69 @@ type View =
   | "bible"
   | "videos" // Part 5: Bible Movies & Videos → /videos (public App Router page; reachable via Watch — no sidebar entry)
   | "bible-plans"
+  | "knowledge" // Articles & Knowledge (Phase 2) → /knowledge (public App Router page)
   | "comic"
   | "churches"
   | "events"
   | "trivia"
   | "prayer-wall"
   | "apologetics"
-  | "knowledge" // Articles & Knowledge (Phase 2) → /knowledge (public App Router page)
   | "shop"
   | "list-church"
   | "list-business" // kept for backward-compat route (the ListYourEntity form)
   | "business-directory" // public browse page
   | "small-groups"
+  | "bookmarks" // saved posts (real data from /api/social/bookmarks)
+  | "messages" // coming soon — no messaging backend exists yet
+  | "settings" // coming soon — profile editing lives in edit-profile
   | "blog" // Blog → /blog (public App Router page, opens in new tab/route)
-  | "support" // Support Koino → /support (public App Router page, accessible while authenticated)
+  | "support" // Support → /support (public App Router page, accessible while authenticated)
   | "matrimony" // Task 74: private member-only matchmaking section (SPA view — never a public route)
   | "admin";
 
-// ─── SIDEBAR — three-column social layout ───
-// Six primary destinations stay permanently visible; every secondary feature
-// lives in an organised, collapsible category below (nothing was removed).
-// "App Home" (the feature dashboard) is intentionally NOT a duplicate sidebar
-// link anymore — it opens via the "Explore All" button (side.exploreAll).
-// Bible Comics is RESTORED here alongside the other Bible-related features.
-// Bible Movies & Videos intentionally has NO separate sidebar entry: the
-// Watch hub (primary link above) carries it as its "Bible Movies & Stories"
-// category, with the full searchable library linked from Watch. One video
-// destination, no duplicate navigation.
+// ─── SIDEBAR — Koino three-column layout ───
+// The fifteen Koino destinations, in the approved order. Every id maps to an
+// existing SPA view (or, for
+// messages/settings, the honest "coming soon" screen) — nothing is removed:
+// the remaining destinations (Watch, Events, Prayer Wall, Apologetics,
+// Memorials, Matrimony, Business Directory, Blog, Support, App Home, Admin)
+// stay reachable in the collapsible "More" section below the primary list.
 // Labels are i18n keys (labelKey) resolved via t() at render — never
 // translated at module scope.
-const PRIMARY_LINKS: { id: View; icon: typeof Search; labelKey: string }[] = [
+const KOINO_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
   { id: "home", icon: HomeIcon, labelKey: "side.home" },
-  { id: "explore", icon: Search, labelKey: "side.explore" },
-  { id: "watch", icon: MonitorPlay, labelKey: "side.watch" },
-  { id: "groups", icon: Users, labelKey: "side.groups" },
   { id: "bible", icon: BookOpen, labelKey: "side.bible" },
-  { id: "events", icon: Calendar, labelKey: "side.events" },
+  { id: "comic", icon: Sparkles, labelKey: "side.comics" },
+  { id: "feed", icon: Newspaper, labelKey: "side.feed" },
+  { id: "reels", icon: Clapperboard, labelKey: "side.shorts" },
+  { id: "trivia", icon: Award, labelKey: "side.trivia" },
+  { id: "explore", icon: Compass, labelKey: "side.explore" },
+  { id: "groups", icon: Users, labelKey: "side.groups" },
+  { id: "churches", icon: Church, labelKey: "side.churches" },
+  { id: "shop", icon: Store, labelKey: "side.marketplace" },
+  { id: "notifications", icon: Bell, labelKey: "side.notifications" },
+  { id: "messages", icon: MessageCircle, labelKey: "side.messages" },
+  { id: "bookmarks", icon: Bookmark, labelKey: "side.bookmarks" },
+  { id: "profile", icon: CircleUser, labelKey: "side.profile" },
+  { id: "settings", icon: SettingsIcon, labelKey: "side.settings" },
 ];
 
-const SIDEBAR_CATEGORIES: {
-  labelKey: string;
-  icon: typeof Search;
-  links: { id: View; icon: typeof Search; labelKey: string }[];
-}[] = [
-  {
-    labelKey: "side.cat.grow",
-    icon: Sparkles,
-    links: [
-      // Articles & Knowledge is the SINGLE written-content destination
-      // (Phase 2 follow-up): Blog and Apologetics are reached from inside
-      // /knowledge (their public routes /blog and /apologetics still exist
-      // and keep working). The standalone "apologetics" sidebar entry was
-      // removed — Apologetics Q&A stays reachable via /apologetics and the
-      // ?view=apologetics deep link (share links + notifications).
-      { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
-      { id: "comic", icon: Sparkles, labelKey: "side.comics" },
-      { id: "trivia", icon: Award, labelKey: "side.trivia" },
-      { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
-    ],
-  },
-  {
-    labelKey: "side.cat.community",
-    icon: Church,
-    links: [
-      { id: "churches", icon: Church, labelKey: "side.churches" },
-      { id: "memorials", icon: Flower2, labelKey: "side.memorials" },
-    ],
-  },
-  {
-    // Task 74: Matrimony is a TOP-LEVEL section (user-confirmed decision).
-    // Member-only + 18+ enforced server-side; the view itself handles the
-    // friendly eligibility gates (DOB missing / under 18).
-    labelKey: "side.matrimony",
-    icon: Heart,
-    links: [
-      { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
-    ],
-  },
-  {
-    labelKey: "side.cat.discover",
-    icon: Store,
-    links: [
-      { id: "shop", icon: Store, labelKey: "side.marketplace" },
-      { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
-    ],
-  },
-  {
-    labelKey: "side.cat.more",
-    icon: Grid,
-    links: [
-      // "blog" intentionally removed: Blog is a content type inside
-      // Articles & Knowledge (Grow), not a separate destination. The admin
-      // CMS keeps its own Blog management tab inside the Admin view.
-      { id: "support", icon: HandHeart, labelKey: "side.support" },
-      { id: "admin", icon: Shield, labelKey: "nav.admin" },
-    ],
-  },
+// Remaining destinations that are not part of the fifteen primary items —
+// every pre-existing feature stays reachable (protection rule: nothing is
+// deleted). Admin is filtered by isAdmin at render time.
+const MORE_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
+  { id: "watch", icon: MonitorPlay, labelKey: "side.watch" },
+  { id: "events", icon: Calendar, labelKey: "side.events" },
+  { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
+  { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
+  { id: "memorials", icon: Flower2, labelKey: "side.memorials" },
+  { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
+  { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
+  { id: "dashboard", icon: Sparkles, labelKey: "side.appHome" },
+  { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
+  { id: "blog", icon: FileText, labelKey: "side.blog" },
+  { id: "support", icon: HandHeart, labelKey: "side.support" },
+  { id: "admin", icon: Shield, labelKey: "nav.admin" },
 ];
 
 // Mobile bottom nav — Instagram-style 5 quick slots per the social spec.
@@ -216,34 +197,39 @@ const MOBILE_NAV: { id: View; icon: typeof Search; labelKey: string }[] = [
 ];
 
 // Views that are NOT in the quick-access bottom nav (shown in the "More" sheet).
-// Bible Movies & Videos is reached through Watch (bottom-nav quick slot) —
-// no duplicate entry here.
+// Includes the full Koino primary nav destinations plus every remaining
+// feature — one flat grid, nothing removed.
 const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] = [
+  { id: "feed", icon: Newspaper, labelKey: "side.feed" },
+  { id: "reels", icon: Clapperboard, labelKey: "side.shorts" },
+  { id: "bookmarks", icon: Bookmark, labelKey: "side.bookmarks" },
+  { id: "messages", icon: MessageCircle, labelKey: "side.messages" },
+  { id: "settings", icon: SettingsIcon, labelKey: "side.settings" },
   { id: "groups", icon: Users, labelKey: "side.groups" },
-  { id: "memorials", icon: Flower2, labelKey: "side.memorials" },
-  { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
-  { id: "dashboard", icon: Sparkles, labelKey: "side.appHome" },
-  { id: "notifications", icon: Bell, labelKey: "side.notifications" },
   { id: "bible", icon: BookOpen, labelKey: "side.bible" },
   { id: "comic", icon: Sparkles, labelKey: "side.comics" },
-  { id: "churches", icon: Search, labelKey: "side.churches" },
-  { id: "events", icon: Calendar, labelKey: "side.events" },
+  { id: "churches", icon: Church, labelKey: "side.churches" },
+  { id: "notifications", icon: Bell, labelKey: "side.notifications" },
   { id: "trivia", icon: Award, labelKey: "nav.trivia" },
+  { id: "events", icon: Calendar, labelKey: "side.events" },
   { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
-  // "apologetics" and "blog" intentionally removed from the mobile More
-  // sheet — written content is unified under Articles & Knowledge, matching
-  // the desktop sidebar. Their routes and deep links are unchanged.
-  { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
+  { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
+  { id: "memorials", icon: Flower2, labelKey: "side.memorials" },
+  { id: "matrimony", icon: Heart, labelKey: "side.matrimony" },
   { id: "shop", icon: Store, labelKey: "side.marketplace" },
   { id: "business-directory", icon: Building2, labelKey: "side.businessDirectory" },
+  { id: "dashboard", icon: Sparkles, labelKey: "side.appHome" },
+  { id: "knowledge", icon: Library, labelKey: "side.knowledge" },
+  { id: "blog", icon: FileText, labelKey: "side.blog" },
   { id: "support", icon: HandHeart, labelKey: "side.support" },
   { id: "admin", icon: Shield, labelKey: "nav.admin" },
 ];
 
 export default function Home() {
   const t = useTranslation();
+  const router = useRouter();
   const [view, setView] = useState<View>("landing");
-  const { isAuthenticated, profileCompleted, isAdmin, username, loading: authLoading } = useSupabaseUser();
+  const { isAuthenticated, profileCompleted, isAdmin, username, displayName, avatarUrl, loading: authLoading } = useSupabaseUser();
   // Bible version for surfaces that READ the saved selection (reading-plan
   // previews). The reader (BibleView) OWNS the selection — this only mirrors
   // it so plans preview through the SAME version the user reads, instead of
@@ -384,9 +370,29 @@ export default function Home() {
     });
   };
   useEffect(() => {
-    const cat = SIDEBAR_CATEGORIES.find((c) => c.links.some((l) => l.id === view));
-    if (cat) setOpenCategories((prev) => (prev[cat.labelKey] ? prev : { ...prev, [cat.labelKey]: true }));
+    const cat = MORE_NAV.some((l) => l.id === view);
+    if (cat) setOpenCategories((prev) => (prev["side.more"] ? prev : { ...prev, "side.more": true }));
   }, [view]);
+
+  // ─── SIDEBAR SIGN-OUT ─── same flow as HeaderUserSection: Supabase
+  // sign-out, then return to the public landing page. A sign-out TRANSITION
+  // never triggers the auth-aware entry routing (wasAuthenticated ref).
+  const handleSidebarSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setView("landing");
+    try {
+      router.push("/");
+      router.refresh();
+    } catch {
+      /* router unavailable — the SPA view switch above still lands on landing */
+    }
+  };
+
+  // ─── RIGHT-RAIL SEARCH ─── "Search Koino" hands the query to the
+  // existing Explore hub (which owns live search). ExploreView re-mounts on
+  // view change, so its useState initializer picks up the latest query.
+  const [exploreQuery, setExploreQuery] = useState<string | null>(null);
 
   // ─── NOTIFICATIONS UNREAD BADGE ─── lightweight refresh on view change
   const [unreadCount, setUnreadCount] = useState(0);
@@ -611,7 +617,7 @@ export default function Home() {
     const validViews: View[] = [
       "bible", "comic", "churches", "events", "trivia", "watch",
       "prayer-wall", "apologetics", "shop", "business-directory",
-      "matrimony",
+      "matrimony", "feed",
     ];
     if (!validViews.includes(deepView as View)) return;
 
@@ -689,8 +695,8 @@ export default function Home() {
   // before the onboarding redirect effect kicks in.
   if (authLoading && view === "landing") {
     return (
-      <div className="min-h-screen bg-[#12101A] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#F39B9B]/30 border-t-[#F39B9B] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#071120] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#F97316]/30 border-t-[#F97316] rounded-full animate-spin" />
       </div>
     );
   }
@@ -707,25 +713,36 @@ export default function Home() {
 
   // App view with sidebar + bottom nav
   return (
-    <div className="min-h-screen bg-[#12101A]">
-      {/* Header — auto-hides on mobile scroll */}
+    <div className="min-h-screen bg-[#071120]">
+      {/* Header — auto-hides on mobile scroll. Hidden on lg+ where the
+          approved three-column dashboard leads with the sidebar (logo,
+          notifications, language and user chip all live in the sidebar). */}
       <header
-        className={`sticky top-0 z-50 bg-[#12101A]/80 backdrop-blur-2xl border-b border-white/[0.04] transition-transform duration-300 ${
+        className={`lg:hidden sticky top-0 z-50 bg-[#071120]/80 backdrop-blur-2xl border-b border-white/[0.04] transition-transform duration-300 ${
           headerVisible ? "translate-y-0" : "md:translate-y-0 -translate-y-full"
         }`}
       >
         <div className="flex justify-between items-center h-12 md:h-14 px-4 md:px-5">
-          <button onClick={goHome} className="flex items-center gap-2">
-            {/* Koino Logo */}
+          <button onClick={goHome} className="flex items-center gap-2" aria-label={BRAND.name}>
+            {/* Koino branding — approved logo lockup on desktop, compact
+                mark + name on mobile. Original artwork, aspect preserved. */}
             <Image
               src={BRAND.assets.logo}
               alt={BRAND.name}
-              width={32}
-              height={32}
-              className="rounded-lg shrink-0"
+              width={512}
+              height={512}
+              className="hidden md:block h-8 lg:h-9 w-auto"
               priority
             />
-            <h1 className="text-base md:text-lg font-black tracking-tight text-white">{BRAND.name}</h1>
+            <Image
+              src={BRAND.assets.shield}
+              alt={BRAND.name}
+              width={30}
+              height={30}
+              className="md:hidden rounded-lg shrink-0"
+              priority
+            />
+            <h1 className="md:hidden text-base font-black tracking-tight text-white">{BRAND.name}</h1>
           </button>
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
@@ -738,10 +755,10 @@ export default function Home() {
               <Bell
                 size={18}
                 strokeWidth={1.8}
-                className={view === "notifications" ? "text-[#7C3AED]" : "text-[#64748B]"}
+                className={view === "notifications" ? "text-[#2563EB]" : "text-[#64748B]"}
               />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#EC4899] text-[9px] font-black text-white flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#F97316] text-[9px] font-black text-white flex items-center justify-center">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -758,7 +775,7 @@ export default function Home() {
             >
               <Bell size={15} className="text-[#94A3B8]" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#EC4899] text-[8px] font-black text-white flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#F97316] text-[8px] font-black text-white flex items-center justify-center">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -769,108 +786,177 @@ export default function Home() {
       </header>
 
       <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-56 border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] bg-[#0B1120] px-3 pt-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {/* Primary navigation — always visible */}
-          <nav className="space-y-1">
-            {PRIMARY_LINKS.map(({ id, icon: Icon, labelKey }) => {
+        {/* Desktop Sidebar — Koino three-column shell.
+            Tablet (md–lg): compact icon rail. Desktop (lg+): full labels. */}
+        <aside className="hidden md:flex flex-col w-[76px] lg:w-[250px] border-r border-white/[0.04] min-h-[calc(100vh-56px)] sticky top-[56px] lg:top-0 lg:min-h-screen bg-[#0A1729] px-2 lg:px-3 pt-4 pb-4 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Brand — shield on the compact rail, full wordmark on desktop */}
+          <button
+            onClick={goHome}
+            aria-label={BRAND.name}
+            className="flex items-center justify-center lg:justify-start lg:px-2 mb-4"
+          >
+            <Image
+              src={BRAND.assets.shield}
+              alt={BRAND.name}
+              width={34}
+              height={34}
+              className="rounded-xl shrink-0 lg:hidden"
+              priority
+            />
+            <Image
+              src={BRAND.assets.logo}
+              alt={BRAND.name}
+              width={512}
+              height={512}
+              className="hidden lg:block h-11 w-auto"
+              priority
+            />
+          </button>
+
+          {/* Primary navigation — the fifteen Koino destinations */}
+          <nav className="space-y-0.5" aria-label={BRAND.name}>
+            {KOINO_NAV.map(({ id, icon: Icon, labelKey }) => {
               const active = view === id;
               return (
                 <button
                   key={id}
                   onClick={() => goView(id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl font-bold text-[14px] transition-all duration-200 border ${
+                  title={t(labelKey)}
+                  className={`w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-2xl font-bold text-[14px] transition-all duration-200 border justify-center lg:justify-start ${
                     active
-                      ? "bg-[#7C3AED]/15 text-white border-[#7C3AED]/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]"
-                      : "text-[#94A3B8] hover:text-white hover:bg-white/[0.04] border-transparent"
+                      ? "bg-white/[0.07] text-[#F97316] border-white/[0.09]"
+                      : "text-white/[0.92] hover:text-white hover:bg-white/[0.05] border-transparent"
                   }`}
                 >
-                  <div className="relative">
+                  <div className="relative shrink-0">
                     <Icon
                       size={18}
                       strokeWidth={active ? 2.4 : 1.8}
-                      className={active ? "text-[#7C3AED]" : ""}
+                      className={active ? "text-[#F97316]" : "text-[#22D3EE]"}
                     />
+                    {id === "notifications" && unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#F97316] text-[8px] font-black text-white flex items-center justify-center">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </div>
-                  {t(labelKey)}
-                  {active && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]" />
-                  )}
+                  <span className="hidden lg:inline truncate">{t(labelKey)}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* Feature dashboard — opens the existing App Home feature grid */}
-          <button
-            onClick={() => goView("dashboard")}
-            className={`mt-4 w-full flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-[13px] font-bold border transition-all duration-200 ${
-              view === "dashboard"
-                ? "bg-gradient-to-r from-[#7C3AED]/20 to-[#EC4899]/20 text-white border-[#7C3AED]/40"
-                : "bg-gradient-to-r from-[#7C3AED]/10 to-[#EC4899]/10 text-[#C4B5FD] border-[#7C3AED]/20 hover:text-white hover:border-[#7C3AED]/40"
-            }`}
-          >
-            <Sparkles size={16} strokeWidth={1.8} />
-            {t("side.exploreAll")}
-          </button>
+          {/* Prominent Post button — approved design placement: directly
+              below the navigation, above the user chip */}
+          <div className="mt-3">
+            <button
+              onClick={() => goView("create")}
+              title={t("side.post")}
+              className="w-full flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white font-extrabold text-sm py-3 lg:px-4 shadow-[0_8px_24px_rgba(249,115,22,0.4)] hover:shadow-[0_8px_32px_rgba(249,115,22,0.6)] hover:from-[#EA580C] hover:to-[#F97316] transition-all"
+            >
+              <PenSquare size={18} strokeWidth={2.2} className="shrink-0" />
+              <span className="hidden lg:inline">{t("side.post")}</span>
+            </button>
+          </div>
 
-          {/* Secondary features — organised collapsible categories */}
-          <div className="mt-4 space-y-0.5">
-            {SIDEBAR_CATEGORIES.map((cat) => {
-              const links = cat.links.filter(({ id }) => id !== "admin" || isAdmin);
-              if (links.length === 0) return null;
-              const open = !!openCategories[cat.labelKey];
-              const containsActive = links.some(({ id }) => id === view);
-              return (
-                <div key={cat.labelKey}>
-                  <button
-                    onClick={() => toggleCategory(cat.labelKey)}
-                    aria-expanded={open}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-[#64748B] hover:text-white hover:bg-white/[0.03] transition-all"
-                  >
-                    <cat.icon size={13} strokeWidth={2} />
-                    <span className="flex-1 text-left">{t(cat.labelKey)}</span>
-                    {containsActive && !open && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]" />
-                    )}
-                    <ChevronDown
-                      size={14}
-                      className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {open && (
-                    <div className="mt-0.5 mb-1.5 space-y-0.5">
-                      {links.map(({ id, icon: Icon, labelKey }) => {
-                        const active = view === id;
-                        return (
-                          <button
-                            key={id}
-                            onClick={() => goView(id)}
-                            className={`w-full flex items-center gap-2.5 pl-9 pr-3 py-2 rounded-xl text-[13px] font-bold transition-all duration-200 border ${
-                              active
-                                ? "bg-[#7C3AED]/15 text-white border-[#7C3AED]/30"
-                                : "text-[#94A3B8] hover:text-white hover:bg-white/[0.04] border-transparent"
-                            }`}
-                          >
-                            <Icon
-                              size={15}
-                              strokeWidth={active ? 2.4 : 1.8}
-                              className={active ? "text-[#7C3AED]" : ""}
-                            />
-                            {t(labelKey)}
-                          </button>
-                        );
-                      })}
+          {/* Secondary destinations — collapsible "More" keeps every existing
+              feature reachable without cluttering the primary list */}
+          <div className="mt-3 border-t border-white/[0.05] pt-3">
+            <button
+              onClick={() => toggleCategory("side.more")}
+              aria-expanded={!!openCategories["side.more"]}
+              title={t("side.more")}
+              className="w-full flex items-center justify-center lg:justify-start gap-2.5 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-[#64748B] hover:text-white hover:bg-white/[0.03] transition-all"
+            >
+              <Grid size={13} strokeWidth={2} />
+              <span className="hidden lg:inline flex-1 text-left">{t("side.more")}</span>
+              <ChevronDown
+                size={14}
+                className={`hidden lg:block transition-transform duration-200 ${openCategories["side.more"] ? "rotate-180" : ""}`}
+              />
+            </button>
+            {openCategories["side.more"] && (
+              <div className="mt-0.5 space-y-0.5">
+                {MORE_NAV.filter(({ id }) => id !== "admin" || isAdmin).map(({ id, icon: Icon, labelKey }) => {
+                  const active = view === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => goView(id)}
+                      title={t(labelKey)}
+                      className={`w-full flex items-center gap-2.5 px-3 lg:pl-9 lg:pr-3 py-2 rounded-xl text-[13px] font-bold transition-all duration-200 border justify-center lg:justify-start ${
+                        active
+                          ? "bg-[#2563EB]/15 text-white border-[#2563EB]/30"
+                          : "text-[#94A3B8] hover:text-white hover:bg-white/[0.04] border-transparent"
+                      }`}
+                    >
+                      <Icon
+                        size={15}
+                        strokeWidth={active ? 2.4 : 1.8}
+                        className={active ? "text-[#60A5FA]" : ""}
+                      />
+                      <span className="hidden lg:inline">{t(labelKey)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Language — compact switcher lives in the sidebar on lg+ (the
+              top header, which hosts it on smaller screens, is hidden there). */}
+          <div className="hidden lg:flex mt-3 border-t border-white/[0.05] pt-3 px-1">
+            <LanguageSwitcher compact />
+          </div>
+
+          {/* Logged-in user — avatar, name, handle + logout (spec §2); the
+              approved design shows a "Log out" text link under the chip on
+              desktop (icon button stays for the compact tablet rail). */}
+          {isAuthenticated && (
+            <div className="mt-auto pt-3">
+              <div className="border-t border-white/[0.05] pt-3 flex items-center justify-center lg:justify-start gap-1.5 px-0.5 lg:px-1">
+                <button
+                  onClick={() => goView("profile")}
+                  title={t("header.myProfile")}
+                  className="flex items-center gap-2.5 min-w-0"
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#F97316] to-[#3B82F6] flex items-center justify-center text-sm font-bold text-white shrink-0">
+                      {(displayName || username || "M").charAt(0).toUpperCase()}
                     </div>
                   )}
-                </div>
-              );
-            })}
-          </div>
+                  <div className="hidden lg:flex flex-col leading-tight min-w-0">
+                    <span className="text-xs font-bold text-white truncate max-w-[108px]">
+                      {displayName || username || t("user.signIn")}
+                    </span>
+                    <span className="text-[10px] text-[#64748B] truncate max-w-[108px]">
+                      {username ? `@${username}` : ""}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  onClick={handleSidebarSignOut}
+                  title={t("user.signOut")}
+                  aria-label={t("user.signOut")}
+                  className="p-2 rounded-xl hover:bg-white/5 transition-colors shrink-0 lg:hidden"
+                >
+                  <LogOut size={16} className="text-[#64748B]" />
+                </button>
+              </div>
+              <button
+                onClick={handleSidebarSignOut}
+                className="hidden lg:block mt-2 px-1 text-[11px] font-bold text-[#64748B] hover:text-white transition-colors"
+              >
+                {t("user.signOut")}
+              </button>
+            </div>
+          )}
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 pb-24 md:pb-6 scroll-smooth bg-[#0B1120] min-h-[calc(100vh-56px)]">
+        <main className="flex-1 min-w-0 pb-24 md:pb-6 scroll-smooth bg-[#0A1729] min-h-[calc(100vh-56px)] lg:min-h-screen">
           <AnimatePresence mode="wait">
             <motion.div
               key={view}
@@ -880,14 +966,32 @@ export default function Home() {
               transition={{ duration: 0.18 }}
             >
               {view === "home" && (
+                <KoinoHomeView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
+                  onOpenCreate={() => goView("create")}
+                  onOpenEvents={() => goView("events")}
+                  onOpenView={(v) => goView(v as View)}
+                  deepLinkPostId={detailPostId && view === "home" ? detailPostId : null}
+                />
+              )}
+              {view === "feed" && (
                 <FeedView
                   onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
                   onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
                   onOpenCreate={() => goView("create")}
                   onOpenEvents={() => goView("events")}
-                  deepLinkPostId={detailPostId && view === "home" ? detailPostId : null}
+                  deepLinkPostId={detailPostId && view === "feed" ? detailPostId : null}
                 />
               )}
+              {view === "bookmarks" && (
+                <BookmarksView
+                  onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
+                  onHashtag={(tag) => { setExploreHashtag(tag || null); goView("explore"); }}
+                />
+              )}
+              {view === "messages" && <ComingSoonView title={t("side.messages")} />}
+              {view === "settings" && <ComingSoonView title={t("side.settings")} />}
               {view === "groups" && (
                 <GroupsView
                   onOpenGroup={(id) => { setSelectedGroupId(id); goView("group-detail"); }}
@@ -907,6 +1011,7 @@ export default function Home() {
                   onOpenProfile={(u) => { setProfileUsername(u); goView("profile"); }}
                   onHashtag={(tag) => setExploreHashtag(tag || null)}
                   initialHashtag={exploreHashtag}
+                  initialQuery={exploreQuery}
                   onNavigate={(v) => goView(v as View)}
                 />
               )}
@@ -1049,8 +1154,8 @@ export default function Home() {
             trending). Hidden below xl — the feed's own rails cover tablet,
             and mobile keeps its compact nav + full-width feed. */}
         {view === "home" && (
-          <aside className="hidden xl:block w-[300px] shrink-0 border-l border-white/[0.04] bg-[#0B1120] px-4 pt-4 pb-6">
-            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <aside className="hidden xl:block w-[300px] shrink-0 border-l border-white/[0.04] bg-[#0A1729] px-4 pt-4 pb-6">
+            <div className="sticky top-4 max-h-[calc(100vh-32px)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <HomeRightRail
                 onOpenProfile={(u) => {
                   setProfileUsername(u);
@@ -1061,9 +1166,23 @@ export default function Home() {
                   goView("explore");
                 }}
                 onOpenEvents={() => goView("events")}
+                onOpenBible={() => goView("bible")}
+                onOpenExplore={() => goView("explore")}
                 onOpenPassage={(bookId, chapter) => {
                   setBibleTarget({ bookId, chapter });
                   goView("bible");
+                }}
+                onOpenGroup={(id) => {
+                  setSelectedGroupId(id);
+                  goView("group-detail");
+                }}
+                onOpenChurch={(id) => {
+                  setDeepLinkedChurchId(id);
+                  goView("churches");
+                }}
+                onSearch={(q) => {
+                  setExploreQuery(q);
+                  goView("explore");
                 }}
               />
             </div>
@@ -1090,7 +1209,7 @@ export default function Home() {
       )}
 
       {/* Mobile Bottom Nav — 4 quick slots + "More" button */}
-      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50 rounded-[20px] bg-[#111827]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50 rounded-[20px] bg-[#0F2038]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
         <div className="flex items-center justify-around h-14 px-1">
           {MOBILE_NAV.map(({ id, icon: Icon, labelKey }) => {
             const active = view === id;
@@ -1107,14 +1226,14 @@ export default function Home() {
                     fill={active ? "currentColor" : "none"}
                     className={`transition-all duration-200 ${
                       active
-                        ? "text-[#38BDF8] scale-110 drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]"
+                        ? "text-[#22D3EE] scale-110 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]"
                         : "text-[#94A3B8] hover:text-white"
                     }`}
                   />
                   {active && (
                     <motion.div
                       layoutId="mobile-nav-indicator"
-                      className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]"
+                      className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#22D3EE] shadow-[0_0_8px_#22D3EE]"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -1145,7 +1264,7 @@ export default function Home() {
               {MOBILE_MORE_VIEWS.some((v) => v.id === view) && (
                 <motion.div
                   layoutId="mobile-nav-indicator"
-                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#38BDF8] shadow-[0_0_8px_#38BDF8]"
+                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#22D3EE] shadow-[0_0_8px_#22D3EE]"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
@@ -1178,9 +1297,9 @@ export default function Home() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 32, stiffness: 380 }}
-              className="bg-[#1C1929] border-t border-white/[0.08] rounded-t-[28px] w-full max-h-[80vh] overflow-y-auto"
+              className="bg-[#13294A] border-t border-white/[0.08] rounded-t-[28px] w-full max-h-[80vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-[#1C1929] flex items-center justify-between p-5 pb-3 border-b border-white/[0.04]">
+              <div className="sticky top-0 bg-[#13294A] flex items-center justify-between p-5 pb-3 border-b border-white/[0.04]">
                 <div>
                   <h2 className="text-lg font-extrabold text-white">{t("side.allSections")}</h2>
                   <p className="text-[11px] text-[#94A3B8] mt-0.5">{t("side.tapToNavigate")}</p>
@@ -1203,19 +1322,19 @@ export default function Home() {
                       onClick={() => goView(id)}
                       className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${
                         active
-                          ? "bg-[#7C3AED]/15 border-[#7C3AED]/40"
+                          ? "bg-[#2563EB]/15 border-[#2563EB]/40"
                           : "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]"
                       }`}
                     >
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          active ? "bg-[#7C3AED]/20" : "bg-white/[0.04]"
+                          active ? "bg-[#2563EB]/20" : "bg-white/[0.04]"
                         }`}
                       >
                         <Icon
                           size={18}
                           strokeWidth={active ? 2.4 : 1.8}
-                          className={active ? "text-[#A78BFA]" : "text-[#94A3B8]"}
+                          className={active ? "text-[#60A5FA]" : "text-[#94A3B8]"}
                         />
                       </div>
                       <span
@@ -1253,9 +1372,9 @@ export default function Home() {
         <footer className="border-t border-white/[0.04] mt-8 pb-28 md:pb-4">
           <div className="max-w-[680px] mx-auto px-4 py-4 flex items-center justify-center gap-4">
             <a href="/privacy" className="text-[10px] text-[#475569] hover:text-white transition-colors">{t("footer.privacyShort")}</a>
-            <span className="text-[#1C1929]">·</span>
+            <span className="text-[#13294A]">·</span>
             <a href="/terms" className="text-[10px] text-[#475569] hover:text-white transition-colors">{t("footer.termsShort")}</a>
-            <span className="text-[#1C1929]">·</span>
+            <span className="text-[#13294A]">·</span>
             <a href="/help" className="text-[10px] text-[#475569] hover:text-white transition-colors">{t("publicNav.help")}</a>
           </div>
         </footer>
@@ -1268,8 +1387,8 @@ function ComingSoonView({ title }: { title: string }) {
   const t = useTranslation();
   return (
     <div className="max-w-[680px] mx-auto px-4 py-16 text-center">
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#7C3AED]/15 to-[#EC4899]/15 border border-[#7C3AED]/25 mb-4">
-        <Sparkles size={28} className="text-[#A78BFA]" />
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2563EB]/15 to-[#F97316]/15 border border-[#2563EB]/25 mb-4">
+        <Sparkles size={28} className="text-[#60A5FA]" />
       </div>
       <h2 className="text-xl font-extrabold text-white mb-2">{title}</h2>
       <p className="text-sm text-[#A09DB1] max-w-sm mx-auto">

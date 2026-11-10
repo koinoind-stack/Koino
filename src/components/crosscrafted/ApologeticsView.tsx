@@ -404,7 +404,7 @@ export default function ApologeticsView({
           <button
             onClick={() => setShowAskModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
-            style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
+            style={{ background: "linear-gradient(135deg, #22D3EE, #A855F7)" }}
           >
             <Plus size={14} /> {t("apologetics.askShort")}
           </button>
@@ -416,7 +416,7 @@ export default function ApologeticsView({
         <button
           onClick={() => setActiveTab("articles")}
           className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "articles" ? "bg-[#38BDF8] text-slate-950" : "text-[#94A3B8] hover:text-white"
+            activeTab === "articles" ? "bg-[#22D3EE] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           <BookOpen size={12} /> {t("apologetics.tab.articles")}
@@ -424,11 +424,11 @@ export default function ApologeticsView({
         <button
           onClick={() => setActiveTab("qa")}
           className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "qa" ? "bg-[#38BDF8] text-slate-950" : "text-[#94A3B8] hover:text-white"
+            activeTab === "qa" ? "bg-[#22D3EE] text-slate-950" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           <HelpCircle size={12} /> {t("apologetics.tab.qa")}
-          <span className="px-1.5 py-0.5 rounded-full bg-[#38BDF8]/15 text-[#38BDF8] text-[9px] font-bold tabular-nums">
+          <span className="px-1.5 py-0.5 rounded-full bg-[#22D3EE]/15 text-[#22D3EE] text-[9px] font-bold tabular-nums">
             {questionsLoading ? "…" : dbQuestions.length}
           </span>
         </button>
@@ -460,7 +460,7 @@ export default function ApologeticsView({
             onClick={() => { setSavedOnly(!savedOnly); setFilterTopic(""); }}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
               savedOnly
-                ? "bg-[#F59E0B] text-slate-950"
+                ? "bg-[#F5B84A] text-slate-950"
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
@@ -486,16 +486,16 @@ export default function ApologeticsView({
       {contributorName && (
         <button
           onClick={() => setShowStudio(true)}
-          className="w-full flex items-center gap-2.5 bg-gradient-to-r from-[#7C3AED]/15 to-[#38BDF8]/10 border border-[#7C3AED]/25 rounded-2xl p-3 mb-4 hover:border-[#7C3AED]/45 transition-all text-left"
+          className="w-full flex items-center gap-2.5 bg-gradient-to-r from-[#2563EB]/15 to-[#22D3EE]/10 border border-[#2563EB]/25 rounded-2xl p-3 mb-4 hover:border-[#2563EB]/45 transition-all text-left"
         >
-          <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center shrink-0">
-            <PenLine size={16} className="text-[#A78BFA]" />
+          <div className="w-9 h-9 rounded-xl bg-[#2563EB]/20 flex items-center justify-center shrink-0">
+            <PenLine size={16} className="text-[#60A5FA]" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-white">{t("apologetics.studio.title")}</p>
             <p className="text-[10px] text-[#94A3B8]">{t("apologetics.studio.subtitle", { name: contributorName })}</p>
           </div>
-          <span className="text-[10px] font-bold text-[#A78BFA]">{t("apologetics.studio.open")}</span>
+          <span className="text-[10px] font-bold text-[#60A5FA]">{t("apologetics.studio.open")}</span>
         </button>
       )}
 
@@ -505,7 +505,7 @@ export default function ApologeticsView({
             {/* Loading state */}
             {postsLoading && (
               <div className="text-center py-12">
-                <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin mb-3" />
+                <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin mb-3" />
                 <p className="text-xs text-[#94A3B8]">{t("apologetics.loadingArticles")}</p>
               </div>
             )}
@@ -527,8 +527,8 @@ export default function ApologeticsView({
             {/* Empty state — no published articles yet */}
             {!postsLoading && !postsError && posts.length === 0 && (
               <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 mb-3">
-                  <BookOpen size={24} className="text-[#A78BFA]" />
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/15 border border-[#2563EB]/25 mb-3">
+                  <BookOpen size={24} className="text-[#60A5FA]" />
                 </div>
                 <p className="text-sm font-bold text-white mb-1">{t("apologetics.emptyArticles.title")}</p>
                 <p className="text-xs text-[#A09DB1] max-w-sm mx-auto">
@@ -557,7 +557,7 @@ export default function ApologeticsView({
                 className="relative rounded-2xl overflow-hidden cursor-pointer mb-4 border border-white/[0.06]"
               >
                 <div className="relative h-44" style={{ background: CHURCH_GRADIENTS[filtered[0].cover_gradient] }}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-[#1C1929]/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-[#13294A]/40 to-transparent" />
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#22C55E]/15 backdrop-blur-sm border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-bold uppercase tracking-wider">
                     {t("common.featured")}
                   </div>
@@ -597,7 +597,7 @@ export default function ApologeticsView({
                         setOpenPost(post);
                       }
                     }}
-                    className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 cursor-pointer hover:border-white/[0.12] transition-all"
+                    className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 cursor-pointer hover:border-white/[0.12] transition-all"
                   >
                     <div className="flex items-start gap-3 mb-2">
                       <div
@@ -620,7 +620,7 @@ export default function ApologeticsView({
                     <p className="text-[13px] text-[#A09DB1] leading-relaxed line-clamp-3 mb-3">{post.body}</p>
                     <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
                       <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#38BDF8] to-[#A855F7] flex items-center justify-center text-[10px] font-bold text-white">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#22D3EE] to-[#A855F7] flex items-center justify-center text-[10px] font-bold text-white">
                           {post.author.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                         </div>
                         <div>
@@ -648,7 +648,7 @@ export default function ApologeticsView({
                           title={myBookmarks.has(post.id) ? t("apologetics.saved") : t("apologetics.save")}
                           className={`p-1.5 rounded-lg transition-colors ${
                             myBookmarks.has(post.id)
-                              ? "text-[#F59E0B]"
+                              ? "text-[#F5B84A]"
                               : "text-[#94A3B8] hover:text-white"
                           }`}
                         >
@@ -682,10 +682,10 @@ export default function ApologeticsView({
         ) : (
           <motion.div key="qa" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Q&A Banner */}
-            <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#38BDF8]/20 rounded-2xl p-4 mb-4">
+            <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#22D3EE]/20 rounded-2xl p-4 mb-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/30 flex items-center justify-center shrink-0">
-                  <HelpCircle size={18} className="text-[#38BDF8]" />
+                <div className="w-10 h-10 rounded-xl bg-[#22D3EE]/15 border border-[#22D3EE]/30 flex items-center justify-center shrink-0">
+                  <HelpCircle size={18} className="text-[#22D3EE]" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white mb-1">{t("apologetics.qaBanner.title")}</p>
@@ -699,7 +699,7 @@ export default function ApologeticsView({
             {/* Loading state */}
             {questionsLoading && (
               <div className="text-center py-12">
-                <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#38BDF8] animate-spin mb-3" />
+                <div className="w-8 h-8 mx-auto rounded-full border-2 border-transparent border-t-[#22D3EE] animate-spin mb-3" />
                 <p className="text-xs text-[#94A3B8]">{t("apologetics.loadingQuestions")}</p>
               </div>
             )}
@@ -721,8 +721,8 @@ export default function ApologeticsView({
             {/* Empty state — no answered questions yet */}
             {!questionsLoading && !questionsError && questions.length === 0 && (
               <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#38BDF8]/10 border border-[#38BDF8]/25 mb-3">
-                  <HelpCircle size={24} className="text-[#38BDF8]" />
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#22D3EE]/10 border border-[#22D3EE]/25 mb-3">
+                  <HelpCircle size={24} className="text-[#22D3EE]" />
                 </div>
                 <p className="text-sm font-bold text-white mb-1">{t("apologetics.emptyQuestions.title")}</p>
                 <p className="text-xs text-[#A09DB1] max-w-sm mx-auto mb-4">
@@ -732,7 +732,7 @@ export default function ApologeticsView({
                   <button
                     onClick={() => setShowAskModal(true)}
                     className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-1.5"
-                    style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
+                    style={{ background: "linear-gradient(135deg, #22D3EE, #A855F7)" }}
                   >
                     <Plus size={14} /> {t("apologetics.askQuestion")}
                   </button>
@@ -740,7 +740,7 @@ export default function ApologeticsView({
                   <a
                     href="/login"
                     className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-1.5"
-                    style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
+                    style={{ background: "linear-gradient(135deg, #22D3EE, #A855F7)" }}
                   >
                     {t("apologetics.signInToAsk")}
                   </a>
@@ -760,7 +760,7 @@ export default function ApologeticsView({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => setOpenQuestion(q)}
-                    className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 cursor-pointer hover:border-white/[0.12] transition-all"
+                    className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 cursor-pointer hover:border-white/[0.12] transition-all"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       {topic && (
@@ -775,7 +775,7 @@ export default function ApologeticsView({
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           q.status === "answered"
                             ? "bg-[#22C55E]/15 text-[#22C55E]"
-                            : "bg-[#F59E0B]/15 text-[#F59E0B]"
+                            : "bg-[#F5B84A]/15 text-[#F5B84A]"
                         }`}
                       >
                         {q.status === "answered" ? t("apologetics.statusAnswered") : t("apologetics.statusOpen")}
@@ -842,10 +842,10 @@ export default function ApologeticsView({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
               <div className="relative h-32" style={{ background: CHURCH_GRADIENTS[openPost.cover_gradient] }}>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] to-transparent" />
                 <button
                   onClick={() => setOpenPost(null)}
                   className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
@@ -856,7 +856,7 @@ export default function ApologeticsView({
 
               <div className="p-5 space-y-4">
                 <div className="flex items-center gap-3 -mt-12 relative">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#38BDF8] to-[#A855F7] flex items-center justify-center text-base font-bold text-white border-4 border-[#1C1929]">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#22D3EE] to-[#A855F7] flex items-center justify-center text-base font-bold text-white border-4 border-[#13294A]">
                     {openPost.author.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                   </div>
                   <div>
@@ -926,7 +926,7 @@ export default function ApologeticsView({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
               <div className="p-5 space-y-4">
                 <div className="flex items-center justify-between">
@@ -940,7 +940,7 @@ export default function ApologeticsView({
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       openQuestion.status === "answered"
                         ? "bg-[#22C55E]/15 text-[#22C55E]"
-                        : "bg-[#F59E0B]/15 text-[#F59E0B]"
+                        : "bg-[#F5B84A]/15 text-[#F5B84A]"
                     }`}
                   >
                     {openQuestion.status === "answered" ? t("apologetics.statusAnswered") : t("apologetics.statusOpen")}
@@ -972,13 +972,13 @@ export default function ApologeticsView({
                           key={i}
                           href={bibleRefHref(parsed)}
                           onClick={(e) => e.stopPropagation()}
-                          className="px-2 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[10px] font-bold hover:bg-[#38BDF8]/20 transition-colors"
+                          className="px-2 py-1 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[10px] font-bold hover:bg-[#22D3EE]/20 transition-colors"
                           title={t("apologetics.refTitle")}
                         >
                           {ref} ↗
                         </a>
                       ) : (
-                        <span key={i} className="px-2 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[10px] font-bold">
+                        <span key={i} className="px-2 py-1 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[10px] font-bold">
                           {ref}
                         </span>
                       );
@@ -1021,7 +1021,7 @@ export default function ApologeticsView({
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#A855F7] to-[#38BDF8] flex items-center justify-center text-[10px] font-bold text-white">
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#A855F7] to-[#22D3EE] flex items-center justify-center text-[10px] font-bold text-white">
                               {a.author.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                             </div>
                             <div className="flex-1">
@@ -1059,7 +1059,7 @@ export default function ApologeticsView({
                   ) : (
                     <button
                       onClick={() => setCommentTarget({ type: "question", id: openQuestion.id })}
-                      className="flex items-center gap-1.5 text-[11px] font-bold text-[#38BDF8] hover:bg-[#38BDF8]/10 rounded-lg px-2 py-1.5 transition-colors"
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-[#22D3EE] hover:bg-[#22D3EE]/10 rounded-lg px-2 py-1.5 transition-colors"
                     >
                       <MessageCircle size={12} />
                       {t("apologetics.discussion", { count: engagement[openQuestion.id]?.comments ?? 0 })}
@@ -1084,7 +1084,7 @@ export default function ApologeticsView({
                 {/* Sign-in notice — only approved contributors may propose answers,
                     and those go through admin review before publishing */}
                 <div className="pt-3 border-t border-white/[0.06] flex items-start gap-2">
-                  <BookOpen size={14} className="text-[#38BDF8] shrink-0 mt-0.5" />
+                  <BookOpen size={14} className="text-[#22D3EE] shrink-0 mt-0.5" />
                   <p className="text-[10px] text-[#64748B] leading-relaxed">
                     {t("apologetics.answersNote")}
                   </p>
@@ -1111,10 +1111,10 @@ export default function ApologeticsView({
               animate={{ y: 0 }}
               exit={{ y: 100 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto"
+              className="bg-[#13294A] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-[#38BDF8] to-[#A855F7] bg-clip-text text-transparent">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-[#22D3EE] to-[#A855F7] bg-clip-text text-transparent">
                   {t("apologetics.askQuestion")}
                 </h2>
                 <button onClick={() => setShowAskModal(false)} className="text-[#64748B] hover:text-white p-1">
@@ -1187,7 +1187,7 @@ export default function ApologeticsView({
                     type="submit"
                     disabled={submittingQuestion}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    style={{ background: "linear-gradient(135deg, #38BDF8, #A855F7)" }}
+                    style={{ background: "linear-gradient(135deg, #22D3EE, #A855F7)" }}
                   >
                     {submittingQuestion ? (
                       <>

@@ -135,7 +135,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
     return (
       <button
         onClick={() => onOpenGroup(g.id)}
-        className="w-full text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
+        className="w-full text-left rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/40 transition-colors"
       >
         <div className={`relative h-16 bg-gradient-to-br ${grad} flex items-center px-3`}>
           {g.coverImage && (
@@ -174,7 +174,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
               <Users size={10} /> {t("group.memberCount", { count: g.memberCount })}
             </span>
             {g.myMembership === "active" ? (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${g.myRole === "owner" ? "bg-amber-500/15 text-amber-300" : g.myRole === "admin" ? "bg-[#7C3AED]/20 text-[#C4B5FD]" : g.myRole === "moderator" ? "bg-sky-500/15 text-sky-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${g.myRole === "owner" ? "bg-amber-500/15 text-amber-300" : g.myRole === "admin" ? "bg-[#2563EB]/20 text-[#93C5FD]" : g.myRole === "moderator" ? "bg-sky-500/15 text-sky-300" : "bg-white/[0.06] text-[#94A3B8]"}`}>
                 {g.myRole === "owner" ? t("group.role.owner") : g.myRole === "admin" ? t("group.role.admin") : g.myRole === "moderator" ? t("groups.roleModShort") : t("groups.joined")}
               </span>
             ) : g.myMembership === "pending" ? (
@@ -197,7 +197,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
         <h1 className="text-lg font-extrabold text-white">{t("groups.title")}</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold hover:bg-[#6D28D9]"
+          className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#2563EB] text-white text-xs font-bold hover:bg-[#1D4ED8]"
         >
           <Plus size={14} /> Create
         </button>
@@ -220,7 +220,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("groups.searchPlaceholder")}
-          className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+          className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
         />
       </div>
 
@@ -231,7 +231,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
             onClick={() => setCategory(c.id)}
             className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
               category === c.id
-                ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+                ? "bg-[#2563EB] border-[#2563EB] text-white"
                 : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -255,7 +255,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
       {loading ? (
         <div className="grid grid-cols-2 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] animate-pulse">
+            <div key={i} className="rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] animate-pulse">
               <div className="h-16 bg-white/5" />
               <div className="p-3 space-y-2">
                 <div className="w-2/3 h-3 bg-white/10 rounded" />
@@ -273,7 +273,7 @@ export default function GroupsView({ onOpenGroup, onBack }: Props) {
               : t("groups.empty")}
           </p>
           {!q && category === "All" && (
-            <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white text-sm font-bold">
+            <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2563EB] text-white text-sm font-bold">
               <Plus size={16} /> {t("groups.startCta")}
             </button>
           )}

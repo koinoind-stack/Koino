@@ -263,7 +263,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
@@ -284,13 +284,13 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
           {avatarShown ? (
             <Image src={avatarShown} alt="" width={96} height={96} className="w-24 h-24 rounded-full object-cover" unoptimized />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white text-3xl font-black">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-3xl font-black">
               {(name || profile?.username || profile?.email || "?").charAt(0).toUpperCase()}
             </div>
           )}
           <button
             onClick={() => fileRef.current?.click()}
-            className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-[#7C3AED] flex items-center justify-center text-white shadow-lg"
+            className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-[#2563EB] flex items-center justify-center text-white shadow-lg"
           >
             <Camera size={16} />
           </button>
@@ -303,7 +303,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="flex items-center gap-4 text-xs font-bold">
-          <button onClick={() => fileRef.current?.click()} className="text-[#7C3AED] hover:text-white">
+          <button onClick={() => fileRef.current?.click()} className="text-[#2563EB] hover:text-white">
             {t("profile.changePhoto")}
           </button>
           {avatarShown && (
@@ -455,7 +455,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
               type="checkbox"
               checked={communityRoleVisible}
               onChange={(e) => setCommunityRoleVisible(e.target.checked)}
-              className="w-3.5 h-3.5 accent-[#7C3AED]"
+              className="w-3.5 h-3.5 accent-[#2563EB]"
             />
             <span className="text-[11px] text-[#64748B] font-semibold">
               {t("onboarding.role.visibleLabel")}
@@ -470,7 +470,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
       <button
         onClick={save}
         disabled={saving || availState === "taken" || availState === "invalid"}
-        className="w-full mt-8 py-3.5 rounded-2xl bg-[#7C3AED] text-white font-extrabold disabled:opacity-40 shadow-[0_0_30px_rgba(124,58,237,0.3)]"
+        className="w-full mt-8 py-3.5 rounded-2xl bg-[#2563EB] text-white font-extrabold disabled:opacity-40 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
       >
         {saving ? t("profile.saving") : t("profile.save")}
       </button>
@@ -479,7 +479,7 @@ export default function EditProfileView({ onDone }: { onDone: () => void }) {
 }
 
 const inputCls =
-  "w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]";
+  "w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#2563EB]";
 
 function LinkInput({
   icon: Icon,

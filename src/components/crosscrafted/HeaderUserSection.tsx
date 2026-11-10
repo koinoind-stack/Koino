@@ -54,7 +54,7 @@ export default function HeaderUserSection({
     return (
       <a
         href="/auth/signin"
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-all ${
           mobile ? "px-2.5" : ""
         }`}
       >
@@ -78,7 +78,7 @@ export default function HeaderUserSection({
         {avatarUrl ? (
           <Image src={avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
         ) : (
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#F39B9B] to-[#9786E3] flex items-center justify-center text-[10px] font-bold text-slate-950">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#F97316] to-[#3B82F6] flex items-center justify-center text-[10px] font-bold text-slate-950">
             {name.charAt(0).toUpperCase()}
           </div>
         )}
@@ -89,7 +89,7 @@ export default function HeaderUserSection({
               {isAdmin && (
                 <span
                   title={t("header.administrator")}
-                  className="shrink-0 px-1 py-px rounded bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
+                  className="shrink-0 px-1 py-px rounded bg-gradient-to-r from-[#2563EB] to-[#F97316] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
                 >
                   {t("header.adminBadge")}
                 </span>

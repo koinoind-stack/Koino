@@ -456,7 +456,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
     return (
       <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-16 pb-24 text-center">
         <p className="text-sm text-[#94A3B8] mb-4">{t("group.notFound")}</p>
-        <button onClick={onBack} className="text-xs font-bold text-[#7C3AED]">{t("group.backToGroups")}</button>
+        <button onClick={onBack} className="text-xs font-bold text-[#2563EB]">{t("group.backToGroups")}</button>
       </div>
     );
   }
@@ -537,7 +537,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
           </p>
           {group.churchName && (
             <p className="text-[11px] text-[#94A3B8] inline-flex items-center gap-1 mt-0.5">
-              <Landmark size={10} className="text-[#C4B5FD]" />
+              <Landmark size={10} className="text-[#93C5FD]" />
               {group.churchName}
               {group.churchVerified && (
                 <span className="inline-flex items-center gap-0.5 text-[#60A5FA] font-bold">
@@ -559,14 +559,14 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
           ) : viewerStatus === "pending" ? (
             <span className="text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-white/[0.06] text-[#94A3B8]">{t("group.requested")}</span>
           ) : (
-            <button onClick={join} disabled={acting} className="text-[11px] font-bold px-4 py-1.5 rounded-full bg-[#7C3AED] text-white hover:bg-[#6D28D9] disabled:opacity-40">
+            <button onClick={join} disabled={acting} className="text-[11px] font-bold px-4 py-1.5 rounded-full bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-40">
               {group.visibility === "private" || group.joinMode === "approval" ? t("group.requestToJoin") : t("group.join")}
             </button>
           )}
           {perms.canManage && (
             <button
               onClick={() => setShowEdit((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-[#7C3AED]/15 border border-[#7C3AED]/40 text-[#C4B5FD] hover:bg-[#7C3AED]/25"
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3.5 py-1.5 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/40 text-[#93C5FD] hover:bg-[#2563EB]/25"
             >
               {t("group.editGroup")}
             </button>
@@ -590,7 +590,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 key={tabKey}
                 onClick={() => setTab(tabKey)}
                 className={`px-3.5 py-2.5 text-xs font-extrabold capitalize border-b-2 -mb-px transition-colors ${
-                  tab === tabKey ? "border-[#7C3AED] text-white" : "border-transparent text-[#64748B] hover:text-[#94A3B8]"
+                  tab === tabKey ? "border-[#2563EB] text-white" : "border-transparent text-[#64748B] hover:text-[#94A3B8]"
                 }`}
               >
                 {TAB_LABEL_KEYS[tabKey] ? t(TAB_LABEL_KEYS[tabKey]) : tabKey}
@@ -622,7 +622,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               )}
 
               {perms.canPost ? (
-                <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-3">
+                <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-3">
                   <textarea
                     ref={groupTextRef}
                     value={text}
@@ -677,7 +677,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                     <button
                       onClick={postToGroup}
                       disabled={(!text.trim() && media.length === 0) || posting}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40"
                     >
                       {posting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       {posting ? t("group.posting") : t("group.postButton")}
@@ -693,7 +693,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               {postsError ? (
                 <div className="text-center py-8">
                   <p className="text-xs text-[#94A3B8] mb-2">{postsError}</p>
-                  <button onClick={loadPosts} className="text-xs font-bold text-[#7C3AED]">{t("common.retry")}</button>
+                  <button onClick={loadPosts} className="text-xs font-bold text-[#2563EB]">{t("common.retry")}</button>
                 </div>
               ) : posts.length === 0 ? (
                 <div className="text-center py-10">
@@ -730,7 +730,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                   <div className="space-y-2">
                     {pending.map((p) => (
                       <div key={p.id} className="flex items-center gap-2">
-                        <button onClick={() => p.user.username && onOpenProfile(p.user.username)} className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] inline-flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">
+                        <button onClick={() => p.user.username && onOpenProfile(p.user.username)} className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] inline-flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">
                           {p.user.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={p.user.image} alt="" className="w-full h-full object-cover" />
@@ -741,7 +741,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                         <span className="text-xs font-bold text-white truncate flex-1">
                           {p.user.name || p.user.username || "Someone"}
                         </span>
-                        <button onClick={() => moderateMember("approve", p.user.id)} className="p-1.5 rounded-lg bg-[#7C3AED] text-white" title={t("group.approveTitle")}>
+                        <button onClick={() => moderateMember("approve", p.user.id)} className="p-1.5 rounded-lg bg-[#2563EB] text-white" title={t("group.approveTitle")}>
                           <Check size={13} />
                         </button>
                         <button onClick={() => moderateMember("remove", p.user.id)} className="p-1.5 rounded-lg bg-white/[0.06] text-[#94A3B8]" title={t("group.declineTitle")}>
@@ -753,14 +753,14 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 </div>
               )}
 
-              <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-3">
+              <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-3">
                 <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">
                   {t("group.membersHeading", { count: group.memberCount })}
                 </h3>
                 <div className="space-y-1">
                   {members.map((m) => (
                     <div key={m.user.id} className="flex items-center gap-2 py-1">
-                      <button onClick={() => m.user.username && onOpenProfile(m.user.username)} className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] overflow-hidden inline-flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+                      <button onClick={() => m.user.username && onOpenProfile(m.user.username)} className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] overflow-hidden inline-flex items-center justify-center text-[11px] font-bold text-white shrink-0">
                         {m.user.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={m.user.image} alt="" className="w-full h-full object-cover" />
@@ -770,7 +770,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                       </button>
                       <button
                         onClick={() => m.user.username && onOpenProfile(m.user.username)}
-                        className="text-xs font-bold text-white hover:text-[#C4B5FD] truncate flex-1 text-left"
+                        className="text-xs font-bold text-white hover:text-[#93C5FD] truncate flex-1 text-left"
                       >
                         {m.user.name || m.user.username || t("post.member")}
                       </button>
@@ -778,7 +778,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                         m.role === "owner"
                           ? "bg-amber-500/15 text-amber-300"
                           : m.role === "admin"
-                            ? "bg-[#7C3AED]/20 text-[#C4B5FD]"
+                            ? "bg-[#2563EB]/20 text-[#93C5FD]"
                             : m.role === "moderator"
                               ? "bg-sky-500/15 text-sky-300"
                               : "bg-white/[0.05] text-[#64748B]"
@@ -792,9 +792,9 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                           className="shrink-0 bg-white/[0.04] border border-white/[0.06] rounded-lg text-[10px] font-bold text-[#94A3B8] px-1.5 py-1 outline-none"
                           title={t("group.changeRoleTitle")}
                         >
-                          <option value="member" className="bg-[#111827]">{t("post.member")}</option>
-                          <option value="moderator" className="bg-[#111827]">{t("group.role.moderator")}</option>
-                          <option value="admin" className="bg-[#111827]">{t("group.role.admin")}</option>
+                          <option value="member" className="bg-[#0F2038]">{t("post.member")}</option>
+                          <option value="moderator" className="bg-[#0F2038]">{t("group.role.moderator")}</option>
+                          <option value="admin" className="bg-[#0F2038]">{t("group.role.admin")}</option>
                         </select>
                       )}
                       {viewerRole === "owner" && m.role === "admin" && (
@@ -824,7 +824,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               {isMember && !showEventForm && (
                 <button
                   onClick={() => setShowEventForm(true)}
-                  className="w-full py-2.5 rounded-xl border border-dashed border-[#7C3AED]/40 bg-[#7C3AED]/[0.06] text-xs font-extrabold text-[#C4B5FD] hover:bg-[#7C3AED]/[0.12] inline-flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-xl border border-dashed border-[#2563EB]/40 bg-[#2563EB]/[0.06] text-xs font-extrabold text-[#93C5FD] hover:bg-[#2563EB]/[0.12] inline-flex items-center justify-center gap-1.5"
                 >
                   <CalendarDays size={13} /> {t("group.createEvent")}
                 </button>
@@ -863,7 +863,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
           {/* ═══ ABOUT TAB ═══ */}
           {tab === "about" && (
             <div className="mt-4 space-y-4">
-              <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
+              <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4">
                 <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2">{t("publicNav.about")}</h3>
                 <p className="text-[13px] text-[#CBD5E1] leading-relaxed">
                   {group.description || t("group.noDescription")}
@@ -876,7 +876,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 )}
               </div>
 
-              <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
+              <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4">
                 <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">{t("group.detailsHeading")}</h3>
                 <dl className="space-y-2 text-xs">
                   <div className="flex justify-between gap-3">
@@ -919,10 +919,10 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
               </div>
 
               {group.churchName && (
-                <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
+                <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4">
                   <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2">{t("group.churchHeading")}</h3>
                   <p className="text-xs text-white font-bold inline-flex items-center gap-1.5">
-                    <Landmark size={13} className="text-[#C4B5FD]" /> {group.churchName}
+                    <Landmark size={13} className="text-[#93C5FD]" /> {group.churchName}
                     {group.churchVerified && (
                       <span className="inline-flex items-center gap-1 text-[#60A5FA]">
                         <BadgeCheck size={13} /> {t("group.verifiedAffiliation")}
@@ -937,7 +937,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                 </div>
               )}
 
-              <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
+              <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4">
                 <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-2.5">{t("group.shareHeading")}</h3>
                 <div className="flex gap-2">
                   <button onClick={copyGroupLink} className="flex-1 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-xs font-bold inline-flex items-center justify-center gap-1.5">
@@ -958,7 +958,7 @@ export default function GroupDetailView({ groupId, onBack, onOpenProfile, onHash
                           fileName: `koino-group-${groupId}.png`,
                         })
                       }
-                      className="flex-1 py-2 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                      className="flex-1 py-2 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-xs font-bold inline-flex items-center justify-center gap-1.5"
                     >
                       <Share2 size={12} /> {t("group.shareCard")}
                     </button>
@@ -1012,7 +1012,7 @@ function GroupEventCard({ ev }: { ev: GroupEvent }) {
   }
 
   return (
-    <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl overflow-hidden">
+    <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl overflow-hidden">
       <button onClick={() => setShowDetail((v) => !v)} className="w-full text-left flex items-center gap-3 p-3">
         {ev.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -1035,7 +1035,7 @@ function GroupEventCard({ ev }: { ev: GroupEvent }) {
               <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8]">{t("group.membersOnly")}</span>
             )}
             {ev.registrationType === "registration_required" && (
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#7C3AED]/20 text-[#C4B5FD]">{t("events.register")}</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#2563EB]/20 text-[#93C5FD]">{t("events.register")}</span>
             )}
           </span>
         </span>
@@ -1052,7 +1052,7 @@ function GroupEventCard({ ev }: { ev: GroupEvent }) {
               <Share2 size={10} /> {t("common.whatsappLabel")}
             </button>
             {ev.ticketUrl && (
-              <a href={ev.ticketUrl} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg bg-[#7C3AED] text-white text-[10px] font-bold inline-flex items-center justify-center gap-1">
+              <a href={ev.ticketUrl} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg bg-[#2563EB] text-white text-[10px] font-bold inline-flex items-center justify-center gap-1">
                 {t("events.register")}
               </a>
             )}

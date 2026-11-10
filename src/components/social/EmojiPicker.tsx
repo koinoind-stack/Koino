@@ -27,7 +27,7 @@ import type { Categories } from "emoji-picker-react";
 
 const Picker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
-  loading: () => <div className="h-[320px] bg-[#111827] animate-pulse" />,
+  loading: () => <div className="h-[320px] bg-[#0F2038] animate-pulse" />,
 });
 
 /** Christian Faith — symbols, places, the Word. */
@@ -111,7 +111,7 @@ export default function EmojiPickerButton({
         aria-label="Add emoji"
         aria-expanded={open}
         title="Emoji"
-        className="text-[#94A3B8] hover:text-[#C4B5FD] transition-colors p-1.5 rounded-full hover:bg-white/5"
+        className="text-[#94A3B8] hover:text-[#93C5FD] transition-colors p-1.5 rounded-full hover:bg-white/5"
       >
         <Smile size={18} />
       </button>
@@ -120,7 +120,7 @@ export default function EmojiPickerButton({
         <div
           className={`absolute ${direction === "up" ? "bottom-full mb-2" : "top-full mt-2"} ${
             align === "right" ? "right-0" : "left-0"
-          } z-[60] w-[min(340px,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-[#111827] shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden`}
+          } z-[60] w-[min(340px,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-[#0F2038] shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden`}
         >
           {/* category tabs — Christian categories first, then the full library */}
           <div className="flex items-center gap-1 px-2 pt-2 pb-1.5 border-b border-white/[0.06] bg-white/[0.02]">
@@ -131,7 +131,7 @@ export default function EmojiPickerButton({
                 onClick={() => setTab(id)}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-all ${
                   tab === id
-                    ? "bg-[#7C3AED]/25 text-white"
+                    ? "bg-[#2563EB]/25 text-white"
                     : "text-[#94A3B8] hover:text-white hover:bg-white/5"
                 }`}
                 title={`${label} emojis`}

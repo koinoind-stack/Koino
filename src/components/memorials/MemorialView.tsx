@@ -386,7 +386,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
@@ -433,12 +433,12 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
     return (
       <div key={c.id} className={isReply ? "mt-2.5" : ""}>
         <div className={`rounded-2xl border px-4 py-3.5 ${
-          c.hidden ? "bg-[#111827]/30 border-red-500/10 opacity-70" : isReply ? "bg-white/[0.02] border-white/[0.05]" : "bg-[#111827]/60 border-white/[0.05]"
+          c.hidden ? "bg-[#0F2038]/30 border-red-500/10 opacity-70" : isReply ? "bg-white/[0.02] border-white/[0.05]" : "bg-[#0F2038]/60 border-white/[0.05]"
         }`}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-xs font-bold text-white">{c.authorName}</span>
             {c.kind === "memory" && (
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#7C3AED]/15 text-[#C4B5FD]">Memory</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#2563EB]/15 text-[#93C5FD]">Memory</span>
             )}
             <span className="text-[10px] text-[#64748B]">{timeAgo(c.createdAt)}</span>
             {c.hidden && <span className="text-[9px] font-bold text-red-300 uppercase">Hidden</span>}
@@ -492,14 +492,14 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
                 rows={2}
                 maxLength={2000}
                 placeholder={`Reply to ${c.authorName}…`}
-                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50 resize-none"
+                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50 resize-none"
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button onClick={() => setReplyTo(null)} className="px-3 py-1.5 rounded-full text-[11px] font-bold text-[#64748B] hover:text-white">{t("common.cancel")}</button>
                 <button
                   onClick={() => postCondolence(c.id)}
                   disabled={posting || replyMsg.trim().length < 2}
-                  className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] text-white text-[11px] font-bold disabled:opacity-40"
+                  className="px-3.5 py-1.5 rounded-full bg-[#2563EB] text-white text-[11px] font-bold disabled:opacity-40"
                 >
                   {posting ? t("memorials.view.composer.sending") : t("memorials.view.sendReply")}
                 </button>
@@ -517,7 +517,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
   };
 
   const videoCard = (v: MemorialVideoItem, managerView: boolean) => (
-    <li key={v.id} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] overflow-hidden">
+    <li key={v.id} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] overflow-hidden">
       <button
         onClick={() => { setPlaying(v); setTimeout(() => playerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150); }}
         className="block w-full text-left group"
@@ -532,7 +532,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             loading="lazy"
           />
           <span className="absolute inset-0 flex items-center justify-center">
-            <span className="w-11 h-11 rounded-full bg-black/60 border border-white/20 flex items-center justify-center group-hover:bg-[#7C3AED]/80 transition-colors">
+            <span className="w-11 h-11 rounded-full bg-black/60 border border-white/20 flex items-center justify-center group-hover:bg-[#2563EB]/80 transition-colors">
               <Film size={17} className="text-white" />
             </span>
           </span>
@@ -557,7 +557,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
           <p className="text-[10px] text-red-300/80 mt-1.5">Admin note: {v.rejectionReason}</p>
         )}
         <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-white/[0.04]">
-          <button onClick={() => setPlaying(v)} className="text-[10px] font-bold text-[#C4B5FD] hover:text-white">Play</button>
+          <button onClick={() => setPlaying(v)} className="text-[10px] font-bold text-[#93C5FD] hover:text-white">Play</button>
           <a href={youtubeWatchUrl(v.videoId)} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-[#64748B] hover:text-white inline-flex items-center gap-1">
             {t("memorials.view.openOnYouTube")} <ExternalLink size={9} />
           </a>
@@ -599,7 +599,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             {isUnpublished && t("memorials.view.banner.unpublished")}
           </p>
           {isDraft && (
-            <button onClick={submitForReview} disabled={submitting} className="px-3 py-1.5 rounded-full bg-[#7C3AED] text-white text-[11px] font-bold hover:bg-[#6D28D9] disabled:opacity-40 shrink-0">
+            <button onClick={submitForReview} disabled={submitting} className="px-3 py-1.5 rounded-full bg-[#2563EB] text-white text-[11px] font-bold hover:bg-[#1D4ED8] disabled:opacity-40 shrink-0">
               {submitting ? t("memorials.view.submitting") : t("memorials.view.submit")}
             </button>
           )}
@@ -618,8 +618,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             unoptimized
           />
         ) : (
-          <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#7C3AED]/25 to-[#1C1929] flex items-center justify-center mx-auto border border-white/10">
-            <Flower2 size={36} className="text-[#C4B5FD]" />
+          <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2563EB]/25 to-[#13294A] flex items-center justify-center mx-auto border border-white/10">
+            <Flower2 size={36} className="text-[#93C5FD]" />
           </div>
         )}
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight mt-5">{m.fullName}</h1>
@@ -644,8 +644,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
               aria-label={data.viewerLitCandle ? t("memorials.view.candleLitRemoveHint") : t("memorials.view.candleAriaLight", { name: m.fullName })}
               className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-40 ${
                 data.viewerLitCandle
-                  ? "bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-amber-200"
-                  : "bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-amber-100 hover:bg-[#F59E0B]/20"
+                  ? "bg-[#F5B84A]/15 border border-[#F5B84A]/40 text-amber-200"
+                  : "bg-[#F5B84A]/10 border border-[#F5B84A]/25 text-amber-100 hover:bg-[#F5B84A]/20"
               }`}
             >
               <Flame size={14} className={data.viewerLitCandle ? "text-amber-300" : "text-amber-200/70"} />
@@ -669,7 +669,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             <button
               onClick={shareToFeed}
               disabled={sharing}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9] disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#2563EB] text-xs font-bold text-white hover:bg-[#1D4ED8] disabled:opacity-40"
             >
               {sharing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("memorials.view.action.shareToFeed")}
             </button>
@@ -697,7 +697,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
       {playing && (
         <div ref={playerRef} className="mb-8 rounded-2xl bg-[#0B0F1A] border border-white/[0.08] overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]">
-            <Film size={13} className="text-[#C4B5FD] shrink-0" />
+            <Film size={13} className="text-[#93C5FD] shrink-0" />
             <p className="text-xs font-bold text-white truncate flex-1">{playing.title}</p>
             <a href={youtubeWatchUrl(playing.videoId)} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-[#64748B] hover:text-white inline-flex items-center gap-1 shrink-0">
               {t("memorials.view.openOnYouTube")} <ExternalLink size={9} />
@@ -732,7 +732,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             aria-selected={activeTab === t.id}
             onClick={() => setTab(t.id)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
-              activeTab === t.id ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"
+              activeTab === t.id ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"
             }`}
           >
             {t.label}
@@ -817,17 +817,17 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
         <div className="space-y-4">
           {/* composer */}
           {isAuthenticated && !isDraft && !isPending ? (
-            <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+            <div className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4">
               <div className="flex gap-1.5 mb-2.5">
                 <button
                   onClick={() => setKind("condolence")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold ${kind === "condolence" ? "bg-[#7C3AED] text-white" : "bg-white/[0.04] text-[#94A3B8]"}`}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold ${kind === "condolence" ? "bg-[#2563EB] text-white" : "bg-white/[0.04] text-[#94A3B8]"}`}
                 >
                   {t("memorials.view.composer.condolence")}
                 </button>
                 <button
                   onClick={() => setKind("memory")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold ${kind === "memory" ? "bg-[#7C3AED] text-white" : "bg-white/[0.04] text-[#94A3B8]"}`}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold ${kind === "memory" ? "bg-[#2563EB] text-white" : "bg-white/[0.04] text-[#94A3B8]"}`}
                 >
                   {t("memorials.view.composer.memory")}
                 </button>
@@ -838,13 +838,13 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
                 rows={3}
                 maxLength={2000}
                 placeholder={kind === "condolence" ? t("memorials.view.composer.condolencePlaceholder") : t("memorials.view.composer.memoryPlaceholder")}
-                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50 resize-none"
+                className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50 resize-none"
               />
               <div className="flex justify-end mt-2">
                 <button
                   onClick={() => postCondolence()}
                   disabled={posting || msg.trim().length < 2}
-                  className="px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
+                  className="px-4 py-2 rounded-full bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40"
                 >
                   {posting ? t("memorials.view.composer.sending") : kind === "condolence" ? t("memorials.view.composer.sendCondolence") : t("memorials.view.composer.shareMemory")}
                 </button>
@@ -852,7 +852,7 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
             </div>
           ) : (
             <p className="text-xs text-[#64748B] text-center py-3">
-              <Link href="/auth/signin" className="text-[#C4B5FD] font-bold hover:text-white">{t("memorials.view.signin")}</Link>
+              <Link href="/auth/signin" className="text-[#93C5FD] font-bold hover:text-white">{t("memorials.view.signin")}</Link>
               {" "}{t("memorials.view.signinPromptTail")}
             </p>
           )}
@@ -874,8 +874,8 @@ export default function MemorialView({ memorialId }: { memorialId: string }) {
       {activeTab === "verse" && (
         <div className="space-y-5">
           {m.verse && (
-            <div className="text-center px-6 py-6 rounded-2xl bg-[#7C3AED]/[0.05] border border-[#7C3AED]/15">
-              <p className="text-[15px] italic text-[#C4B5FD] leading-relaxed">“{m.verse}”</p>
+            <div className="text-center px-6 py-6 rounded-2xl bg-[#2563EB]/[0.05] border border-[#2563EB]/15">
+              <p className="text-[15px] italic text-[#93C5FD] leading-relaxed">“{m.verse}”</p>
               {m.verseRef && <p className="text-[11px] font-bold text-[#64748B] mt-2 uppercase tracking-wider">{m.verseRef}</p>}
             </div>
           )}

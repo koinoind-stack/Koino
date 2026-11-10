@@ -150,7 +150,7 @@ export default function DonationCard() {
           </p>
         </div>
 
-        <div className="relative rounded-3xl bg-gradient-to-b from-[#0B1120] to-[#111827] border border-[#F59E0B]/15 p-6 sm:p-8 shadow-[0_0_80px_-20px_rgba(245,158,11,0.12)]">
+        <div className="relative rounded-3xl bg-gradient-to-b from-[#0B1120] to-[#0F2038] border border-[#F59E0B]/15 p-6 sm:p-8 shadow-[0_0_80px_-20px_rgba(245,158,11,0.12)]">
           {/* Card header */}
           <div className="flex items-center gap-3 mb-6">
             <div className="h-11 w-11 shrink-0 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/25 flex items-center justify-center">
@@ -355,7 +355,7 @@ export default function DonationCard() {
                       marginSize={2}
                       level="Q"
                       bgColor="#ffffff"
-                      fgColor="#111827"
+                      fgColor="#0F2038"
                       style={{ width: 160, height: 160, display: "block" }}
                     />
                   </div>

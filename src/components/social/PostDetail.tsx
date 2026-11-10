@@ -84,6 +84,15 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
           body: JSON.stringify({ content, parentId: repliesFor }),
         });
         await loadReplies(repliesFor);
+        // Part 2: reply counters must move the moment a reply lands — bump
+        // the parent's replyCount and the post's commentCount locally (the
+        // feed itself re-syncs via onChanged → refreshAll).
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === repliesFor ? { ...c, replyCount: (c.replyCount ?? 0) + 1 } : c,
+          ),
+        );
+        setPost((p) => (p ? { ...p, commentCount: p.commentCount + 1 } : p));
       } else {
         const data = await api<{ comment: Comment }>(`/api/social/posts/${postId}/comments`, {
           method: "POST",
@@ -121,7 +130,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
 
   return (
     <div className="fixed inset-0 z-[85] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center">
-      <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-[#071120] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
         {/* header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <h2 className="font-extrabold text-white">{t("postDetail.title")}</h2>
@@ -133,7 +142,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
         <div className="flex-1 overflow-y-auto">
           {loading || !post ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
             </div>
           ) : (
             <>
@@ -175,7 +184,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
                 {nextCursor && (
                   <button
                     onClick={() => loadComments(nextCursor!)}
-                    className="w-full py-3 text-xs font-bold text-[#7C3AED] hover:text-white"
+                    className="w-full py-3 text-xs font-bold text-[#2563EB] hover:text-white"
                   >
                     {t("postDetail.loadMore")}
                   </button>
@@ -200,7 +209,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
             placeholder={repliesFor ? t("postDetail.replyPlaceholder") : t("postDetail.commentPlaceholder")}
             maxLength={1000}
-            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
+            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#2563EB]"
           />
           <EmojiPickerButton
             direction="up"
@@ -210,7 +219,7 @@ export default function PostDetail({ postId, onClose, onOpenProfile, onHashtag, 
           <button
             onClick={submit}
             disabled={!text.trim() || sending}
-            className="w-10 h-10 rounded-full bg-[#7C3AED] flex items-center justify-center text-white disabled:opacity-40"
+            className="w-10 h-10 rounded-full bg-[#2563EB] flex items-center justify-center text-white disabled:opacity-40"
           >
             <Send size={16} />
           </button>
@@ -248,7 +257,7 @@ function CommentRow({
         {comment.user.image ? (
           <Image src={comment.user.image} alt="" width={small ? 24 : 32} height={small ? 24 : 32} className={`${small ? "w-6 h-6" : "w-8 h-8"} rounded-full object-cover`} unoptimized />
         ) : (
-          <div className={`${small ? "w-6 h-6 text-[10px]" : "w-8 h-8 text-xs"} rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white font-bold`}>
+          <div className={`${small ? "w-6 h-6 text-[10px]" : "w-8 h-8 text-xs"} rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white font-bold`}>
             {(comment.user.name || comment.user.username || "?").charAt(0).toUpperCase()}
           </div>
         )}

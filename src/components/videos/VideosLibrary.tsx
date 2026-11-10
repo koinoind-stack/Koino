@@ -126,8 +126,8 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
     <div className="max-w-[1100px] mx-auto px-4 pt-8 pb-24">
       {/* ─── heading ─── */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-4">
-          <Clapperboard size={26} className="text-[#C4B5FD]" />
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 mb-4">
+          <Clapperboard size={26} className="text-[#93C5FD]" />
         </div>
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{t("videos.library.title")}</h1>
         <p className="text-sm text-[#94A3B8] mt-2 max-w-lg mx-auto leading-relaxed">
@@ -137,10 +137,10 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
 
       {/* ─── passage scope banner ─── */}
       {passageScoped && (
-        <div className="mb-6 flex items-center justify-between gap-3 bg-[#7C3AED]/[0.08] border border-[#7C3AED]/25 rounded-2xl px-4 py-3">
+        <div className="mb-6 flex items-center justify-between gap-3 bg-[#2563EB]/[0.08] border border-[#2563EB]/25 rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <BookOpen size={16} className="text-[#C4B5FD] shrink-0" />
-            <p className="text-sm text-[#C4B5FD] font-bold truncate">
+            <BookOpen size={16} className="text-[#93C5FD] shrink-0" />
+            <p className="text-sm text-[#93C5FD] font-bold truncate">
               {t("videos.library.passageScoped", {
                 book: getBook(initialBook || "")?.name || initialBook || "",
                 ch: initialChapter ? ` ${initialChapter}` : "",
@@ -161,14 +161,14 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("videos.library.searchPlaceholder")}
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
           />
         </div>
         <div className="flex gap-2">
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]"
+            className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#2563EB]/50 [&>option]:bg-[#13294A]"
           >
             <option value="">{t("videos.library.allLanguages")}</option>
             {VIDEO_LANGUAGES.map((l) => (
@@ -185,7 +185,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
               setCategory(e.target.value);
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="md:hidden bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none [&>option]:bg-[#1C1929]"
+            className="md:hidden bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white outline-none [&>option]:bg-[#13294A]"
           >
             <option value="">{t("videos.library.allCategories")}</option>
             {VIDEO_CATEGORIES.map((c) => (
@@ -199,7 +199,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
             onClick={() => { setCategory(""); }}
             className={`shrink-0 px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${
               category === ""
-                ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+                ? "bg-[#2563EB] border-[#2563EB] text-white"
                 : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -211,7 +211,7 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
               onClick={() => { setCategory(c.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className={`shrink-0 px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${
                 category === c.id
-                  ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+                  ? "bg-[#2563EB] border-[#2563EB] text-white"
                   : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
               }`}
             >
@@ -266,20 +266,20 @@ export default function VideosLibrary({ initialBook, initialChapter }: { initial
       >
         {loading && videos.length === 0 && (
           <div className="flex flex-col items-center justify-center py-14 gap-3">
-            <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-[#94A3B8]">{t("videos.library.loading")}</p>
           </div>
         )}
         {loaded && !loading && videos.length === 0 && loadError && (
           <div className="flex flex-col items-center justify-center py-14 gap-3">
-            <TriangleAlert size={32} className="text-[#F59E0B]" />
+            <TriangleAlert size={32} className="text-[#F5B84A]" />
             <p className="text-sm font-bold text-[#94A3B8]">{t("videos.library.errorTitle")}</p>
             <p className="text-xs text-[#64748B] max-w-xs mx-auto">
               {t("common.error.checkConnection")}
             </p>
             <button
               onClick={() => load()}
-              className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
+              className="mt-1 px-5 py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-extrabold"
             >
               {t("common.retry")}
             </button>

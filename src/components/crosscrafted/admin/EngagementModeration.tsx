@@ -114,7 +114,7 @@ export default function EngagementModeration() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-1 h-5 rounded-full bg-[#7C3AED]" />
+        <div className="w-1 h-5 rounded-full bg-[#2563EB]" />
         <h2 className="text-sm font-bold text-white">Engagement moderation</h2>
         {tab === "reports" && pendingReports > 0 && (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EF4444]/15 text-[#EF4444]">
@@ -127,7 +127,7 @@ export default function EngagementModeration() {
         <button
           onClick={() => setTab("comments")}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-            tab === "comments" ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+            tab === "comments" ? "bg-[#2563EB]/25 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           Comments
@@ -135,7 +135,7 @@ export default function EngagementModeration() {
         <button
           onClick={() => setTab("reports")}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-            tab === "reports" ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+            tab === "reports" ? "bg-[#2563EB]/25 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           Reports
@@ -144,10 +144,10 @@ export default function EngagementModeration() {
 
       {loading ? (
         <div className="flex items-center justify-center py-10">
-          <div className="w-7 h-7 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
+          <div className="w-7 h-7 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
         </div>
       ) : migrationPending ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <p className="text-sm text-[#94A3B8]">
             The engagement tables aren't in the database yet — run the PART 2
             migration SQL in Supabase, then reload.
@@ -155,7 +155,7 @@ export default function EngagementModeration() {
         </div>
       ) : tab === "comments" ? (
         comments.length === 0 ? (
-          <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+          <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
             <MessageCircle size={28} className="mx-auto text-[#475569] mb-2" />
             <p className="text-sm text-[#94A3B8]">No comments yet.</p>
           </div>
@@ -164,7 +164,7 @@ export default function EngagementModeration() {
             {comments.map((c) => (
               <div
                 key={c.id}
-                className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3"
+                className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
@@ -181,7 +181,7 @@ export default function EngagementModeration() {
                       c.status === "visible"
                         ? "bg-[#22C55E]/15 text-[#22C55E]"
                         : c.status === "hidden"
-                          ? "bg-[#F59E0B]/15 text-[#F59E0B]"
+                          ? "bg-[#F5B84A]/15 text-[#F5B84A]"
                           : "bg-[#EF4444]/15 text-[#EF4444]"
                     }`}
                   >
@@ -197,7 +197,7 @@ export default function EngagementModeration() {
                       {c.status === "visible" ? (
                         <button
                           onClick={() => act("comment_hide", c.id)}
-                          className="flex items-center gap-1 text-[10px] font-bold text-[#F59E0B] hover:bg-[#F59E0B]/10 rounded-lg px-2 py-1 transition-colors"
+                          className="flex items-center gap-1 text-[10px] font-bold text-[#F5B84A] hover:bg-[#F5B84A]/10 rounded-lg px-2 py-1 transition-colors"
                         >
                           <EyeOff size={11} /> Hide
                         </button>
@@ -227,7 +227,7 @@ export default function EngagementModeration() {
           </div>
         )
       ) : reports.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <CheckCheck size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">No reports — all clear.</p>
         </div>
@@ -236,18 +236,18 @@ export default function EngagementModeration() {
           {reports.map((r) => (
             <div
               key={r.id}
-              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3"
+              className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-3"
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <p className="text-xs font-bold text-white">
-                  <AlertTriangle size={11} className="inline text-[#F59E0B] mr-1 -mt-0.5" />
+                  <AlertTriangle size={11} className="inline text-[#F5B84A] mr-1 -mt-0.5" />
                   {REPORT_TYPE_LABEL[r.targetType] || r.targetType} reported
                   <span className="ml-2 font-normal text-[10px] text-[#64748B]">{timeAgo(r.createdAt)}</span>
                 </p>
                 <span
                   className={`shrink-0 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
                     r.status === "pending"
-                      ? "bg-[#F59E0B]/15 text-[#F59E0B]"
+                      ? "bg-[#F5B84A]/15 text-[#F5B84A]"
                       : r.status === "reviewed"
                         ? "bg-[#22C55E]/15 text-[#22C55E]"
                         : "bg-white/[0.06] text-[#94A3B8]"

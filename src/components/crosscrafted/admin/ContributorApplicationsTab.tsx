@@ -75,8 +75,8 @@ type StatusMeta = { id: string; label: string; color: string };
 // Status colors:
 // pending=amber, under_review=blue, approved=green, rejected=red, suspended=gray
 const STATUS_META: StatusMeta[] = [
-  { id: "pending", label: "Pending", color: "#F59E0B" },
-  { id: "under_review", label: "Under Review", color: "#38BDF8" },
+  { id: "pending", label: "Pending", color: "#F5B84A" },
+  { id: "under_review", label: "Under Review", color: "#22D3EE" },
   { id: "approved", label: "Approved", color: "#22C55E" },
   { id: "rejected", label: "Rejected", color: "#EF4444" },
   { id: "suspended", label: "Suspended", color: "#94A3B8" },
@@ -362,7 +362,7 @@ export default function ContributorApplicationsTab() {
       <div className="flex items-center gap-2">
         <div className="w-1 h-5 rounded-full bg-[#A855F7]" />
         <h2 className="text-sm font-bold text-white">Contributor Applications</h2>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#A855F7]/15 text-[#C4B5FD]">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#A855F7]/15 text-[#93C5FD]">
           {counts.total}
         </span>
       </div>
@@ -408,7 +408,7 @@ export default function ContributorApplicationsTab() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <UserCheck size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {search ? "No applications match your search." : "No contributor applications yet."}
@@ -423,7 +423,7 @@ export default function ContributorApplicationsTab() {
               <button
                 key={a.id}
                 onClick={() => openApp(a)}
-                className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
+                className="w-full text-left bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0 flex-1">
@@ -443,7 +443,7 @@ export default function ContributorApplicationsTab() {
                   {(a.contentInterests || []).slice(0, 3).map((c: any, i: number) => (
                     <span
                       key={i}
-                      className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#C4B5FD] text-[9px] font-bold"
+                      className="px-1.5 py-0.5 rounded-md bg-[#2563EB]/10 border border-[#2563EB]/20 text-[#93C5FD] text-[9px] font-bold"
                     >
                       {typeof c === "string" ? c : c?.label || c?.name || "—"}
                     </span>
@@ -508,10 +508,10 @@ export default function ContributorApplicationsTab() {
           {(selected.expertise.length > 0 || selected.contentInterests.length > 0) && (
             <div className="mb-3 space-y-2">
               {selected.expertise.length > 0 && (
-                <TagBlock label="Expertise" items={selected.expertise} color="#38BDF8" />
+                <TagBlock label="Expertise" items={selected.expertise} color="#22D3EE" />
               )}
               {selected.contentInterests.length > 0 && (
-                <TagBlock label="Content Interests" items={selected.contentInterests} color="#7C3AED" />
+                <TagBlock label="Content Interests" items={selected.contentInterests} color="#2563EB" />
               )}
             </div>
           )}
@@ -547,7 +547,7 @@ export default function ContributorApplicationsTab() {
                       href={href}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] text-[#38BDF8] hover:underline"
+                      className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] text-[#22D3EE] hover:underline"
                     >
                       {label}
                     </a>
@@ -564,7 +564,7 @@ export default function ContributorApplicationsTab() {
                 Linked Contributor
               </p>
               <p className="text-[11px] text-white">
-                slug: <code className="font-mono text-[#C4B5FD]">{selected.contributor.slug}</code>
+                slug: <code className="font-mono text-[#93C5FD]">{selected.contributor.slug}</code>
               </p>
             </div>
           )}
@@ -613,12 +613,12 @@ export default function ContributorApplicationsTab() {
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                Admin Notes <span className="text-[#F59E0B] normal-case font-normal">(internal)</span>
+                Admin Notes <span className="text-[#F5B84A] normal-case font-normal">(internal)</span>
               </p>
               <button
                 onClick={saveNotes}
                 disabled={savingNotes}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
               >
                 {savingNotes ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -647,8 +647,8 @@ export default function ContributorApplicationsTab() {
                   action === "reject"
                     ? "bg-[#EF4444] hover:bg-[#DC2626]"
                     : action === "suspend"
-                    ? "bg-[#F59E0B] hover:bg-[#D97706] text-slate-950"
-                    : "bg-[#7C3AED] hover:bg-[#6D28D9]"
+                    ? "bg-[#F5B84A] hover:bg-[#D97706] text-slate-950"
+                    : "bg-[#2563EB] hover:bg-[#1D4ED8]"
                 }`}
               >
                 {updatingAction === action ? (
@@ -695,7 +695,7 @@ function FilterChip({
     <button
       onClick={onClick}
       className={`bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all ${
-        active ? "bg-[#7C3AED] text-white border-[#7C3AED]" : "text-[#94A3B8] hover:text-white"
+        active ? "bg-[#2563EB] text-white border-[#2563EB]" : "text-[#94A3B8] hover:text-white"
       }`}
     >
       {label}
@@ -746,7 +746,7 @@ function DetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end mb-2">
@@ -788,8 +788,8 @@ function DetailHeader({
           className="w-12 h-12 rounded-full object-cover border border-white/[0.08] shrink-0"
         />
       ) : (
-        <div className="w-12 h-12 rounded-full bg-[#7C3AED]/15 border border-[#7C3AED]/30 flex items-center justify-center shrink-0">
-          <UserCheck size={20} className="text-[#A78BFA]" />
+        <div className="w-12 h-12 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/30 flex items-center justify-center shrink-0">
+          <UserCheck size={20} className="text-[#60A5FA]" />
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -828,7 +828,7 @@ function Meta({
           href={href}
           target="_blank"
           rel="noreferrer noopener"
-          className="text-[11px] text-[#38BDF8] hover:underline truncate block"
+          className="text-[11px] text-[#22D3EE] hover:underline truncate block"
         >
           {value}
         </a>
@@ -950,7 +950,7 @@ function DesignateMemberBox() {
   };
 
   return (
-    <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden">
+    <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
@@ -1002,7 +1002,7 @@ function DesignateMemberBox() {
                   ) : (
                     <button
                       onClick={() => designate(m)}
-                      className="shrink-0 bg-[#A855F7]/15 hover:bg-[#A855F7]/25 border border-[#A855F7]/40 text-[#C4B5FD] text-[10px] font-bold rounded-lg px-2.5 py-1.5 transition-colors"
+                      className="shrink-0 bg-[#A855F7]/15 hover:bg-[#A855F7]/25 border border-[#A855F7]/40 text-[#93C5FD] text-[10px] font-bold rounded-lg px-2.5 py-1.5 transition-colors"
                     >
                       Designate
                     </button>

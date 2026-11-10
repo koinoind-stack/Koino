@@ -56,7 +56,7 @@ const AGE_CHOICES = Array.from(
 );
 
 const selectCls =
-  "bg-white/[0.04] border border-white/[0.06] rounded-xl px-2.5 py-2 text-[12.5px] text-white outline-none focus:border-[#7C3AED]/50 disabled:opacity-40 [&>option]:bg-[#1C1929] min-w-0";
+  "bg-white/[0.04] border border-white/[0.06] rounded-xl px-2.5 py-2 text-[12.5px] text-white outline-none focus:border-[#2563EB]/50 disabled:opacity-40 [&>option]:bg-[#13294A] min-w-0";
 
 export default function MatrimonyDiscover() {
   const t = useTranslation();
@@ -148,7 +148,7 @@ export default function MatrimonyDiscover() {
           onChange={(e) => setQ(e.target.value)}
           maxLength={MATRIMONY_DISCOVERY_LIMITS.qMax}
           placeholder={t("matrimony.discover.searchPlaceholder")}
-          className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+          className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
         />
       </div>
 
@@ -204,7 +204,7 @@ export default function MatrimonyDiscover() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="rounded-2xl bg-[#1C1929] border border-white/[0.06] overflow-hidden animate-pulse">
+              <div key={i} className="rounded-2xl bg-[#13294A] border border-white/[0.06] overflow-hidden animate-pulse">
                 <div className="aspect-[4/3] bg-white/[0.04]" />
                 <div className="p-4 space-y-2.5">
                   <div className="w-1/3 h-4 bg-white/10 rounded" />
@@ -283,7 +283,7 @@ function DiscoverCardView({ card }: { card: DiscoverCard }) {
   const connectionsOnly = card.photoVisibility === "CONNECTIONS_ONLY";
 
   return (
-    <div className="rounded-2xl bg-gradient-to-b from-[#2B254E]/40 to-[#1C1929] border border-white/[0.06] overflow-hidden">
+    <div className="rounded-2xl bg-gradient-to-b from-[#1A3A66]/40 to-[#13294A] border border-white/[0.06] overflow-hidden">
       {/* Photo / placeholder */}
       <div className="relative aspect-[4/3] bg-white/[0.03]">
         {card.photo ? (
@@ -316,14 +316,14 @@ function DiscoverCardView({ card }: { card: DiscoverCard }) {
 
         {(card.state || card.city) && (
           <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#B7C0D0]">
-            <MapPin size={13} className="text-[#7C3AED] shrink-0" />
+            <MapPin size={13} className="text-[#2563EB] shrink-0" />
             <span className="truncate">{[card.city, card.state].filter(Boolean).join(", ")}</span>
           </p>
         )}
 
         {card.languages.length > 0 && (
           <p className="mt-2 flex items-start gap-1.5 text-[12.5px] text-[#B7C0D0]">
-            <Languages size={13} className="text-[#7C3AED] mt-0.5 shrink-0" />
+            <Languages size={13} className="text-[#2563EB] mt-0.5 shrink-0" />
             <span className="line-clamp-2">{card.languages.join(" · ")}</span>
           </p>
         )}
@@ -331,12 +331,12 @@ function DiscoverCardView({ card }: { card: DiscoverCard }) {
         {(intention || timeline) && (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {intention && (
-              <span className="px-2.5 py-1 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[11px] font-bold text-[#F39B9B]">
+              <span className="px-2.5 py-1 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[11px] font-bold text-[#F97316]">
                 {intention.label}
               </span>
             )}
             {timeline && (
-              <span className="px-2.5 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[11px] font-bold text-[#C4B5FD]">
+              <span className="px-2.5 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 text-[11px] font-bold text-[#93C5FD]">
                 {timeline.label}
               </span>
             )}

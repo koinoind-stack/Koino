@@ -89,7 +89,7 @@ function formatDate(iso: string): string {
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
     case "new":
-      return { label: "New", color: "#F59E0B" };
+      return { label: "New", color: "#F5B84A" };
     case "in_review":
       return { label: "In Review", color: "#3B82F6" };
     case "answered":
@@ -189,7 +189,7 @@ export default function QuestionsTab() {
   if (loading && questions.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
       </div>
     );
   }
@@ -198,14 +198,14 @@ export default function QuestionsTab() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="w-1 h-5 rounded-full bg-[#38BDF8]" />
+        <div className="w-1 h-5 rounded-full bg-[#22D3EE]" />
         <h2 className="text-sm font-bold text-white">Apologetics Q&amp;A</h2>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#38BDF8]/15 text-[#38BDF8]">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#22D3EE]/15 text-[#22D3EE]">
           {counts.all}
         </span>
         <button
           onClick={openCreate}
-          className="ml-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
+          className="ml-auto bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
         >
           <Plus size={12} />
           Create Q&amp;A
@@ -225,7 +225,7 @@ export default function QuestionsTab() {
           onClick={() => setFilter("new")}
           label="New"
           count={counts.new}
-          color="#F59E0B"
+          color="#F5B84A"
         />
         <FilterChip
           active={filter === "in_review"}
@@ -289,7 +289,7 @@ export default function QuestionsTab() {
 
       {/* Empty state */}
       {!loading && !error && filtered.length === 0 && (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <HelpCircle size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {search || filter !== "all"
@@ -299,7 +299,7 @@ export default function QuestionsTab() {
           {!search && filter === "all" && (
             <button
               onClick={openCreate}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#A78BFA] hover:text-white"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#60A5FA] hover:text-white"
             >
               <Plus size={12} /> Create the first Q&amp;A
             </button>
@@ -318,7 +318,7 @@ export default function QuestionsTab() {
               <button
                 key={q.id}
                 onClick={() => openEdit(q)}
-                className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
+                className="w-full text-left bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
               >
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <h3 className="text-sm font-bold text-white line-clamp-2 flex-1 min-w-0">
@@ -344,7 +344,7 @@ export default function QuestionsTab() {
                       <CheckCircle2 size={9} /> Answered
                     </span>
                   ) : (
-                    <span className="flex items-center gap-0.5 text-[#F59E0B] font-bold">
+                    <span className="flex items-center gap-0.5 text-[#F5B84A] font-bold">
                       <MessageCircle size={9} /> No answer
                     </span>
                   )}
@@ -393,7 +393,7 @@ function FilterChip({
   count: number;
   color?: string;
 }) {
-  const activeBg = color || "#7C3AED";
+  const activeBg = color || "#2563EB";
   return (
     <button
       onClick={onClick}
@@ -439,7 +439,7 @@ function Field({
   return (
     <div>
       <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-        {label} {required && <span className="text-[#F39B9B]">*</span>}
+        {label} {required && <span className="text-[#F97316]">*</span>}
       </label>
       {children}
       {hint && <p className="mt-1 text-[10px] text-[#64748B] leading-relaxed">{hint}</p>}
@@ -668,13 +668,13 @@ function QuestionDetailModal({
       }}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <HelpCircle size={14} className="text-[#38BDF8] shrink-0" />
+            <HelpCircle size={14} className="text-[#22D3EE] shrink-0" />
             <h2 className="text-sm font-extrabold text-white truncate">{t("admin.questions.detailTitle")}</h2>
             <StatusBadge color={meta.color} label={meta.label} />
           </div>
@@ -708,7 +708,7 @@ function QuestionDetailModal({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="neo-input text-sm bg-[#1C1929]"
+                  className="neo-input text-sm bg-[#13294A]"
                 >
                   <option value="">— None —</option>
                   {APOLOGETICS_CATEGORIES.map((c) => (
@@ -784,8 +784,8 @@ function QuestionDetailModal({
 
           {/* PART 2: contributor answer awaiting review */}
           {question.contributorAnswer && question.contributorAnswerStatus === "pending" && (
-            <div className="rounded-xl border border-[#38BDF8]/30 bg-[#38BDF8]/8 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8] mb-1">
+            <div className="rounded-xl border border-[#22D3EE]/30 bg-[#22D3EE]/8 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE] mb-1">
                 Contributor answer — awaiting review
                 {question.contributorAnswerName && ` by ${question.contributorAnswerName}`}
               </p>
@@ -830,7 +830,7 @@ function QuestionDetailModal({
                 type="button"
                 onClick={() => setPreviewAnswer(false)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  !previewAnswer ? "bg-[#7C3AED]/20 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+                  !previewAnswer ? "bg-[#2563EB]/20 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
                 }`}
               >
                 Edit
@@ -839,7 +839,7 @@ function QuestionDetailModal({
                 type="button"
                 onClick={() => setPreviewAnswer(true)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewAnswer ? "bg-[#7C3AED]/20 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+                  previewAnswer ? "bg-[#2563EB]/20 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
                 }`}
               >
                 Preview (how readers see it)
@@ -856,7 +856,7 @@ function QuestionDetailModal({
                 {bibleRefs.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-white/[0.06]">
                     {bibleRefs.map((r) => (
-                      <span key={r} className="bg-[#38BDF8]/10 text-[#38BDF8] text-[10px] font-bold px-2 py-1 rounded-md">
+                      <span key={r} className="bg-[#22D3EE]/10 text-[#22D3EE] text-[10px] font-bold px-2 py-1 rounded-md">
                         {r}
                       </span>
                     ))}
@@ -884,7 +884,7 @@ function QuestionDetailModal({
             <button
               onClick={handleSaveAnswer}
               disabled={saving || !answer.trim()}
-              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <Loader2 size={12} className="animate-spin" />
@@ -1059,13 +1059,13 @@ function CreateQAModal({
       }}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Plus size={14} className="text-[#A78BFA] shrink-0" />
+            <Plus size={14} className="text-[#60A5FA] shrink-0" />
             <h2 className="text-sm font-extrabold text-white truncate">{t("admin.questions.createTitle")}</h2>
           </div>
           <button
@@ -1115,7 +1115,7 @@ function CreateQAModal({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="neo-input text-sm bg-[#1C1929]"
+                className="neo-input text-sm bg-[#13294A]"
                 disabled={creating}
               >
                 <option value="">— None —</option>
@@ -1151,7 +1151,7 @@ function CreateQAModal({
             <button
               type="submit"
               disabled={creating || !question.trim()}
-              className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {creating ? (
                 <>

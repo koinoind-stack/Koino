@@ -80,7 +80,7 @@ export default function ReactionBar({
               compact ? "px-2 py-1 text-[10px]" : "px-2.5 py-1.5 text-[11px]"
             } ${
               mine
-                ? "bg-[#7C3AED]/20 border border-[#7C3AED]/40 text-[#C4B5FD]"
+                ? "bg-[#2563EB]/20 border border-[#2563EB]/40 text-[#93C5FD]"
                 : "bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white hover:border-white/[0.2]"
             }`}
           >

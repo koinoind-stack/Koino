@@ -167,7 +167,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           <h1 className="text-xl md:text-2xl font-black text-white tracking-tight inline-flex items-center gap-2">
-            <MonitorPlay size={22} className="text-[#C4B5FD]" /> {t("watch.title")}
+            <MonitorPlay size={22} className="text-[#93C5FD]" /> {t("watch.title")}
           </h1>
           <p className="text-xs md:text-sm text-[#94A3B8] mt-1">
             {t("watch.subtitle")}
@@ -176,13 +176,13 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
         <div className="hidden sm:flex items-center gap-2 shrink-0">
           <a
             href="/videos"
-            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
+            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#93C5FD] hover:border-[#2563EB]/50"
           >
             <Clapperboard size={13} /> {t("watch.fullLibrary")}
           </a>
           <button
             onClick={onOpenComics}
-            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
+            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#93C5FD] hover:border-[#2563EB]/50"
           >
             <Palette size={13} /> {t("feature.comics.title")}
           </button>
@@ -197,7 +197,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
             onClick={() => setTab(tb.id)}
             className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
               tab === tb.id
-                ? "bg-[#7C3AED] border-transparent text-white"
+                ? "bg-[#2563EB] border-transparent text-white"
                 : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white hover:border-white/25"
             }`}
           >
@@ -210,13 +210,13 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
       <div className="flex sm:hidden items-center gap-2 mb-4">
         <a
           href="/videos"
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD]"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#93C5FD]"
         >
           <Clapperboard size={12} /> {t("watch.fullLibrary")}
         </a>
         <button
           onClick={onOpenComics}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#C4B5FD]"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-bold text-[#93C5FD]"
         >
           <Palette size={12} /> {t("feature.comics.title")}
         </button>
@@ -228,7 +228,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
           <p className="text-sm text-[#64748B]">{t("watch.loadError")}</p>
           <button
             onClick={load}
-            className="px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9]"
+            className="px-4 py-2 rounded-full bg-[#2563EB] text-xs font-bold text-white hover:bg-[#1D4ED8]"
           >
             {t("common.retry")}
           </button>
@@ -237,7 +237,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
 
       {loading ? (
         <div className="flex justify-center py-14">
-          <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       ) : (
         <>
@@ -267,7 +267,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                     </h3>
                     <button
                       onClick={() => setTab("reels")}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2563EB] hover:text-[#60A5FA]"
                     >
                       {t("common.seeAll")} <ChevronRight size={12} />
                     </button>
@@ -283,7 +283,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                           className="group shrink-0 w-[120px] text-left"
                           title={p.content || t("watch.reelTitleFallback")}
                         >
-                          <div className="relative aspect-[9/16] rounded-2xl overflow-hidden border border-white/[0.08] bg-[#1C1929] group-hover:border-[#7C3AED]/40 transition-colors">
+                          <div className="relative aspect-[9/16] rounded-2xl overflow-hidden border border-white/[0.08] bg-[#13294A] group-hover:border-[#2563EB]/40 transition-colors">
                             {thumb ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -293,8 +293,8 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                                 className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
                               />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-[#7C3AED]/25 via-[#1C1929] to-[#0B1120] flex items-center justify-center">
-                                <Film size={22} className="text-[#7C3AED]" />
+                              <div className="w-full h-full bg-gradient-to-br from-[#2563EB]/25 via-[#13294A] to-[#0A1729] flex items-center justify-center">
+                                <Film size={22} className="text-[#2563EB]" />
                               </div>
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -353,7 +353,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                 </h3>
                 <button
                   onClick={() => setFullscreenReels(true)}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2563EB] hover:text-[#60A5FA]"
                 >
                   <Maximize2 size={12} /> {t("watch.fullScreen")}
                 </button>
@@ -383,7 +383,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                       onClick={() => setBookFilter("")}
                       className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
                         bookFilter === ""
-                          ? "bg-[#7C3AED] border-transparent text-white"
+                          ? "bg-[#2563EB] border-transparent text-white"
                           : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
                       }`}
                     >
@@ -395,7 +395,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
                         onClick={() => setBookFilter(bookFilter === b.bookId ? "" : b.bookId)}
                         className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
                           bookFilter === b.bookId
-                            ? "bg-[#7C3AED] border-transparent text-white"
+                            ? "bg-[#2563EB] border-transparent text-white"
                             : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
                         }`}
                       >
@@ -457,7 +457,7 @@ export default function WatchView({ onOpenProfile, onOpenCreate, onOpenComics, o
           {!loadError && (tab === "bible" || tab === "christian") && videos.length === 0 && (
             <a
               href="/videos"
-              className="mt-4 flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-4 py-3 text-sm text-[#94A3B8] hover:border-[#7C3AED]/40"
+              className="mt-4 flex items-center justify-between rounded-2xl border border-dashed border-white/10 px-4 py-3 text-sm text-[#94A3B8] hover:border-[#2563EB]/40"
             >
               <span>{t("watch.browseLibrary")}</span>
               <ChevronRight size={15} />
@@ -509,7 +509,7 @@ function CategoryChips({
         onClick={() => onPick("")}
         className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
           active === ""
-            ? "bg-[#7C3AED] border-transparent text-white"
+            ? "bg-[#2563EB] border-transparent text-white"
             : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
         }`}
       >
@@ -521,7 +521,7 @@ function CategoryChips({
           onClick={() => onPick(active === c ? "" : c)}
           className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
             active === c
-              ? "bg-[#7C3AED] border-transparent text-white"
+              ? "bg-[#2563EB] border-transparent text-white"
               : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
           }`}
         >
@@ -549,7 +549,7 @@ function EmptyLibrary({
       <p className="text-xs text-[#64748B] max-w-sm">{body}</p>
       <a
         href="/videos"
-        className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#7C3AED] hover:text-[#A78BFA]"
+        className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:text-[#60A5FA]"
       >
         {t("watch.openLibrary")} <ChevronRight size={13} />
       </a>

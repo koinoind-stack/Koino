@@ -193,7 +193,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
   if (loading && !data) {
     return (
       <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
@@ -214,7 +214,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           </button>
           <button
             onClick={() => load(tab)}
-            className="px-4 py-2 rounded-full bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9]"
+            className="px-4 py-2 rounded-full bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8]"
           >
             {t("common.retry")}
           </button>
@@ -239,7 +239,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
         </button>
         <h1 className="text-lg font-extrabold text-white flex items-center gap-1">
           @{username}
-          {data.user.verified && <BadgeCheck size={16} className="text-[#38BDF8]" />}
+          {data.user.verified && <BadgeCheck size={16} className="text-[#22D3EE]" />}
         </h1>
         <div className="flex-1" />
         <div className="relative">
@@ -249,7 +249,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-9 z-50 w-44 bg-[#1C1929] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+              <div className="absolute right-0 top-9 z-50 w-44 bg-[#13294A] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
                 <button onClick={report} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-white hover:bg-white/5">
                   <Flag size={15} /> Report
                 </button>
@@ -269,7 +269,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
         {data.user.image ? (
           <Image src={data.user.image} alt="" width={80} height={80} className="w-20 h-20 rounded-full object-cover" unoptimized />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white text-2xl font-black">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-2xl font-black">
             {(data.user.name || data.user.username || "?").charAt(0).toUpperCase()}
           </div>
         )}
@@ -296,7 +296,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           {data.user.role === "admin" && (
             <span
               title={t("profile.adminTitle")}
-              className="shrink-0 px-1.5 py-px rounded bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
+              className="shrink-0 px-1.5 py-px rounded bg-gradient-to-r from-[#2563EB] to-[#F97316] text-[8px] font-extrabold text-white uppercase tracking-wide leading-none"
             >
               {t("group.role.admin")}
             </span>
@@ -316,9 +316,9 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
           return (
             <span
               title={t("profile.communityRoleTitle")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[11px] font-bold text-[#C4B5FD] mt-2.5"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/30 text-[11px] font-bold text-[#93C5FD] mt-2.5"
             >
-              <Church size={12} className="text-[#7C3AED]" />
+              <Church size={12} className="text-[#2563EB]" />
               {roleLabel}
             </span>
           );
@@ -341,7 +341,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
                   title={url}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-bold text-[#CBD5E1] hover:bg-white/10 hover:text-white transition-colors"
                 >
-                  <Icon size={12} className="text-[#7C3AED]" />
+                  <Icon size={12} className="text-[#2563EB]" />
                   {key === "website" ? label : linkChipLabel(key, url)}
                   <span className="text-[#64748B] font-semibold">· {label}</span>
                 </a>
@@ -355,13 +355,13 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
       {data.faith && (data.faith.points > 0 || data.faith.badges.length > 0) && (
         <div className="mb-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[11px] font-extrabold text-[#FCD34D]">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F5B84A]/10 border border-[#F5B84A]/30 text-[11px] font-extrabold text-[#FCD34D]">
               ⚡ {t("common.faithPoints", { count: data.faith.points.toLocaleString() })}
             </span>
             {data.faith.tier && (
               <span
                 title={t("profile.tierTitle")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[11px] font-bold text-[#C4B5FD]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/30 text-[11px] font-bold text-[#93C5FD]"
               >
                 {data.faith.tierIcon && <span>{data.faith.tierIcon}</span>}
                 {data.faith.tier}
@@ -401,7 +401,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
             className={`flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all ${
               data.viewerFollows
                 ? "bg-white/[0.06] border border-white/10 text-white hover:bg-white/10"
-                : "bg-[#7C3AED] text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]"
+                : "bg-[#2563EB] text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"
             }`}
           >
             {data.viewerFollows ? t("churches.following") : t("churches.follow")}
@@ -463,7 +463,7 @@ export default function SocialProfileView({ username, onBack, onOpenProfile, onH
       <div ref={sentinel} />
       {loadingMore && (
         <div className="flex justify-center py-4">
-          <div className="w-6 h-6 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       )}
 
@@ -529,7 +529,7 @@ function FollowListModal({
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[#12101A] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-sm max-h-[70vh] flex flex-col overflow-hidden">
+      <div className="bg-[#071120] border border-white/10 rounded-t-[28px] md:rounded-[24px] w-full md:max-w-sm max-h-[70vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <h2 className="font-extrabold text-white capitalize">{t(list === "followers" ? "profile.followersHeading" : "profile.count.following")}</h2>
           <button onClick={onClose} className="text-[#94A3B8] text-sm font-bold">{t("profile.done")}</button>
@@ -544,7 +544,7 @@ function FollowListModal({
               {u.image ? (
                 <Image src={u.image} alt="" width={36} height={36} className="w-9 h-9 rounded-full object-cover" unoptimized />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white font-bold text-sm">
                   {(u.name || u.username || "?").charAt(0).toUpperCase()}
                 </div>
               )}
@@ -556,7 +556,7 @@ function FollowListModal({
           ))}
           {loading && <p className="text-center text-xs text-[#64748B] py-4">Loading…</p>}
           {!loading && hasMore && (
-            <button onClick={() => { const p = page + 1; setPage(p); load(p); }} className="w-full py-3 text-xs font-bold text-[#7C3AED]">
+            <button onClick={() => { const p = page + 1; setPage(p); load(p); }} className="w-full py-3 text-xs font-bold text-[#2563EB]">
               {t("profile.loadMore")}
             </button>
           )}

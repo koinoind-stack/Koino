@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth-server";
 import { isPubliclyVisible } from "@/lib/blog";
+import { isDuplicateNotification, type NotificationIdentity } from "@/lib/social/feed-utils";
 
 /**
  * Shared server helpers for /api/social/* routes (Task 50).
@@ -89,7 +90,15 @@ export async function getBlockFilter(
 }
 
 /**
- * Create a notification, never for: self-actions or blocked pairs.
+ * Create a notification, never for: self-actions, blocked pairs, or events
+ * the recipient has already been told about (Part 2 dedup).
+ *
+ * WHY dedup: like/repost are toggles — like → unlike → like must not stack a
+ * second "liked your post" row onto the recipient's feed. Comment/reply rows
+ * are naturally unique through commentId; the same identity check covers
+ * them without special cases. The pure decision lives in
+ * `isDuplicateNotification` (feed-utils.ts, unit-tested in
+ * tests/notification-dedup.test.ts) — this wrapper only adds the lookup.
  * Fire-and-forget safe: callers may `await` or ignore; failures are logged.
  */
 export async function notify(input: {
@@ -104,6 +113,16 @@ export async function notify(input: {
   if (!actorId || actorId === userId) return; // never notify yourself
   if (await areBlocked(userId, actorId)) return; // never notify across blocks
   try {
+    // Narrow the candidate set on the always-required identity fields, then
+    // let the unit-tested pure helper decide on the optional target fields
+    // (postId/commentId/storyId) — null-vs-value mismatches included.
+    const candidates = await db.notification.findMany({
+      where: { userId, actorId, type },
+      select: { userId: true, actorId: true, type: true, postId: true, commentId: true, storyId: true },
+      take: 25,
+    });
+    const incoming: NotificationIdentity = { userId, actorId, type, postId, commentId, storyId };
+    if (candidates.some((c) => isDuplicateNotification(c, incoming))) return; // already notified — never duplicate
     await db.notification.create({
       data: { userId, actorId, type, postId: postId ?? null, commentId: commentId ?? null, storyId: storyId ?? null },
     });
@@ -195,7 +214,7 @@ export type SerializedPost = {
     isReel: boolean;
     author: { id: string; name: string | null; username: string | null; image: string | null };
   } | null;
-  viewer: { liked: boolean; bookmarked: boolean; following: boolean };
+  viewer: { liked: boolean; bookmarked: boolean; following: boolean; reposted: boolean };
 };
 
 /**
@@ -229,7 +248,7 @@ export const postSelect = {
       status: true,
       published: true,
       publishedAt: true,
-      scheduledAt: true, // Phase 1 security fix 2: gate must see the schedule hold
+      scheduledAt: true, // gate must see the schedule hold (4-leg visibility)
     },
   },
   editedAt: true,
@@ -262,9 +281,40 @@ function safeParseUrls(raw: string): string[] {
 }
 
 /**
+ * Repost marker set for a viewer across a page of posts (single query).
+ *
+ * A repost is a Post row authored by the viewer with `repostedFromId` set —
+ * both the hidden plain-repost marker (published:false, created by the
+ * toggle route) and a published quote-repost count as "the viewer reposted
+ * this". Returns the set of ORIGINAL post ids the viewer has reposted.
+ */
+export async function fetchViewerRepostSet(
+  viewerId: string | null,
+  postIds: string[],
+): Promise<Set<string>> {
+  if (!viewerId || postIds.length === 0) return new Set<string>();
+  // Defensive: a viewer-repost lookup failure must never 500 the whole feed
+  // serialization (degrades to "viewer has not reposted anything").
+  try {
+    const markers = await db.post.findMany({
+      where: { authorId: viewerId, repostedFromId: { in: postIds } },
+      select: { repostedFromId: true },
+    });
+    return new Set(
+      markers
+        .map((m) => m.repostedFromId)
+        .filter((v): v is string => typeof v === "string"),
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+/**
  * Serialize post rows + attach viewer flags in ONE extra batched query set
- * (not N+1): likes/bookmarks for this viewer across the page, and the
- * follow map for the page's authors.
+ * (not N+1): likes/bookmarks for this viewer across the page, the follow
+ * map for the page's authors, and (Part 2) the viewer's repost markers so
+ * cards can render active repost state and offer undo.
  */
 export async function serializePosts(
   rows: any[],
@@ -276,19 +326,22 @@ export async function serializePosts(
   let likedSet = new Set<string>();
   let bookmarkedSet = new Set<string>();
   let followingSet = new Set<string>();
+  let repostedSet = new Set<string>();
 
   if (viewerId && ids.length > 0) {
-    const [likes, bookmarks, follows] = await Promise.all([
+    const [likes, bookmarks, follows, reposts] = await Promise.all([
       db.postLike.findMany({ where: { userId: viewerId, postId: { in: ids } }, select: { postId: true } }),
       db.postBookmark.findMany({ where: { userId: viewerId, postId: { in: ids } }, select: { postId: true } }),
       db.follow.findMany({
         where: { followerId: viewerId, followingId: { in: authorIds } },
         select: { followingId: true },
       }),
+      fetchViewerRepostSet(viewerId, ids),
     ]);
     likedSet = new Set(likes.map((l) => l.postId));
     bookmarkedSet = new Set(bookmarks.map((b) => b.postId));
     followingSet = new Set(follows.map((f) => f.followingId));
+    repostedSet = reposts;
   }
 
   return rows.map((r) => ({
@@ -371,18 +424,9 @@ export async function serializePosts(
       liked: likedSet.has(r.id),
       bookmarked: bookmarkedSet.has(r.id),
       following: followingSet.has(r.author.id),
+      reposted: repostedSet.has(r.id),
     },
   }));
-}
-
-/** Follow state for a viewer across a list of authors (single query). */
-export async function fetchViewerRepostMap(viewerId: string | null, authorIds: string[]) {
-  if (!viewerId || authorIds.length === 0) return new Set<string>();
-  const follows = await db.follow.findMany({
-    where: { followerId: viewerId, followingId: { in: authorIds } },
-    select: { followingId: true },
-  });
-  return new Set(follows.map((f) => f.followingId));
 }
 
 export function jsonError(message: string, status = 400, extra?: Record<string, unknown>) {

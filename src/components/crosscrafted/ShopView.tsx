@@ -79,7 +79,7 @@ const StarRating = ({ rating, size = 11 }: { rating: number; size?: number }) =>
       <Star
         key={n}
         size={size}
-        className={n <= Math.round(rating) ? "text-[#F59E0B]" : "text-white/15"}
+        className={n <= Math.round(rating) ? "text-[#F5B84A]" : "text-white/15"}
         fill={n <= Math.round(rating) ? "currentColor" : "none"}
       />
     ))}
@@ -296,7 +296,7 @@ export default function ShopView() {
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all hover:-translate-y-px"
-            style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+            style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
           >
             <Plus size={14} /> {t('marketplace.listItem')}
           </button>
@@ -320,7 +320,7 @@ export default function ShopView() {
             onClick={() => setActiveCategory(cat)}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               activeCategory === cat
-                ? "bg-[#9786E3] text-white"
+                ? "bg-[#3B82F6] text-white"
                 : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
             }`}
           >
@@ -336,7 +336,7 @@ export default function ShopView() {
             onClick={() => setFilterSellerType("all")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
               filterSellerType === "all"
-                ? "bg-gradient-to-r from-[#9786E3] to-[#38BDF8] text-white shadow-lg shadow-[#9786E3]/20"
+                ? "bg-gradient-to-r from-[#3B82F6] to-[#22D3EE] text-white shadow-lg shadow-[#3B82F6]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -346,7 +346,7 @@ export default function ShopView() {
             onClick={() => setFilterSellerType("believ")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
               filterSellerType === "believ"
-                ? "bg-gradient-to-r from-[#9786E3] to-[#38BDF8] text-white shadow-lg shadow-[#9786E3]/20"
+                ? "bg-gradient-to-r from-[#3B82F6] to-[#22D3EE] text-white shadow-lg shadow-[#3B82F6]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -356,7 +356,7 @@ export default function ShopView() {
             onClick={() => setFilterSellerType("marketplace")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${
               filterSellerType === "marketplace"
-                ? "bg-gradient-to-r from-[#9786E3] to-[#38BDF8] text-white shadow-lg shadow-[#9786E3]/20"
+                ? "bg-gradient-to-r from-[#3B82F6] to-[#22D3EE] text-white shadow-lg shadow-[#3B82F6]/20"
                 : "text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -404,7 +404,7 @@ export default function ShopView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => openDetail(product)}
-              className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] transition-all group"
+              className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] transition-all group"
             >
               <div className="relative w-full aspect-square bg-[#0f0f1a] overflow-hidden">
                 {product.cover_image ? (
@@ -436,11 +436,11 @@ export default function ShopView() {
                 </div>
                 {/* Seller type badge — official Koino Store vs Marketplace */}
                 {product.sellerType === "believ" ? (
-                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-[#9786E3] text-white text-[8px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-[#3B82F6] text-white text-[8px] font-bold uppercase tracking-wider flex items-center gap-0.5">
                     <BadgeCheck size={9} /> Koino
                   </span>
                 ) : (
-                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-[#38BDF8]/20 backdrop-blur-sm text-[#38BDF8] text-[8px] font-bold uppercase tracking-wider border border-[#38BDF8]/30">
+                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-[#22D3EE]/20 backdrop-blur-sm text-[#22D3EE] text-[8px] font-bold uppercase tracking-wider border border-[#22D3EE]/30">
                     {t("marketplace.title")}
                   </span>
                 )}
@@ -458,7 +458,7 @@ export default function ShopView() {
                 >
                   <Heart
                     size={13}
-                    className={isWishlisted ? "text-[#EC4899]" : "text-white/80"}
+                    className={isWishlisted ? "text-[#F97316]" : "text-white/80"}
                     fill={isWishlisted ? "currentColor" : "none"}
                   />
                 </button>
@@ -487,7 +487,7 @@ export default function ShopView() {
                   )}
                   {product.variations && product.variations.length > 0 && (
                     <span
-                      className="ml-auto px-1 py-0.5 rounded bg-[#9786E3]/15 text-[#9786E3] text-[8px] font-bold uppercase tracking-wider"
+                      className="ml-auto px-1 py-0.5 rounded bg-[#3B82F6]/15 text-[#3B82F6] text-[8px] font-bold uppercase tracking-wider"
                       title={product.variations.map((v) => v.name).join(", ")}
                     >
                       {product.variations.length === 1
@@ -510,7 +510,7 @@ export default function ShopView() {
 
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <div className="w-7 h-7 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+          <div className="w-7 h-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       )}
       {!loading && nextCursor && (
@@ -546,7 +546,7 @@ export default function ShopView() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
               <div className="relative w-full aspect-square bg-[#0f0f1a] overflow-hidden">
                 {(() => {
@@ -582,7 +582,7 @@ export default function ShopView() {
                     </div>
                   );
                 })()}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent pointer-events-none" />
                 <button
                   onClick={() => setOpenProduct(null)}
                   className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
@@ -611,7 +611,7 @@ export default function ShopView() {
                       onClick={() => setActiveImageIdx(idx)}
                       className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
                         idx === activeImageIdx
-                          ? "border-[#7C3AED] opacity-100"
+                          ? "border-[#2563EB] opacity-100"
                           : "border-transparent opacity-60 hover:opacity-100"
                       }`}
                     >
@@ -661,7 +661,7 @@ export default function ShopView() {
                         <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                           <Tag size={10} /> {variation.name}
                           {selectedVariations[variation.name] && (
-                            <span className="text-[#9786E3] normal-case tracking-normal ml-1">
+                            <span className="text-[#3B82F6] normal-case tracking-normal ml-1">
                               · {selectedVariations[variation.name]}
                             </span>
                           )}
@@ -677,7 +677,7 @@ export default function ShopView() {
                                 }
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                                   isSelected
-                                    ? "bg-[#9786E3] text-white border-[#9786E3]"
+                                    ? "bg-[#3B82F6] text-white border-[#3B82F6]"
                                     : "bg-white/[0.04] text-[#94A3B8] border-white/[0.08] hover:text-white hover:border-white/[0.2]"
                                 }`}
                               >
@@ -713,18 +713,18 @@ export default function ShopView() {
                 )}
 
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9786E3] to-[#38BDF8] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#22D3EE] flex items-center justify-center">
                     <Store size={16} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{t("shop.sellerLabel")}</p>
                       {openProduct.sellerType === "believ" ? (
-                        <span className="px-1.5 py-0.5 rounded bg-[#9786E3]/15 text-[#9786E3] text-[8px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                        <span className="px-1.5 py-0.5 rounded bg-[#3B82F6]/15 text-[#3B82F6] text-[8px] font-bold uppercase tracking-wider flex items-center gap-0.5">
                           <BadgeCheck size={8} /> {t("shop.koinoStoreBadge")}
                         </span>
                       ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-[#38BDF8]/15 text-[#38BDF8] text-[8px] font-bold uppercase tracking-wider">
+                        <span className="px-1.5 py-0.5 rounded bg-[#22D3EE]/15 text-[#22D3EE] text-[8px] font-bold uppercase tracking-wider">
                           {t("marketplace.title")}
                         </span>
                       )}
@@ -741,7 +741,7 @@ export default function ShopView() {
                     onClick={() => toggleWishlist(openProduct.id)}
                     className={`px-4 rounded-xl border flex items-center justify-center transition-all ${
                       wishlist.has(openProduct.id)
-                        ? "bg-[#EC4899]/15 border-[#EC4899]/30 text-[#EC4899]"
+                        ? "bg-[#F97316]/15 border-[#F97316]/30 text-[#F97316]"
                         : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
                     }`}
                   >
@@ -790,7 +790,7 @@ export default function ShopView() {
                       rel="noopener noreferrer"
                       aria-disabled={!openProduct.in_stock}
                       className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2 ${openProduct.in_stock ? "hover:-translate-y-px" : "opacity-40 cursor-not-allowed pointer-events-none"}`}
-                      style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+                      style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
                     >
                       <ShoppingCart size={16} /> {t("shop.buyNow")}
                       <ExternalLink size={12} className="opacity-80" />
@@ -803,7 +803,7 @@ export default function ShopView() {
                       }}
                       disabled={!openProduct.in_stock}
                       className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+                      style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
                     >
                       <ShoppingCart size={16} /> {t('marketplace.addToCart')}
                     </button>
@@ -837,10 +837,10 @@ export default function ShopView() {
               animate={{ y: 0 }}
               exit={{ y: 100 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className="bg-[#1C1929] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto"
+              className="bg-[#13294A] border-t md:border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-[#9786E3] to-[#38BDF8] bg-clip-text text-transparent">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-[#3B82F6] to-[#22D3EE] bg-clip-text text-transparent">
                   {t("marketplace.listModal.title")}
                 </h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-[#64748B] hover:text-white p-1">
@@ -1027,7 +1027,7 @@ export default function ShopView() {
                     type="submit"
                     disabled={submitting}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+                    style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
                   >
                     {submitting ? t("common.submitting") : t("marketplace.listModal.submit")}
                   </button>

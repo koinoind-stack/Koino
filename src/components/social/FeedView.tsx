@@ -19,6 +19,9 @@ type Props = {
   onOpenCreate: () => void;
   onOpenEvents: () => void;
   deepLinkPostId?: string | null;
+  /** Approved home dashboard hides the stories bar (composer sits directly
+      under the feature cards); the dedicated Feed view keeps stories. */
+  showStories?: boolean;
 };
 
 const TABS = ["discover", "following", "trending"] as const;
@@ -34,7 +37,7 @@ const TAB_LABEL_KEYS: Record<FeedTab, string> = {
  * The home feed: stories bar, Following/Discover tabs, infinite scroll,
  * suggestion rail on Discover, and overlays (detail / reels / stories).
  */
-export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpenEvents, deepLinkPostId }: Props) {
+export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpenEvents, deepLinkPostId, showStories = true }: Props) {
   const t = useTranslation();
   const [tab, setTab] = useState<FeedTab>("discover");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -115,33 +118,43 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
   }
 
   return (
-    <div className="max-w-[600px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
-      {/* stories bar */}
-      <StoryBar
-        groups={stories}
-        onOpen={(username) => setOpenStoryUser(username)}
-        onCreate={() => setShowCreator(true)}
-        onOpenProfile={onOpenProfile}
-      />
+    <div className="max-w-[640px] mx-auto px-3 md:px-4 pt-4 pb-24 md:pb-8">
+      {/* stories bar — home dashboard hides it (approved design); the Feed
+          view keeps the full stories experience */}
+      {showStories && (
+        <StoryBar
+          groups={stories}
+          onOpen={(username) => setOpenStoryUser(username)}
+          onCreate={() => setShowCreator(true)}
+          onOpenProfile={onOpenProfile}
+        />
+      )}
 
       {/* quick composer — "What's on your heart?" */}
       <FeedComposer onPosted={handlePosted} onOpenFull={onOpenCreate} />
 
-      {/* tabs */}
-      <div className="flex gap-2 mb-4">
-        {TABS.map((tabId) => (
-          <button
-            key={tabId}
-            onClick={() => setTab(tabId)}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              tab === tabId
-                ? "bg-[#7C3AED] text-white shadow-[0_0_20px_rgba(124,58,237,0.35)]"
-                : "bg-white/[0.04] text-[#94A3B8] hover:text-white"
-            }`}
-          >
-            {t(TAB_LABEL_KEYS[tabId])}
-          </button>
-        ))}
+      {/* tabs — approved design: full-width underline tabs; the active tab
+          carries an orange underline. Trending stays as a third tab (real
+          working feature from the approved Part 2 spec). */}
+      <div className="flex border-b border-white/[0.07] mb-4 -mt-1">
+        {TABS.map((tabId) => {
+          const active = tab === tabId;
+          return (
+            <button
+              key={tabId}
+              onClick={() => setTab(tabId)}
+              aria-pressed={active}
+              className={`relative flex-1 pt-2 pb-3 text-sm font-bold transition-colors ${
+                active ? "text-white" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              {t(TAB_LABEL_KEYS[tabId])}
+              {active && (
+                <span aria-hidden className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] rounded-t-full bg-[#F97316]" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* upcoming church events surfaced in the feed — mobile/tablet only;
@@ -157,7 +170,7 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
       {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4 animate-pulse">
+            <div key={i} className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4 animate-pulse">
               <div className="flex gap-3 items-center mb-4">
                 <div className="w-9 h-9 rounded-full bg-white/10" />
                 <div className="space-y-1.5">
@@ -172,7 +185,7 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-sm text-[#94A3B8] mb-3">{error}</p>
-          <button onClick={() => load(tab)} className="text-xs font-bold text-[#7C3AED]">{t("common.retry")}</button>
+          <button onClick={() => load(tab)} className="text-xs font-bold text-[#2563EB]">{t("common.retry")}</button>
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-14">
@@ -185,7 +198,7 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
           </p>
           <button
             onClick={onOpenCreate}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white text-sm font-bold"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2563EB] text-white text-sm font-bold"
           >
             <Plus size={16} /> {t("feed.createFirst")}
           </button>
@@ -206,20 +219,20 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
           {/* suggestion rail on discover — mobile/tablet only; xl+ screens
               show People to follow in the right discovery column */}
           {tab === "discover" && suggestions.length > 0 && (
-            <div className="xl:hidden bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4">
+            <div className="xl:hidden bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-3">{t("feed.peopleToFollow")}</h3>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {suggestions.map((u) => (
                   <button
                     key={u.id}
                     onClick={() => u.username && onOpenProfile(u.username)}
-                    className="shrink-0 w-28 flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:border-[#7C3AED]/40"
+                    className="shrink-0 w-28 flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:border-[#2563EB]/40"
                   >
                     {u.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={u.image} alt="" className="w-12 h-12 rounded-full object-cover" />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white font-bold">
                         {(u.name || u.username || "?").charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -235,7 +248,7 @@ export default function FeedView({ onOpenProfile, onHashtag, onOpenCreate, onOpe
           <div ref={sentinel} />
           {loadingMore && (
             <div className="flex justify-center py-4">
-              <div className="w-6 h-6 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
             </div>
           )}
         </div>

@@ -99,7 +99,7 @@ type Props = {
 };
 
 const inputCls =
-  "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50";
+  "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50";
 const labelCls = "text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5 block";
 
 export default function GroupForm({ mode, initial, submitting, onSubmit, onCancel }: Props) {
@@ -175,7 +175,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
   const valid = form.name.trim().length >= 3;
 
   return (
-    <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4 space-y-4">
+    <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-extrabold text-white">
           {mode === "create" ? t("groupForm.createTitle") : t("groupForm.editTitle")}
@@ -235,7 +235,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
             <button
               onClick={() => coverInputRef.current?.click()}
               disabled={coverBusy}
-              className="w-full h-20 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#7C3AED]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
+              className="w-full h-20 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#2563EB]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
             >
               {coverBusy ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
               {coverBusy ? t("groupEvent.uploading") : t("groupForm.uploadCover")}
@@ -261,7 +261,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
             <button
               onClick={() => logoInputRef.current?.click()}
               disabled={logoBusy}
-              className="w-full h-20 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#7C3AED]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
+              className="w-full h-20 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#2563EB]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
             >
               {logoBusy ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
               {logoBusy ? t("groupEvent.uploading") : t("groupForm.uploadPicture")}
@@ -281,7 +281,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
               onClick={() => set({ category: c.id })}
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
                 form.category === c.id
-                  ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]"
+                  ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]"
                   : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
@@ -300,9 +300,9 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
         <div>
           <label className={labelCls}>{t("groupForm.state")}</label>
           <select value={form.state} onChange={(e) => set({ state: e.target.value })} className={`${inputCls} appearance-none`}>
-            <option value="" className="bg-[#111827]">{t("groupForm.selectState")}</option>
+            <option value="" className="bg-[#0F2038]">{t("groupForm.selectState")}</option>
             {INDIAN_STATES.map((s) => (
-              <option key={s} value={s} className="bg-[#111827]">{s}</option>
+              <option key={s} value={s} className="bg-[#0F2038]">{s}</option>
             ))}
           </select>
         </div>
@@ -310,9 +310,9 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
       <div>
         <label className={labelCls}>{t("groupForm.language")}</label>
         <select value={form.language} onChange={(e) => set({ language: e.target.value })} className={`${inputCls} appearance-none`}>
-          <option value="" className="bg-[#111827]">{t("groupForm.anyLanguage")}</option>
+          <option value="" className="bg-[#0F2038]">{t("groupForm.anyLanguage")}</option>
           {LANGUAGES.map((l) => (
-            <option key={l} value={l} className="bg-[#111827]">{l}</option>
+            <option key={l} value={l} className="bg-[#0F2038]">{l}</option>
           ))}
         </select>
       </div>
@@ -325,7 +325,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
             <button
               onClick={() => set({ visibility: "public" })}
               className={`flex-1 px-3 py-2 rounded-xl text-[11px] font-bold border ${
-                form.visibility === "public" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+                form.visibility === "public" ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
               {t("groupForm.public")}
@@ -333,7 +333,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
             <button
               onClick={() => set({ visibility: "private" })}
               className={`flex-1 px-3 py-2 rounded-xl text-[11px] font-bold border ${
-                form.visibility === "private" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+                form.visibility === "private" ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
               {t("groupForm.private")}
@@ -353,7 +353,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
               disabled={form.visibility === "private"}
               className={`flex-1 px-3 py-2 rounded-xl text-[11px] font-bold border disabled:opacity-40 ${
                 form.visibility === "private" || form.joinMode === "open"
-                  ? form.visibility === "private" ? "bg-white/[0.03] border-white/[0.06] text-[#64748B]" : "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]"
+                  ? form.visibility === "private" ? "bg-white/[0.03] border-white/[0.06] text-[#64748B]" : "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]"
                   : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
@@ -363,7 +363,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
               onClick={() => set({ joinMode: "approval" })}
               className={`flex-1 px-3 py-2 rounded-xl text-[11px] font-bold border ${
                 form.visibility === "private" || form.joinMode === "approval"
-                  ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]"
+                  ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]"
                   : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
@@ -398,7 +398,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
         <label className={labelCls}>{t("groupForm.churchLabel")}</label>
         {form.churchId ? (
           <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5">
-            <MapPin size={14} className="text-[#7C3AED] shrink-0" />
+            <MapPin size={14} className="text-[#2563EB] shrink-0" />
             <span className="text-xs font-bold text-white truncate flex-1">{form.churchName}</span>
             <button onClick={() => set({ churchId: "", churchName: "" })} className="p-1 rounded-lg bg-white/[0.04] text-[#94A3B8] hover:text-white" aria-label={t("groupForm.removeChurchAria")}>
               <X size={13} />
@@ -447,7 +447,7 @@ export default function GroupForm({ mode, initial, submitting, onSubmit, onCance
         <button
           onClick={() => valid && onSubmit(form)}
           disabled={!valid || submitting || coverBusy || logoBusy}
-          className="px-5 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
+          className="px-5 py-2 rounded-full bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40"
         >
           {submitting ? (mode === "create" ? t("groupForm.creating") : t("groupForm.saving")) : mode === "create" ? t("groupForm.create") : t("groupForm.saveChanges")}
         </button>

@@ -146,7 +146,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
 
         {loadingDay && (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <Loader2 size={28} className="animate-spin text-[#7C3AED]" />
+            <Loader2 size={28} className="animate-spin text-[#2563EB]" />
             <p className="text-xs text-[#94A3B8]">{t("bible.plans.loadingReadings")}</p>
           </div>
         )}
@@ -157,7 +157,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
               const book = getBook(r.bookId);
               const text = dayReadings[i]?.text || "";
               return (
-                <div key={i} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden">
+                <div key={i} className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden">
                   <div className="flex items-center justify-between p-3 border-b border-white/[0.04]">
                     <div>
                       <p className="text-sm font-bold text-white">
@@ -169,7 +169,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
                     </div>
                     <button
                       onClick={() => handleOpenReading(r.bookId, r.chapter)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/25 transition-all"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-[11px] font-bold hover:bg-[#2563EB]/25 transition-all"
                     >
                       {t("bible.plans.open")} <ArrowRight size={12} />
                     </button>
@@ -210,7 +210,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
               }
             }}
             disabled={activeDay.day >= openPlan.duration}
-            className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-all disabled:opacity-40"
+            className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-all disabled:opacity-40"
           >
             {t("bible.plans.nextDay")} <ChevronRight size={14} />
           </button>
@@ -257,7 +257,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
         </div>
 
         {/* Progress bar */}
-        <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 mb-4">
+        <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-bold text-white">
               {t("bible.plans.yourProgress")}
@@ -274,7 +274,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
             />
           </div>
           {pct === 100 && (
-            <div className="mt-3 flex items-center gap-2 text-[#F59E0B]">
+            <div className="mt-3 flex items-center gap-2 text-[#F5B84A]">
               <Trophy size={14} />
               <p className="text-xs font-bold">{t("bible.plans.planComplete")}</p>
             </div>
@@ -304,8 +304,8 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
                   isComplete
                     ? "bg-[#22C55E]/8 border-[#22C55E]/30"
                     : isActive
-                    ? "bg-[#7C3AED]/15 border-[#7C3AED]/30"
-                    : "bg-[#1C1929] border-white/[0.06] hover:border-white/[0.12]"
+                    ? "bg-[#2563EB]/15 border-[#2563EB]/30"
+                    : "bg-[#13294A] border-white/[0.06] hover:border-white/[0.12]"
                 }`}
               >
                 <div
@@ -340,10 +340,10 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
         <p className="text-xs text-[#94A3B8] mt-0.5">{t("bible.plans.subtitle")}</p>
       </div>
 
-      <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-2xl p-4 mb-4">
+      <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles size={14} className="text-[#A78BFA]" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("bible.plans.whyDaily")}</p>
+          <Sparkles size={14} className="text-[#60A5FA]" />
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]">{t("bible.plans.whyDaily")}</p>
         </div>
         <p className="text-sm text-white italic leading-relaxed mb-2">
           "Your word is a lamp to my feet and a light to my path."
@@ -370,7 +370,7 @@ export default function BiblePlansView({ versionRef, onOpenChapter }: Props) {
                   setOpenPlanId(plan.id);
                 }
               }}
-              className="w-full text-left bg-[#1C1929] border border-white/[0.06] hover:border-white/[0.12] rounded-2xl p-4 transition-all group"
+              className="w-full text-left bg-[#13294A] border border-white/[0.06] hover:border-white/[0.12] rounded-2xl p-4 transition-all group"
             >
               <div className="flex items-start gap-3">
                 <div

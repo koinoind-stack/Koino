@@ -183,14 +183,14 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
       }}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.1] rounded-2xl p-5 w-full max-w-md"
+        className="bg-[#13294A] border border-white/[0.1] rounded-2xl p-5 w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-[#7C3AED]/15 flex items-center justify-center shrink-0">
-              <FileUp size={14} className="text-[#A78BFA]" />
+            <div className="w-7 h-7 rounded-lg bg-[#2563EB]/15 flex items-center justify-center shrink-0">
+              <FileUp size={14} className="text-[#60A5FA]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-extrabold text-white tracking-wide uppercase">
@@ -227,8 +227,8 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
           {/* Drop zone / selected-file display */}
           {file ? (
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#7C3AED]/15 flex items-center justify-center shrink-0">
-                <FileText size={16} className="text-[#A78BFA]" />
+              <div className="w-10 h-10 rounded-lg bg-[#2563EB]/15 flex items-center justify-center shrink-0">
+                <FileText size={16} className="text-[#60A5FA]" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-white truncate">{file.name}</p>
@@ -261,13 +261,13 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
               onDragLeave={onDragLeave}
               className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors cursor-pointer min-h-[160px] flex flex-col items-center justify-center gap-2 ${
                 dragOver
-                  ? "border-[#7C3AED] bg-[#7C3AED]/5"
-                  : "border-white/[0.12] bg-white/[0.02] hover:border-[#7C3AED]/40"
+                  ? "border-[#2563EB] bg-[#2563EB]/5"
+                  : "border-white/[0.12] bg-white/[0.02] hover:border-[#2563EB]/40"
               } ${uploading ? "pointer-events-none opacity-70" : ""}`}
             >
               <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
                 {dragOver ? (
-                  <FileUp size={18} className="text-[#A78BFA]" />
+                  <FileUp size={18} className="text-[#60A5FA]" />
                 ) : (
                   <FileText size={18} className="text-[#A09DB1]" />
                 )}
@@ -288,7 +288,7 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
                   e.stopPropagation();
                   onPick();
                 }}
-                className="mt-1 inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold transition-colors"
+                className="mt-1 inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors"
               >
                 <FileUp size={12} />
                 Choose PDF
@@ -312,9 +312,9 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
               rendering the cover. The endpoint can take a few seconds on
               large PDFs. */}
           {uploading && (
-            <div className="flex items-center gap-2 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/30 p-3">
-              <Loader2 size={14} className="text-[#A78BFA] shrink-0 animate-spin" />
-              <p className="text-[11px] text-[#A78BFA] leading-relaxed">
+            <div className="flex items-center gap-2 rounded-xl bg-[#2563EB]/10 border border-[#2563EB]/30 p-3">
+              <Loader2 size={14} className="text-[#60A5FA] shrink-0 animate-spin" />
+              <p className="text-[11px] text-[#60A5FA] leading-relaxed">
                 Processing PDF — extracting text, detecting Bible references,
                 and rendering the first page as a cover image…
               </p>
@@ -336,7 +336,7 @@ export default function ImportPdfModal({ onClose, onImported }: Props) {
             type="button"
             onClick={onUpload}
             disabled={!file || uploading}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploading ? (
               <>

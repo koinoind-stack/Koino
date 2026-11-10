@@ -40,6 +40,8 @@ type Props = {
   onOpenProfile: (username: string) => void;
   onHashtag: (tag: string) => void;
   initialHashtag?: string | null;
+  /** Pre-filled free-text search (right-rail "Search Koino" hand-off). */
+  initialQuery?: string | null;
   /** Open a Koino feature view (churches / events / shop / business-directory / reels …). */
   onNavigate?: (view: string) => void;
 };
@@ -164,7 +166,7 @@ function FollowButton({ user }: { user: ExploreUser }) {
       className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors disabled:opacity-60 ${
         following
           ? "bg-white/[0.06] border border-white/15 text-[#94A3B8] hover:border-white/30"
-          : "bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
+          : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
       }`}
     >
       {following ? t("churches.following") : t("churches.follow")}
@@ -183,7 +185,7 @@ function PersonCard({
   return (
     <div
       onClick={() => user.username && onOpenProfile(user.username)}
-      className="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-[#7C3AED]/40 cursor-pointer transition-colors"
+      className="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-[#2563EB]/40 cursor-pointer transition-colors"
     >
       {user.image ? (
         <Image
@@ -195,7 +197,7 @@ function PersonCard({
           unoptimized
         />
       ) : (
-        <div className="w-11 h-11 rounded-full shrink-0 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white font-bold">
+        <div className="w-11 h-11 rounded-full shrink-0 bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white font-bold">
           {(user.name || user.username || "?").charAt(0).toUpperCase()}
         </div>
       )}
@@ -206,7 +208,7 @@ function PersonCard({
           {user.followers !== undefined && ` · ${t("common.followers", { count: formatCount(user.followers) })}`}
         </p>
         {user.role && (
-          <p className="text-[11px] font-semibold text-[#C4B5FD] mt-0.5 truncate">{user.role}</p>
+          <p className="text-[11px] font-semibold text-[#93C5FD] mt-0.5 truncate">{user.role}</p>
         )}
         {user.bio && <p className="text-[11px] text-[#94A3B8] mt-0.5 line-clamp-2">{user.bio}</p>}
       </div>
@@ -235,7 +237,7 @@ function Section({
           <Icon size={13} /> {title}
         </h3>
         {seeAll && onSeeAll && (
-          <button onClick={onSeeAll} className="text-[11px] font-bold text-[#7C3AED] hover:text-[#A78BFA]">
+          <button onClick={onSeeAll} className="text-[11px] font-bold text-[#2563EB] hover:text-[#60A5FA]">
             {seeAll}
           </button>
         )}
@@ -287,7 +289,7 @@ function HashtagChips({ tags, onPick }: { tags: Array<{ tag: string; count: numb
         <button
           key={h.tag}
           onClick={() => onPick(h.tag)}
-          className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-sm font-bold text-[#38BDF8] hover:border-[#38BDF8]/50"
+          className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-sm font-bold text-[#22D3EE] hover:border-[#22D3EE]/50"
         >
           #{h.tag} <span className="text-[#64748B] text-xs">· {formatCount(h.count)}</span>
         </button>
@@ -305,9 +307,9 @@ function CompactEmpty({ icon: Icon, text }: { icon: React.ComponentType<{ size?:
   );
 }
 
-export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, onNavigate }: Props) {
+export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, initialQuery, onNavigate }: Props) {
   const t = useTranslation();
-  const [query, setQuery] = useState(initialHashtag ? `#${initialHashtag}` : "");
+  const [query, setQuery] = useState(initialHashtag ? `#${initialHashtag}` : (initialQuery ?? ""));
   const [activeTab, setActiveTab] = useState<Tab>("foryou");
   const [activeHashtag, setActiveHashtag] = useState<string | null>(initialHashtag ?? null);
   const [loading, setLoading] = useState(true);
@@ -451,7 +453,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder={t("explore.searchPlaceholder")}
-          className="w-full bg-white/[0.05] border border-white/10 rounded-full pl-10 pr-10 py-3 text-sm text-white focus:outline-none focus:border-[#7C3AED]"
+          className="w-full bg-white/[0.05] border border-white/10 rounded-full pl-10 pr-10 py-3 text-sm text-white focus:outline-none focus:border-[#2563EB]"
         />
         {query && (
           <button
@@ -471,7 +473,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
             onClick={() => goTab(tb.id)}
             className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-extrabold border transition-colors ${
               activeTab === tb.id
-                ? "bg-[#7C3AED] border-transparent text-white"
+                ? "bg-[#2563EB] border-transparent text-white"
                 : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white hover:border-white/25"
             }`}
           >
@@ -481,11 +483,11 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
       </div>
 
       {activeHashtag && (
-        <div className="flex items-center justify-between bg-[#7C3AED]/15 border border-[#7C3AED]/30 rounded-2xl px-4 py-3 mb-4">
+        <div className="flex items-center justify-between bg-[#2563EB]/15 border border-[#2563EB]/30 rounded-2xl px-4 py-3 mb-4">
           <p className="text-sm font-extrabold text-white">#{activeHashtag}</p>
           <button
             onClick={() => openHashtag("")}
-            className="text-xs font-bold text-[#A78BFA]"
+            className="text-xs font-bold text-[#60A5FA]"
           >
             {t("explore.clear")}
           </button>
@@ -494,14 +496,14 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       ) : loadError ? (
         <div className="flex flex-col items-center gap-3 py-14">
           <p className="text-sm text-[#64748B]">{t("explore.loadError")}</p>
           <button
             onClick={() => load(activeTab, queryRef.current, activeHashtag)}
-            className="px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9]"
+            className="px-4 py-2 rounded-full bg-[#2563EB] text-xs font-bold text-white hover:bg-[#1D4ED8]"
           >
             {t("common.retry")}
           </button>
@@ -580,7 +582,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                       <button
                         key={c.id}
                         onClick={() => onNavigate?.("churches")}
-                        className="shrink-0 w-[230px] text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
+                        className="shrink-0 w-[230px] text-left rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/40 transition-colors"
                       >
                         <div className="relative h-20" style={{ backgroundImage: churchGradient(c.cover_gradient) }}>
                           {c.cover_image ? (
@@ -684,14 +686,14 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                         <button
                           key={p.id}
                           onClick={() => setReelOpenId(p.id)}
-                          className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.06] hover:border-[#7C3AED]/40 group text-left"
+                          className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.06] hover:border-[#2563EB]/40 group text-left"
                         >
                           {media.thumbnailUrl ? (
                             <Image src={media.thumbnailUrl} alt="" fill sizes="240px" className="object-cover group-hover:scale-[1.03] transition-transform" unoptimized />
                           ) : media.mediaUrls[0] ? (
                             <video src={media.mediaUrls[0]} muted playsInline preload="metadata" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-[#7C3AED]/50 to-[#EC4899]/40" />
+                            <div className="w-full h-full bg-gradient-to-br from-[#2563EB]/50 to-[#F97316]/40" />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
                           <Play size={17} className="absolute top-2.5 right-2.5 text-white drop-shadow" fill="white" />
@@ -716,19 +718,19 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
           {/* ───────────── BIBLE TRIVIA ───────────── */}
           {activeTab === "trivia" && (
             <>
-              <div className="rounded-3xl bg-gradient-to-br from-[#7C3AED]/20 via-[#7C3AED]/10 to-transparent border border-[#7C3AED]/25 p-5 md:p-6 mb-5">
+              <div className="rounded-3xl bg-gradient-to-br from-[#2563EB]/20 via-[#2563EB]/10 to-transparent border border-[#2563EB]/25 p-5 md:p-6 mb-5">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#7C3AED] flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-[#2563EB] flex items-center justify-center shrink-0">
                     <Trophy size={22} className="text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-lg font-black text-white tracking-tight">{t("feature.trivia.title")}</h3>
-                    <p className="text-sm text-[#C4B5FD] mt-1 leading-relaxed">
+                    <p className="text-sm text-[#93C5FD] mt-1 leading-relaxed">
                       {t("explore.triviaDesc")}
                     </p>
                     <button
                       onClick={() => onNavigate?.("trivia")}
-                      className="mt-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
+                      className="mt-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-extrabold"
                     >
                       <Play size={13} fill="white" /> {t("explore.playTrivia")}
                     </button>
@@ -753,13 +755,13 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                   <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
                     {leaderboard.slice(0, 10).map((row, i) => (
                       <div key={`${row.rank}-${row.name}`} className={`flex items-center gap-3 px-3.5 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
-                        <span className={`w-7 text-center text-sm font-black shrink-0 ${i === 0 ? "text-[#FCD34D]" : i === 1 ? "text-[#CBD5E1]" : i === 2 ? "text-[#F59E0B]" : "text-[#64748B]"}`}>
+                        <span className={`w-7 text-center text-sm font-black shrink-0 ${i === 0 ? "text-[#FCD34D]" : i === 1 ? "text-[#CBD5E1]" : i === 2 ? "text-[#F5B84A]" : "text-[#64748B]"}`}>
                           {row.rank}
                         </span>
                         {row.image ? (
                           <Image src={row.image} alt="" width={30} height={30} className="w-[30px] h-[30px] rounded-full object-cover shrink-0" unoptimized />
                         ) : (
-                          <div className="w-[30px] h-[30px] rounded-full shrink-0 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white text-xs font-bold">
+                          <div className="w-[30px] h-[30px] rounded-full shrink-0 bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-xs font-bold">
                             {(row.name || "?").charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -767,7 +769,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                           <p className="text-sm font-bold text-white truncate">{row.name}</p>
                           <p className="text-[10px] text-[#64748B] truncate">{row.tierIcon} {row.tier}</p>
                         </div>
-                        <span className="text-xs font-extrabold text-[#C4B5FD] shrink-0">{t("common.points", { count: formatCount(row.points) })}</span>
+                        <span className="text-xs font-extrabold text-[#93C5FD] shrink-0">{t("common.points", { count: formatCount(row.points) })}</span>
                       </div>
                     ))}
                   </div>
@@ -786,7 +788,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                       <button
                         key={c.id}
                         onClick={() => onNavigate?.("churches")}
-                        className="text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
+                        className="text-left rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/40 transition-colors"
                       >
                         <div className="relative h-28" style={{ backgroundImage: churchGradient(c.cover_gradient) }}>
                           {c.cover_image ? (
@@ -801,7 +803,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                         </div>
                         <div className="p-3">
                           <h4 className="text-sm font-bold text-white leading-snug line-clamp-1">{c.name}</h4>
-                          {c.denomination && <p className="text-[11px] text-[#C4B5FD] mt-0.5 truncate">{c.denomination}</p>}
+                          {c.denomination && <p className="text-[11px] text-[#93C5FD] mt-0.5 truncate">{c.denomination}</p>}
                           <p className="text-[11px] text-[#94A3B8] mt-1 flex items-center gap-1">
                             <MapPin size={10} className="shrink-0" />
                             <span className="truncate">{[c.city, c.state].filter(Boolean).join(", ") || c.location || t("explore.fallbackLocation")}</span>
@@ -828,13 +830,13 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                 <div className="flex flex-wrap gap-2 mb-2">
                   <button
                     onClick={() => onNavigate?.("churches")}
-                    className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
+                    className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-[#93C5FD] hover:border-[#2563EB]/50"
                   >
                     {t("explore.openFullDirectory")}
                   </button>
                   <button
                     onClick={() => onNavigate?.("list-church")}
-                    className="px-4 py-2 rounded-full bg-[#7C3AED] text-xs font-bold text-white hover:bg-[#6D28D9]"
+                    className="px-4 py-2 rounded-full bg-[#2563EB] text-xs font-bold text-white hover:bg-[#1D4ED8]"
                   >
                     {t("explore.listYourChurch")}
                   </button>
@@ -858,7 +860,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
                         <button
                           key={ev.id}
                           onClick={() => onNavigate?.("events")}
-                          className="text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
+                          className="text-left rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/40 transition-colors"
                         >
                           <div className="relative h-20" style={{ backgroundImage: churchGradient(ev.cover_gradient) }}>
                             {ev.cover_image ? (
@@ -896,7 +898,7 @@ export default function ExploreView({ onOpenProfile, onHashtag, initialHashtag, 
               {!searching && events.length > 0 && (
                 <button
                   onClick={() => onNavigate?.("events")}
-                  className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-[#C4B5FD] hover:border-[#7C3AED]/50"
+                  className="px-4 py-2 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-[#93C5FD] hover:border-[#2563EB]/50"
                 >
                   {t("explore.openEvents")}
                 </button>
@@ -946,7 +948,7 @@ function MarketplaceHighlights({ onNavigate }: { onNavigate?: (view: string) => 
               <button
                 key={p.id}
                 onClick={() => onNavigate?.("shop")}
-                className="shrink-0 w-[150px] text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
+                className="shrink-0 w-[150px] text-left rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/40 transition-colors"
               >
                 <div
                   className="relative h-20 flex items-center justify-center"
@@ -966,7 +968,7 @@ function MarketplaceHighlights({ onNavigate }: { onNavigate?: (view: string) => 
                 </div>
                 <div className="p-2">
                   <p className="text-[12px] font-bold text-white leading-snug line-clamp-2">{p.name}</p>
-                  <p className="text-[11px] font-extrabold text-[#C4B5FD] mt-1">
+                  <p className="text-[11px] font-extrabold text-[#93C5FD] mt-1">
                     ₹{p.price.toLocaleString("en-IN")}
                     <span className="text-[10px] font-bold text-[#64748B] ml-1">★ {p.rating.toFixed(1)}</span>
                   </p>
@@ -984,7 +986,7 @@ function MarketplaceHighlights({ onNavigate }: { onNavigate?: (view: string) => 
               <button
                 key={b.id}
                 onClick={() => onNavigate?.("business-directory")}
-                className="shrink-0 w-[190px] text-left rounded-2xl overflow-hidden bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/40 transition-colors"
+                className="shrink-0 w-[190px] text-left rounded-2xl overflow-hidden bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/40 transition-colors"
               >
                 <div
                   className="relative h-16 flex items-center justify-center"

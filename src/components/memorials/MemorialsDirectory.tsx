@@ -108,8 +108,8 @@ export default function MemorialsDirectory() {
     <div className="max-w-[680px] mx-auto px-4 pt-8 pb-24">
       {/* ─── heading ─── */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-4">
-          <Flower2 size={26} className="text-[#C4B5FD]" />
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 mb-4">
+          <Flower2 size={26} className="text-[#93C5FD]" />
         </div>
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{t("memorials.directory.title")}</h1>
         <p className="text-sm text-[#94A3B8] mt-2 max-w-md mx-auto leading-relaxed">
@@ -117,7 +117,7 @@ export default function MemorialsDirectory() {
         </p>
         <Link
           href="/memorials/new"
-          className="inline-flex items-center gap-2 px-6 py-3 mt-5 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] shadow-lg shadow-[#7C3AED]/20"
+          className="inline-flex items-center gap-2 px-6 py-3 mt-5 rounded-full bg-[#2563EB] text-white text-sm font-bold hover:bg-[#1D4ED8] shadow-lg shadow-[#2563EB]/20"
         >
           <Flower2 size={15} /> {t("memorials.directory.ctaCreate")}
         </Link>
@@ -132,7 +132,7 @@ export default function MemorialsDirectory() {
               <li key={mm.id}>
                 <Link
                   href={`/memorials/${mm.id}`}
-                  className="flex items-center gap-3 rounded-2xl bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/30 transition-colors px-4 py-3"
+                  className="flex items-center gap-3 rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/30 transition-colors px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white truncate">{mm.fullName}</p>
@@ -168,14 +168,14 @@ export default function MemorialsDirectory() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("memorials.directory.searchPlaceholder")}
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-full pl-11 pr-4 py-3 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
           />
         </div>
         <div className="flex gap-2.5">
           <select
             value={state}
             onChange={(e) => { setState(e.target.value); setCity(""); }}
-            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]"
+            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50 [&>option]:bg-[#13294A]"
           >
             <option value="">{t("common.allStates")}</option>
             {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -184,7 +184,7 @@ export default function MemorialsDirectory() {
             value={city}
             onChange={(e) => setCity(e.target.value)}
             disabled={!state}
-            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 disabled:opacity-40 [&>option]:bg-[#1C1929]"
+            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50 disabled:opacity-40 [&>option]:bg-[#13294A]"
           >
             <option value="">{t("common.allCities")}</option>
             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -200,7 +200,7 @@ export default function MemorialsDirectory() {
       {loading && items.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4 animate-pulse">
+            <div key={i} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4 animate-pulse">
               <div className="flex gap-3">
                 <div className="w-14 h-14 rounded-full bg-white/5" />
                 <div className="flex-1 space-y-2 py-1">
@@ -225,7 +225,7 @@ export default function MemorialsDirectory() {
           </p>
           <Link
             href="/memorials/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9]"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2563EB] text-white text-sm font-bold hover:bg-[#1D4ED8]"
           >
             <Flower2 size={15} /> {t("memorials.directory.ctaCreateShort")}
           </Link>
@@ -237,7 +237,7 @@ export default function MemorialsDirectory() {
               <Link
                 key={m.id}
                 href={`/memorials/${m.id}`}
-                className="block rounded-2xl bg-[#111827]/60 border border-white/[0.05] hover:border-[#7C3AED]/30 transition-colors p-4"
+                className="block rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] hover:border-[#2563EB]/30 transition-colors p-4"
               >
                 <div className="flex gap-3.5">
                   {m.photoUrl ? (
@@ -250,8 +250,8 @@ export default function MemorialsDirectory() {
                       unoptimized
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#7C3AED]/40 to-[#1C1929] flex items-center justify-center shrink-0">
-                      <Flower2 size={20} className="text-[#C4B5FD]" />
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2563EB]/40 to-[#13294A] flex items-center justify-center shrink-0">
+                      <Flower2 size={20} className="text-[#93C5FD]" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
@@ -293,7 +293,7 @@ export default function MemorialsDirectory() {
             </div>
           )}
           <div className="text-center mt-8">
-            <Link href="/memorials/new" className="text-xs font-bold text-[#C4B5FD] hover:text-white inline-flex items-center gap-1.5">
+            <Link href="/memorials/new" className="text-xs font-bold text-[#93C5FD] hover:text-white inline-flex items-center gap-1.5">
               <Flower2 size={13} /> {t("memorials.directory.ctaCreateBottom")}
             </Link>
           </div>

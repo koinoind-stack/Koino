@@ -171,7 +171,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
             }
           }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold text-white transition-all hover:-translate-y-px"
-          style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+          style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
         >
           <Plus size={13} /> {t("biz.listYourBusiness")}
         </button>
@@ -214,13 +214,13 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
           onClick={() => setShowFilters(!showFilters)}
           className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all border flex items-center gap-1.5 ${
             activeFilters > 0
-              ? "bg-[#9786E3]/15 border-[#9786E3]/30 text-[#9786E3]"
+              ? "bg-[#3B82F6]/15 border-[#3B82F6]/30 text-[#3B82F6]"
               : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
           }`}
         >
           <Filter size={12} />
           {activeFilters > 0 && (
-            <span className="w-4 h-4 rounded-full bg-[#9786E3] text-white text-[9px] flex items-center justify-center font-bold">
+            <span className="w-4 h-4 rounded-full bg-[#3B82F6] text-white text-[9px] flex items-center justify-center font-bold">
               {activeFilters}
             </span>
           )}
@@ -287,7 +287,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
       {/* ─── FEATURED BUSINESSES ─── */}
       {featured.length > 0 && filterCategory === "" && filterState === "" && filterCity === "" && !searchQuery && (
         <div className="mb-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F39B9B] mb-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F97316] mb-2">
             {t("biz.featuredHeading")}
           </p>
           <div className="space-y-3">
@@ -314,7 +314,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
 
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <div className="w-7 h-7 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+          <div className="w-7 h-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
@@ -355,7 +355,7 @@ export default function BusinessDirectoryView({ onListBusiness }: Props) {
             <button
               onClick={clearFilters}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #9786E3, #38BDF8)" }}
+              style={{ background: "linear-gradient(135deg, #3B82F6, #22D3EE)" }}
             >
               {t("biz.clearFilters")}
             </button>
@@ -407,7 +407,7 @@ function BusinessCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.3) }}
       onClick={onClick}
-      className="bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] transition-all group"
+      className="bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-white/[0.12] transition-all group"
     >
       {/* Cover image — 16:9 with fallback */}
       <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
@@ -447,14 +447,14 @@ function BusinessCard({
           </span>
         )}
         {business.featured && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#F59E0B]/90 text-slate-950 text-[9px] font-bold uppercase tracking-wider">
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#F5B84A]/90 text-slate-950 text-[9px] font-bold uppercase tracking-wider">
             {t("common.featured")}
           </span>
         )}
 
         {/* Category badge — bottom-left */}
         <div className="absolute bottom-2 left-2 right-2">
-          <span className="inline-block px-2 py-0.5 rounded-md bg-[#9786E3]/90 text-white text-[9px] font-bold uppercase tracking-wider">
+          <span className="inline-block px-2 py-0.5 rounded-md bg-[#3B82F6]/90 text-white text-[9px] font-bold uppercase tracking-wider">
             {business.category}
           </span>
         </div>
@@ -466,7 +466,7 @@ function BusinessCard({
           <h3 className="text-sm font-bold text-white leading-tight line-clamp-1">{business.name}</h3>
           {business.rating ? (
             <div className="flex items-center gap-0.5 shrink-0">
-              <Star size={11} className="text-[#F59E0B]" fill="currentColor" />
+              <Star size={11} className="text-[#F5B84A]" fill="currentColor" />
               <span className="text-[10px] font-bold text-white">{business.rating.toFixed(1)}</span>
               {business.reviews ? (
                 <span className="text-[9px] text-[#94A3B8]">({business.reviews})</span>
@@ -492,7 +492,7 @@ function BusinessCard({
               </span>
             )}
             {business.website && (
-              <span className="flex items-center gap-0.5 text-[10px] text-[#38BDF8] font-bold">
+              <span className="flex items-center gap-0.5 text-[10px] text-[#22D3EE] font-bold">
                 <Globe size={10} /> {t("biz.websiteLabel")}
               </span>
             )}
@@ -502,7 +502,7 @@ function BusinessCard({
               </span>
             )}
           </div>
-          <span className="text-[10px] font-bold text-[#9786E3] uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-[#3B82F6] uppercase tracking-wider">
             {t("home.biz.viewBusiness")} →
           </span>
         </div>
@@ -536,7 +536,7 @@ function BusinessDetailModal({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 350 }}
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
         {/* Cover image */}
         <div className="relative w-full aspect-[16/9] bg-[#0f0f1a] overflow-hidden">
@@ -565,7 +565,7 @@ function BusinessDetailModal({
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">Koino</p>
             <p className="text-[9px] text-white/40 leading-tight">{t("common.imageUnavailable")}</p>
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1929] via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#13294A] via-transparent to-transparent pointer-events-none" />
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
@@ -576,7 +576,7 @@ function BusinessDetailModal({
           {/* Title overlay */}
           <div className="absolute bottom-4 left-4 right-4">
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 rounded-md bg-[#9786E3]/90 text-white text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded-md bg-[#3B82F6]/90 text-white text-[10px] font-bold uppercase tracking-wider">
                 {business.category}
               </span>
               {business.verified && (
@@ -585,7 +585,7 @@ function BusinessDetailModal({
                 </span>
               )}
               {business.featured && (
-                <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/90 text-slate-950 text-[10px] font-bold uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-md bg-[#F5B84A]/90 text-slate-950 text-[10px] font-bold uppercase tracking-wider">
                   {t("common.featured")}
                 </span>
               )}
@@ -593,7 +593,7 @@ function BusinessDetailModal({
             <h2 className="text-xl font-extrabold text-white leading-tight">{business.name}</h2>
             {business.rating ? (
               <div className="flex items-center gap-1 mt-1">
-                <Star size={12} className="text-[#F59E0B]" fill="currentColor" />
+                <Star size={12} className="text-[#F5B84A]" fill="currentColor" />
                 <span className="text-[11px] font-bold text-white">{business.rating.toFixed(1)}</span>
                 {business.reviews ? (
                   <span className="text-[10px] text-[#94A3B8]">{t("common.reviews", { count: business.reviews })}</span>
@@ -629,7 +629,7 @@ function BusinessDetailModal({
                 {business.services.map((s) => (
                   <span
                     key={s}
-                    className="px-2.5 py-1 rounded-lg bg-[#9786E3]/10 border border-[#9786E3]/20 text-[#9786E3] text-[11px] font-semibold"
+                    className="px-2.5 py-1 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/20 text-[#3B82F6] text-[11px] font-semibold"
                   >
                     {s}
                   </span>
@@ -656,7 +656,7 @@ function BusinessDetailModal({
                 {business.languages.map((lang) => (
                   <span
                     key={lang}
-                    className="px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[11px] font-semibold"
+                    className="px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[11px] font-semibold"
                   >
                     {lang}
                   </span>
@@ -672,7 +672,7 @@ function BusinessDetailModal({
             {onShare && (business.status ?? "approved") === "approved" && (
               <button
                 onClick={() => onShare(business)}
-                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] hover:bg-[#7C3AED]/25 transition-all"
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] hover:bg-[#2563EB]/25 transition-all"
               >
                 <Share2 size={16} /> {t("biz.share")}
               </button>
@@ -694,7 +694,7 @@ function BusinessDetailModal({
             {business.phone && (
               <a
                 href={`tel:${business.phone.replace(/[^0-9+]/g, "")}`}
-                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#9786E3]/15 border border-[#9786E3]/30 text-[#9786E3] hover:bg-[#9786E3]/25 transition-all"
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#3B82F6]/15 border border-[#3B82F6]/30 text-[#3B82F6] hover:bg-[#3B82F6]/25 transition-all"
               >
                 <Phone size={16} /> {t("biz.callNumber", { phone: business.phone })}
               </a>
@@ -705,7 +705,7 @@ function BusinessDetailModal({
                 href={business.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/25 transition-all"
+                className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#22D3EE]/15 border border-[#22D3EE]/30 text-[#22D3EE] hover:bg-[#22D3EE]/25 transition-all"
               >
                 <Globe size={16} /> {t("biz.visitWebsite")}
                 <ExternalLink size={12} className="opacity-80" />

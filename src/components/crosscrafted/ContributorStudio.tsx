@@ -46,8 +46,8 @@ type OpenQuestion = {
 };
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "#F59E0B" },
-  submitted: { label: "In review", color: "#38BDF8" },
+  draft: { label: "Draft", color: "#F5B84A" },
+  submitted: { label: "In review", color: "#22D3EE" },
   approved: { label: "Approved — awaiting publish", color: "#22C55E" },
   changes_requested: { label: "Changes requested", color: "#EF4444" },
   rejected: { label: "Rejected", color: "#EF4444" },
@@ -203,14 +203,14 @@ export default function ContributorStudio({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-[28px] md:rounded-[24px] w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/[0.06] sticky top-0 bg-[#1C1929] z-10">
+        <div className="flex items-center justify-between p-4 border-b border-white/[0.06] sticky top-0 bg-[#13294A] z-10">
           <div className="min-w-0">
             <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <PenLine size={14} className="text-[#A78BFA]" /> {t("contributor.title")}
+              <PenLine size={14} className="text-[#60A5FA]" /> {t("contributor.title")}
             </h2>
             <p className="text-[10px] text-[#94A3B8] truncate">{t("contributor.welcome", { name: displayName })}</p>
           </div>
@@ -230,7 +230,7 @@ export default function ContributorStudio({
               key={tabId}
               onClick={() => setTab(tabId)}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
-                tab === tabId ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+                tab === tabId ? "bg-[#2563EB]/25 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
               }`}
             >
               {tabId === "submissions" ? t("contributor.tab.submissions") : tabId === "write" ? t("contributor.tab.write") : t("contributor.tab.answers")}
@@ -241,7 +241,7 @@ export default function ContributorStudio({
         <div className="p-4 space-y-3">
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-[#7C3AED]" />
+              <Loader2 size={20} className="animate-spin text-[#2563EB]" />
             </div>
           ) : tab === "submissions" ? (
             articles.length === 0 ? (
@@ -250,7 +250,7 @@ export default function ContributorStudio({
                 <p className="text-xs text-[#94A3B8] mb-3">{t("contributor.emptyDesc")}</p>
                 <button
                   onClick={() => setTab("write")}
-                  className="px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-xs font-bold"
                 >
                   {t("contributor.startWriting")}
                 </button>
@@ -271,7 +271,7 @@ export default function ContributorStudio({
                     </div>
                     {a.excerpt && <p className="text-[11px] text-[#A09DB1] line-clamp-2 mb-1">{a.excerpt}</p>}
                     {a.reviewNotes && (
-                      <p className="text-[10px] text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg px-2 py-1 mt-1">
+                      <p className="text-[10px] text-[#F5B84A] bg-[#F5B84A]/10 border border-[#F5B84A]/20 rounded-lg px-2 py-1 mt-1">
                         {t("contributor.editorNotes", { notes: a.reviewNotes })}
                       </p>
                     )}
@@ -279,7 +279,7 @@ export default function ContributorStudio({
                       {t("contributor.updated", { date: new Date(a.updatedAt).toLocaleDateString() })}
                       {a.status === "published" && a.slug ? " · " : ""}
                       {a.status === "published" && a.slug && (
-                        <a href={`/apologetics/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-[#38BDF8] underline">
+                        <a href={`/apologetics/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-[#22D3EE] underline">
                           {t("contributor.viewLive")}
                         </a>
                       )}
@@ -302,7 +302,7 @@ export default function ContributorStudio({
                 <select
                   value={wCategory}
                   onChange={(e) => setWCategory(e.target.value)}
-                  className="neo-input text-sm bg-[#1C1929]"
+                  className="neo-input text-sm bg-[#13294A]"
                 >
                   <option value="">{t("contributor.categoryPlaceholder")}</option>
                   {APOLOGETICS_CATEGORIES.map((c) => (
@@ -350,7 +350,7 @@ export default function ContributorStudio({
                 <button
                   onClick={() => submitArticle("submitted")}
                   disabled={submitting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
                   {t("contributor.submitForReview")}
@@ -391,7 +391,7 @@ export default function ContributorStudio({
                           <button
                             onClick={submitAnswer}
                             disabled={submittingAnswer}
-                            className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-[#38BDF8] hover:bg-[#0EA5E9] disabled:opacity-60 flex items-center justify-center gap-1.5"
+                            className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-[#22D3EE] hover:bg-[#0EA5E9] disabled:opacity-60 flex items-center justify-center gap-1.5"
                           >
                             {submittingAnswer ? <Loader2 size={12} className="animate-spin" /> : <Send size={11} />}
                             {t("contributor.submitForReview")}
@@ -401,7 +401,7 @@ export default function ContributorStudio({
                     ) : (
                       <button
                         onClick={() => { setAnswerQuestionId(q.id); setAnswerText(""); }}
-                        className="text-[10px] font-bold text-[#38BDF8] hover:bg-[#38BDF8]/10 rounded-lg px-2.5 py-1.5 transition-colors"
+                        className="text-[10px] font-bold text-[#22D3EE] hover:bg-[#22D3EE]/10 rounded-lg px-2.5 py-1.5 transition-colors"
                       >
                         {q.myProposal ? t("contributor.reviseProposal") : t("contributor.proposeAnswer")}
                       </button>

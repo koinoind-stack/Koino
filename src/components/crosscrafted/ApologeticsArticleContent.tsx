@@ -143,20 +143,20 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
 
   const difficultyColor: Record<string, string> = {
     BEGINNER: "#22C55E",
-    INTERMEDIATE: "#F59E0B",
+    INTERMEDIATE: "#F5B84A",
     ADVANCED: "#EF4444",
   };
 
   return (
     <article className="max-w-2xl mx-auto px-6 py-12">
-      <Link href="/apologetics" className="text-xs text-[#A78BFA] hover:text-white flex items-center gap-1 mb-4">
+      <Link href="/apologetics" className="text-xs text-[#60A5FA] hover:text-white flex items-center gap-1 mb-4">
         <ArrowLeft size={12} /> Back to Apologetics
       </Link>
 
       {/* Category + difficulty badges + reading time */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {article.category && (
-          <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">{article.category}</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">{article.category}</span>
         )}
         {article.difficulty && (
           <span
@@ -178,7 +178,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       {/* Author display */}
       {article.authorName && (
         <div className="flex items-center gap-2 mb-6 text-[11px] text-[#94A3B8]">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#F39B9B] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
             {article.authorName.charAt(0).toUpperCase()}
           </div>
           <span>by <span className="font-bold text-white">{article.authorName}</span></span>
@@ -199,9 +199,9 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       {article.sourceQuestion && (
         <Link
           href={`/?view=apologetics&question=${article.sourceQuestion.id}`}
-          className="block bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3 mb-6 hover:border-[#38BDF8]/40 transition-colors"
+          className="block bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3 mb-6 hover:border-[#22D3EE]/40 transition-colors"
         >
-          <p className="text-[9px] font-bold uppercase tracking-wider text-[#38BDF8] mb-1 flex items-center gap-1">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-[#22D3EE] mb-1 flex items-center gap-1">
             <BookOpen size={9} /> From the Koino Q&amp;A
           </p>
           <p className="text-[12px] text-[#A09DB1] leading-relaxed line-clamp-2">
@@ -217,8 +217,8 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
 
       {/* Short Answer */}
       {article.shortAnswer && (
-        <div className="bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-xl p-4 mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">Short Answer</p>
+        <div className="bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-xl p-4 mb-6">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA] mb-1">Short Answer</p>
           <p className="text-sm text-[#A09DB1] leading-relaxed">{article.shortAnswer}</p>
         </div>
       )}
@@ -232,7 +232,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
           reader (/?view=bible&book=..&chapter=..&verse=..). Legacy free-text
           refs that don't parse render as plain chips. */}
       {article.bibleRefs.length > 0 && (
-        <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-4 mb-6">
+        <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-4 mb-6">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 flex items-center gap-1">
             <BookOpen size={10} /> Bible References
           </p>
@@ -243,13 +243,13 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
                 <a
                   key={i}
                   href={bibleRefHref(parsed)}
-                  className="px-2.5 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[11px] font-semibold hover:bg-[#38BDF8]/20 transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[11px] font-semibold hover:bg-[#22D3EE]/20 transition-colors"
                   title="Open this passage in the Bible reader"
                 >
                   {ref} ↗
                 </a>
               ) : (
-                <span key={i} className="px-2.5 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[11px] font-semibold">
+                <span key={i} className="px-2.5 py-1 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[11px] font-semibold">
                   {ref}
                 </span>
               );
@@ -271,7 +271,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
 
       {/* Sources */}
       {article.sources.length > 0 && (
-        <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-4 mb-6">
+        <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-4 mb-6">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2">Sources &amp; Further Reading</p>
           <ol className="space-y-1.5">
             {article.sources.map((src, i) => (
@@ -279,7 +279,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
                 {i + 1}. {src.author ? `${src.author} — ` : ""}
                 {src.title || src.publication || "Source"}
                 {src.year ? ` (${src.year})` : ""}
-                {src.url ? <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-[#38BDF8] ml-1 underline">↗</a> : null}
+                {src.url ? <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-[#22D3EE] ml-1 underline">↗</a> : null}
               </li>
             ))}
           </ol>
@@ -295,15 +295,15 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
               <Link
                 key={ra.id}
                 href={`/apologetics/${ra.slug}`}
-                className="block bg-[#1C1929] border border-white/[0.06] rounded-xl p-3 hover:border-white/[0.15] transition-all group"
+                className="block bg-[#13294A] border border-white/[0.06] rounded-xl p-3 hover:border-white/[0.15] transition-all group"
               >
                 {ra.coverImageUrl && (
                   <img src={ra.coverImageUrl} alt="" className="w-full h-20 object-cover rounded-lg mb-2" />
                 )}
                 {ra.category && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">{ra.category}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">{ra.category}</span>
                 )}
-                <h3 className="text-xs font-bold text-white mt-0.5 group-hover:text-[#A78BFA] transition-colors line-clamp-2">{ra.title}</h3>
+                <h3 className="text-xs font-bold text-white mt-0.5 group-hover:text-[#60A5FA] transition-colors line-clamp-2">{ra.title}</h3>
                 {ra.excerpt && <p className="text-[10px] text-[#A09DB1] mt-1 line-clamp-2">{ra.excerpt}</p>}
               </Link>
             ))}
@@ -326,7 +326,7 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
           disabled={saveBusy}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all disabled:opacity-50 ${
             saved
-              ? "bg-[#F59E0B]/15 border-[#F59E0B]/40 text-[#F59E0B]"
+              ? "bg-[#F5B84A]/15 border-[#F5B84A]/40 text-[#F5B84A]"
               : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
           }`}
         >
@@ -359,8 +359,8 @@ export default function ApologeticsArticleContent({ article }: { article: Articl
       </div>
 
       {/* Continue exploring */}
-      <div className="mt-8 p-4 bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/15 rounded-2xl">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-3">Continue exploring Koino</p>
+      <div className="mt-8 p-4 bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/15 rounded-2xl">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA] mb-3">Continue exploring Koino</p>
         <div className="flex flex-wrap gap-2">
           <Link href="/?view=bible" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">📖 Read the Bible</Link>
           <Link href="/?view=prayer-wall" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-white text-[10px] font-bold transition-all">🙏 Prayer Wall</Link>

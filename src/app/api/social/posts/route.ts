@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, getBlockFilter, notify, notifyMentions, parseHashtags, postSelect, serializePosts, jsonError } from "@/lib/social/server";
+import { parseFeedTab, rankTrending, nextCursorFrom } from "@/lib/social/feed-utils";
 import { rateLimit } from "@/lib/social/rate-limit";
 
 /**
@@ -18,9 +19,7 @@ export async function GET(req: NextRequest) {
   const viewerId = session.user.id;
 
   const { searchParams } = new URL(req.url);
-  const tabParam = searchParams.get("tab") || "";
-  const tab =
-    tabParam === "following" ? "following" : tabParam === "trending" ? "trending" : "discover";
+  const tab = parseFeedTab(searchParams.get("tab"));
   const cursor = searchParams.get("cursor");
   const reels = searchParams.get("reels") === "1";
   const hashtag = searchParams.get("hashtag");
@@ -85,15 +84,10 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" as const },
         take: 50,
       });
-      const score = (p: { likeCount: number; commentCount: number; repostCount: number }) =>
-        p.likeCount * 2 + p.commentCount * 3 + p.repostCount * 3;
-      const ranked = [...candidates]
-        .sort(
-          (a, b) =>
-            score(b) - score(a) ||
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        )
-        .slice(0, 20);
+      // Engagement-ranked window (score: likes ×2 + comments ×3 + reposts ×3,
+      // newest first on ties) — pure helper, unit-tested in
+      // tests/social-feed-utils.test.ts.
+      const ranked = rankTrending(candidates, 20);
       const posts = await serializePosts(ranked, viewerId);
       return Response.json({ posts, nextCursor: null });
     } catch (err) {
@@ -114,8 +108,7 @@ export async function GET(req: NextRequest) {
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     const posts = await serializePosts(page, viewerId);
-    const nextCursor =
-      hasMore && page.length > 0 ? page[page.length - 1].createdAt.toISOString() : null;
+    const nextCursor = nextCursorFrom(page[page.length - 1]?.createdAt, hasMore);
     return Response.json({ posts, nextCursor });
   } catch (err) {
     console.error("[social/posts] GET failed:", err);
@@ -171,6 +164,7 @@ export async function POST(req: NextRequest) {
   // Storage through /api/social/upload-url, which enforces type + size per
   // user before a byte moves; here we make sure hand-crafted payloads can't
   // publish arbitrary external/hotlinked files instead of Koino uploads.
+  // (The storage bucket itself is legacy infrastructure — path unchanged.)
   if (mediaType !== "text") {
     if (mediaUrls.some((u) => !u.includes("/believ-comic-artwork/social/")))
       return jsonError("Media must be uploaded through Koino's uploader");

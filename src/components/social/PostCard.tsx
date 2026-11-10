@@ -26,6 +26,8 @@ import type { Post } from "./types";
 import { api } from "./types";
 import { computePostPermissions } from "./post-permissions";
 import { useViewerId } from "./use-viewer-id";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { repostAttributionHandle, applyRepostToViewer, optimisticRepostCount } from "@/lib/social/feed-utils";
 import EmojiPickerButton, { insertAtCursor } from "./EmojiPicker";
 import { formatCount, timeAgo, tokenizeCaption } from "@/lib/social/format";
 import { shareLinks } from "@/lib/share/links";
@@ -55,11 +57,11 @@ export default function PostCard({
   onOpenDetail,
   onOpenProfile,
   onHashtag,
-  onOpenReel,
   onChanged,
   compact,
   canModerate = false,
 }: Props) {
+  const t = useTranslation();
   const [state, setState] = useState<Post>(post);
   const [mediaIndex, setMediaIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -120,22 +122,26 @@ export default function PostCard({
   }
 
   async function toggleRepost() {
+    if (busy) return;
+    setBusy(true);
     const prev = state;
-    setState({
-      ...state,
-      viewer: { ...state.viewer },
-      repostCount: state.repostCount + 1,
-    });
+    // Optimistic: the toggle flips viewer.reposted and nudges the count by
+    // exactly one step in the right direction (undo counts down) — the pure
+    // helpers in feed-utils.ts keep this symmetric and unit-tested.
+    setState({ ...state, repostCount: optimisticRepostCount(state), viewer: { ...state.viewer, reposted: !state.viewer.reposted } });
     try {
       const res = await api<{ reposted: boolean; repostCount: number }>(
         `/api/social/posts/${state.id}/repost`,
         { method: "POST" },
       );
-      setState((s) => ({ ...s, repostCount: res.repostCount }));
-      toast.success(res.reposted ? "Reposted" : "Repost removed");
+      // The server count always wins — no locally guessed number can stick.
+      setState((s) => ({ ...s, ...applyRepostToViewer(s, res) }));
+      toast.success(res.reposted ? t("feed.reposted") : t("feed.repostRemoved"));
     } catch (err) {
       setState(prev);
       toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -216,14 +222,14 @@ export default function PostCard({
   const { canEdit, canDelete, canBlock } = computePostPermissions(state, viewerId, canModerate);
 
   return (
-    <article className={`bg-[#111827]/60 border border-white/[0.05] rounded-2xl overflow-hidden ${compact ? "" : "mb-4"}`}>
+    <article className={`bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl overflow-hidden ${compact ? "" : "mb-4"}`}>
       {/* ─── header ─── */}
       <div className="flex items-center gap-3 px-4 py-3">
         <button onClick={() => state.author.username && onOpenProfile(state.author.username)} className="shrink-0">
           {state.author.image ? (
             <Image src={state.author.image} alt="" width={38} height={38} className="w-9 h-9 rounded-full object-cover" unoptimized />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-sm font-bold">
               {(state.author.name || state.author.username || "?").charAt(0).toUpperCase()}
             </div>
           )}
@@ -236,7 +242,7 @@ export default function PostCard({
             >
               {state.author.name || state.author.username || "Member"}
             </button>
-            {state.author.verified && <BadgeCheck size={14} className="text-[#38BDF8] shrink-0" />}
+            {state.author.verified && <BadgeCheck size={14} className="text-[#22D3EE] shrink-0" />}
           </div>
           <p className="text-[11px] text-[#64748B]">
             {state.author.username && (
@@ -253,7 +259,7 @@ export default function PostCard({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-9 z-50 w-52 bg-[#1C1929] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+              <div className="absolute right-0 top-9 z-50 w-52 bg-[#13294A] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
                 {canEdit && (
                   <button
                     onClick={() => { setMenuOpen(false); setEditing(true); setEditText(state.content || ""); }}
@@ -292,10 +298,16 @@ export default function PostCard({
 
       {/* ─── reposted-by header ─── */}
       {state.repostedFrom && (
-        <div className="px-4 pb-2 -mt-1 flex items-center gap-1.5 text-[11px] text-[#64748B]">
+        <button
+          onClick={() => {
+            const handle = repostAttributionHandle(state);
+            if (handle) onOpenProfile(handle);
+          }}
+          className="mx-4 pb-2 -mt-1 flex items-center gap-1.5 text-[11px] text-[#64748B] hover:text-[#93C5FD] transition-colors text-left"
+        >
           <Repeat2 size={12} />
-          Reposted from @{state.author.username}
-        </div>
+          Reposted from @{repostAttributionHandle(state) || "member"}
+        </button>
       )}
 
       {/* ─── caption ─── */}
@@ -307,7 +319,7 @@ export default function PostCard({
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
             maxLength={2200}
-            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white resize-none focus:outline-none focus:border-[#7C3AED]"
+            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white resize-none focus:outline-none focus:border-[#2563EB]"
           />
           <div className="flex items-center gap-2 mt-2">
             <EmojiPickerButton
@@ -315,7 +327,7 @@ export default function PostCard({
               onPick={(e) => insertAtCursor(editRef.current, e, setEditText, 2200)}
             />
             <div className="flex-1" />
-            <button onClick={saveEdit} className="px-4 py-1.5 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">Save</button>
+            <button onClick={saveEdit} className="px-4 py-1.5 rounded-xl bg-[#2563EB] text-white text-xs font-bold">Save</button>
             <button onClick={() => setEditing(false)} className="px-4 py-1.5 rounded-xl bg-white/5 text-[#94A3B8] text-xs font-bold">Cancel</button>
           </div>
         </div>
@@ -331,14 +343,14 @@ export default function PostCard({
       {state.memorial && !state.repostedFrom && (
         <a
           href={`/memorials/${state.memorial.id}`}
-          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-[#7C3AED]/[0.07] border border-[#7C3AED]/20 px-3.5 py-2.5 hover:bg-[#7C3AED]/[0.12] transition-colors"
+          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-[#2563EB]/[0.07] border border-[#2563EB]/20 px-3.5 py-2.5 hover:bg-[#2563EB]/[0.12] transition-colors"
         >
-          <Flower2 size={16} className="text-[#C4B5FD] shrink-0" />
+          <Flower2 size={16} className="text-[#93C5FD] shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold text-[#C4B5FD] uppercase tracking-wide">In loving memory</p>
+            <p className="text-[11px] font-bold text-[#93C5FD] uppercase tracking-wide">In loving memory</p>
             <p className="text-xs text-[#94A3B8] truncate">{state.memorial.fullName}</p>
           </div>
-          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">View Memorial →</span>
+          <span className="shrink-0 text-[11px] font-bold text-[#93C5FD]">View Memorial →</span>
         </a>
       )}
 
@@ -346,7 +358,7 @@ export default function PostCard({
       {shown.video && !state.repostedFrom && (
         <a
           href={`/videos/${shown.video.slug}`}
-          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.08] p-2.5 hover:border-[#7C3AED]/40 transition-colors"
+          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.08] p-2.5 hover:border-[#2563EB]/40 transition-colors"
         >
           <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-black/60 shrink-0">
             {shown.video.thumbnailUrl ? (
@@ -358,10 +370,10 @@ export default function PostCard({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-[#C4B5FD] uppercase tracking-wide">Bible Movies &amp; Videos</p>
+            <p className="text-[10px] font-bold text-[#93C5FD] uppercase tracking-wide">Bible Movies &amp; Videos</p>
             <p className="text-xs text-white font-bold truncate">{shown.video.title}</p>
           </div>
-          <span className="shrink-0 text-[11px] font-bold text-[#C4B5FD]">Watch Now →</span>
+          <span className="shrink-0 text-[11px] font-bold text-[#93C5FD]">Watch Now →</span>
         </a>
       )}
 
@@ -369,25 +381,25 @@ export default function PostCard({
       {state.article && !state.repostedFrom && (
         <a
           href={`/blog/${state.article.slug}`}
-          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-[#F39B9B]/[0.06] border border-[#F39B9B]/20 p-2.5 hover:border-[#F39B9B]/40 transition-colors"
+          className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-[#F97316]/[0.06] border border-[#F97316]/20 p-2.5 hover:border-[#F97316]/40 transition-colors"
         >
-          <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-[#1C1929] shrink-0">
+          <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-[#13294A] shrink-0">
             {state.article.featuredImage ? (
               <Image src={state.article.featuredImage} alt="" fill sizes="80px" className="object-cover" unoptimized />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[#F39B9B]">
+              <div className="w-full h-full flex items-center justify-center text-[#F97316]">
                 <BookOpen size={14} />
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-[#F39B9B] uppercase tracking-wide truncate">
+            <p className="text-[10px] font-bold text-[#F97316] uppercase tracking-wide truncate">
               Article{state.article.category ? ` · ${state.article.category}` : ""}
               {state.article.readingMinutes ? ` · ${state.article.readingMinutes} min read` : ""}
             </p>
             <p className="text-xs text-white font-bold truncate">{state.article.title}</p>
           </div>
-          <span className="shrink-0 text-[11px] font-bold text-[#F39B9B]">Read Article →</span>
+          <span className="shrink-0 text-[11px] font-bold text-[#F97316]">Read Article →</span>
         </a>
       )}
 
@@ -451,8 +463,31 @@ export default function PostCard({
         </div>
       )}
 
-      {/* ─── actions ─── */}
-      <div className="flex items-center gap-1 px-2 py-2.5">
+      {/* ─── actions — approved design order: comment · repost · like ·
+              bookmark · share, evenly distributed across the card width ─── */}
+      <div className="flex items-center justify-between px-3 py-2.5">
+        <button
+          onClick={() => onOpenDetail(state)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-[#94A3B8] hover:text-white transition-colors"
+        >
+          <MessageCircle size={19} />
+          {formatCount(state.commentCount)}
+        </button>
+        <button
+          onClick={toggleRepost}
+          aria-pressed={state.viewer.reposted}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+            state.viewer.reposted
+              ? "text-[#22D3EE]"
+              : "text-[#94A3B8] hover:text-white"
+          }`}
+        >
+          <Repeat2
+            size={19}
+            className={state.viewer.reposted ? "scale-110 transition-transform" : "transition-transform"}
+          />
+          {formatCount(state.repostCount)}
+        </button>
         <button
           onClick={toggleLike}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
@@ -463,31 +498,13 @@ export default function PostCard({
           {formatCount(state.likeCount)}
         </button>
         <button
-          onClick={() => onOpenDetail(state)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-[#94A3B8] hover:text-white"
-        >
-          <MessageCircle size={19} />
-          {formatCount(state.commentCount)}
-        </button>
-        <button
-          onClick={toggleRepost}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-[#94A3B8] hover:text-white"
-        >
-          <Repeat2 size={19} />
-          {formatCount(state.repostCount)}
-        </button>
-        <button
-          onClick={() => onOpenReel?.(state)}
-          className="hidden"
-        />
-        <div className="flex-1" />
-        <button
           onClick={toggleBookmark}
-          className={`p-2 rounded-xl ${state.viewer.bookmarked ? "text-[#38BDF8]" : "text-[#94A3B8] hover:text-white"}`}
+          aria-pressed={state.viewer.bookmarked}
+          className={`p-2 rounded-xl transition-colors ${state.viewer.bookmarked ? "text-[#22D3EE]" : "text-[#94A3B8] hover:text-white"}`}
         >
           <Bookmark size={19} fill={state.viewer.bookmarked ? "currentColor" : "none"} />
         </button>
-        <button onClick={sharePost} className="p-2 rounded-xl text-[#94A3B8] hover:text-white">
+        <button onClick={sharePost} className="p-2 rounded-xl text-[#94A3B8] hover:text-white transition-colors">
           <Share2 size={19} />
         </button>
       </div>
@@ -517,7 +534,7 @@ function CaptionText({
             <button
               key={i}
               onClick={() => onHashtag(t.value.replace("#", ""))}
-              className="text-[#38BDF8] hover:underline"
+              className="text-[#22D3EE] hover:underline"
             >
               {t.value}
             </button>
@@ -528,7 +545,7 @@ function CaptionText({
             <button
               key={i}
               onClick={() => onMention(t.value.replace("@", ""))}
-              className="text-[#A78BFA] hover:underline"
+              className="text-[#60A5FA] hover:underline"
             >
               {t.value}
             </button>

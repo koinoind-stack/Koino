@@ -324,7 +324,7 @@ export default function ApologeticsTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
       </div>
     );
   }
@@ -336,7 +336,7 @@ export default function ApologeticsTab() {
         <button
           onClick={() => setSurface("articles")}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-            surface === "articles" ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+            surface === "articles" ? "bg-[#2563EB]/25 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           Articles
@@ -344,7 +344,7 @@ export default function ApologeticsTab() {
         <button
           onClick={() => setSurface("engagement")}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-            surface === "engagement" ? "bg-[#7C3AED]/25 text-[#A78BFA]" : "text-[#94A3B8] hover:text-white"
+            surface === "engagement" ? "bg-[#2563EB]/25 text-[#60A5FA]" : "text-[#94A3B8] hover:text-white"
           }`}
         >
           Comments &amp; Reports
@@ -357,9 +357,9 @@ export default function ApologeticsTab() {
       <>
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="w-1 h-5 rounded-full bg-[#7C3AED]" />
+        <div className="w-1 h-5 rounded-full bg-[#2563EB]" />
         <h2 className="text-sm font-bold text-white">Apologetics Articles</h2>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#7C3AED]/15 text-[#A78BFA]">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB]/15 text-[#60A5FA]">
           {counts.total}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
@@ -373,7 +373,7 @@ export default function ApologeticsTab() {
           </button>
           <button
             onClick={openNew}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1.5 transition-all"
           >
             <Plus size={12} />
             <span className="hidden sm:inline">{t("admin.apologetics.writeArticle")}</span>
@@ -395,14 +395,14 @@ export default function ApologeticsTab() {
           onClick={() => setFilter("draft")}
           label="Drafts"
           count={counts.draft}
-          color="#F59E0B"
+          color="#F5B84A"
         />
         <FilterChip
           active={filter === "submitted"}
           onClick={() => setFilter("submitted")}
           label="Submitted"
           count={counts.submitted}
-          color="#38BDF8"
+          color="#22D3EE"
         />
         <FilterChip
           active={filter === "published"}
@@ -437,7 +437,7 @@ export default function ApologeticsTab() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <FileText size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {search ? "No articles match your search." : "No apologetics articles yet."}
@@ -445,7 +445,7 @@ export default function ApologeticsTab() {
           {!search && (
             <button
               onClick={openNew}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#A78BFA] hover:text-white"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#60A5FA] hover:text-white"
             >
               <Plus size={12} /> Write your first article
             </button>
@@ -457,7 +457,7 @@ export default function ApologeticsTab() {
             <div
               key={a.id}
               onClick={() => openEdit(a.id)}
-              className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-3 hover:border-white/[0.15] transition-all flex gap-3 cursor-pointer"
+              className="w-full text-left bg-[#13294A] border border-white/[0.06] rounded-2xl p-3 hover:border-white/[0.15] transition-all flex gap-3 cursor-pointer"
             >
               {/* Cover image thumbnail — 16:9, ~140px wide on desktop */}
               <div className="w-32 sm:w-36 shrink-0">
@@ -471,7 +471,7 @@ export default function ApologeticsTab() {
                     />
                   </div>
                 ) : (
-                  <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-gradient-to-br from-[#1C1929] via-[#2B254E] to-[#0f0f1a]">
+                  <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-gradient-to-br from-[#13294A] via-[#1A3A66] to-[#0f0f1a]">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <FileText size={18} className="text-[#475569]/60" />
                     </div>
@@ -492,15 +492,15 @@ export default function ApologeticsTab() {
                     {a.status === "published" ? (
                       <StatusBadge color="#22C55E" label="Published" />
                     ) : a.status === "submitted" ? (
-                      <StatusBadge color="#38BDF8" label="Submitted" />
+                      <StatusBadge color="#22D3EE" label="Submitted" />
                     ) : a.status === "changes_requested" ? (
                       <StatusBadge color="#EF4444" label="Changes requested" />
                     ) : a.status === "approved" ? (
-                      <StatusBadge color="#38BDF8" label="Approved" />
+                      <StatusBadge color="#22D3EE" label="Approved" />
                     ) : a.status === "rejected" ? (
                       <StatusBadge color="#EF4444" label="Rejected" />
                     ) : (
-                      <StatusBadge color="#F59E0B" label="Draft" />
+                      <StatusBadge color="#F5B84A" label="Draft" />
                     )}
                   </div>
                 </div>
@@ -514,7 +514,7 @@ export default function ApologeticsTab() {
                     </span>
                   )}
                   {a.difficulty && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[#A78BFA] font-bold uppercase tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[#60A5FA] font-bold uppercase tracking-wider">
                       {a.difficulty}
                     </span>
                   )}
@@ -537,7 +537,7 @@ export default function ApologeticsTab() {
                 </div>
                 {/* Review notes from a previous review round */}
                 {a.status === "changes_requested" && (a as any).reviewNotes && (
-                  <p className="mt-1.5 text-[10px] text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg px-2 py-1 line-clamp-2">
+                  <p className="mt-1.5 text-[10px] text-[#F5B84A] bg-[#F5B84A]/10 border border-[#F5B84A]/20 rounded-lg px-2 py-1 line-clamp-2">
                     Notes sent: {(a as any).reviewNotes}
                   </p>
                 )}
@@ -552,8 +552,8 @@ export default function ApologeticsTab() {
                       }}
                       className={`text-[10px] font-bold rounded-lg px-2.5 py-1.5 transition-colors ${
                         reviewing === a.id
-                          ? "bg-[#38BDF8]/25 text-[#38BDF8]"
-                          : "bg-[#38BDF8]/10 text-[#38BDF8] hover:bg-[#38BDF8]/20"
+                          ? "bg-[#22D3EE]/25 text-[#22D3EE]"
+                          : "bg-[#22D3EE]/10 text-[#22D3EE] hover:bg-[#22D3EE]/20"
                       }`}
                     >
                       {reviewing === a.id ? t("common.close") : t("admin.apologetics.reviewSubmission")}
@@ -568,7 +568,7 @@ export default function ApologeticsTab() {
 
       {/* PART 2: contributor submission review panel */}
       {reviewing && (
-        <div className="bg-[#1C1929] border border-[#38BDF8]/25 rounded-2xl p-4 space-y-2">
+        <div className="bg-[#13294A] border border-[#22D3EE]/25 rounded-2xl p-4 space-y-2">
           <p className="text-xs font-bold text-white">Review submission</p>
           <p className="text-[10px] text-[#94A3B8]">
             Approving marks the article ready-to-publish (you still press Publish).
@@ -589,7 +589,7 @@ export default function ApologeticsTab() {
             </button>
             <button
               onClick={() => review(reviewing, "changes_requested")}
-              className="bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 border border-[#F59E0B]/40 text-[#F59E0B] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
+              className="bg-[#F5B84A]/10 hover:bg-[#F5B84A]/20 border border-[#F5B84A]/40 text-[#F5B84A] text-[11px] font-bold rounded-lg px-3 py-1.5 transition-colors"
             >
               Request changes
             </button>
@@ -658,7 +658,7 @@ function FilterChip({
   count: number;
   color?: string;
 }) {
-  const activeBg = color ? `${color}` : "#7C3AED";
+  const activeBg = color ? `${color}` : "#2563EB";
   return (
     <button
       onClick={onClick}
@@ -730,7 +730,7 @@ function Section({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
       >
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#A78BFA]">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#60A5FA]">
           {title}
         </span>
         {open ? (
@@ -832,8 +832,8 @@ function MarkdownPreview({
       )}
       {excerpt && <p className="italic text-[#94A3B8]">{excerpt}</p>}
       {shortAnswer && (
-        <div className="rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] mb-1">
+        <div className="rounded-xl border border-[#2563EB]/30 bg-[#2563EB]/10 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA] mb-1">
             Short Answer
           </p>
           <p className="text-sm text-[#D8D5E8] leading-relaxed whitespace-pre-wrap">
@@ -868,7 +868,7 @@ function MarkdownPreview({
             li: ({ node: _n, ...props }) => <li className="leading-relaxed" {...props} />,
             blockquote: ({ node: _n, ...props }) => (
               <blockquote
-                className="border-l-2 border-[#7C3AED]/50 pl-3 italic text-[#94A3B8] my-3"
+                className="border-l-2 border-[#2563EB]/50 pl-3 italic text-[#94A3B8] my-3"
                 {...props}
               />
             ),
@@ -878,7 +878,7 @@ function MarkdownPreview({
               return (
                 <a
                   href={safeHref}
-                  className="text-[#38BDF8] underline"
+                  className="text-[#22D3EE] underline"
                   target="_blank"
                   rel="noopener noreferrer"
                   {...props}
@@ -905,7 +905,7 @@ function MarkdownPreview({
             em: ({ node: _n, ...props }) => <em className="italic" {...props} />,
             code: ({ node: _n, ...props }) => (
               <code
-                className="bg-white/[0.06] px-1.5 py-0.5 rounded text-[#A78BFA] text-xs"
+                className="bg-white/[0.06] px-1.5 py-0.5 rounded text-[#60A5FA] text-xs"
                 {...props}
               />
             ),
@@ -929,7 +929,7 @@ function MarkdownPreview({
             {bibleList.map((t, i) => (
               <span
                 key={i}
-                className="bg-[#38BDF8]/10 text-[#38BDF8] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
+                className="bg-[#22D3EE]/10 text-[#22D3EE] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
               >
                 {t}
               </span>
@@ -1260,7 +1260,7 @@ function ApologeticsEditorModal({
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
       </div>
     );
   }
@@ -1271,18 +1271,18 @@ function ApologeticsEditorModal({
       onClick={requestClose}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 min-w-0">
-            <FileText size={14} className="text-[#A78BFA] shrink-0" />
+            <FileText size={14} className="text-[#60A5FA] shrink-0" />
             <h2 className="text-sm font-extrabold text-white truncate">
               {activeArticleId ? t("admin.apologetics.editArticle") : t("admin.apologetics.newArticle")}
             </h2>
             {hasUnsavedChanges && (
-              <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B]">
+              <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#F5B84A]/15 text-[#F5B84A]">
                 Unsaved
               </span>
             )}
@@ -1324,7 +1324,7 @@ function ApologeticsEditorModal({
               />
               <p className="mt-1 text-[10px] text-[#64748B]">
                 Live preview:{" "}
-                <span className="text-[#38BDF8]">/apologetics/{effectiveSlug || "—"}</span>
+                <span className="text-[#22D3EE]">/apologetics/{effectiveSlug || "—"}</span>
               </p>
             </Field>
 
@@ -1333,7 +1333,7 @@ function ApologeticsEditorModal({
                 <select
                   value={form.category}
                   onChange={(e) => set("category", e.target.value)}
-                  className="neo-input text-sm bg-[#1C1929]"
+                  className="neo-input text-sm bg-[#13294A]"
                 >
                   <option value="">— None —</option>
                   {APOLOGETICS_CATEGORIES.map((c) => (
@@ -1358,7 +1358,7 @@ function ApologeticsEditorModal({
               <select
                 value={form.difficulty}
                 onChange={(e) => set("difficulty", e.target.value)}
-                className="neo-input text-sm bg-[#1C1929]"
+                className="neo-input text-sm bg-[#13294A]"
               >
                 <option value="">— None —</option>
                 {DIFFICULTY_OPTIONS.map((d) => (
@@ -1407,7 +1407,7 @@ function ApologeticsEditorModal({
                 onClick={() => setPreviewMode(false)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   !previewMode
-                    ? "bg-[#7C3AED]/20 text-[#A78BFA]"
+                    ? "bg-[#2563EB]/20 text-[#60A5FA]"
                     : "text-[#94A3B8] hover:text-white"
                 }`}
               >
@@ -1418,7 +1418,7 @@ function ApologeticsEditorModal({
                 onClick={() => setPreviewMode(true)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   previewMode
-                    ? "bg-[#7C3AED]/20 text-[#A78BFA]"
+                    ? "bg-[#2563EB]/20 text-[#60A5FA]"
                     : "text-[#94A3B8] hover:text-white"
                 }`}
               >
@@ -1441,7 +1441,7 @@ function ApologeticsEditorModal({
             ) : (
               <>
                 {/* Formatting toolbar — sticky, horizontally scrollable on mobile */}
-                <div className="sticky top-0 z-10 bg-[#1C1929] -mx-4 px-4 sm:-mx-0 sm:px-0 py-1">
+                <div className="sticky top-0 z-10 bg-[#13294A] -mx-4 px-4 sm:-mx-0 sm:px-0 py-1">
                   <div className="flex gap-1 overflow-x-auto">
                     <ToolbarButton
                       title="Heading 2"
@@ -1551,7 +1551,7 @@ function ApologeticsEditorModal({
                         key={s.label}
                         type="button"
                         onClick={() => applyInsert({ mode: "snippet", text: s.snippet })}
-                        className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-[#7C3AED]/10 text-[#A78BFA] hover:bg-[#7C3AED]/20 transition-colors"
+                        className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-[#2563EB]/10 text-[#60A5FA] hover:bg-[#2563EB]/20 transition-colors"
                       >
                         {s.label}
                       </button>
@@ -1578,7 +1578,7 @@ function ApologeticsEditorModal({
                       authorName: c ? c.displayName : f.authorName,
                     }));
                   }}
-                  className="neo-input text-sm bg-[#1C1929]"
+                  className="neo-input text-sm bg-[#13294A]"
                 >
                   <option value="">— Admin / no contributor —</option>
                   {contributors.map((c) => (
@@ -1691,7 +1691,7 @@ function ApologeticsEditorModal({
                     href={`/apologetics/${currentSlug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#38BDF8] hover:bg-[#38BDF8]/10 text-[11px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors"
+                    className="text-[#22D3EE] hover:bg-[#22D3EE]/10 text-[11px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink size={12} /> View Public
@@ -1738,7 +1738,7 @@ function ApologeticsEditorModal({
               <button
                 onClick={() => save("draft", { wasUnpublish: true })}
                 disabled={saving || deleting}
-                className="px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30 text-sm font-bold disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+                className="px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-[#F5B84A]/10 text-[#F5B84A] border border-[#F5B84A]/30 text-sm font-bold disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <EyeOff size={14} />}
                 Unpublish
@@ -1755,7 +1755,7 @@ function ApologeticsEditorModal({
             <button
               onClick={() => save("published")}
               disabled={saving || deleting}
-              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-extrabold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all hover:-translate-y-px"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all hover:-translate-y-px"
             >
               {saving ? (
                 <>
@@ -1779,11 +1779,11 @@ function ApologeticsEditorModal({
           onClick={() => setShowDiscardConfirm(false)}
         >
           <div
-            className="bg-[#1C1929] border border-white/[0.1] rounded-2xl p-5 max-w-sm w-full"
+            className="bg-[#13294A] border border-white/[0.1] rounded-2xl p-5 max-w-sm w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle size={16} className="text-[#F59E0B]" />
+              <AlertCircle size={16} className="text-[#F5B84A]" />
               <h3 className="text-sm font-extrabold text-white">Unsaved Changes</h3>
             </div>
             <p className="text-xs text-[#94A3B8] mb-4">
@@ -1792,7 +1792,7 @@ function ApologeticsEditorModal({
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setShowDiscardConfirm(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold"
               >
                 Continue Editing
               </button>
@@ -1844,7 +1844,7 @@ function Field({
   return (
     <div>
       <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
-        {label} {required && <span className="text-[#F39B9B]">*</span>}
+        {label} {required && <span className="text-[#F97316]">*</span>}
       </label>
       {children}
       {hint && <p className="mt-1 text-[10px] text-[#64748B] leading-relaxed">{hint}</p>}

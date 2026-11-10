@@ -368,13 +368,13 @@ export default function VideosTab() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("admin.videos.searchPlaceholder")}
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
           />
         </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#1C1929]"
+          className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#13294A]"
         >
           <option value="">All statuses</option>
           <option value="published">{t("common.status.published")}</option>
@@ -383,7 +383,7 @@ export default function VideosTab() {
         </select>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold shrink-0"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold shrink-0"
         >
           <Plus size={15} /> {t("admin.videos.add")}
         </button>
@@ -392,7 +392,7 @@ export default function VideosTab() {
       {/* ─── list ─── */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-7 h-7 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+          <div className="w-7 h-7 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-16">
@@ -402,7 +402,7 @@ export default function VideosTab() {
       ) : (
         <ul className="space-y-2.5">
           {items.map((v) => (
-            <li key={v.id} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] px-4 py-3.5">
+            <li key={v.id} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] px-4 py-3.5">
               <div className="flex items-start gap-3">
                 <div className="relative w-24 h-14 rounded-lg overflow-hidden bg-black/60 shrink-0">
                   {v.thumbnailUrl ? (
@@ -422,19 +422,19 @@ export default function VideosTab() {
                         v.status === "published"
                           ? "bg-[#22C55E]/15 text-[#4ADE80]"
                           : v.status === "draft"
-                            ? "bg-[#F59E0B]/15 text-[#FCD34D]"
+                            ? "bg-[#F5B84A]/15 text-[#FCD34D]"
                             : "bg-white/[0.06] text-[#94A3B8]"
                       }`}
                     >
                       {v.status}
                     </span>
                     {v.featured && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/20 text-[#C4B5FD] text-[9px] font-extrabold uppercase">
+                      <span className="px-1.5 py-0.5 rounded-md bg-[#2563EB]/20 text-[#93C5FD] text-[9px] font-extrabold uppercase">
                         Featured
                       </span>
                     )}
                     {!v.embeddable && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#FCD34D] text-[9px] font-extrabold uppercase">
+                      <span className="px-1.5 py-0.5 rounded-md bg-[#F5B84A]/15 text-[#FCD34D] text-[9px] font-extrabold uppercase">
                         Link-out only
                       </span>
                     )}
@@ -475,7 +475,7 @@ export default function VideosTab() {
                     )}
                     <button
                       onClick={() => patch(v.id, { featured: !v.featured })}
-                      className={`p-1.5 rounded-lg ${v.featured ? "bg-[#7C3AED]/25 text-[#C4B5FD]" : "bg-white/[0.05] text-[#94A3B8] hover:text-white"}`}
+                      className={`p-1.5 rounded-lg ${v.featured ? "bg-[#2563EB]/25 text-[#93C5FD]" : "bg-white/[0.05] text-[#94A3B8] hover:text-white"}`}
                       title={v.featured ? "Remove from Featured" : "Feature in feed + library"}
                     >
                       <Star size={13} fill={v.featured ? "currentColor" : "none"} />
@@ -529,7 +529,7 @@ export default function VideosTab() {
                     value={form.youtubeUrlOrId}
                     onChange={(e) => setForm((f) => ({ ...f, youtubeUrlOrId: e.target.value }))}
                     placeholder="https://www.youtube.com/watch?v=…"
-                    className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+                    className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
                   />
                   <button
                     onClick={fetchMeta}
@@ -563,7 +563,7 @@ export default function VideosTab() {
                 <input
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50"
                 />
               </div>
 
@@ -576,7 +576,7 @@ export default function VideosTab() {
                   value={form.summary}
                   onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
                   maxLength={300}
-                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50"
                 />
               </div>
 
@@ -587,7 +587,7 @@ export default function VideosTab() {
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   rows={4}
-                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 resize-y"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50 resize-y"
                 />
               </div>
 
@@ -598,7 +598,7 @@ export default function VideosTab() {
                   <select
                     value={form.category}
                     onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#1C1929]"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#13294A]"
                   >
                     {VIDEO_CATEGORIES.map((c) => (
                       <option key={c.id} value={c.id}>{c.label}</option>
@@ -610,7 +610,7 @@ export default function VideosTab() {
                   <select
                     value={form.language}
                     onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#1C1929]"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white outline-none [&>option]:bg-[#13294A]"
                   >
                     {VIDEO_LANGUAGES.map((l) => (
                       <option key={l.code} value={l.code}>{l.name} ({l.nativeLabel})</option>
@@ -623,7 +623,7 @@ export default function VideosTab() {
                     value={form.durationInput}
                     onChange={(e) => setForm((f) => ({ ...f, durationInput: e.target.value }))}
                     placeholder="e.g. 12:45"
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
                   />
                 </div>
               </div>
@@ -639,7 +639,7 @@ export default function VideosTab() {
                         onClick={() => toggleLang("subtitles", l.code)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
                           form.subtitles.includes(l.code)
-                            ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+                            ? "bg-[#2563EB] border-[#2563EB] text-white"
                             : "bg-white/[0.03] border-white/[0.08] text-[#94A3B8]"
                         }`}
                       >
@@ -657,7 +657,7 @@ export default function VideosTab() {
                         onClick={() => toggleLang("dubs", l.code)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
                           form.dubs.includes(l.code)
-                            ? "bg-[#38BDF8] border-[#38BDF8] text-white"
+                            ? "bg-[#22D3EE] border-[#22D3EE] text-white"
                             : "bg-white/[0.03] border-white/[0.08] text-[#94A3B8]"
                         }`}
                       >
@@ -672,11 +672,11 @@ export default function VideosTab() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#94A3B8]">
-                    <BookOpen size={12} className="text-[#7C3AED]" /> Related Bible passages
+                    <BookOpen size={12} className="text-[#2563EB]" /> Related Bible passages
                   </label>
                   <button
                     onClick={() => setForm((f) => ({ ...f, refs: [...f.refs, { bookId: "genesis", chapterStart: "1", verseStart: "", chapterEnd: "", verseEnd: "" }] }))}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#A78BFA] hover:text-white"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#60A5FA] hover:text-white"
                   >
                     <Plus size={11} /> Add passage
                   </button>
@@ -695,7 +695,7 @@ export default function VideosTab() {
                           <select
                             value={r.bookId}
                             onChange={(e) => setRefRow(i, { bookId: e.target.value })}
-                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none [&>option]:bg-[#1C1929]"
+                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg px-2 py-2 text-xs text-white outline-none [&>option]:bg-[#13294A]"
                           >
                             {BIBLE_BOOKS.map((b) => (
                               <option key={b.id} value={b.id}>{b.name}</option>
@@ -730,7 +730,7 @@ export default function VideosTab() {
                           </button>
                         </div>
                         {preview && (
-                          <p className={`mt-1 text-[10px] font-bold ${preview.tip ? "text-[#FBBF24]" : "text-[#A78BFA]"}`}>
+                          <p className={`mt-1 text-[10px] font-bold ${preview.tip ? "text-[#FBBF24]" : "text-[#60A5FA]"}`}>
                             Shows as “{preview.text}”{preview.tip ? ` — ${preview.tip}` : ""}
                           </p>
                         )}
@@ -747,7 +747,7 @@ export default function VideosTab() {
                   <input
                     value={form.sourceName}
                     onChange={(e) => setForm((f) => ({ ...f, sourceName: e.target.value }))}
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50"
                   />
                 </div>
                 <div>
@@ -755,7 +755,7 @@ export default function VideosTab() {
                   <input
                     value={form.rightsNote}
                     onChange={(e) => setForm((f) => ({ ...f, rightsNote: e.target.value }))}
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50"
                   />
                 </div>
                 <div>
@@ -764,7 +764,7 @@ export default function VideosTab() {
                     value={form.contentWarning}
                     onChange={(e) => setForm((f) => ({ ...f, contentWarning: e.target.value }))}
                     placeholder="e.g. Depicts the crucifixion"
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
                   />
                 </div>
                 <div>
@@ -773,7 +773,7 @@ export default function VideosTab() {
                     value={form.thumbnailUrl}
                     onChange={(e) => setForm((f) => ({ ...f, thumbnailUrl: e.target.value }))}
                     placeholder="https://…"
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
                   />
                 </div>
               </div>
@@ -784,7 +784,7 @@ export default function VideosTab() {
                   type="checkbox"
                   checked={form.featured}
                   onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
-                  className="w-4 h-4 accent-[#7C3AED]"
+                  className="w-4 h-4 accent-[#2563EB]"
                 />
                 <span className="text-xs font-bold text-white">
                   Featured — show in the feed rail and the Featured Videos section
@@ -798,7 +798,7 @@ export default function VideosTab() {
                     <button
                       onClick={() => save(undefined)}
                       disabled={saving}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold disabled:opacity-50"
                     >
                       {saving && <Loader2 size={14} className="animate-spin" />}
                       Save Changes
@@ -818,7 +818,7 @@ export default function VideosTab() {
                     <button
                       onClick={() => save(true)}
                       disabled={saving}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold disabled:opacity-50"
                     >
                       {saving && <Loader2 size={14} className="animate-spin" />}
                       Publish

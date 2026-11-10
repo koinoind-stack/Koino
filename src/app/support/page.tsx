@@ -65,7 +65,7 @@ export default async function SupportPage() {
     <PublicPageLayout>
       {/* Hero */}
       <section className="py-16 px-6 max-w-3xl mx-auto text-center">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-6">
           <Heart size={12} fill="currentColor" /> <T k="support.badge" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white mb-4">Help Keep Koino Free</h1>
@@ -74,14 +74,14 @@ export default async function SupportPage() {
           Your support helps us keep the platform running, build new features, support Christian
           communities, create Bible content, provide prizes and continue improving Koino for everyone.
         </p>
-        <p className="text-sm font-bold text-[#F39B9B] mb-8">
+        <p className="text-sm font-bold text-[#F97316] mb-8">
           Koino is free to use. Your support helps keep it that way.
         </p>
 
         <div className="flex flex-wrap justify-center gap-4">
           <Link
             href="#give"
-            className="px-8 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center gap-2"
+            className="px-8 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center gap-2"
           >
             <Heart size={16} /> <T k="support.give" />
           </Link>
@@ -98,9 +98,9 @@ export default async function SupportPage() {
       <section className="py-8 px-6 max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {SUPPORT_AREAS.map((a) => (
-            <div key={a.title} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
-                <a.icon size={18} className="text-[#A78BFA]" />
+            <div key={a.title} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
+              <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center mb-3">
+                <a.icon size={18} className="text-[#60A5FA]" />
               </div>
               <h3 className="text-sm font-bold text-white mb-1"><T k={a.title} /></h3>
               <p className="text-[11px] text-[#A09DB1] leading-relaxed">{a.desc}</p>
@@ -120,7 +120,7 @@ export default async function SupportPage() {
 
         {/* Optional admin-set callout / thank-you message */}
         {settings.acceptingDonations && settings.donationMessage && (
-          <div className="mb-5 rounded-2xl border border-[#F39B9B]/20 bg-[#F39B9B]/8 px-4 py-3 text-center">
+          <div className="mb-5 rounded-2xl border border-[#F97316]/20 bg-[#F97316]/8 px-4 py-3 text-center">
             <p className="text-xs text-white leading-relaxed whitespace-pre-line">
               {settings.donationMessage}
             </p>
@@ -128,7 +128,7 @@ export default async function SupportPage() {
         )}
 
         {!settings.acceptingDonations ? (
-          <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-6 text-center">
+          <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-6 text-center">
             <p className="text-sm text-[#A09DB1]">
               <T k="support.paused" />
             </p>
@@ -154,9 +154,9 @@ export default async function SupportPage() {
 
       {/* Payment honesty note — Koino does NOT process online payments */}
       <section className="pb-16 pt-4 px-6 max-w-2xl mx-auto">
-        <div className="rounded-2xl border border-[#F59E0B]/20 bg-[#F59E0B]/8 p-4">
+        <div className="rounded-2xl border border-[#F5B84A]/20 bg-[#F5B84A]/8 p-4">
           <p className="text-[11px] text-[#A09DB1] leading-relaxed text-center">
-            <span className="text-[#F59E0B] font-bold">Note:</span> Koino does
+            <span className="text-[#F5B84A] font-bold">Note:</span> Koino does
             not process online payments. The methods above are for direct
             transfers. We do not collect card details or bank credentials.
           </p>

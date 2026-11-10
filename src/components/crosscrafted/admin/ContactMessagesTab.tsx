@@ -47,10 +47,10 @@ type StatusMeta = { id: string; label: string; color: string };
 // Chip + badge colors per the task spec.
 // new=blue, read=gray, replied=green, closed=amber
 const STATUS_META: StatusMeta[] = [
-  { id: "new", label: "New", color: "#38BDF8" },
+  { id: "new", label: "New", color: "#22D3EE" },
   { id: "read", label: "Read", color: "#94A3B8" },
   { id: "replied", label: "Replied", color: "#22C55E" },
-  { id: "closed", label: "Closed", color: "#F59E0B" },
+  { id: "closed", label: "Closed", color: "#F5B84A" },
 ];
 
 const ACTION_LABELS: Record<string, string> = {
@@ -243,7 +243,7 @@ export default function ContactMessagesTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#7C3AED] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-[#2563EB] animate-spin" />
       </div>
     );
   }
@@ -252,9 +252,9 @@ export default function ContactMessagesTab() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="w-1 h-5 rounded-full bg-[#7C3AED]" />
+        <div className="w-1 h-5 rounded-full bg-[#2563EB]" />
         <h2 className="text-sm font-bold text-white">Contact Messages</h2>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#7C3AED]/15 text-[#A78BFA]">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2563EB]/15 text-[#60A5FA]">
           {counts.total}
         </span>
       </div>
@@ -295,7 +295,7 @@ export default function ContactMessagesTab() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <Mail size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {search ? "No messages match your search." : "No contact messages yet."}
@@ -309,7 +309,7 @@ export default function ContactMessagesTab() {
               <button
                 key={m.id}
                 onClick={() => openMessage(m)}
-                className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
+                className="w-full text-left bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
@@ -370,12 +370,12 @@ export default function ContactMessagesTab() {
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                Admin Notes <span className="text-[#F59E0B] normal-case font-normal">(internal)</span>
+                Admin Notes <span className="text-[#F5B84A] normal-case font-normal">(internal)</span>
               </p>
               <button
                 onClick={saveNotes}
                 disabled={savingNotes}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
               >
                 {savingNotes ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -400,7 +400,7 @@ export default function ContactMessagesTab() {
                 key={action}
                 onClick={() => runAction(action)}
                 disabled={updatingAction !== null}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
               >
                 {updatingAction === action ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -451,7 +451,7 @@ function FilterChip({
     <button
       onClick={onClick}
       className={`bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all ${
-        active ? "bg-[#7C3AED] text-white border-[#7C3AED]" : "text-[#94A3B8] hover:text-white"
+        active ? "bg-[#2563EB] text-white border-[#2563EB]" : "text-[#94A3B8] hover:text-white"
       }`}
     >
       {label}
@@ -503,7 +503,7 @@ function DetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end mb-2">

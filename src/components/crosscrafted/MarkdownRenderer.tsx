@@ -43,7 +43,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
         ol: ({ children }) => <ol className="list-decimal list-outside pl-6 mb-4 space-y-1.5 text-[15px] text-[#A09DB1] leading-[1.75]">{children}</ol>,
         li: ({ children }) => <li>{children}</li>,
         blockquote: ({ children }) => (
-          <blockquote className="border-l-2 border-[#7C3AED] bg-[#7C3AED]/5 pl-4 pr-3 py-2 my-4 rounded-r-lg">
+          <blockquote className="border-l-2 border-[#2563EB] bg-[#2563EB]/5 pl-4 pr-3 py-2 my-4 rounded-r-lg">
             <div className="text-[15px] text-[#C4BFD1] italic leading-[1.75]">{children}</div>
           </blockquote>
         ),
@@ -53,7 +53,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
             return <span className="text-[#94A3B8]">{children}</span>;
           }
           return (
-            <a href={safeHref} target="_blank" rel="noopener noreferrer" className="text-[#38BDF8] underline decoration-[#38BDF8]/40 underline-offset-2 hover:decoration-[#38BDF8] transition-all">
+            <a href={safeHref} target="_blank" rel="noopener noreferrer" className="text-[#22D3EE] underline decoration-[#22D3EE]/40 underline-offset-2 hover:decoration-[#22D3EE] transition-all">
               {children}
             </a>
           );
@@ -66,7 +66,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
           );
         },
         hr: () => <hr className="border-white/[0.08] my-6" />,
-        code: ({ children }) => <code className="bg-white/[0.06] text-[#A78BFA] px-1.5 py-0.5 rounded text-[13px] font-mono">{children}</code>,
+        code: ({ children }) => <code className="bg-white/[0.06] text-[#60A5FA] px-1.5 py-0.5 rounded text-[13px] font-mono">{children}</code>,
         pre: ({ children }) => <pre className="bg-[#0f0f1a] border border-white/[0.06] rounded-xl p-4 overflow-x-auto mb-4 text-[13px]">{children}</pre>,
       }}
     >

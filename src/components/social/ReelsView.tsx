@@ -181,7 +181,7 @@ export function ReelsFeed({
           <p className="text-white/40 text-xs max-w-xs truncate">{error}</p>
           <button
             onClick={load}
-            className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
+            className="mt-1 px-5 py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-extrabold"
           >
             {t("common.retry")}
           </button>
@@ -194,7 +194,7 @@ export function ReelsFeed({
           {onOpenCreate && (
             <button
               onClick={onOpenCreate}
-              className="mt-1 px-5 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-extrabold"
+              className="mt-1 px-5 py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-extrabold"
             >
               {t("reels.createCta")}
             </button>
@@ -271,7 +271,7 @@ export function ReelsFeed({
                     onClick={() => post.author.username && onOpenProfile(post.author.username)}
                     className="flex flex-col items-center gap-1 text-white"
                   >
-                    <span className="w-11 h-11 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-lg">
+                    <span className="w-11 h-11 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-lg">
                       {(post.author.name || post.author.username || "?").charAt(0).toUpperCase()}
                     </span>
                     <span className="text-[11px] font-bold max-w-[72px] truncate">@{post.author.username}</span>

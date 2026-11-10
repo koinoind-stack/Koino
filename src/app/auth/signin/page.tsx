@@ -115,11 +115,11 @@ function SignInForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#12101A] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#071120] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Image
-            src="/koino-logo.png"
+            src={BRAND.assets.shield}
             alt={BRAND.name + ""}
             width={64}
             height={64}
@@ -131,7 +131,7 @@ function SignInForm() {
           <div className="mt-3"><LanguageSwitcher /></div>
         </div>
 
-        <div className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-6 space-y-4">
+        <div className="bg-[#13294A] border border-white/[0.08] rounded-3xl p-6 space-y-4">
           {error && (
             <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-3 flex items-start gap-2">
               <AlertCircle size={14} className="text-[#EF4444] mt-0.5 shrink-0" />
@@ -216,7 +216,7 @@ function SignInForm() {
               type="submit"
               disabled={loading || googleLoading}
               className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ background: "linear-gradient(135deg, #7C3AED, #EC4899)" }}
+              style={{ background: "linear-gradient(135deg, #2563EB, #F97316)" }}
             >
               {loading
                 ? (mode === "signup" ? t("signin.submit.signupLoading") : t("signin.submit.signinLoading"))
@@ -237,17 +237,17 @@ function SignInForm() {
               className="text-[11px] text-[#94A3B8] hover:text-white transition-colors"
             >
               {mode === "signin" ? (
-                <>{t("signin.toggle.toSignup")} <span className="text-[#A78BFA] font-bold">{t("signin.toggle.toSignupLink")}</span></>
+                <>{t("signin.toggle.toSignup")} <span className="text-[#60A5FA] font-bold">{t("signin.toggle.toSignupLink")}</span></>
               ) : (
-                <>{t("signin.toggle.toSignin")} <span className="text-[#A78BFA] font-bold">{t("signin.toggle.toSigninLink")}</span></>
+                <>{t("signin.toggle.toSignin")} <span className="text-[#60A5FA] font-bold">{t("signin.toggle.toSigninLink")}</span></>
               )}
             </button>
           </div>
 
-          <div className="bg-[#38BDF8]/8 border border-[#38BDF8]/20 rounded-xl p-3">
+          <div className="bg-[#22D3EE]/8 border border-[#22D3EE]/20 rounded-xl p-3">
             <div className="flex items-center gap-1.5 mb-1">
-              <Sparkles size={11} className="text-[#38BDF8]" />
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#38BDF8]">{t("signin.fpBanner.title")}</p>
+              <Sparkles size={11} className="text-[#22D3EE]" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE]">{t("signin.fpBanner.title")}</p>
             </div>
             <p className="text-[11px] text-[#A09DB1] leading-relaxed">
               {t("signin.fpBanner.desc")}
@@ -269,7 +269,7 @@ function SignInForm() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#12101A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#071120] flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-white animate-spin" />
       </div>
     }>

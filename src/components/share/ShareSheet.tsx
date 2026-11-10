@@ -268,7 +268,7 @@ export default function ShareSheet({
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Share2 size={16} className="text-[#A78BFA]" />
+                <Share2 size={16} className="text-[#60A5FA]" />
                 {request.heading || t("churches.share")}
               </h3>
               <button
@@ -291,7 +291,7 @@ export default function ShareSheet({
                         onClick={() => setFormat(f)}
                         className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-all ${
                           format === f
-                            ? "bg-[#7C3AED]/25 border-[#7C3AED]/50 text-[#C4B5FD]"
+                            ? "bg-[#2563EB]/25 border-[#2563EB]/50 text-[#93C5FD]"
                             : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
                         }`}
                       >
@@ -303,13 +303,13 @@ export default function ShareSheet({
                 <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/30 flex items-center justify-center min-h-[120px]">
                   {loadingCard && (
                     <div className="flex flex-col items-center gap-2 py-8">
-                      <Loader2 size={22} className="text-[#A78BFA] animate-spin" />
+                      <Loader2 size={22} className="text-[#60A5FA] animate-spin" />
                       <p className="text-[11px] text-[#94A3B8]">{t("share.creating")}</p>
                     </div>
                   )}
                   {!loadingCard && cardError && (
                     <div className="flex items-center gap-2 py-6 px-4 text-center">
-                      <AlertCircle size={15} className="text-[#F59E0B] shrink-0" />
+                      <AlertCircle size={15} className="text-[#F5B84A] shrink-0" />
                       <p className="text-[11px] text-[#94A3B8]">
                         {t("share.unavailable")}
                       </p>
@@ -388,13 +388,13 @@ function SheetButton({
       onClick={onClick}
       className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-[11px] font-bold border transition-all ${
         primary
-          ? "bg-[#7C3AED]/20 border-[#7C3AED]/40 text-[#C4B5FD] hover:bg-[#7C3AED]/30"
+          ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-[#93C5FD] hover:bg-[#2563EB]/30"
           : wa
             ? "bg-[#25D366]/15 border-[#25D366]/30 text-[#4ADE80] hover:bg-[#25D366]/25"
             : fb
               ? "bg-[#1877F2]/15 border-[#1877F2]/30 text-[#93C5FD] hover:bg-[#1877F2]/25"
               : ig
-                ? "bg-[#EC4899]/15 border-[#EC4899]/30 text-[#F9A8D4] hover:bg-[#EC4899]/25"
+                ? "bg-[#F97316]/15 border-[#F97316]/30 text-[#F9A8D4] hover:bg-[#F97316]/25"
                 : "bg-white/[0.05] border-white/[0.09] text-[#CBD5E1] hover:text-white hover:bg-white/[0.09]"
       }`}
     >

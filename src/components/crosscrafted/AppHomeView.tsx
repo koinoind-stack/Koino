@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { BRAND } from "@/lib/brand";
 
 type View =
   | "bible"
@@ -62,7 +63,7 @@ type BlogCardData = {
 const FEATURE_CARDS: FeatureCard[] = [
   {
     icon: BookOpen,
-    color: "#7C3AED",
+    color: "#2563EB",
     title: "Holy Bible",
     descKey: "home.card.bible.desc",
     view: "bible",
@@ -70,7 +71,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   {
     icon: Clapperboard,
-    color: "#38BDF8",
+    color: "#22D3EE",
     title: "Bible Movies & Videos",
     descKey: "home.card.videos.desc",
     view: "videos",
@@ -78,7 +79,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   {
     icon: Sparkles,
-    color: "#EC4899",
+    color: "#F97316",
     title: "Bible Comics",
     descKey: "home.card.comics.desc",
     view: "comic",
@@ -86,7 +87,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   {
     icon: Search,
-    color: "#F39B9B",
+    color: "#F97316",
     title: "Churches",
     descKey: "home.card.churches.desc",
     view: "churches",
@@ -94,7 +95,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   {
     icon: Calendar,
-    color: "#38BDF8",
+    color: "#22D3EE",
     title: "Events",
     descKey: "home.card.events.desc",
     view: "events",
@@ -102,7 +103,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   {
     icon: HeartHandshake,
-    color: "#F59E0B",
+    color: "#F5B84A",
     title: "Prayer Wall",
     descKey: "home.card.prayer.desc",
     view: "prayer-wall",
@@ -118,7 +119,7 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   {
     icon: Store,
-    color: "#9786E3",
+    color: "#3B82F6",
     title: "Marketplace",
     descKey: "home.card.marketplace.desc",
     view: "shop",
@@ -135,10 +136,10 @@ const FEATURE_CARDS: FeatureCard[] = [
 ];
 
 const GROUPS: { label: string; color: string }[] = [
-  { label: "FAITH", color: "#7C3AED" },
-  { label: "CONNECT", color: "#F39B9B" },
-  { label: "GROW", color: "#38BDF8" },
-  { label: "PLAY", color: "#EC4899" },
+  { label: "FAITH", color: "#2563EB" },
+  { label: "CONNECT", color: "#F97316" },
+  { label: "GROW", color: "#22D3EE" },
+  { label: "PLAY", color: "#F97316" },
   { label: "DISCOVER", color: "#0EA5E9" },
 ];
 
@@ -199,8 +200,8 @@ export default function AppHomeView({ onNavigate }: Props) {
         transition={{ duration: 0.4 }}
         className="text-center mb-6 pt-2"
       >
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F39B9B] mb-2">
-          KOINO
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F97316] mb-2">
+          {BRAND.name.toUpperCase()}
         </p>
         <h1 className="text-2xl font-black text-white mb-1">
           {greeting}
@@ -240,7 +241,7 @@ export default function AppHomeView({ onNavigate }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: i * 0.05 }}
                     onClick={() => onNavigate(f.view)}
-                    className="text-left bg-[#1C1929] border hover:bg-[#22202F] transition-all group rounded-2xl p-3.5 space-y-2"
+                    className="text-left bg-[#13294A] border hover:bg-[#22202F] transition-all group rounded-2xl p-3.5 space-y-2"
                     style={{ borderColor: `${f.color}33` }}
                   >
                     <div
@@ -279,10 +280,10 @@ export default function AppHomeView({ onNavigate }: Props) {
       {blogPosts.length > 0 && (
         <section className="mt-6">
           <div className="flex items-center gap-2 mb-2.5 px-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#F39B9B]">
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#F97316]">
               {t("home.latestFromKoino")}
             </span>
-            <div className="flex-1 h-px bg-gradient-to-r from-[#F39B9B]/20 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-[#F97316]/20 to-transparent" />
           </div>
           <p className="text-[11px] text-[#A09DB1] mb-3 px-1">
             {t("home.latestSubtitle")}
@@ -292,7 +293,7 @@ export default function AppHomeView({ onNavigate }: Props) {
               <a
                 key={post.id}
                 href={`/blog/${post.slug}`}
-                className="group bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#F39B9B]/25 transition-all flex flex-col"
+                className="group bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#F97316]/25 transition-all flex flex-col"
               >
                 {post.featuredImage ? (
                   <div className="h-28 bg-[#0f0f1a] overflow-hidden">
@@ -305,13 +306,13 @@ export default function AppHomeView({ onNavigate }: Props) {
                   </div>
                 ) : (
                   // Gradient placeholder — keeps card height stable when no image.
-                  <div className="h-28 bg-gradient-to-br from-[#2B254E] via-[#1C1929] to-[#0f0f1a]" />
+                  <div className="h-28 bg-gradient-to-br from-[#1A3A66] via-[#13294A] to-[#0f0f1a]" />
                 )}
                 <div className="p-3 space-y-1.5 flex-1 flex flex-col">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">
                     {post.category}
                   </span>
-                  <h3 className="text-[13px] font-bold text-white line-clamp-1 group-hover:text-[#F39B9B] transition-colors">
+                  <h3 className="text-[13px] font-bold text-white line-clamp-1 group-hover:text-[#F97316] transition-colors">
                     {post.title}
                   </h3>
                   {post.excerpt && (

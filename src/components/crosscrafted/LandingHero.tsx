@@ -88,19 +88,19 @@ const FEATURE_GROUPS: FeatureGroup[] = [
     titleKey: "features.groups.grow",
     subKey: "features.groups.growSub",
     items: [
-      { icon: BookOpen, color: "#7C3AED", titleKey: "feature.bible.title", descKey: "feature.bible.desc", view: "bible" },
-      { icon: Sparkles, color: "#EC4899", titleKey: "feature.comics.title", descKey: "feature.comics.desc", view: "comic" },
-      { icon: Clapperboard, color: "#F39B9B", titleKey: "feature.videos.title", descKey: "feature.videos.desc", href: "/videos" },
+      { icon: BookOpen, color: "#2563EB", titleKey: "feature.bible.title", descKey: "feature.bible.desc", view: "bible" },
+      { icon: Sparkles, color: "#F97316", titleKey: "feature.comics.title", descKey: "feature.comics.desc", view: "comic" },
+      { icon: Clapperboard, color: "#F97316", titleKey: "feature.videos.title", descKey: "feature.videos.desc", href: "/videos" },
       { icon: Award, color: "#22C55E", titleKey: "feature.trivia.title", descKey: "feature.trivia.desc", view: "trivia" },
-      { icon: HeartHandshake, color: "#F59E0B", titleKey: "feature.prayer.title", descKey: "feature.prayer.desc", view: "prayer-wall" },
+      { icon: HeartHandshake, color: "#F5B84A", titleKey: "feature.prayer.title", descKey: "feature.prayer.desc", view: "prayer-wall" },
     ],
   },
   {
     titleKey: "features.groups.community",
     subKey: "features.groups.communitySub",
     items: [
-      { icon: Search, color: "#F39B9B", titleKey: "feature.churches.title", descKey: "feature.churches.desc", view: "churches" },
-      { icon: Calendar, color: "#38BDF8", titleKey: "feature.events.title", descKey: "feature.events.desc", view: "events" },
+      { icon: Search, color: "#F97316", titleKey: "feature.churches.title", descKey: "feature.churches.desc", view: "churches" },
+      { icon: Calendar, color: "#22D3EE", titleKey: "feature.events.title", descKey: "feature.events.desc", view: "events" },
       { icon: Users, color: "#A855F7", titleKey: "feature.groups.title", descKey: "feature.groups.desc", view: "groups" },
       { icon: Flower2, color: "#B9A8E8", titleKey: "feature.memorials.title", descKey: "feature.memorials.desc", href: "/memorials" },
     ],
@@ -109,7 +109,7 @@ const FEATURE_GROUPS: FeatureGroup[] = [
     titleKey: "features.groups.discover",
     subKey: "features.groups.discoverSub",
     items: [
-      { icon: Store, color: "#9786E3", titleKey: "feature.marketplace.title", descKey: "feature.marketplace.desc", view: "shop" },
+      { icon: Store, color: "#3B82F6", titleKey: "feature.marketplace.title", descKey: "feature.marketplace.desc", view: "shop" },
       { icon: Building2, color: "#0EA5E9", titleKey: "feature.businessDirectory.title", descKey: "feature.businessDirectory.desc", view: "business-directory" },
     ],
   },
@@ -209,13 +209,13 @@ export default function LandingHero({ onEnterApp }: Props) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#12101A] text-white flex flex-col">
+    <div className="min-h-screen bg-[#071120] text-white flex flex-col">
       {/* ─── HEADER (§3) — logo, focused nav, language, clear Join action ─── */}
-      <header className="sticky top-0 z-40 bg-[#12101A]/80 backdrop-blur-xl border-b border-white/[0.04]">
+      <header className="sticky top-0 z-40 bg-[#071120]/80 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Image
-              src="/koino-logo.png"
+              src={BRAND.assets.shield}
               alt={BRAND.name + ""}
               width={32}
               height={32}
@@ -241,7 +241,7 @@ export default function LandingHero({ onEnterApp }: Props) {
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
             {joinCta(
-              "hidden sm:inline-flex px-5 py-2.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all hover:-translate-y-px items-center gap-1.5",
+              "hidden sm:inline-flex px-5 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all hover:-translate-y-px items-center gap-1.5",
               false
             )}
             {/* Mobile menu toggle */}
@@ -263,7 +263,7 @@ export default function LandingHero({ onEnterApp }: Props) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.16 }}
-              className="md:hidden border-t border-white/[0.05] bg-[#12101A]/95 backdrop-blur-xl px-6 py-4 space-y-1"
+              className="md:hidden border-t border-white/[0.05] bg-[#071120]/95 backdrop-blur-xl px-6 py-4 space-y-1"
             >
               {NAV_ITEMS.map((item) => (
                 <button
@@ -279,7 +279,7 @@ export default function LandingHero({ onEnterApp }: Props) {
               ))}
               <div className="pt-2 sm:hidden">
                 {joinCta(
-                  "w-full justify-center inline-flex px-5 py-3 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider items-center gap-1.5",
+                  "w-full justify-center inline-flex px-5 py-3 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider items-center gap-1.5",
                   false
                 )}
               </div>
@@ -291,15 +291,15 @@ export default function LandingHero({ onEnterApp }: Props) {
       {/* ─── HERO (§2) — what Koino is + why join, in one screen ─── */}
       <section className="relative pt-16 sm:pt-20 pb-14 px-6 max-w-7xl mx-auto w-full overflow-hidden">
         {/* Subtle brand glows — restrained, no oversized artwork */}
-        <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[560px] h-[280px] bg-[#7C3AED]/10 blur-[100px] rounded-full" />
-        <div aria-hidden className="pointer-events-none absolute top-24 -left-24 w-[320px] h-[220px] bg-[#F39B9B]/[0.07] blur-[90px] rounded-full" />
+        <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[560px] h-[280px] bg-[#2563EB]/10 blur-[100px] rounded-full" />
+        <div aria-hidden className="pointer-events-none absolute top-24 -left-24 w-[320px] h-[220px] bg-[#F97316]/[0.07] blur-[90px] rounded-full" />
 
         <div className="relative text-center max-w-3xl mx-auto space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider"
           >
             <Sparkles size={12} fill="currentColor" />
             {t("brand.tagline")}
@@ -312,7 +312,7 @@ export default function LandingHero({ onEnterApp }: Props) {
             className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.08]"
           >
             {t("landing.hero.titleLine1")} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F39B9B] to-[#9786E3]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F97316] to-[#3B82F6]">
               {t("landing.hero.titleGradient")}
             </span>
           </motion.h1>
@@ -333,7 +333,7 @@ export default function LandingHero({ onEnterApp }: Props) {
             className="flex flex-wrap justify-center gap-4 pt-2"
           >
             {joinCta(
-              "px-8 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider shadow-lg shadow-[#F39B9B]/20 flex items-center gap-2 transition-all hover:-translate-y-px"
+              "px-8 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider shadow-lg shadow-[#F97316]/20 flex items-center gap-2 transition-all hover:-translate-y-px"
             )}
             <button
               onClick={() => onEnterApp("bible")}
@@ -351,15 +351,15 @@ export default function LandingHero({ onEnterApp }: Props) {
             className="grid grid-cols-4 gap-4 sm:gap-6 pt-8 border-t border-white/[0.04] max-w-lg mx-auto"
           >
             <div>
-              <p className="text-xl font-extrabold text-[#F39B9B]">800+</p>
+              <p className="text-xl font-extrabold text-[#F97316]">800+</p>
               <p className="text-[10px] text-[#726E88] font-bold uppercase tracking-wider mt-0.5">{t("landing.stats.questions")}</p>
             </div>
             <div>
-              <p className="text-xl font-extrabold text-[#7C3AED]">7</p>
+              <p className="text-xl font-extrabold text-[#2563EB]">7</p>
               <p className="text-[10px] text-[#726E88] font-bold uppercase tracking-wider mt-0.5">{t("landing.stats.tiers")}</p>
             </div>
             <div>
-              <p className="text-xl font-extrabold text-[#38BDF8]">13</p>
+              <p className="text-xl font-extrabold text-[#22D3EE]">13</p>
               <p className="text-[10px] text-[#726E88] font-bold uppercase tracking-wider mt-0.5">{t("landing.stats.languages")}</p>
             </div>
             <div>
@@ -371,7 +371,7 @@ export default function LandingHero({ onEnterApp }: Props) {
       </section>
 
       {/* ─── FEATURE SHOWCASE (§4) — three meaningful groups ─── */}
-      <section className="py-14 border-t border-white/[0.03] bg-[#1C1929]/30">
+      <section className="py-14 border-t border-white/[0.03] bg-[#13294A]/30">
         <div className="max-w-7xl mx-auto px-6 space-y-12">
           <div className="text-center max-w-xl mx-auto space-y-3">
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{t("features.title")}</h2>
@@ -405,7 +405,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                     </>
                   );
                   const cls =
-                    "group text-left flex items-start gap-4 bg-[#1C1929] border hover:bg-[#22202F] transition-all rounded-3xl p-5 h-full";
+                    "group text-left flex items-start gap-4 bg-[#13294A] border hover:bg-[#22202F] transition-all rounded-3xl p-5 h-full";
                   const style = { borderColor: `${f.color}33` };
                   return f.href ? (
                     <motion.a
@@ -446,11 +446,11 @@ export default function LandingHero({ onEnterApp }: Props) {
           so instead of fake activity we present an honest, tasteful invitation
           describing real community life inside the app. */}
       <section className="py-14 px-6 max-w-5xl mx-auto w-full">
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-3xl p-8 sm:p-10 shadow-2xl">
-          <div aria-hidden className="absolute -top-14 -right-14 w-40 h-40 bg-[#F39B9B]/10 blur-3xl rounded-full" />
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-3xl p-8 sm:p-10 shadow-2xl">
+          <div aria-hidden className="absolute -top-14 -right-14 w-40 h-40 bg-[#F97316]/10 blur-3xl rounded-full" />
           <div className="relative grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-8 items-center">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7C3AED]/15 border border-[#7C3AED]/25 text-[#A78BFA] text-xs font-bold">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/25 text-[#60A5FA] text-xs font-bold">
                 <Users size={12} /> {t("community.preview.badge")}
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -461,7 +461,7 @@ export default function LandingHero({ onEnterApp }: Props) {
               </p>
               <div className="pt-1">
                 {joinCta(
-                  "inline-flex px-7 py-3 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-[#F39B9B]/20 items-center gap-2 transition-all hover:-translate-y-px",
+                  "inline-flex px-7 py-3 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-[#F97316]/20 items-center gap-2 transition-all hover:-translate-y-px",
                   false
                 )}
               </div>
@@ -478,7 +478,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                   key={topic.label}
                   className="bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-5 flex flex-col items-center gap-2 text-center"
                 >
-                  <topic.icon size={18} className="text-[#A78BFA]" />
+                  <topic.icon size={18} className="text-[#60A5FA]" />
                   <p className="text-[11px] font-bold text-[#C9C5DB] leading-snug">{topic.label}</p>
                 </div>
               ))}
@@ -488,7 +488,7 @@ export default function LandingHero({ onEnterApp }: Props) {
       </section>
 
       {/* ─── UPCOMING EVENTS (§6) — real published events only ─── */}
-      <section className="py-14 border-t border-white/[0.03] bg-[#1C1929]/30">
+      <section className="py-14 border-t border-white/[0.03] bg-[#13294A]/30">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-wrap items-end justify-between gap-3 mb-8">
             <div className="space-y-1.5">
@@ -497,7 +497,7 @@ export default function LandingHero({ onEnterApp }: Props) {
             </div>
             <button
               onClick={() => onEnterApp("events")}
-              className="text-xs font-extrabold uppercase tracking-wider text-[#F39B9B] hover:text-[#E27B7B] transition-colors inline-flex items-center gap-1"
+              className="text-xs font-extrabold uppercase tracking-wider text-[#F97316] hover:text-[#EA580C] transition-colors inline-flex items-center gap-1"
             >
               {t("home.events.viewAll")} <ArrowRight size={13} />
             </button>
@@ -505,12 +505,12 @@ export default function LandingHero({ onEnterApp }: Props) {
 
           {events === null ? null : events.length === 0 ? (
             // Compact empty state — never a large reserved block (§6).
-            <div className="flex flex-wrap items-center justify-center gap-3 bg-[#1C1929]/60 border border-dashed border-white/[0.08] rounded-2xl px-6 py-5">
+            <div className="flex flex-wrap items-center justify-center gap-3 bg-[#13294A]/60 border border-dashed border-white/[0.08] rounded-2xl px-6 py-5">
               <Calendar size={15} className="text-[#726E88]" />
               <p className="text-xs text-[#94A3B8]">{t("home.events.empty")}</p>
               <button
                 onClick={() => onEnterApp("events")}
-                className="text-xs font-bold text-[#F39B9B] hover:text-[#E27B7B] transition-colors"
+                className="text-xs font-bold text-[#F97316] hover:text-[#EA580C] transition-colors"
               >
                 {t("home.events.browse")}
               </button>
@@ -527,7 +527,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                   <button
                     key={ev.id}
                     onClick={() => onEnterApp("events")}
-                    className="group text-left bg-[#1C1929] border border-white/[0.06] rounded-3xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
+                    className="group text-left bg-[#13294A] border border-white/[0.06] rounded-3xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
                   >
                     <div className="relative h-36" style={{ background: gradientFor(ev.cover_gradient) }}>
                       {ev.cover_image ? (
@@ -549,7 +549,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                       )}
                     </div>
                     <div className="p-4 space-y-1.5 flex-1 flex flex-col">
-                      <h3 className="text-sm font-bold text-white line-clamp-2 group-hover:text-[#A78BFA] transition-colors">
+                      <h3 className="text-sm font-bold text-white line-clamp-2 group-hover:text-[#60A5FA] transition-colors">
                         {ev.title}
                       </h3>
                       {place && (
@@ -558,7 +558,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                         </p>
                       )}
                       {host && <p className="text-[10px] text-[#726E88] line-clamp-1">{host}</p>}
-                      <span className="mt-auto pt-2 text-[10px] font-extrabold uppercase tracking-wider text-[#F39B9B] inline-flex items-center gap-1">
+                      <span className="mt-auto pt-2 text-[10px] font-extrabold uppercase tracking-wider text-[#F97316] inline-flex items-center gap-1">
                         {t("home.events.viewEvent")} <ArrowRight size={11} />
                       </span>
                     </div>
@@ -579,13 +579,13 @@ export default function LandingHero({ onEnterApp }: Props) {
                 <div className="flex items-end justify-between gap-3 mb-5">
                   <div className="space-y-1">
                     <h2 className="text-xl font-extrabold tracking-tight flex items-center gap-2">
-                      <Store size={17} className="text-[#9786E3]" /> {t("home.market.title")}
+                      <Store size={17} className="text-[#3B82F6]" /> {t("home.market.title")}
                     </h2>
                     <p className="text-xs text-[#726E88]">{t("home.market.subtitle")}</p>
                   </div>
                   <button
                     onClick={() => onEnterApp("shop")}
-                    className="text-[11px] font-extrabold uppercase tracking-wider text-[#9786E3] hover:text-white transition-colors shrink-0"
+                    className="text-[11px] font-extrabold uppercase tracking-wider text-[#3B82F6] hover:text-white transition-colors shrink-0"
                   >
                     {t("home.market.browse")}
                   </button>
@@ -595,7 +595,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                     <button
                       key={p.id}
                       onClick={() => onEnterApp("shop")}
-                      className="group text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
+                      className="group text-left bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
                     >
                       <div className="h-20" style={{ background: gradientFor(p.cover_gradient) }}>
                         {p.cover_image ? (
@@ -605,8 +605,8 @@ export default function LandingHero({ onEnterApp }: Props) {
                       </div>
                       <div className="p-2.5 space-y-1 flex-1 flex flex-col">
                         <p className="text-[11px] font-bold text-white line-clamp-1">{p.name}</p>
-                        <p className="text-[11px] font-extrabold text-[#F39B9B]">{inr.format(p.price)}</p>
-                        <span className="mt-auto text-[9px] font-bold uppercase tracking-wider text-[#726E88] group-hover:text-[#9786E3] transition-colors">
+                        <p className="text-[11px] font-extrabold text-[#F97316]">{inr.format(p.price)}</p>
+                        <span className="mt-auto text-[9px] font-bold uppercase tracking-wider text-[#726E88] group-hover:text-[#3B82F6] transition-colors">
                           {t("home.market.viewProduct")}
                         </span>
                       </div>
@@ -637,7 +637,7 @@ export default function LandingHero({ onEnterApp }: Props) {
                     <button
                       key={b.id}
                       onClick={() => onEnterApp("business-directory")}
-                      className="group text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
+                      className="group text-left bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
                     >
                       <div className="h-20" style={{ background: gradientFor(b.cover_gradient) }}>
                         {b.logo || b.cover_image ? (
@@ -667,7 +667,7 @@ export default function LandingHero({ onEnterApp }: Props) {
       {!blogLoading && blogPosts.length > 0 && (
         <section id="from-community" className="py-14 px-6 max-w-6xl mx-auto w-full border-t border-white/[0.03]">
           <div className="text-center mb-8 space-y-3">
-            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.25em] text-[#F39B9B]">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.25em] text-[#F97316]">
               {t("articles.eyebrow")}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
@@ -683,7 +683,7 @@ export default function LandingHero({ onEnterApp }: Props) {
               <a
                 key={post.id}
                 href={`/blog/${post.slug}`}
-                className="group bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
+                className="group bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-all flex flex-col"
               >
                 {post.featuredImage ? (
                   <div className="h-40 bg-[#0f0f1a] overflow-hidden">
@@ -695,13 +695,13 @@ export default function LandingHero({ onEnterApp }: Props) {
                     />
                   </div>
                 ) : (
-                  <div className="h-40 bg-gradient-to-br from-[#2B254E] via-[#1C1929] to-[#0f0f1a]" />
+                  <div className="h-40 bg-gradient-to-br from-[#1A3A66] via-[#13294A] to-[#0f0f1a]" />
                 )}
                 <div className="p-4 space-y-2 flex-1 flex flex-col">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F39B9B]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F97316]">
                     {post.category}
                   </span>
-                  <h3 className="text-sm font-bold text-white group-hover:text-[#A78BFA] transition-colors line-clamp-2">
+                  <h3 className="text-sm font-bold text-white group-hover:text-[#60A5FA] transition-colors line-clamp-2">
                     {post.title}
                   </h3>
                   {post.excerpt && (
@@ -733,7 +733,7 @@ export default function LandingHero({ onEnterApp }: Props) {
           <div className="flex justify-center mt-8">
             <a
               href="/blog"
-              className="bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl px-7 py-3.5 transition-all hover:-translate-y-px inline-flex items-center gap-2"
+              className="bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl px-7 py-3.5 transition-all hover:-translate-y-px inline-flex items-center gap-2"
             >
               {t("articles.viewAll")} <ArrowRight size={14} strokeWidth={2.5} />
             </a>
@@ -751,16 +751,16 @@ export default function LandingHero({ onEnterApp }: Props) {
 
       {/* ─── CLOSING CTA (§9) — the one strong join moment ─── */}
       <section className="py-12 px-6 text-center max-w-4xl mx-auto w-full mt-auto">
-        <div className="bg-gradient-to-tr from-[#1C1929] to-slate-900 border border-white/[0.06] rounded-3xl p-8 sm:p-12 space-y-5 shadow-2xl relative overflow-hidden">
-          <div aria-hidden className="absolute -top-12 -right-12 w-28 h-28 bg-[#F39B9B]/5 blur-2xl rounded-full" />
-          <div aria-hidden className="absolute -bottom-12 -left-12 w-28 h-28 bg-[#9786E3]/5 blur-2xl rounded-full" />
+        <div className="bg-gradient-to-tr from-[#13294A] to-slate-900 border border-white/[0.06] rounded-3xl p-8 sm:p-12 space-y-5 shadow-2xl relative overflow-hidden">
+          <div aria-hidden className="absolute -top-12 -right-12 w-28 h-28 bg-[#F97316]/5 blur-2xl rounded-full" />
+          <div aria-hidden className="absolute -bottom-12 -left-12 w-28 h-28 bg-[#3B82F6]/5 blur-2xl rounded-full" />
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight relative">{t("cta.title")}</h2>
           <p className="text-xs sm:text-sm text-[#A09DB1] max-w-lg mx-auto leading-relaxed relative">
             {t("cta.subtitle")}
           </p>
           <div className="pt-2 relative">
             {joinCta(
-              "px-9 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-xs uppercase tracking-widest shadow-lg transition-all inline-flex items-center gap-2 hover:-translate-y-px"
+              "px-9 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-xs uppercase tracking-widest shadow-lg transition-all inline-flex items-center gap-2 hover:-translate-y-px"
             )}
           </div>
         </div>

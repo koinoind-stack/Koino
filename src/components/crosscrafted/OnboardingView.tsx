@@ -273,7 +273,7 @@ export default function OnboardingView({ onComplete }: Props) {
   const steps = ["Welcome", "Profile", "Faith", "Connect"];
 
   return (
-    <div className="min-h-screen bg-[#12101A] flex items-center justify-center px-4 py-6">
+    <div className="min-h-screen bg-[#071120] flex items-center justify-center px-4 py-6">
       <div className="w-full max-w-md">
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-1.5 mb-6">
@@ -281,11 +281,11 @@ export default function OnboardingView({ onComplete }: Props) {
             <div key={s} className="flex items-center gap-1.5">
               <div
                 className={`w-2 h-2 rounded-full transition-all ${
-                  i <= step ? "bg-[#F39B9B]" : "bg-white/15"
+                  i <= step ? "bg-[#F97316]" : "bg-white/15"
                 }`}
               />
               {i < steps.length - 1 && (
-                <div className={`w-6 h-px ${i < step ? "bg-[#F39B9B]" : "bg-white/10"}`} />
+                <div className={`w-6 h-px ${i < step ? "bg-[#F97316]" : "bg-white/10"}`} />
               )}
             </div>
           ))}
@@ -299,9 +299,9 @@ export default function OnboardingView({ onComplete }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-6 text-center"
+              className="bg-[#13294A] border border-white/[0.08] rounded-3xl p-6 text-center"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F39B9B] to-[#7C3AED] flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F97316] to-[#2563EB] flex items-center justify-center">
                 <Sparkles size={28} className="text-white" />
               </div>
               <h1 className="text-xl font-black text-white mb-2">{t("onboarding.welcome.title")}</h1>
@@ -310,7 +310,7 @@ export default function OnboardingView({ onComplete }: Props) {
               </p>
               <button
                 onClick={() => setStep(1)}
-                className="w-full py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2"
               >
                 {t("onboarding.cta.getStarted")} <ArrowRight size={16} />
               </button>
@@ -324,7 +324,7 @@ export default function OnboardingView({ onComplete }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-5"
+              className="bg-[#13294A] border border-white/[0.08] rounded-3xl p-5"
             >
               <h2 className="text-base font-bold text-white mb-1">{t("onboarding.profile.title")}</h2>
               <p className="text-[11px] text-[#94A3B8] mb-4">{t("onboarding.profile.requiredNote")}</p>
@@ -371,7 +371,7 @@ export default function OnboardingView({ onComplete }: Props) {
                                 setUsername(s);
                                 setUsernameError(null);
                               }}
-                              className="px-2 py-0.5 rounded-md bg-[#7C3AED]/15 text-[#A78BFA] text-[10px] font-bold hover:bg-[#7C3AED]/25 transition-all"
+                              className="px-2 py-0.5 rounded-md bg-[#2563EB]/15 text-[#60A5FA] text-[10px] font-bold hover:bg-[#2563EB]/25 transition-all"
                             >
                               {s}
                             </button>
@@ -416,7 +416,7 @@ export default function OnboardingView({ onComplete }: Props) {
                         onClick={() => setGender(g.v)}
                         className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition-all ${
                           gender === g.v
-                            ? "bg-[#7C3AED] text-white"
+                            ? "bg-[#2563EB] text-white"
                             : "bg-white/[0.04] text-[#94A3B8] hover:text-white border border-white/[0.06]"
                         }`}
                       >
@@ -457,7 +457,7 @@ export default function OnboardingView({ onComplete }: Props) {
                       type="checkbox"
                       checked={communityRoleVisible}
                       onChange={(e) => setCommunityRoleVisible(e.target.checked)}
-                      className="w-3.5 h-3.5 accent-[#7C3AED]"
+                      className="w-3.5 h-3.5 accent-[#2563EB]"
                     />
                     <span className="text-[10px] text-[#94A3B8] font-semibold">
                       {t("onboarding.role.visibleLabel")}
@@ -521,7 +521,7 @@ export default function OnboardingView({ onComplete }: Props) {
               <button
                 onClick={saveProfile}
                 disabled={loading || !username || usernameAvailable !== true || !mobileNumber || !state || !city}
-                className="w-full mt-4 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full mt-4 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <>{t("onboarding.cta.continue")} <ArrowRight size={16} /></>}
               </button>
@@ -535,10 +535,10 @@ export default function OnboardingView({ onComplete }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-5"
+              className="bg-[#13294A] border border-white/[0.08] rounded-3xl p-5"
             >
               <div className="flex items-center gap-2 mb-1">
-                <Heart size={14} className="text-[#F39B9B]" />
+                <Heart size={14} className="text-[#F97316]" />
                 <h2 className="text-base font-bold text-white">{t("onboarding.faith.title")}</h2>
               </div>
               <p className="text-[11px] text-[#94A3B8] mb-4">
@@ -560,7 +560,7 @@ export default function OnboardingView({ onComplete }: Props) {
                       onClick={() => setFaithStatus(opt.v)}
                       className={`w-full text-left p-2.5 rounded-lg border text-xs font-bold transition-all ${
                         faithStatus === opt.v
-                          ? "bg-[#7C3AED]/15 border-[#7C3AED]/40 text-white"
+                          ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-white"
                           : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
                       }`}
                     >
@@ -586,7 +586,7 @@ export default function OnboardingView({ onComplete }: Props) {
                       onClick={() => setFaithJourney(opt.v)}
                       className={`w-full text-left p-2.5 rounded-lg border text-xs font-bold transition-all ${
                         faithJourney === opt.v
-                          ? "bg-[#7C3AED]/15 border-[#7C3AED]/40 text-white"
+                          ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-white"
                           : "bg-white/[0.04] border-white/[0.06] text-[#94A3B8] hover:text-white"
                       }`}
                     >
@@ -610,7 +610,7 @@ export default function OnboardingView({ onComplete }: Props) {
                 <button
                   onClick={saveFaith}
                   disabled={loading || !faithStatus || !faithJourney}
-                  className="flex-1 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <>{t("onboarding.cta.continue")} <ArrowRight size={16} /></>}
                 </button>
@@ -625,7 +625,7 @@ export default function OnboardingView({ onComplete }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-[#1C1929] border border-white/[0.08] rounded-3xl p-5 text-center"
+              className="bg-[#13294A] border border-white/[0.08] rounded-3xl p-5 text-center"
             >
               <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-[#25D366]/15 flex items-center justify-center">
                 <MessageCircle size={24} className="text-[#25D366]" />
@@ -662,7 +662,7 @@ export default function OnboardingView({ onComplete }: Props) {
               <button
                 onClick={() => completeOnboarding(true)}
                 disabled={loading}
-                className="w-full mt-2 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2 disabled:opacity-30"
+                className="w-full mt-2 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all hover:-translate-y-px flex items-center justify-center gap-2 disabled:opacity-30"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <>{t("landing.cta.enterKoino")} <ArrowRight size={16} /></>}
               </button>
@@ -746,7 +746,7 @@ function ProfilePhotoUpload({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="px-3 py-1.5 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[10px] font-bold hover:bg-[#7C3AED]/25 transition-all disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-[10px] font-bold hover:bg-[#2563EB]/25 transition-all disabled:opacity-50"
           >
             {uploading ? <Loader2 size={11} className="animate-spin" /> : photoUrl ? t("onboarding.photo.change") : t("onboarding.photo.upload")}
           </button>

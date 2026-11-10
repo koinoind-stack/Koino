@@ -30,7 +30,7 @@ type Props = {
 };
 
 const inputCls =
-  "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50";
+  "w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50";
 const labelCls = "text-[11px] font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5 block";
 
 export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onCancel }: Props) {
@@ -139,7 +139,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
   const valid = title.trim().length >= 3 && !!startDate;
 
   return (
-    <div className="bg-[#111827]/60 border border-white/[0.05] rounded-2xl p-4 space-y-4">
+    <div className="bg-[#0F2038]/60 border border-white/[0.05] rounded-2xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-extrabold text-white">{t("groupEvent.title")}</h3>
         <button onClick={onCancel} className="p-1.5 rounded-lg bg-white/[0.04] text-[#94A3B8] hover:text-white" aria-label={t("groupEvent.closeAria")}>
@@ -172,7 +172,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
           <button
             onClick={() => posterRef.current?.click()}
             disabled={posterBusy}
-            className="w-32 h-40 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#7C3AED]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
+            className="w-32 h-40 rounded-xl border border-dashed border-white/[0.12] bg-white/[0.02] text-[#64748B] hover:text-white hover:border-[#2563EB]/40 flex flex-col items-center justify-center gap-1 text-[11px] font-bold"
           >
             {posterBusy ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
             {posterBusy ? t("groupEvent.uploading") : t("groupEvent.uploadPoster")}
@@ -202,7 +202,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
               key={mode}
               onClick={() => setEventType(mode)}
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold border capitalize ${
-                eventType === mode ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+                eventType === mode ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
               }`}
             >
               {mode === "in-person" ? t("groupEvent.type.inPerson") : mode === "online" ? t("groupEvent.type.online") : t("groupEvent.type.hybrid")}
@@ -231,7 +231,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
           <button
             onClick={() => setRegistrationType("free")}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold border ${
-              registrationType === "free" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+              registrationType === "free" ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
             {t("groupEvent.freeEntry")}
@@ -239,7 +239,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
           <button
             onClick={() => setRegistrationType("registration_required")}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold border ${
-              registrationType === "registration_required" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+              registrationType === "registration_required" ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
             {t("groupEvent.registrationRequired")}
@@ -270,7 +270,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
             onClick={() => setVisibility("public")}
             disabled={isPrivateGroup}
             className={`flex-1 px-3 py-2 rounded-xl text-[11px] font-bold border disabled:opacity-40 ${
-              isPrivateGroup || visibility === "public" ? (isPrivateGroup ? "bg-white/[0.03] border-white/[0.06] text-[#64748B]" : "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]") : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+              isPrivateGroup || visibility === "public" ? (isPrivateGroup ? "bg-white/[0.03] border-white/[0.06] text-[#64748B]" : "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]") : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
             {t("groupEvent.public")}
@@ -278,7 +278,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
           <button
             onClick={() => setVisibility("members")}
             className={`flex-1 px-3 py-2 rounded-xl text-[11px] font-bold border ${
-              visibility === "members" ? "bg-[#7C3AED]/20 border-[#7C3AED]/60 text-[#C4B5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
+              visibility === "members" ? "bg-[#2563EB]/20 border-[#2563EB]/60 text-[#93C5FD]" : "bg-white/[0.03] border-white/[0.06] text-[#94A3B8]"
             }`}
           >
             {t("groupEvent.membersOnly")}
@@ -302,7 +302,7 @@ export default function GroupEventForm({ groupId, isPrivateGroup, onCreated, onC
           <button
             onClick={submit}
             disabled={!valid || submitting || posterBusy}
-            className="px-5 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
+            className="px-5 py-2 rounded-full bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40"
           >
             {submitting ? t("groupEvent.submitting") : t("groupEvent.submit")}
           </button>

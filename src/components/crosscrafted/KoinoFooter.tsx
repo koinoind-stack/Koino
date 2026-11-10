@@ -99,7 +99,7 @@ export default function KoinoFooter() {
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2 mb-3">
               <Image
-                src="/koino-logo.png"
+                src={BRAND.assets.shield}
                 alt={BRAND.name + ""}
                 width={28}
                 height={28}
@@ -107,7 +107,7 @@ export default function KoinoFooter() {
               />
               <span className="text-sm font-black text-white">{BRAND.name}</span>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F39B9B] mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F97316] mb-2">
               {t("brand.tagline")}
             </p>
             <p className="text-[11px] text-[#726E88] leading-relaxed">
@@ -150,9 +150,9 @@ export default function KoinoFooter() {
         </div>
 
         {/* Support banner */}
-        <div className="bg-gradient-to-r from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/15 rounded-2xl p-4 mb-6 flex items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#13294A] to-[#1A3A66] border border-[#2563EB]/15 rounded-2xl p-4 mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Heart size={16} className="text-[#F39B9B]" />
+            <Heart size={16} className="text-[#F97316]" />
             <div>
               <p className="text-xs font-bold text-white">{t("footer.freeToUse")}</p>
               <p className="text-[10px] text-[#94A3B8]">{t("footer.supportHelps")}</p>
@@ -160,7 +160,7 @@ export default function KoinoFooter() {
           </div>
           <Link
             href="/support"
-            className="px-4 py-2 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-[10px] font-extrabold uppercase tracking-wider transition-all hover:-translate-y-px shrink-0"
+            className="px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-[10px] font-extrabold uppercase tracking-wider transition-all hover:-translate-y-px shrink-0"
           >
             {t("footer.supportCta")}
           </Link>

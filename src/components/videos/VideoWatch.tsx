@@ -272,7 +272,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
     return (
       <div className="max-w-[900px] mx-auto px-4 pt-10 pb-24">
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
           <p className="text-xs text-[#94A3B8]">{t("videos.watch.loading")}</p>
         </div>
       </div>
@@ -281,9 +281,9 @@ export default function VideoWatch({ slug }: { slug: string }) {
   if (error || !data) {
     return (
       <div className="max-w-[900px] mx-auto px-4 pt-10 pb-24 text-center py-24">
-        <TriangleAlert size={32} className="mx-auto text-[#F59E0B] mb-3" />
+        <TriangleAlert size={32} className="mx-auto text-[#F5B84A] mb-3" />
         <p className="text-sm text-[#94A3B8] max-w-xs mx-auto">{error || t("videos.watch.error.notFound")}</p>
-        <a href="/videos" className="inline-flex items-center gap-1 mt-5 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-xs font-bold">
+        <a href="/videos" className="inline-flex items-center gap-1 mt-5 px-4 py-2 rounded-xl bg-[#2563EB] text-white text-xs font-bold">
           <ChevronLeft size={14} /> {t("videos.watch.backLink")}
         </a>
       </div>
@@ -320,10 +320,10 @@ export default function VideoWatch({ slug }: { slug: string }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-70 transition-opacity" />
             ) : (
-              <div className="w-full h-full bg-[#1C1929]" />
+              <div className="w-full h-full bg-[#13294A]" />
             )}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="w-16 h-16 rounded-full bg-[#7C3AED] flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.5)] group-hover:scale-105 transition-transform">
+              <div className="w-16 h-16 rounded-full bg-[#2563EB] flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.5)] group-hover:scale-105 transition-transform">
                 <Play size={24} fill="white" className="text-white ml-1" />
               </div>
               <span className="px-4 py-2 rounded-full bg-black/70 text-white text-xs font-extrabold tracking-wide">
@@ -340,7 +340,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
           href={watchUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 flex items-center gap-2.5 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/25 px-4 py-3 text-xs text-[#FCD34D] hover:bg-[#F59E0B]/15 transition-colors"
+          className="mt-3 flex items-center gap-2.5 rounded-xl bg-[#F5B84A]/10 border border-[#F5B84A]/25 px-4 py-3 text-xs text-[#FCD34D] hover:bg-[#F5B84A]/15 transition-colors"
         >
           <Youtube size={16} className="shrink-0" />
           {t("videos.watch.cannotEmbed")}
@@ -352,7 +352,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
         <div className="min-w-0 flex-1">
           <h1 className="text-lg md:text-xl font-black text-white leading-snug">{v.title}</h1>
           <div className="flex items-center gap-2 mt-2 flex-wrap text-[11px] text-[#94A3B8]">
-            <span className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/15 text-[#C4B5FD] font-bold">{categoryLabel(v.category)}</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-[#2563EB]/15 text-[#93C5FD] font-bold">{categoryLabel(v.category)}</span>
             <span className="px-1.5 py-0.5 rounded-md bg-white/[0.05] font-bold">{languageLabel(v.language)}</span>
             {duration && (
               <span className="inline-flex items-center gap-1"><Clock size={11} /> {duration}</span>
@@ -364,7 +364,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
           {!playing && (
             <button
               onClick={watchNow}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold"
             >
               <Play size={13} fill="currentColor" /> {t("videos.watch.watchNow")}
             </button>
@@ -374,7 +374,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
             title={t("videos.watch.title.watchLater")}
             className={`p-2.5 rounded-xl border transition-all ${
               savedIn.watchLater
-                ? "bg-[#7C3AED]/20 border-[#7C3AED]/50 text-[#C4B5FD]"
+                ? "bg-[#2563EB]/20 border-[#2563EB]/50 text-[#93C5FD]"
                 : "bg-white/[0.04] border-white/[0.08] text-[#94A3B8] hover:text-white"
             }`}
           >
@@ -403,7 +403,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
 
       {/* ─── content warning ─── */}
       {v.contentWarning && (
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-[#F59E0B]/[0.08] border border-[#F59E0B]/25 px-4 py-3">
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-[#F5B84A]/[0.08] border border-[#F5B84A]/25 px-4 py-3">
           <TriangleAlert size={15} className="text-[#FCD34D] shrink-0 mt-0.5" />
           <p className="text-xs text-[#FCD34D] leading-relaxed">
             <span className="font-bold">Content note: </span>
@@ -416,14 +416,14 @@ export default function VideoWatch({ slug }: { slug: string }) {
       {v.bibleRefs.length > 0 && (
         <div className="mt-5">
           <h2 className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#94A3B8] mb-2">
-            <BookOpen size={13} className="text-[#7C3AED]" /> {t("videos.watch.relatedPassages")}
+            <BookOpen size={13} className="text-[#2563EB]" /> {t("videos.watch.relatedPassages")}
           </h2>
           <div className="flex flex-wrap gap-2">
             {v.bibleRefs.map((r) => (
               <a
                 key={r.id}
                 href={`/?view=bible&book=${r.bookId}&chapter=${r.chapterStart}`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#7C3AED]/[0.08] border border-[#7C3AED]/25 text-xs font-bold text-[#C4B5FD] hover:bg-[#7C3AED]/15 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#2563EB]/[0.08] border border-[#2563EB]/25 text-xs font-bold text-[#93C5FD] hover:bg-[#2563EB]/15 transition-colors"
               >
                 <BookOpen size={12} />
                 {formatBibleRef(r, bookName)}
@@ -435,20 +435,20 @@ export default function VideoWatch({ slug }: { slug: string }) {
       )}
 
       {/* ─── description + meta ─── */}
-      <div className="mt-5 bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4">
+      <div className="mt-5 bg-[#13294A] border border-white/[0.06] rounded-2xl p-4">
         {v.summary && <p className="text-sm text-[#C4C2D0] font-medium leading-relaxed">{v.summary}</p>}
         {v.description && (
           <div className={`relative mt-2 ${descOpen ? "" : "max-h-24 overflow-hidden"}`}>
             <p className="text-xs text-[#94A3B8] leading-relaxed whitespace-pre-wrap">{v.description}</p>
             {!descOpen && (
-              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1C1929] to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#13294A] to-transparent" />
             )}
           </div>
         )}
         {(v.description && v.description.length > 180) && (
           <button
             onClick={() => setDescOpen((o) => !o)}
-            className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#A78BFA] hover:text-white"
+            className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#60A5FA] hover:text-white"
           >
             {descOpen ? t("common.showLess") : t("common.showMore")} <ChevronDown size={11} className={descOpen ? "rotate-180" : ""} />
           </button>
@@ -466,7 +466,7 @@ export default function VideoWatch({ slug }: { slug: string }) {
             <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.original")}</span> {languageLabel(v.originalLanguage)}</span>
           )}
           {v.rightsNote && <span><span className="text-[#94A3B8] font-bold">{t("videos.watch.meta.rights")}</span> {v.rightsNote}</span>}
-          <a href={watchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#A78BFA] hover:text-white">
+          <a href={watchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#60A5FA] hover:text-white">
             <Youtube size={12} /> {t("videos.watch.watchOnYoutube")}
           </a>
         </div>

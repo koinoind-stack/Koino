@@ -48,7 +48,7 @@ type StatusMeta = { id: string; label: string; color: string };
 
 // Status: new=blue, contacted=green, archived=gray
 const STATUS_META: StatusMeta[] = [
-  { id: "new", label: "New", color: "#38BDF8" },
+  { id: "new", label: "New", color: "#22D3EE" },
   { id: "contacted", label: "Contacted", color: "#22C55E" },
   { id: "archived", label: "Archived", color: "#94A3B8" },
 ];
@@ -291,7 +291,7 @@ export default function PartnerInquiriesTab() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="bg-[#1C1929] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
+        <div className="bg-[#13294A] border border-dashed border-white/[0.12] rounded-2xl p-8 text-center">
           <Handshake size={28} className="mx-auto text-[#475569] mb-2" />
           <p className="text-sm text-[#94A3B8]">
             {search ? "No inquiries match your search." : "No partner inquiries yet."}
@@ -305,7 +305,7 @@ export default function PartnerInquiriesTab() {
               <button
                 key={m.id}
                 onClick={() => openInquiry(m)}
-                className="w-full text-left bg-[#1C1929] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
+                className="w-full text-left bg-[#13294A] border border-white/[0.06] rounded-2xl p-4 hover:border-white/[0.15] transition-all"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
@@ -384,12 +384,12 @@ export default function PartnerInquiriesTab() {
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                Admin Notes <span className="text-[#F59E0B] normal-case font-normal">(internal)</span>
+                Admin Notes <span className="text-[#F5B84A] normal-case font-normal">(internal)</span>
               </p>
               <button
                 onClick={saveNotes}
                 disabled={savingNotes}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
               >
                 {savingNotes ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -414,7 +414,7 @@ export default function PartnerInquiriesTab() {
                 key={action}
                 onClick={() => runAction(action)}
                 disabled={updatingAction !== null}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl px-3 py-2 flex items-center gap-1 disabled:opacity-50"
               >
                 {updatingAction === action ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -460,7 +460,7 @@ function FilterChip({
     <button
       onClick={onClick}
       className={`bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all ${
-        active ? "bg-[#7C3AED] text-white border-[#7C3AED]" : "text-[#94A3B8] hover:text-white"
+        active ? "bg-[#2563EB] text-white border-[#2563EB]" : "text-[#94A3B8] hover:text-white"
       }`}
     >
       {label}
@@ -511,7 +511,7 @@ function DetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-[#13294A] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end mb-2">
@@ -572,7 +572,7 @@ function Meta({
           href={href}
           target="_blank"
           rel="noreferrer noopener"
-          className="text-[11px] text-[#38BDF8] hover:underline truncate block"
+          className="text-[11px] text-[#22D3EE] hover:underline truncate block"
         >
           {value}
         </a>

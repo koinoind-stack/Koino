@@ -185,13 +185,13 @@ export default function InlineImagePopover({ onInsert, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-[#1C1929] border border-white/[0.1] rounded-2xl p-5 w-full max-w-sm"
+        className="bg-[#13294A] border border-white/[0.1] rounded-2xl p-5 w-full max-w-sm"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 min-w-0">
-            <ImageIcon size={14} className="text-[#A78BFA] shrink-0" />
+            <ImageIcon size={14} className="text-[#60A5FA] shrink-0" />
             <h3 className="text-sm font-extrabold text-white">Insert Image</h3>
           </div>
           <button
@@ -257,9 +257,9 @@ export default function InlineImagePopover({ onInsert, onClose }: Props) {
               onDrop={onDrop}
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
-              className={`border-2 border-dashed rounded-xl p-5 text-center hover:border-[#7C3AED]/40 transition-colors cursor-pointer min-h-[120px] flex flex-col items-center justify-center gap-2 ${
+              className={`border-2 border-dashed rounded-xl p-5 text-center hover:border-[#2563EB]/40 transition-colors cursor-pointer min-h-[120px] flex flex-col items-center justify-center gap-2 ${
                 dragOver
-                  ? "border-[#7C3AED] bg-[#7C3AED]/5"
+                  ? "border-[#2563EB] bg-[#2563EB]/5"
                   : "border-white/[0.12] bg-white/[0.02]"
               }`}
             >
@@ -323,7 +323,7 @@ export default function InlineImagePopover({ onInsert, onClose }: Props) {
               type="button"
               onClick={() => void onUpload()}
               disabled={!file || uploading}
-              className="flex-1 px-4 py-2.5 min-h-[44px] rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-extrabold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 px-4 py-2.5 min-h-[44px] rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-extrabold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
             >
               {uploading ? (
                 <>

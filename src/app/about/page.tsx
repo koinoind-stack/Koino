@@ -41,7 +41,7 @@ export default function AboutPage() {
     <PublicPageLayout>
       {/* Hero */}
       <section className="py-16 px-6 max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-6">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-6">
           <Sparkles size={12} fill="currentColor" /> <T k="about.badge" />
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
@@ -53,7 +53,7 @@ export default function AboutPage() {
           prayer, Bible learning, Christian businesses and community experiences together in one place.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <a href="/" className="px-8 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px">
+          <a href="/" className="px-8 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px">
             <T k="about.cta.enter" />
           </a>
           <a href="/about/founder" className="px-8 py-3.5 border border-white/[0.08] hover:border-white/[0.15] text-[#A09DB1] hover:text-white font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all bg-white/[0.02]">
@@ -65,7 +65,7 @@ export default function AboutPage() {
       {/* The Meaning of Koino */}
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#A78BFA] text-[10px] font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 text-[#60A5FA] text-[10px] font-bold uppercase tracking-wider mb-3">
             <BookOpen size={11} /> <T k="about.meaningTitle" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-3"><T k="about.meaningTitle" /></h2>
@@ -107,10 +107,10 @@ export default function AboutPage() {
           </div>
 
           {/* Verse callout */}
-          <aside className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-3xl p-6 flex flex-col justify-between">
+          <aside className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-3xl p-6 flex flex-col justify-between">
             <div>
-              <div className="w-10 h-10 rounded-xl bg-[#F39B9B]/15 border border-[#F39B9B]/25 flex items-center justify-center mb-4">
-                <BookOpen size={18} className="text-[#F39B9B]" />
+              <div className="w-10 h-10 rounded-xl bg-[#F97316]/15 border border-[#F97316]/25 flex items-center justify-center mb-4">
+                <BookOpen size={18} className="text-[#F97316]" />
               </div>
               <p className="text-base text-white font-semibold leading-relaxed italic mb-4">
                 &quot;They devoted themselves to the apostles&apos; teaching and to fellowship, to the breaking of
@@ -118,7 +118,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="pt-3 border-t border-white/[0.06]">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#F39B9B]"><T k="about.verse.ref" /></p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#F97316]"><T k="about.verse.ref" /></p>
               <p className="text-[10px] text-[#94A3B8] mt-1"><T k="about.verse.caption" /></p>
             </div>
           </aside>
@@ -133,9 +133,9 @@ export default function AboutPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PILLARS.map((p) => (
-            <div key={p.title} className="bg-[#1C1929] border border-white/[0.06] rounded-3xl p-6 text-center">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F39B9B]/20 to-[#7C3AED]/20 border border-white/[0.08] flex items-center justify-center">
-                <p.icon size={24} className="text-[#F39B9B]" />
+            <div key={p.title} className="bg-[#13294A] border border-white/[0.06] rounded-3xl p-6 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F97316]/20 to-[#2563EB]/20 border border-white/[0.08] flex items-center justify-center">
+                <p.icon size={24} className="text-[#F97316]" />
               </div>
               <h3 className="text-lg font-black text-white mb-2"><T k={p.title} /></h3>
               <p className="text-xs text-[#A09DB1] leading-relaxed">{p.desc}</p>
@@ -153,9 +153,9 @@ export default function AboutPage() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f) => (
-            <div key={f.title} className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center mb-3">
-                <f.icon size={18} className="text-[#A78BFA]" />
+            <div key={f.title} className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
+              <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center mb-3">
+                <f.icon size={18} className="text-[#60A5FA]" />
               </div>
               <h3 className="text-sm font-bold text-white mb-1">{f.title}</h3>
               <p className="text-[11px] text-[#A09DB1] leading-relaxed">{f.desc}</p>
@@ -167,7 +167,7 @@ export default function AboutPage() {
       {/* Built With India in Mind */}
       <section className="py-12 px-6 max-w-5xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 text-[#38BDF8] text-[10px] font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20 text-[#22D3EE] text-[10px] font-bold uppercase tracking-wider mb-3">
             <MapPin size={11} /> <T k="about.indiaTitle" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white mb-3"><T k="about.indiaTitle" /></h2>
@@ -205,10 +205,10 @@ export default function AboutPage() {
 
           {/* Right: language + Bible coverage cards */}
           <div className="space-y-4">
-            <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
+            <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[#38BDF8]/15 border border-[#38BDF8]/25 flex items-center justify-center">
-                  <Languages size={16} className="text-[#38BDF8]" />
+                <div className="w-8 h-8 rounded-lg bg-[#22D3EE]/15 border border-[#22D3EE]/25 flex items-center justify-center">
+                  <Languages size={16} className="text-[#22D3EE]" />
                 </div>
                 <h3 className="text-sm font-bold text-white"><T k="about.coverage.uiTitle" /></h3>
               </div>
@@ -224,10 +224,10 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
+            <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[#F39B9B]/15 border border-[#F39B9B]/25 flex items-center justify-center">
-                  <BookOpen size={16} className="text-[#F39B9B]" />
+                <div className="w-8 h-8 rounded-lg bg-[#F97316]/15 border border-[#F97316]/25 flex items-center justify-center">
+                  <BookOpen size={16} className="text-[#F97316]" />
                 </div>
                 <h3 className="text-sm font-bold text-white"><T k="about.coverage.bibleTitle" /></h3>
               </div>
@@ -241,7 +241,7 @@ export default function AboutPage() {
                   <span><T k="about.coverage.bibleWeb" /></span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#F59E0B] font-bold mt-0.5">•</span>
+                  <span className="text-[#F5B84A] font-bold mt-0.5">•</span>
                   <span>
                     <T k="about.coverage.bibleNote" />
                   </span>
@@ -249,10 +249,10 @@ export default function AboutPage() {
               </ul>
             </div>
 
-            <div className="bg-[#1C1929] border border-white/[0.06] rounded-2xl p-5">
+            <div className="bg-[#13294A] border border-white/[0.06] rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/25 flex items-center justify-center">
-                  <Globe size={16} className="text-[#A78BFA]" />
+                <div className="w-8 h-8 rounded-lg bg-[#2563EB]/15 border border-[#2563EB]/25 flex items-center justify-center">
+                  <Globe size={16} className="text-[#60A5FA]" />
                 </div>
                 <h3 className="text-sm font-bold text-white"><T k="about.coverage.supportTitle" /></h3>
               </div>
@@ -266,10 +266,10 @@ export default function AboutPage() {
 
       {/* CTA */}
       <section className="py-12 px-6 text-center max-w-3xl mx-auto">
-        <div className="bg-gradient-to-br from-[#1C1929] to-[#2B254E] border border-[#7C3AED]/20 rounded-3xl p-8">
+        <div className="bg-gradient-to-br from-[#13294A] to-[#1A3A66] border border-[#2563EB]/20 rounded-3xl p-8">
           <h2 className="text-2xl font-extrabold text-white mb-2"><T k="about.cta.join" /></h2>
           <p className="text-sm text-[#A09DB1] mb-5"><T k="about.cta.joinSub" /></p>
-          <a href="/" className="inline-block px-8 py-3.5 bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px">
+          <a href="/" className="inline-block px-8 py-3.5 bg-[#F97316] hover:bg-[#EA580C] text-slate-950 font-extrabold rounded-2xl text-sm uppercase tracking-wider transition-all hover:-translate-y-px">
             <T k="about.cta.enter" />
           </a>
         </div>

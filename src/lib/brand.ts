@@ -3,9 +3,18 @@
  *
  * Every brand-facing string, asset path, color, and metadata value in the
  * app derives from this file. A future rebrand should require changing
- * ONLY this file + /public/brand/logo.png + the NEXT_PUBLIC_SITE_URL env var.
+ * ONLY this file + the files under /public/brand/ + the NEXT_PUBLIC_SITE_URL
+ * env var.
  *
  * ⚠️ Do NOT hardcode "Koino" in components — import { BRAND } from here.
+ *
+ * KOINO (www.koino.in) — approved brand: logo public/koino-logo.png
+ * (gradient k+cross mark, wordmark, tagline), tagline
+ * "Faith. Fellowship. Belong.", palette per the approved design tokens
+ * (navy #090D18, secondary navy #0D1322, card #111827, elevated card
+ * #172033, primary purple #873EFF, lavender #B68AFF). The PWA icon set
+ * under /public/brand/ is derived from the approved Koino mark on the
+ * approved navy.
  *
  * Client-safe: only NEXT_PUBLIC_* env vars are read, never private secrets.
  */
@@ -33,23 +42,48 @@ export const BRAND = {
   storeName: "Koino Rewards",
   rewardsName: "Faith Points",
 
-  /** Assets — a brand-neutral path so a rebrand swaps the FILE, not code. */
+  /** Assets — approved Koino artwork (public/koino-logo.png, public/logo.svg). */
   assets: {
-    logo: "/brand/logo.png", // canonical logo (public/brand/logo.png)
-    /** Legacy logo path kept for already-installed PWAs; do not delete. */
+    /** Approved Koino lockup (mark + wordmark) — headers and hero. */
+    logo: "/koino-logo.png",
+    /** Approved Koino mark (square, transparent) — tight squares, avatars. */
+    shield: "/koino-logo.png",
+    /** Full square emblem — auth, hero, splash surfaces (same approved art). */
+    emblem: "/koino-logo.png",
+    /** PWA icon entries (Koino mark on approved navy, maskable-safe). */
+    icon192: "/brand/icon-192.png",
+    icon512: "/brand/icon-512.png",
+    appleTouchIcon: "/brand/apple-touch-icon.png",
+    favicon: "/brand/favicon.ico",
+    /** Legacy Koino logo path kept for already-installed PWAs; do not delete. */
     legacyLogo: "/koino-logo.png",
   },
 
-  /** Design tokens mirrored from globals.css — keep both in sync. */
+  /** Design tokens mirrored from globals.css — keep both in sync.
+   *  Approved Koino palette anchors below; orange/gold/silver/muted stay as
+   *  functional accents from the approved design. */
   colors: {
-    background: "#12101A",
-    surface: "#0B1120",
+    /** Deep navy app background (approved). */
+    background: "#090D18",
+    /** Secondary navy — sidebar / main surface (approved). */
+    surface: "#0D1322",
+    /** Card navy (approved). */
     card: "#111827",
-    primary: "#7C3AED",
-    primarySoft: "#A78BFA",
-    accent: "#38BDF8",
-    pink: "#EC4899",
-    amber: "#F59E0B",
+    /** Elevated card navy (approved). */
+    cardElevated: "#172033",
+    /** Primary purple — primary actions, active nav (approved). */
+    primary: "#873EFF",
+    /** Lavender — soft accents, gradients, hovers (approved). */
+    primarySoft: "#B68AFF",
+    /** Lavender accent slot (approved). */
+    accent: "#B68AFF",
+    /** Orange — CTA highlights and attention. */
+    orange: "#F97316",
+    /** Gold accent (cross flame / premium touches). */
+    gold: "#F5B84A",
+    /** Silver accent (metallic text edges). */
+    silver: "#C3CAD6",
+    /** Muted slate text. */
     muted: "#94A3B8",
   },
 
@@ -57,8 +91,8 @@ export const BRAND = {
   pwa: {
     name: "Koino — Faith. Fellowship. Belong.",
     shortName: "Koino",
-    themeColor: "#12101A",
-    backgroundColor: "#12101A",
+    themeColor: "#090D18",
+    backgroundColor: "#090D18",
   },
 
   /** Email identity (for transactional templates / sender display name). */

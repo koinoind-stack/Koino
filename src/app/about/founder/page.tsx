@@ -35,10 +35,10 @@ export default async function FounderPage() {
                 <img
                   src={founder.profilePhoto}
                   alt={founder.founderName}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-2 border-[#F39B9B]/30"
+                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-2 border-[#F97316]/30"
                 />
               )}
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-3">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-3">
                 <Sparkles size={12} fill="currentColor" /> Meet the Founder
               </div>
               <h1 className="text-2xl font-black text-white mb-1">{founder.founderName}</h1>
@@ -79,7 +79,7 @@ export default async function FounderPage() {
               <div className="text-center pt-4">
                 <a
                   href={`mailto:${founder.email}`}
-                  className="px-6 py-3 rounded-xl bg-[#F39B9B] hover:bg-[#E27B7B] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
+                  className="px-6 py-3 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all"
                 >
                   <T k="founderPage.contact" />
                 </a>
@@ -89,17 +89,17 @@ export default async function FounderPage() {
         ) : (
           // ─── Placeholder (no founder profile published yet) ───
           <div className="text-center py-16">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#F39B9B] to-[#7C3AED] flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#F97316] to-[#2563EB] flex items-center justify-center">
               <Sparkles size={28} className="text-white" />
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-3">
               <Sparkles size={12} fill="currentColor" /> Meet the Founder
             </div>
             <h1 className="text-2xl font-black text-white mb-2">Meet the Founder</h1>
             <p className="text-sm text-[#A09DB1] leading-relaxed max-w-md mx-auto mb-6">
               <T k="founderPage.placeholder" />
             </p>
-            <a href="/about" className="text-[#A78BFA] text-xs font-bold hover:text-white transition-colors">
+            <a href="/about" className="text-[#60A5FA] text-xs font-bold hover:text-white transition-colors">
               <T k="founderPage.back" />
             </a>
           </div>

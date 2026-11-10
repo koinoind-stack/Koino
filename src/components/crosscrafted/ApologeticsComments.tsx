@@ -131,7 +131,7 @@ export default function ApologeticsComments({
   const total = comments.reduce((n, c) => n + 1 + c.replies.length, 0);
 
   return (
-    <div className="bg-[#1C1929] border border-white/[0.06] rounded-xl p-4">
+    <div className="bg-[#13294A] border border-white/[0.06] rounded-xl p-4">
       <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3 flex items-center gap-1">
         <MessageCircle size={11} /> Discussion ({loading ? "…" : total})
       </p>
@@ -150,7 +150,7 @@ export default function ApologeticsComments({
             <button
               onClick={() => post(null, body, () => setBody(""))}
               disabled={posting || !body.trim()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#A78BFA] text-[11px] font-bold hover:bg-[#7C3AED]/25 transition-all disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2563EB]/15 border border-[#2563EB]/30 text-[#60A5FA] text-[11px] font-bold hover:bg-[#2563EB]/25 transition-all disabled:opacity-40"
             >
               {posting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
               Post comment
@@ -159,7 +159,7 @@ export default function ApologeticsComments({
         </div>
       ) : (
         <p className="text-[11px] text-[#64748B] mb-4">
-          <Link href="/login" className="text-[#38BDF8] underline">Sign in</Link> to join the discussion.
+          <Link href="/login" className="text-[#22D3EE] underline">Sign in</Link> to join the discussion.
         </p>
       )}
 
@@ -226,7 +226,7 @@ export default function ApologeticsComments({
                         })
                       }
                       disabled={posting || !replyBody.trim()}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/25 text-[#38BDF8] text-[10px] font-bold hover:bg-[#38BDF8]/20 transition-all disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/25 text-[#22D3EE] text-[10px] font-bold hover:bg-[#22D3EE]/20 transition-all disabled:opacity-40"
                     >
                       {posting ? <Loader2 size={10} className="animate-spin" /> : <Send size={10} />}
                       Reply
@@ -237,7 +237,7 @@ export default function ApologeticsComments({
               {/* Report box */}
               {reportingId === c.id && (
                 <div className="ml-6 mt-2 bg-[#EF4444]/5 border border-[#EF4444]/20 rounded-lg p-2.5">
-                  <p className="text-[10px] font-bold text-[#F39B9B] mb-1.5 flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-[#F97316] mb-1.5 flex items-center gap-1">
                     <Flag size={9} /> Report this comment
                   </p>
                   <input
@@ -291,7 +291,7 @@ function CommentItem({
     <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-2.5">
       <div className="flex items-center gap-2 mb-1">
         <div
-          className={`rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#38BDF8] flex items-center justify-center text-white font-bold shrink-0 ${
+          className={`rounded-lg bg-gradient-to-br from-[#2563EB] to-[#22D3EE] flex items-center justify-center text-white font-bold shrink-0 ${
             isReply ? "w-5 h-5 text-[9px]" : "w-6 h-6 text-[10px]"
           }`}
         >
@@ -305,7 +305,7 @@ function CommentItem({
           {!isReply && onReply && (
             <button
               onClick={onReply}
-              className="text-[9px] font-bold text-[#64748B] hover:text-[#38BDF8] px-1.5 py-0.5 transition-colors"
+              className="text-[9px] font-bold text-[#64748B] hover:text-[#22D3EE] px-1.5 py-0.5 transition-colors"
             >
               Reply
             </button>
@@ -313,7 +313,7 @@ function CommentItem({
           {onReport && (
             <button
               onClick={onReport}
-              className="text-[#64748B] hover:text-[#F39B9B] p-1 transition-colors"
+              className="text-[#64748B] hover:text-[#F97316] p-1 transition-colors"
               aria-label="Report comment"
             >
               <Flag size={10} />
@@ -327,7 +327,7 @@ function CommentItem({
               {node.status !== "hidden" ? (
                 <button
                   onClick={() => onModerate("comment_hide", node.id)}
-                  className="text-[9px] font-bold text-[#F59E0B] hover:text-white px-1"
+                  className="text-[9px] font-bold text-[#F5B84A] hover:text-white px-1"
                 >
                   Hide
                 </button>

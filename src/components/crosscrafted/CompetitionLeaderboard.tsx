@@ -32,7 +32,7 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 size={24} className="text-[#F39B9B] animate-spin" />
+        <Loader2 size={24} className="text-[#F97316] animate-spin" />
       </div>
     );
   }
@@ -49,9 +49,9 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-[#F59E0B]" />
+          <Trophy size={16} className="text-[#F5B84A]" />
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">{t("competition.leaderboard.title")}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#F5B84A]">{t("competition.leaderboard.title")}</p>
             <p className="text-[9px] text-[#64748B]">{t("competition.leaderboard.participants", { n: totalParticipants })}</p>
           </div>
         </div>
@@ -62,10 +62,10 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
 
       {/* My rank (if logged in + has attempts) */}
       {myRank && (
-        <div className="bg-gradient-to-r from-[#7C3AED]/15 to-[#F39B9B]/15 border border-[#7C3AED]/30 rounded-xl p-3">
+        <div className="bg-gradient-to-r from-[#2563EB]/15 to-[#F97316]/15 border border-[#2563EB]/30 rounded-xl p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-[#A78BFA]">{t("competition.leaderboard.yourRank")}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-[#60A5FA]">{t("competition.leaderboard.yourRank")}</p>
               <p className="text-lg font-black text-white">#{myRank.rank}</p>
             </div>
             <div className="text-right">
@@ -93,8 +93,8 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
               transition={{ delay: Math.min(i * 0.03, 0.3) }}
               className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
                 entry.isCurrentUser
-                  ? "bg-[#7C3AED]/10 border-[#7C3AED]/30"
-                  : "bg-[#1C1929] border-white/[0.06]"
+                  ? "bg-[#2563EB]/10 border-[#2563EB]/30"
+                  : "bg-[#13294A] border-white/[0.06]"
               }`}
             >
               {/* Rank */}
@@ -107,7 +107,7 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
               </div>
 
               {/* Avatar */}
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#F39B9B] flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#F97316] flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden">
                 {entry.image ? (
                   <img src={entry.image} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -117,7 +117,7 @@ export default function CompetitionLeaderboard({ competitionId, onClose }: Props
 
               {/* Name + score */}
               <div className="flex-1 min-w-0">
-                <p className={`text-xs font-bold truncate ${entry.isCurrentUser ? "text-[#A78BFA]" : "text-white"}`}>
+                <p className={`text-xs font-bold truncate ${entry.isCurrentUser ? "text-[#60A5FA]" : "text-white"}`}>
                   {entry.isCurrentUser ? t("competition.leaderboard.you") : entry.username}
                 </p>
                 <p className="text-[10px] text-[#94A3B8]">

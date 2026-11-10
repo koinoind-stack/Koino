@@ -242,7 +242,7 @@ export default function MemorialManage({ memorialId }: Props) {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
@@ -253,7 +253,7 @@ export default function MemorialManage({ memorialId }: Props) {
         <Flower2 size={30} className="mx-auto text-[#475569] mb-4" />
         <h1 className="text-lg font-bold text-white mb-2">{t("memorials.manage.openFailed")}</h1>
         <p className="text-sm text-[#94A3B8] mb-6">{denied}</p>
-        <Link href={`/memorials/${memorialId}`} className="text-xs font-bold text-[#C4B5FD] hover:text-white">
+        <Link href={`/memorials/${memorialId}`} className="text-xs font-bold text-[#93C5FD] hover:text-white">
           {t("memorials.manage.backToMemorial")}
         </Link>
       </div>
@@ -291,8 +291,8 @@ export default function MemorialManage({ memorialId }: Props) {
       </Link>
 
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
-          <Flower2 size={18} className="text-[#C4B5FD]" />
+        <div className="w-10 h-10 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center">
+          <Flower2 size={18} className="text-[#93C5FD]" />
         </div>
         <div>
           <h1 className="text-lg font-black text-white">{t("memorials.manage.title")}</h1>
@@ -303,25 +303,25 @@ export default function MemorialManage({ memorialId }: Props) {
       <div className="flex gap-1.5 mb-6 flex-wrap">
         <button
           onClick={() => setTab("edit")}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "edit" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "edit" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
           <Pencil size={12} /> {t("memorials.manage.tab.details")}
         </button>
         <button
           onClick={() => setTab("videos")}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "videos" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "videos" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
           <Film size={12} /> {t("memorials.manage.tab.videos")}
         </button>
         <button
           onClick={() => setTab("settings")}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "settings" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "settings" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
           <Settings2 size={12} /> {t("memorials.manage.tab.display")}
         </button>
         <button
           onClick={() => setTab("managers")}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "managers" ? "bg-[#7C3AED] text-white" : "text-[#94A3B8] hover:text-white"}`}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${tab === "managers" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
         >
           <Users size={12} /> {t("memorials.manage.tab.managers")}
         </button>
@@ -337,7 +337,7 @@ export default function MemorialManage({ memorialId }: Props) {
           />
           {/* lifecycle actions below the form */}
           <div className="max-w-[680px] mx-auto px-4 pb-24 -mt-16">
-            <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4 space-y-3">
+            <div className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4 space-y-3">
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B]">{t("memorials.manage.statusTitle")}</h2>
               <p className="text-[11px] text-[#94A3B8] leading-relaxed">
                 {t("memorials.manage.statusCurrently")} <b className="text-white">{m.status}</b> ({m.visibility}).
@@ -368,21 +368,21 @@ export default function MemorialManage({ memorialId }: Props) {
 
       {tab === "videos" && (
         <div className="space-y-4">
-          <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+          <div className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4">
             <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.addVideoTitle")}</h2>
             <p className="text-[11px] text-[#94A3B8] mb-3 leading-relaxed">
               {t("memorials.manage.addVideoNote")}
             </p>
             <div className="space-y-2.5">
-              <input value={vUrl} onChange={(e) => setVUrl(e.target.value)} placeholder={t("memorials.form.videoUrlPh")} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
+              <input value={vUrl} onChange={(e) => setVUrl(e.target.value)} placeholder={t("memorials.form.videoUrlPh")} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50" />
               <div className="grid grid-cols-[1fr_150px] gap-2.5">
-                <input value={vTitle} onChange={(e) => setVTitle(e.target.value)} placeholder={t("memorials.form.videoTitlePh")} maxLength={150} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
-                <select value={vCat} onChange={(e) => setVCat(e.target.value)} aria-label={t("memorials.form.videoCatAria")} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#7C3AED]/50 [&>option]:bg-[#1C1929]">
+                <input value={vTitle} onChange={(e) => setVTitle(e.target.value)} placeholder={t("memorials.form.videoTitlePh")} maxLength={150} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50" />
+                <select value={vCat} onChange={(e) => setVCat(e.target.value)} aria-label={t("memorials.form.videoCatAria")} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#2563EB]/50 [&>option]:bg-[#13294A]">
                   {MEMORIAL_VIDEO_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(`memorials.videoCat.${c.id}`)}</option>)}
                 </select>
               </div>
-              <input value={vDesc} onChange={(e) => setVDesc(e.target.value)} placeholder={t("memorials.form.videoDescPh")} maxLength={1000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50" />
-              <button onClick={addVideo} disabled={addingVideo || !vUrl.trim() || vTitle.trim().length < 2} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40">
+              <input value={vDesc} onChange={(e) => setVDesc(e.target.value)} placeholder={t("memorials.form.videoDescPh")} maxLength={1000} className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50" />
+              <button onClick={addVideo} disabled={addingVideo || !vUrl.trim() || vTitle.trim().length < 2} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40">
                 {addingVideo ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} {t("memorials.manage.addVideoBtn")}
               </button>
             </div>
@@ -393,7 +393,7 @@ export default function MemorialManage({ memorialId }: Props) {
           ) : (
             <ul className="space-y-2.5">
               {videos.map((v) => (
-                <li key={v.id} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] px-3.5 py-3 flex items-center gap-3">
+                <li key={v.id} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] px-3.5 py-3 flex items-center gap-3">
                   { }
                   <img src={youtubeThumbUrl(v.videoId)} alt="" className="w-20 h-[45px] rounded-lg object-cover border border-white/10 shrink-0" loading="lazy" />
                   <div className="min-w-0 flex-1">
@@ -421,7 +421,7 @@ export default function MemorialManage({ memorialId }: Props) {
       )}
 
       {tab === "settings" && (
-        <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+        <div className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4">
           <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.sectionOnPage")}</h2>
           <p className="text-[11px] text-[#94A3B8] mb-4 leading-relaxed">
             {t("memorials.manage.settingsNote")}
@@ -445,7 +445,7 @@ export default function MemorialManage({ memorialId }: Props) {
                   role="switch"
                   aria-checked={m.display[row.key as keyof typeof m.display]}
                   aria-label={m.display[row.key as keyof typeof m.display] ? t("memorials.manage.switchHideAria", { label: row.label }) : t("memorials.manage.switchShowAria", { label: row.label })}
-                  className={`relative w-10 h-5.5 rounded-full transition-colors shrink-0 ${m.display[row.key as keyof typeof m.display] ? "bg-[#7C3AED]" : "bg-white/[0.08]"}`}
+                  className={`relative w-10 h-5.5 rounded-full transition-colors shrink-0 ${m.display[row.key as keyof typeof m.display] ? "bg-[#2563EB]" : "bg-white/[0.08]"}`}
                   style={{ height: 22 }}
                 >
                   <span
@@ -461,7 +461,7 @@ export default function MemorialManage({ memorialId }: Props) {
 
       {tab === "managers" && (
         <div className="space-y-4">
-          <div className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] p-4">
+          <div className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] p-4">
             <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#64748B] mb-1.5">{t("memorials.manage.inviteTitle")}</h2>
             <p className="text-[11px] text-[#94A3B8] mb-3 leading-relaxed">
               {t("memorials.manage.inviteNote")}
@@ -471,12 +471,12 @@ export default function MemorialManage({ memorialId }: Props) {
                 value={invite}
                 onChange={(e) => setInvite(e.target.value)}
                 placeholder={t("memorials.manage.usernamePh")}
-                className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#7C3AED]/50"
+                className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-[#64748B] outline-none focus:border-[#2563EB]/50"
               />
               <button
                 onClick={inviteManager}
                 disabled={inviting || !invite.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7C3AED] text-white text-xs font-bold disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40"
               >
                 {inviting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} {t("memorials.manage.add")}
               </button>
@@ -485,9 +485,9 @@ export default function MemorialManage({ memorialId }: Props) {
 
           <ul className="space-y-2.5">
             {managers.map((mm) => (
-              <li key={mm.userId} className="rounded-2xl bg-[#111827]/60 border border-white/[0.05] px-4 py-3 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED]/40 to-[#1C1929] flex items-center justify-center shrink-0">
-                  {mm.role === "owner" ? <Crown size={14} className="text-amber-300" /> : <Users size={13} className="text-[#C4B5FD]" />}
+              <li key={mm.userId} className="rounded-2xl bg-[#0F2038]/60 border border-white/[0.05] px-4 py-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2563EB]/40 to-[#13294A] flex items-center justify-center shrink-0">
+                  {mm.role === "owner" ? <Crown size={14} className="text-amber-300" /> : <Users size={13} className="text-[#93C5FD]" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-white truncate">

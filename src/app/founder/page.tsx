@@ -39,7 +39,7 @@ export default function FounderPage() {
       <section className="py-12 sm:py-16 px-6" aria-labelledby="founder-heading">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F39B9B]/10 border border-[#F39B9B]/20 text-[#F39B9B] text-xs font-bold uppercase tracking-wider mb-5">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[#F97316] text-xs font-bold uppercase tracking-wider mb-5">
               <HeartHandshake size={12} /> Meet the Founder
             </div>
             <h1
@@ -56,7 +56,7 @@ export default function FounderPage() {
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Founder photo — swap /public/images/founder.jpg to update */}
             <div className="relative mx-auto w-full max-w-md lg:max-w-none order-1">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-3xl ring-1 ring-white/10 shadow-2xl shadow-black/40 bg-[#1C1929]">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-3xl ring-1 ring-white/10 shadow-2xl shadow-black/40 bg-[#13294A]">
                 <Image
                   src={FOUNDER.image}
                   alt={FOUNDER.imageAlt}
@@ -66,7 +66,7 @@ export default function FounderPage() {
                   className="object-cover object-[50%_18%]"
                 />
               </div>
-              <div className="absolute bottom-4 left-4 rounded-2xl bg-[#12101A]/85 backdrop-blur-md border border-white/10 px-4 py-2.5">
+              <div className="absolute bottom-4 left-4 rounded-2xl bg-[#071120]/85 backdrop-blur-md border border-white/10 px-4 py-2.5">
                 <p className="text-sm font-black text-white leading-tight">
                   {FOUNDER.name}
                 </p>
@@ -79,14 +79,14 @@ export default function FounderPage() {
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                 {FOUNDER.name}
               </h2>
-              <p className="text-sm font-bold text-[#F39B9B] mt-1">
+              <p className="text-sm font-bold text-[#F97316] mt-1">
                 {FOUNDER.role}
               </p>
               <div className="flex items-center gap-2 mt-3 mb-6">
                 {TAGLINES.map((t) => (
                   <span
                     key={t}
-                    className="px-3 py-1 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[#F59E0B] text-[11px] font-bold"
+                    className="px-3 py-1 rounded-full bg-[#F5B84A]/10 border border-[#F5B84A]/25 text-[#F5B84A] text-[11px] font-bold"
                   >
                     <T k={t} />
                   </span>
@@ -136,7 +136,7 @@ export default function FounderPage() {
                   community built on faith, fellowship, and belonging.
                 </p>
                 <p className="text-white font-bold"><T k="founderPage.welcome" /></p>
-                <p className="text-[#F59E0B] font-bold">
+                <p className="text-[#F5B84A] font-bold">
                   Faith. Fellowship. Belong.
                 </p>
               </div>
@@ -154,7 +154,7 @@ export default function FounderPage() {
 
       {/* ─── SECTION 2: LET'S CONNECT ────────────────────────────── */}
       <section className="py-12 px-6" aria-labelledby="connect-heading">
-        <div className="max-w-3xl mx-auto text-center rounded-3xl bg-[#1C1929]/60 border border-white/[0.06] p-8 sm:p-10">
+        <div className="max-w-3xl mx-auto text-center rounded-3xl bg-[#13294A]/60 border border-white/[0.06] p-8 sm:p-10">
           <h2
             id="connect-heading"
             className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-3"
@@ -189,7 +189,7 @@ export default function FounderPage() {
       {/* ─── SECTIONS 3 + 4: DONATION MESSAGE & UPI CARD ─────────── */}
       <section className="py-12 sm:py-16 px-6" aria-labelledby="donation-heading">
         <div className="max-w-3xl mx-auto text-center mb-4">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[#F59E0B] text-xs font-bold uppercase tracking-wider mb-5">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F5B84A]/10 border border-[#F5B84A]/25 text-[#F5B84A] text-xs font-bold uppercase tracking-wider mb-5">
             <HeartHandshake size={12} /> <T k="founderPage.missionBadge" />
           </div>
           <h2
@@ -245,7 +245,7 @@ export default function FounderPage() {
           </p>
 
           <div className="pt-5">
-            <p className="text-xl font-black text-[#F59E0B]">
+            <p className="text-xl font-black text-[#F5B84A]">
               Together, we can help this community grow.
             </p>
             <p className="mt-3">

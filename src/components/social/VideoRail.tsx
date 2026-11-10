@@ -47,10 +47,10 @@ export default function VideoRail() {
     <div className="mb-5">
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="inline-flex items-center gap-1.5 text-sm font-extrabold text-white">
-          <Clapperboard size={15} className="text-[#C4B5FD]" />
+          <Clapperboard size={15} className="text-[#93C5FD]" />
           {t("videoRail.title")}
         </h3>
-        <a href="/videos" className="text-[11px] font-bold text-[#A78BFA] hover:text-white">
+        <a href="/videos" className="text-[11px] font-bold text-[#60A5FA] hover:text-white">
           {t("videoRail.browseLibrary")}
         </a>
       </div>
@@ -59,7 +59,7 @@ export default function VideoRail() {
           <a
             key={v.id}
             href={`/videos/${v.slug}`}
-            className="group shrink-0 w-52 bg-[#1C1929] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#7C3AED]/40 transition-all"
+            className="group shrink-0 w-52 bg-[#13294A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#2563EB]/40 transition-all"
           >
             <div className="relative aspect-video bg-black/60">
               {(v.thumbnailUrl || (v.youtubeId ? `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg` : null)) ? (
@@ -76,7 +76,7 @@ export default function VideoRail() {
                 </div>
               )}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                <div className="w-9 h-9 rounded-full bg-[#7C3AED] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-[#2563EB] flex items-center justify-center">
                   <Play size={13} fill="white" className="ml-0.5" />
                 </div>
               </div>
@@ -87,11 +87,11 @@ export default function VideoRail() {
               )}
             </div>
             <div className="p-2.5">
-              <p className="text-xs font-bold text-white leading-snug line-clamp-2 group-hover:text-[#C4B5FD] transition-colors">
+              <p className="text-xs font-bold text-white leading-snug line-clamp-2 group-hover:text-[#93C5FD] transition-colors">
                 {v.title}
               </p>
               {v.summary && <p className="text-[10px] text-[#94A3B8] mt-1 line-clamp-1">{v.summary}</p>}
-              <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-extrabold text-[#C4B5FD]">
+              <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-extrabold text-[#93C5FD]">
                 <Play size={9} fill="currentColor" /> {t("videoRail.watchNow")}
               </span>
             </div>
