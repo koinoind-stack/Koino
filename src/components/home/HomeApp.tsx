@@ -211,7 +211,6 @@ const MOBILE_MORE_VIEWS: { id: View; icon: typeof Search; labelKey: string }[] =
   { id: "churches", icon: Church, labelKey: "side.churches" },
   { id: "notifications", icon: Bell, labelKey: "side.notifications" },
   { id: "trivia", icon: Award, labelKey: "nav.trivia" },
-  { id: "watch", icon: MonitorPlay, labelKey: "side.watch" },
   { id: "events", icon: Calendar, labelKey: "side.events" },
   { id: "prayer-wall", icon: HeartHandshake, labelKey: "side.prayerWall" },
   { id: "apologetics", icon: ListChecks, labelKey: "side.apologetics" },
